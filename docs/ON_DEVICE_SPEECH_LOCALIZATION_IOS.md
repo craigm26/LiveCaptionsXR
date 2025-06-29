@@ -1,94 +1,58 @@
 # 📱 On-Device Speech Localization and AR Captioning (iOS)
 
-This guide outlines a prototype approach for running **Gemma 3n** on an iPhone to capture speech, localize the speaker and render captions in AR. Modern iPhones provide stereo microphones, high quality cameras and ARKit which enable this entirely on-device.
+This guide outlines the iOS-specific implementation details for the speech localization and AR captioning features of `live_captions_xr`, following the architecture defined in `ARCHITECTURE.md`.
 
-## Overview of the Flow
+## Overview of the iOS Implementation
 
-1. **Capture Stereo Audio** – Configure `AVAudioSession` for the built-in mics so that left/right channels reflect sound direction.
-2. **Estimate Direction** – Compute the level difference (or time delay) between stereo channels to derive a horizontal angle to the speaker.
-3. **Transcribe with Gemma 3n** – Down‑mix to mono and feed audio buffers into a Gemma 3n ASR instance for realtime transcripts.
-4. **Visual Localization (optional)** – Use Vision or ARKit to detect faces and refine the speaker position.
-5. **Display Captions** – Show subtitles either as 2D overlays on the camera feed or as 3D bubbles anchored in ARKit.
+The iOS implementation leverages Apple's native frameworks for audio capture, computer vision, and augmented reality, which are called from the Dart service layer via platform channels.
 
-## Swift Skeleton
+1.  **Stereo Audio Capture (`AVAudioEngine`):** The native Swift code configures an `AVAudioSession` for stereo recording and uses `AVAudioEngine` to capture high-quality stereo PCM buffers from the device's microphone array.
+2.  **Direction Estimation (Accelerate Framework):** The stereo buffers are analyzed to estimate the speaker's direction. This can be done using a basic amplitude comparison or a more advanced TDOA/GCC-PHAT algorithm (as defined in PRD #3), implemented efficiently using the Accelerate framework.
+3.  **Gemma 3n Inference (`MediaPipeTasks`):** The audio is downmixed to mono and, along with any visual context, is sent to the `MediaPipeTasks` framework to be processed by the Gemma 3n model for transcription.
+4.  **Visual Localization (`Vision` & `ARKit`):** The camera feed is processed by the Vision framework to detect faces and identify the active speaker. ARKit is used to determine the 3D position of the detected face.
+5.  **AR Caption Rendering (`ARKit` & `SceneKit`/`RealityKit`):** The final transcription and position are used to create and place a 3D caption bubble in the AR scene using `ARKit`.
+
+## Swift Implementation Snippet (Conceptual)
+
+This snippet illustrates how the native iOS components work together.
 
 ```swift
 import AVFoundation
+import MediaPipeTasksGenAI
+import ARKit
 
-class SpeechLocalizer {
-    private let gemmaModel = Gemma3nASR() // pseudo class
-    private let audioEngine = AVAudioEngine()
-    private let inputNode: AVAudioInputNode
-    private let audioFormat: AVAudioFormat
+// This class would be called from the Flutter app via platform channels.
+class LocalizationAndCaptioningEngine {
+    private let gemmaHelper: Gemma3nInference // Manages MediaPipe
+    private let arSession: ARSession
+    
+    // ... initialization ...
 
-    init() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.record, options: [])
-        try session.setMode(.measurement)
-        try session.setActive(true)
-
-        if let builtIn = session.availableInputs?.first(where: { $0.portType == .builtInMic }) {
-            try session.setPreferredInput(builtIn)
-            if let dataSource = builtIn.dataSources?.first(where: { $0.orientation == .front }) {
-                if dataSource.supportedPolarPatterns?.contains(.stereo) == true {
-                    try dataSource.setPreferredPolarPattern(.stereo)
-                }
-                try builtIn.setPreferredDataSource(dataSource)
-            }
-        }
-        inputNode = audioEngine.inputNode
-        audioFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: audioFormat) { [weak self] buffer, _ in
-            self?.process(buffer)
-        }
-    }
-
-    func start() throws {
-        audioEngine.prepare(); try audioEngine.start()
-    }
-
-    private func process(_ buffer: AVAudioPCMBuffer) {
-        guard let channels = buffer.floatChannelData, buffer.format.channelCount == 2 else { return }
-        let left = channels[0], right = channels[1]
-        let frames = Int(buffer.frameLength)
-        var leftSum: Float = 0, rightSum: Float = 0
-        vDSP_measqv(left, 1, &leftSum, UInt(frames))
-        vDSP_measqv(right, 1, &rightSum, UInt(frames))
-        let angle = (leftSum - rightSum) / (leftSum + rightSum) * (.pi/2)
-
-        let mono = downmix(buffer)
-        gemmaModel.transcribeAsync(audioPCM: mono) { [weak self] text in
-            self?.onTranscription(text, angle)
+    // Called when a new audio buffer is available from AVAudioEngine
+    func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        // 1. Estimate direction from the stereo buffer
+        let angle = estimateDirection(from: buffer) // Implements TDOA
+        
+        // 2. Get transcription from Gemma 3n via MediaPipe
+        let monoBuffer = downmixToMono(buffer: buffer)
+        gemmaHelper.transcribeAsync(audioPCM: monoBuffer) { [weak self] text in
+            // 3. Once transcription is ready, get the latest AR frame
+            guard let self = self, let frame = self.arSession.currentFrame else { return }
+            
+            // 4. (Optional) Find the speaker's face in the frame
+            let faceTransform = self.findSpeakerFace(in: frame)
+            
+            // 5. Create an AR anchor and send its ID back to Flutter
+            let anchor = self.createAnchor(angle: angle, faceTransform: faceTransform, cameraTransform: frame.camera.transform)
+            self.arSession.add(anchor: anchor)
+            
+            // 6. Send the final data (text and anchor ID) back to Flutter
+            self.sendResultToFlutter(text: text, anchorID: anchor.identifier)
         }
     }
-
-    private func downmix(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer { /* ... */ }
-    var onTranscription: (_ text: String, _ angle: Float) -> Void = { _, _ in }
+    
+    // ... other helper methods for TDOA, AR anchor creation, etc. ...
 }
 ```
 
-## Displaying Captions
-
-- **2D Mode** – Overlay a `UILabel` near the detected face or map the angle to a screen position.
-- **3D Mode** – Use ARKit to create an `ARAnchor` in the direction of the sound and attach a `SceneKit` text bubble. A billboard constraint keeps the text facing the camera.
-
-```swift
-func anchorForSpeaker(angle: Float, distance: Float = 2.0) -> ARAnchor {
-    guard let frame = sceneView.session.currentFrame else {
-        return ARAnchor(transform: matrix_identity_float4x4)
-    }
-    var dir = simd_float4(0, 0, -1, 0)
-    let rot = simd_float4x4(SCNMatrix4MakeRotation(angle, 0, 1, 0))
-    dir = rot * dir
-    var transform = matrix_identity_float4x4
-    transform.columns.3.x = dir.x * distance
-    transform.columns.3.z = dir.z * distance
-    return ARAnchor(transform: frame.camera.transform * transform)
-}
-```
-
-The caption node can be a `SCNText` geometry with a semi‑transparent `SCNPlane` background, fading in and out as speech is detected.
-
----
-
-This document complements the main PRD by illustrating how the **Gemma 3n** audio model can be paired with ARKit on iOS. Together these components enable live, spatial captions that appear next to the speaker—useful both for experimentation on iPhone and for informing future cross‑platform work.
+This native Swift code handles the high-performance, real-time processing, while the Flutter app manages the UI and overall application logic. This approach ensures a responsive user experience by keeping heavy computations off the main Dart thread.

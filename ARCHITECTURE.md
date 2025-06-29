@@ -1,393 +1,107 @@
-# live_captions_xr: System Architecture Documentation
+# LiveCaptionsXR System Architecture
 
-**Comprehensive technical architecture for multimodal accessibility application**
-
----
-
-## Overview
-
-live_captions_xr employs a **layered, service-oriented architecture** designed specifically for real-time multimodal AI processing on mobile devices. The architecture prioritizes accessibility, performance, and maintainability while supporting the unique requirements of on-device Gemma 3n integration.
+**A layered, service-oriented architecture for real-time, on-device multimodal AI.**
 
 ---
 
-## High-Level Architecture
+## 1. High-Level Architecture
+
+The system is designed with a clear separation of concerns, organized into four primary layers. This layered approach ensures that the application is scalable, maintainable, and testable.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                           │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐   │
-│  │   Flutter UI    │ │  Accessibility  │ │    AR Overlay   │   │
-│  │   Components    │ │    Features     │ │    System       │   │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘   │
+│                    Presentation Layer (Flutter UI)              │
+│     (Renders 2D/3D Captions, Manages User Interaction)          │
 └─────────────────────────────────────────────────────────────────┘
-                              │
+                                ▲
+                                │ (State Updates)
+                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Business Logic Layer                        │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐   │
-│  │   Cubits/BLoC   │ │    Use Cases    │ │   Repositories  │   │
-│  │  State Mgmt     │ │   (Features)    │ │   (Data Layer)  │   │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘   │
+│                 Business Logic Layer (Cubit/BLoC)               │
+│      (Manages State, Handles User Input, Orchestrates Services) │
 └─────────────────────────────────────────────────────────────────┘
-                              │
+                                ▲
+                                │ (Service Calls)
+                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Service Layer                              │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐   │
-│  │  Gemma 3n Core  │ │   Audio/Visual  │ │   Platform      │   │
-│  │   AI Service    │ │    Services     │ │    Services     │   │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘   │
+│                       Service Layer                             │
+│ (Audio Processing, Visual Identification, Gemma 3n Inference)   │
 └─────────────────────────────────────────────────────────────────┘
-                              │
+                                ▲
+                                │ (Platform Channels / FFI)
+                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Data/Platform Layer                        │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐   │
-│  │  TensorFlow     │ │   Hardware      │ │   Local         │   │
-│  │     Lite        │ │   Interfaces    │ │   Storage       │   │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘   │
+│                  Data / Platform Layer (Native)                 │
+│   (MediaPipe, Camera/Audio APIs, Hardware Abstraction)          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Detailed Layer Architecture
+## 2. Detailed Layer Breakdown
 
-### 1. Presentation Layer
+### 2.1. Presentation Layer
 
-#### Flutter UI Components
-- **Responsive Widgets**: Adaptive layouts for various screen sizes and orientations
-- **Accessibility Widgets**: Custom widgets with built-in WCAG 2.2 AA compliance
-- **Animation System**: Smooth transitions and visual feedback for user interactions
+*   **Framework:** Flutter
+*   **Responsibilities:**
+    *   Rendering the user interface, including both the 2D HUD and the 3D AR caption modes.
+    *   Handling user input and gestures.
+    *   Displaying the final, processed captions to the user.
+    *   Subscribing to state updates from the Business Logic Layer and rebuilding the UI accordingly.
 
-#### Accessibility Features
-- **High Contrast Themes**: Multiple contrast levels for various visual needs
-- **Text Scaling**: Dynamic font sizing from 14pt to 32pt
-- **Haptic Patterns**: Customizable vibration sequences for different alert types
-- **LED Flash Integration**: Emergency alerts using device flash/torch
+### 2.2. Business Logic Layer
 
-#### AR Overlay System
-- **Spatial Audio Visualization**: 360-degree sound source mapping
-- **Object Highlighting**: Real-time visual emphasis of detected objects
-- **Directional Indicators**: Visual arrows and distance indicators
+*   **Framework:** `flutter_bloc` (primarily using the Cubit pattern).
+*   **Responsibilities:**
+    *   Managing the application's state (e.g., recording status, caption history, UI mode).
+    *   Responding to UI events and orchestrating the necessary calls to the Service Layer.
+    *   Providing streams of state that the Presentation Layer can listen to.
+    *   This layer acts as the "brain" of the application, connecting the UI to the underlying services.
 
-### 2. Business Logic Layer
+### 2.3. Service Layer
 
-#### State Management (Cubit Pattern)
-```dart
-// Core navigation state
-class NavigationCubit extends Cubit<int> {
-  NavigationCubit() : super(0);
-  void setTab(int index) => emit(index);
-}
+*   **Framework:** Pure Dart classes, managed with `get_it` for dependency injection.
+*   **Responsibilities:**
+    *   Encapsulating specific business functionalities into distinct services.
+    *   **`Gemma3nService`:** Manages the interaction with the native Gemma 3n inference engine via platform channels. It prepares data for the model and parses the results.
+    *   **`AudioService`:** Handles the capture of stereo audio, performs TDOA analysis for direction estimation, and provides audio buffers for transcription.
+    *   **`VisualService`:** Manages the camera feed and uses the Vision framework for face detection and speaker identification.
+    *   **`LocalizationService`:** Fuses data from audio, visual, and IMU sources to provide a single, robust estimate of the speaker's position.
 
-// Sound detection state management
-class SoundDetectionCubit extends Cubit<SoundDetectionState> {
-  SoundDetectionCubit() : super(SoundDetectionInitial());
-  
-  Future<void> detectSound(SoundEvent event) async {
-    emit(SoundDetectionInProgress());
-    try {
-      // Process sound through Gemma 3n
-      final result = await _aiService.processSoundEvent(event);
-      emit(SoundDetectionSuccess(result));
-    } catch (e) {
-      emit(SoundDetectionError(e.toString()));
-    }
-  }
-}
-```
+### 2.4. Data / Platform Layer
 
-#### Feature Use Cases
-- **Sound Detection**: Real-time audio processing and classification
-- **Visual Identification**: Object detection and scene understanding
-- **Localization**: Spatial audio mapping and TDOA calculations
-- **Multimodal Fusion**: Combining audio, visual, and contextual data
-
-### 3. Service Layer Architecture
-
-#### Core AI Service (Gemma 3n Integration)
-```dart
-class Gemma3nService {
-  static const String _modelPath = 'assets/models/gemma3n_optimized.tflite';
-  late final Interpreter _interpreter;
-  
-  // Singleton pattern for model management
-  static final Gemma3nService _instance = Gemma3nService._internal();
-  factory Gemma3nService() => _instance;
-  Gemma3nService._internal();
-  
-  Future<void> initialize() async {
-    try {
-      _interpreter = await Interpreter.fromAsset(_modelPath);
-      _configureOptimizations();
-    } catch (e) {
-      // Fallback to individual TFLite models
-      await _initializeFallbackModels();
-    }
-  }
-  
-  void _configureOptimizations() {
-    // Enable hardware acceleration
-    _interpreter.useNNAPI = true;
-    _interpreter.useGpuDelegate = true;
-    
-    // Configure threading for real-time processing
-    _interpreter.setNumThreads(Platform.numberOfProcessors);
-  }
-}
-```
-
-#### Audio Processing Service
-```dart
-class AudioService {
-  final Stream<SoundEvent> _soundEventStream = StreamController<SoundEvent>.broadcast().stream;
-  Timer? _processingTimer;
-  
-  Future<void> startListening() async {
-    // Initialize microphone stream
-    await _initializeMicrophone();
-    
-    // Start continuous processing
-    _processingTimer = Timer.periodic(Duration(milliseconds: 100), (timer) {
-      _processAudioFrame();
-    });
-  }
-  
-  void _processAudioFrame() async {
-    final audioBuffer = await _captureAudioFrame();
-    final soundEvent = await _classifyAudio(audioBuffer);
-    
-    if (soundEvent.confidence > 0.7) {
-      _soundEventController.add(soundEvent);
-    }
-  }
-}
-```
-
-#### Visual Processing Service
-```dart
-class VisualIdentificationService {
-  late final CameraController _cameraController;
-  final Gemma3nService _aiService = Gemma3nService();
-  
-  Future<List<VisualObject>> identifyObjects() async {
-    final image = await _cameraController.takePicture();
-    final imageBytes = await image.readAsBytes();
-    
-    // Preprocess image for model input
-    final processedImage = _preprocessImage(imageBytes);
-    
-    // Run inference through Gemma 3n
-    final results = await _aiService.runImageInference(processedImage);
-    
-    return _parseResults(results);
-  }
-}
-```
-
-### 4. Data/Platform Layer
-
-#### TensorFlow Lite Integration
-- **Model Management**: Efficient loading and caching of TFLite models
-- **Hardware Acceleration**: NNAPI, GPU delegate, and Metal delegate support
-- **Memory Optimization**: Efficient tensor allocation and garbage collection
-
-#### Hardware Interfaces
-- **Audio Interface**: High-quality audio capture with noise cancellation
-- **Camera Interface**: Real-time video processing with auto-focus and stabilization
-- **Sensors**: Accelerometer and gyroscope for device orientation
-
-#### Local Storage
-- **Settings Persistence**: User preferences and accessibility configurations
-- **Cache Management**: Temporary storage for processed audio/visual data
-- **Model Storage**: Optimized storage of TensorFlow Lite model files
+*   **Framework:** Native code (Kotlin for Android, Swift for iOS).
+*   **Responsibilities:**
+    *   **MediaPipe Integration:** This is the core of the platform layer. It involves loading the Gemma 3n `.task` model and running inference using the MediaPipe Tasks library. This provides hardware-accelerated, optimized performance.
+    *   **Hardware Abstraction:** Direct interaction with the device's hardware, including the microphone array (via `AVAudioEngine` or `AudioRecord`) and the camera (`CameraX` or `AVCaptureSession`).
+    *   **Platform Channels/FFI:** Exposes the native functionalities (like MediaPipe inference) to the Dart Service Layer.
 
 ---
 
-## Data Flow Architecture
+## 3. Core Data Flow: From Sound to Caption
 
-### Multimodal Processing Pipeline
-
-```
-[Microphone] ──┐
-               ├──► [Audio Buffer] ──┐
-[Camera] ──────┼──► [Image Frame] ───├──► [Gemma 3n Core] ──► [Context Response]
-               │                    │           │
-[User Input] ──┘    [Preprocessing] ─┘           │
-                                                 ▼
-                                      [Post-processing] ──► [UI Update]
-                                                 │
-                                                 ▼
-                                      [Accessibility Output]
-                                      (Visual/Haptic/Audio)
-```
-
-### Real-time Processing Flow
-
-1. **Continuous Capture**: Audio and visual data streams captured simultaneously
-2. **Buffer Management**: Circular buffers maintain recent data for context
-3. **Trigger Detection**: Audio events trigger multimodal analysis
-4. **Fusion Processing**: Gemma 3n processes combined inputs
-5. **Response Generation**: Natural language descriptions with spatial context
-6. **Accessibility Delivery**: Multi-channel feedback delivery to user
+1.  **Audio Capture (Platform Layer):** The `AudioService` initiates stereo audio capture on the native side.
+2.  **Direction Estimation (Service Layer):** The `AudioService` receives stereo buffers and uses TDOA (Task 3) to calculate a directional angle.
+3.  **ASR (Service/Platform Layer):** The mono audio stream is passed to the `Gemma3nService`, which sends it over a platform channel to the native MediaPipe backend for streaming transcription (Task 4).
+4.  **Visual Identification (Service/Platform Layer):** Simultaneously, the `VisualService` analyzes the camera feed to identify the active speaker (Task 6).
+5.  **Localization Fusion (Service Layer):** The `LocalizationService` takes the audio angle, the visual position, and the device's IMU data and uses a Kalman filter to produce a stable 3D position for the speaker (Task 11).
+6.  **State Update (Business Logic Layer):** The services report the transcription and the speaker's position to the relevant Cubits.
+7.  **AR Anchor Creation (Service/Platform Layer):** The `ARAnchorManager` creates an `ARAnchor` at the fused 3D position (Task 7).
+8.  **UI Rendering (Presentation Layer):** The UI listens to the state changes and renders a 2D or 3D caption at the appropriate location, attached to the newly created anchor (Tasks 8 & 9).
 
 ---
 
-## Performance Optimization Strategies
+## 4. Key Design Decisions
 
-### Memory Management
-```dart
-class MemoryOptimizer {
-  static const int maxBufferSize = 1024 * 1024; // 1MB
-  final Queue<AudioFrame> _audioBuffer = Queue<AudioFrame>();
-  final Queue<ImageFrame> _imageBuffer = Queue<ImageFrame>();
-  
-  void addAudioFrame(AudioFrame frame) {
-    if (_audioBuffer.length * frame.sizeInBytes > maxBufferSize) {
-      _audioBuffer.removeFirst().dispose();
-    }
-    _audioBuffer.addLast(frame);
-  }
-  
-  void optimizeMemoryUsage() {
-    // Force garbage collection during idle periods
-    if (_isIdle()) {
-      Future.delayed(Duration.zero, () {
-        // Trigger GC
-        List.generate(1000, (i) => []).clear();
-      });
-    }
-  }
-}
-```
-
-### Processing Optimization
-- **Asynchronous Processing**: Non-blocking inference execution
-- **Priority Queuing**: Emergency sounds processed immediately
-- **Adaptive Quality**: Dynamic quality adjustment based on device performance
-- **Caching Strategy**: Common responses cached for immediate delivery
-
-### Battery Life Optimization
-- **Adaptive Refresh Rates**: Reduce processing frequency during stable periods
-- **Hardware Acceleration**: Utilize dedicated AI chips when available
-- **Background Processing**: Efficient background execution for continuous monitoring
+*   **Native Inference with MediaPipe:** Instead of using a pure Dart TFLite interpreter, we are using the official Google MediaPipe Tasks library on the native side.
+    *   **Rationale:** MediaPipe is highly optimized for running Google's models (like Gemma) on mobile devices. It provides access to hardware acceleration (GPU, NNAPI, CoreML) that is difficult to achieve with a generic Dart library, resulting in significantly better performance and lower battery consumption.
+*   **Cubit for State Management:** We favor the simpler Cubit pattern over the more verbose BLoC pattern for most state management.
+    *   **Rationale:** Cubit provides a straightforward way to manage state with less boilerplate, which is sufficient for most of our UI needs. BLoC is reserved for more complex scenarios with intricate event-to-state logic.
+*   **Modular PRD-Driven Development:** The project is broken down into 14 distinct, manageable tasks, each with its own detailed PRD.
+    *   **Rationale:** This approach provides extreme clarity for both human and AI developers, ensuring that every component is built to a clear specification. It also allows for parallel development and easier testing.
 
 ---
 
-## Error Handling and Resilience
+## 5. Conclusion
 
-### Fallback Strategies
-```dart
-class AIServiceFallbackHandler {
-  final List<AIProcessor> _processors = [
-    Gemma3nProcessor(),           // Primary: Full multimodal
-    IndividualTFLiteProcessor(),  // Fallback: Separate audio/visual models
-    BasicProcessor(),             // Emergency: Simple pattern matching
-  ];
-  
-  Future<ProcessingResult> processWithFallback(InputData data) async {
-    for (final processor in _processors) {
-      try {
-        if (await processor.isAvailable()) {
-          return await processor.process(data);
-        }
-      } catch (e) {
-        _logger.warning('Processor ${processor.runtimeType} failed: $e');
-        continue;
-      }
-    }
-    throw ProcessingException('All processors failed');
-  }
-}
-```
-
-### Error Recovery
-- **Graceful Degradation**: Automatic fallback to simpler processing models
-- **Service Restart**: Automatic service recovery from crashes
-- **User Notification**: Clear error communication with recovery suggestions
-
----
-
-## Security and Privacy
-
-### Data Protection
-- **On-device Processing**: No sensitive data transmitted to external servers
-- **Memory Encryption**: Temporary data encrypted in memory during processing
-- **Secure Storage**: User preferences encrypted using platform security features
-
-### Privacy Compliance
-- **No Data Collection**: Zero telemetry or usage tracking
-- **Local Processing**: Complete functionality without internet connection
-- **User Control**: Full user control over data processing and storage
-
----
-
-## Testing Architecture
-
-### Unit Testing Strategy
-```dart
-// Service layer testing
-class MockGemma3nService extends Mock implements Gemma3nService {}
-
-void main() {
-  group('SoundDetectionCubit', () {
-    late SoundDetectionCubit cubit;
-    late MockGemma3nService mockAIService;
-    
-    setUp(() {
-      mockAIService = MockGemma3nService();
-      cubit = SoundDetectionCubit(mockAIService);
-    });
-    
-    test('should emit success state when sound detected', () async {
-      // Test implementation
-    });
-  });
-}
-```
-
-### Integration Testing
-- **End-to-end Workflows**: Complete audio-to-response pipelines
-- **Hardware Integration**: Testing with actual device sensors
-- **Performance Testing**: Latency and memory usage validation
-
-### Accessibility Testing
-- **Screen Reader Compatibility**: Automated VoiceOver/TalkBack testing
-- **Contrast Validation**: WCAG 2.2 AA compliance verification
-- **User Testing**: Real-world testing with D/HH community members
-
----
-
-## Deployment and Scalability
-
-### Build Configuration
-```yaml
-# pubspec.yaml - Production configuration
-flutter:
-  assets:
-    - assets/models/
-    - assets/icons/
-    - assets/sounds/
-  
-dependencies:
-  tflite_flutter: ^0.11.0
-  flutter_bloc: ^8.1.5
-  camera: ^0.10.0
-  permission_handler: ^10.0.0
-```
-
-### Platform-specific Optimizations
-- **iOS**: Metal Performance Shaders for GPU acceleration
-- **Android**: NNAPI integration for hardware-specific AI acceleration
-- **Cross-platform**: Shared business logic with platform-specific implementations
-
-### Future Scalability
-- **Modular Architecture**: Easy addition of new AI models and features
-- **Plugin System**: Support for third-party accessibility extensions
-- **API Layer**: Potential for cloud backup and synchronization (optional)
-
----
-
-## Conclusion
-
-This architecture provides a solid foundation for real-time multimodal AI processing while maintaining the flexibility needed for accessibility applications. The layered design ensures maintainability, testability, and scalability while the service-oriented approach enables easy integration of advanced AI capabilities like Gemma 3n.
-
-The architecture successfully balances performance requirements with accessibility needs, creating a system that can deliver real-time insights while remaining inclusive and user-friendly for the D/HH community.
+This architecture is designed to be robust, performant, and scalable. By leveraging the power of native MediaPipe for inference and maintaining a clean separation of concerns through a layered approach, we can deliver a high-quality, real-time AR captioning experience. The PRD-driven workflow ensures that development is focused and aligned with the project's core goals.

@@ -1,15 +1,12 @@
-# live_captions_xr
+# LiveCaptionsXR Flutter Application
 
-A new Flutter project.
+This directory contains the main Flutter application for LiveCaptionsXR.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project is the user-facing application that brings together all the services and features defined in the root-level `/prd` directory.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+For an overview of the entire project, please see the main [README.md](../README.md) in the root directory.
 
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
