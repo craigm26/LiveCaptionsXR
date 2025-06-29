@@ -10,6 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
+  flutter_bloc: ^9.1.1
+  go_router: ^15.2.4
+  get_it: ^8.0.3
+  tflite_flutter: ^0.11.0
   # Add your other dependencies here
 
 dev_dependencies:

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../navigation/web_navigation_cubit.dart';
 
 class WebNavigationBar extends StatelessWidget {
   const WebNavigationBar({super.key});
@@ -88,7 +90,7 @@ class WebNavigationBar extends StatelessWidget {
                     // Demo Toggle Button
                     ElevatedButton.icon(
                       onPressed: () {
-                        // TODO: Implement demo mode toggle
+                        context.read<WebNavigationCubit>().startDemo();
                       },
                       icon: const Icon(
                         Icons.play_arrow,
@@ -126,7 +128,9 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = GoRouter.of(context).location == route;
+    final isActive =
+        GoRouter.of(context).routeInformationProvider.value.uri.toString() ==
+            route;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: InkWell(

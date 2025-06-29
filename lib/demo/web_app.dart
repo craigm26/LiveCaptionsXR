@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../shared/theme/app_theme.dart';
 import 'web_demo_screen.dart';
-import 'web_navigation_cubit.dart';
+import 'navigation/web_navigation_cubit.dart';
 
 class live_captions_xrWebApp extends StatelessWidget {
   const live_captions_xrWebApp({Key? key}) : super(key: key);
