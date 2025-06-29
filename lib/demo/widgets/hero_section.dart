@@ -86,7 +86,7 @@ class HeroSection extends StatelessWidget {
                   SizedBox(
                     width: size.width * 0.4,
                     child: Text(
-                      'live_captions_xr delivers instant, accurate closed captions for spoken content in any environment. Powered by Gemma 3n, our AI ensures accessibility and inclusion for everyone, everywhere.',
+                      "live_captions_xr delivers instant, accurate closed captions for spoken content in any environment. Powered by Gemma 3n and Google's MediaPipe for high-performance, on-device AI.",
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontSize: 18,
                         height: 1.6,

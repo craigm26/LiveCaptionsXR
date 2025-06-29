@@ -33,12 +33,12 @@ class TechnologySection extends StatelessWidget {
           
           const SizedBox(height: 64),
           
-          Row(
-            children: [
-              // Left Side - Gemma 3n Highlight
-              Expanded(
-                flex: 2,
-                child: Container(
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // Left Side - Gemma 3n Highlight
+                Container(
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -126,14 +126,11 @@ class TechnologySection extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-              
-              const SizedBox(width: 32),
-              
-              // Right Side - Tech Stack
-              Expanded(
-                flex: 3,
-                child: Column(
+                
+                const SizedBox(width: 32),
+                
+                // Right Side - Tech Stack
+                Column(
                   children: [
                     // Mobile Development
                     _TechStackCard(
@@ -153,8 +150,8 @@ class TechnologySection extends StatelessWidget {
                       title: 'AI & Machine Learning',
                       technologies: [
                         _TechItem(name: 'Gemma 3n', description: 'Multimodal AI model'),
-                        _TechItem(name: 'TensorFlow Lite', description: 'Mobile inference'),
-                        _TechItem(name: 'ONNX', description: 'Model optimization'),
+                        _TechItem(name: 'Google MediaPipe', description: 'On-device inference engine'),
+                        _TechItem(name: 'TDOA & Kalman Filter', description: 'Advanced localization'),
                       ],
                       color: Colors.green,
                     ),
@@ -165,16 +162,16 @@ class TechnologySection extends StatelessWidget {
                     _TechStackCard(
                       title: 'Hardware Integration',
                       technologies: [
-                        _TechItem(name: 'ARCore/ARKit', description: 'Augmented reality'),
-                        _TechItem(name: 'Camera API', description: 'Real-time video processing'),
-                        _TechItem(name: 'Audio Engine', description: 'Spatial audio analysis'),
+                        _TechItem(name: 'ARKit / ARCore', description: 'Augmented reality'),
+                        _TechItem(name: 'AVAudioEngine / AudioRecord', description: 'Stereo audio capture'),
+                        _TechItem(name: 'Vision Framework', description: 'Real-time face detection'),
                       ],
                       color: Colors.purple,
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           
           const SizedBox(height: 64),
@@ -216,7 +213,7 @@ class TechnologySection extends StatelessWidget {
                     const Icon(Icons.arrow_forward, color: Colors.grey),
                     _ArchLayer(
                       title: 'Processing Layer',
-                      components: ['Gemma 3n', 'TensorFlow Lite', 'Audio DSP'],
+                      components: ['Gemma 3n', 'MediaPipe', 'Kalman Filter'],
                       color: Colors.green,
                     ),
                     const Icon(Icons.arrow_forward, color: Colors.grey),
@@ -324,26 +321,24 @@ class _TechStackCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tech.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tech.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
-                      Text(
-                        tech.description,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                    ),
+                    Text(
+                      tech.description,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),

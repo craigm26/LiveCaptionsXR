@@ -166,9 +166,9 @@ class AboutSection extends StatelessWidget {
                       items: [
                         'Flutter cross-platform development',
                         'Gemma 3n multimodal integration',
-                        'TensorFlow Lite mobile optimization',
-                        'ARCore/ARKit spatial computing',
-                        'Real-time audio processing',
+                        'Google MediaPipe for mobile inference',
+                        'ARKit/ARCore spatial computing',
+                        'Real-time audio processing (TDOA)',
                       ],
                     ),
                     
