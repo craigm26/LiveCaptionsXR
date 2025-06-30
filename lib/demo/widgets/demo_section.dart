@@ -110,203 +110,195 @@ class _DemoSectionState extends State<DemoSection>
             child: Row(
               children: [
                 // Left Side - Scenario Selection
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Choose a Scenario',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Choose a Scenario',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      ..._scenarios.entries.map((entry) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _ScenarioButton(
-                            scenarioKey: entry.key,
-                            title: entry.value['title']!,
-                            description: entry.value['description']!,
-                            onPressed: () => _runScenario(entry.key),
-                            isProcessing: _isProcessing,
-                          ),
-                        );
-                      }),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Demo Status
-                      BlocBuilder<WebNavigationCubit, WebNavigationState>(
-                        builder: (context, state) {
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: state.isDemoActive 
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.grey.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: state.isDemoActive 
-                                    ? Colors.green 
-                                    : Colors.grey,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                AnimatedBuilder(
-                                  animation: _pulseAnimation,
-                                  builder: (context, child) {
-                                    return Transform.scale(
-                                      scale: state.isDemoActive 
-                                          ? _pulseAnimation.value 
-                                          : 1.0,
-                                      child: Icon(
-                                        state.isDemoActive 
-                                            ? Icons.radio_button_on 
-                                            : Icons.radio_button_off,
-                                        color: state.isDemoActive 
-                                            ? Colors.green 
-                                            : Colors.grey,
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  state.isDemoActive 
-                                      ? 'Demo Mode Active - Try scenarios above!'
-                                      : 'Click "Start Demo" in navigation to begin',
-                                  style: TextStyle(
-                                    color: state.isDemoActive 
-                                        ? Colors.green 
-                                        : Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(width: 48),
-                
-                // Right Side - Output Display
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    height: 600,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
                     ),
-                    child: Column(
-                      children: [
-                        // Header
-                        Container(
-                          padding: const EdgeInsets.all(20),
+                    
+                    const SizedBox(height: 24),
+                    
+                    ..._scenarios.entries.map((entry) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _ScenarioButton(
+                          scenarioKey: entry.key,
+                          title: entry.value['title']!,
+                          description: entry.value['description']!,
+                          onPressed: () => _runScenario(entry.key),
+                          isProcessing: _isProcessing,
+                        ),
+                      );
+                    }),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Demo Status
+                    BlocBuilder<WebNavigationCubit, WebNavigationState>(
+                      builder: (context, state) {
+                        return Container(
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.grey[900],
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
+                            color: state.isDemoActive 
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: state.isDemoActive 
+                                  ? Colors.green 
+                                  : Colors.grey,
                             ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.phone_android,
-                                color: Colors.white,
-                                size: 20,
+                              AnimatedBuilder(
+                                animation: _pulseAnimation,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: state.isDemoActive 
+                                        ? _pulseAnimation.value 
+                                        : 1.0,
+                                    child: Icon(
+                                      state.isDemoActive 
+                                          ? Icons.radio_button_on 
+                                          : Icons.radio_button_off,
+                                      color: state.isDemoActive 
+                                          ? Colors.green 
+                                          : Colors.grey,
+                                    ),
+                                  );
+                                },
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'live_captions_xr Output',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                                state.isDemoActive 
+                                    ? 'Demo Mode Active - Try scenarios above!'
+                                    : 'Click "Start Demo" in navigation to begin',
+                                style: TextStyle(
+                                  color: state.isDemoActive 
+                                      ? Colors.green 
+                                      : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const Spacer(),
-                              if (_isProcessing)
-                                const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 48),
+                // Right Side - Output Display
+                Container(
+                  height: 600,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.phone_android,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'live_captions_xr Output',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_isProcessing)
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Content Area
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Scenario Title
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _currentScenario,
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                              ),
+                              
+                              const SizedBox(height: 20),
+                              
+                              // Output Content
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    _currentOutput.isEmpty 
+                                        ? 'Select a scenario above to see live_captions_xr\'s AI analysis and recommendations.'
+                                        : _currentOutput,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      height: 1.6,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        
-                        // Content Area
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Scenario Title
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).primaryColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _currentScenario,
-                                    style: TextStyle(
-                                      color: Theme.of(context).primaryColor,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                
-                                const SizedBox(height: 20),
-                                
-                                // Output Content
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    child: Text(
-                                      _currentOutput.isEmpty 
-                                          ? 'Select a scenario above to see live_captions_xr\'s AI analysis and recommendations.'
-                                          : _currentOutput,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        height: 1.6,
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
