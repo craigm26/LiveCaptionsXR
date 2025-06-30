@@ -1,0 +1,52 @@
+# Ignore models directory and its contents
+assets/models/ 
+
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Flutter/Flutter.framework/
+macos/Flutter/Flutter.podspec
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/ephemeral/
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/Generated.xcconfig
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# Web
+web/.dart_tool/
+web/build/
+
+# Linux
+linux/flutter/ephemeral/
+linux/build/
+
+# Windows
+windows/flutter/ephemeral/
+windows/build/
+
+# Other
+*.log
+*.lock
+

@@ -12,6 +12,7 @@
         "flutter_bloc",
         "get_it",
         "go_router",
+        "scidart",
         "tflite_flutter"
       ],
       "devDependencies": [
@@ -53,6 +54,11 @@
         "vector_math",
         "vm_service"
       ]
+    },
+    {
+      "name": "scidart",
+      "version": "0.0.2-dev.12",
+      "dependencies": []
     },
     {
       "name": "tflite_flutter",

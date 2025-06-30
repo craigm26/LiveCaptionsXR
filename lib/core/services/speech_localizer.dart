@@ -1,6 +1,8 @@
+import 'dart:ffi';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:scidart/numdart.dart';
 import 'package:scidart/scidart.dart';
 
 import 'stereo_audio_capture.dart';
@@ -36,8 +38,8 @@ class SpeechLocalizer {
     double soundSpeed = 343.0,
   }) {
     final n = frame.left.length;
-    final left = Array(frame.left.toList());
-    final right = Array(frame.right.toList());
+    final left = Array(frame.left.toList() as List<double>);
+    final right = Array(frame.right.toList() as List<double>);
 
     var leftFft = fft(arrayToComplexArray(left));
     var rightFft = fft(arrayToComplexArray(right));

@@ -63,10 +63,9 @@ The system is designed with a clear separation of concerns, organized into four 
 *   **Framework:** Pure Dart classes, managed with `get_it` for dependency injection.
 *   **Responsibilities:**
     *   Encapsulating specific business functionalities into distinct services.
-    *   **`Gemma3nService`:** Manages the interaction with the native Gemma 3n inference engine via platform channels. It prepares data for the model and parses the results.
-    *   **`GemmaASR`:** Provides streaming on-device ASR using the Gemma 3n model.
+    *   **`GemmaASR`:** Provides streaming on-device ASR using the Gemma 3n model. It now accepts an optional visual context (camera frame) to perform multimodal fusion, improving transcription accuracy by allowing the model to "see" what it's hearing.
     *   **`AudioService`:** Handles the capture of stereo audio, performs TDOA analysis for direction estimation, and provides audio buffers for transcription.
-    *   **`VisualService`:** Manages the camera feed and uses the Vision framework for face detection and speaker identification.
+    *   **`VisualService`:** Manages the camera feed and uses the Vision framework for face detection and speaker identification. It also provides the visual context frames to the `GemmaASR` service.
     *   **`LocalizationService`:** Fuses data from audio, visual, and IMU sources to provide a single, robust estimate of the speaker's position.
 
 ### 2.4. Data / Platform Layer
@@ -79,16 +78,17 @@ The system is designed with a clear separation of concerns, organized into four 
 
 ---
 
-## 3. Core Data Flow: From Sound to Caption
+## 3. Core Data Flow: From Sound and Sight to Caption
 
-1.  **Audio Capture (Platform Layer):** The `AudioService` initiates stereo audio capture on the native side.
-2.  **Direction Estimation (Service Layer):** The `AudioService` receives stereo buffers and uses TDOA (Task 3) to calculate a directional angle.
-3.  **ASR (Service/Platform Layer):** The mono audio stream is passed to the `GemmaASR` service, which sends it over a platform channel to the native MediaPipe backend for streaming transcription (Task 4).
-4.  **Visual Identification (Service/Platform Layer):** Simultaneously, the `VisualService` analyzes the camera feed to identify the active speaker (Task 6).
-5.  **Localization Fusion (Service Layer):** The `LocalizationService` takes the audio angle, the visual position, and the device's IMU data and uses a Kalman filter to produce a stable 3D position for the speaker (Task 11).
-6.  **State Update (Business Logic Layer):** The services report the transcription and the speaker's position to the relevant Cubits.
-7.  **AR Anchor Creation (Service/Platform Layer):** The `ARAnchorManager` creates an `ARAnchor` at the fused 3D position (Task 7).
-8.  **UI Rendering (Presentation Layer):** The UI listens to the state changes and renders a 2D or 3D caption at the appropriate location, attached to the newly created anchor (Tasks 8 & 9).
+1.  **Audio & Video Capture (Platform Layer):** The `AudioService` and `VisualService` initiate audio and video capture on the native side.
+2.  **Direction Estimation (Service Layer):** The `AudioService` receives stereo buffers and uses TDOA (Task 3) to calculate a rough directional angle of the sound source.
+3.  **Visual Context (Service Layer):** The `VisualService` provides the current camera frame to the `GemmaASR` service to act as visual context.
+4.  **Multimodal ASR (Service/Platform Layer):** The mono audio stream and the visual context frame are passed to the `GemmaASR` service. It sends both over a platform channel to the native MediaPipe backend, which performs a fused multimodal inference for streaming transcription (Task 4 & 5).
+5.  **Visual Identification (Service/Platform Layer):** Simultaneously, the `VisualService` analyzes the camera feed to identify the active speaker's face (Task 6).
+6.  **Localization Fusion (Service Layer):** The `LocalizationService` takes the audio angle, the visual position of the speaker's face, and the device's IMU data, and uses a Kalman filter to produce a stable 3D position for the speaker (Task 11).
+7.  **State Update (Business Logic Layer):** The services report the transcription and the speaker's 3D position to the relevant Cubits.
+8.  **AR Anchor Creation (Service/Platform Layer):** The `ARAnchorManager` creates an `ARAnchor` at the fused 3D position (Task 7).
+9.  **UI Rendering (Presentation Layer):** The UI listens to the state changes and renders a 2D or 3D caption at the appropriate location, attached to the newly created anchor (Tasks 8 & 9).
 
 ---
 

@@ -176,6 +176,12 @@
       "languageVersion": "2.17"
     },
     {
+      "name": "scidart",
+      "rootUri": "file:///C:/Users/CraigM/AppData/Local/Pub/Cache/hosted/pub.dev/scidart-0.0.2-dev.12",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "sky_engine",
       "rootUri": "file:///C:/Users/CraigM/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
