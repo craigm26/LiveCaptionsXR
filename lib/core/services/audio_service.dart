@@ -4,6 +4,7 @@ import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'gemma3n_service.dart';
 import 'visual_identification_service.dart';
+import 'stereo_audio_capture.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
 /// 
@@ -16,13 +17,16 @@ class AudioService {
   final SoundDetectionCubit soundDetectionCubit;
   final Gemma3nService gemma3nService = Gemma3nService();
   late final VisualIdentificationService visualService;
-  
+  late final StereoAudioCapture _audioCapture;
+
   bool _modelLoaded = false;
   bool _isListening = false;
-  Timer? _processingTimer;
+  StreamSubscription<StereoAudioFrame>? _captureSub;
   StreamController<SoundEvent>? _soundEventController;
 
-  AudioService(this.soundDetectionCubit);
+  AudioService(this.soundDetectionCubit) {
+    _audioCapture = StereoAudioCapture();
+  }
 
   /// Initialize Gemma 3n for audio processing
   /// 
@@ -48,20 +52,21 @@ class AudioService {
     await _startAudioCapture();
   }
   
-  /// Start continuous audio capture and processing
-  /// 
-  /// Demonstrates real-time audio stream processing with Gemma 3n
+  /// Start continuous audio capture and processing.
+  ///
+  /// This sets up the [StereoAudioCapture] service and listens to the
+  /// incoming audio frames.
   Future<void> _startAudioCapture() async {
     if (_isListening) return;
-    
+
     _isListening = true;
     _soundEventController = StreamController<SoundEvent>.broadcast();
-    
-    // Process audio frames every 100ms for real-time responsiveness
-    _processingTimer = Timer.periodic(Duration(milliseconds: 100), (timer) {
-      _processAudioFrame();
+
+    await _audioCapture.startRecording();
+    _captureSub = _audioCapture.frames.listen((frame) {
+      _processAudioFrame(frame.toMono());
     });
-    
+
     print('🎤 Started real-time audio processing with Gemma 3n');
   }
 
@@ -69,10 +74,8 @@ class AudioService {
   /// 
   /// This demonstrates the key innovation: multimodal processing where
   /// audio events trigger combined audio+visual analysis through Gemma 3n
-  void _processAudioFrame() async {
+  void _processAudioFrame(Float32List audioFrame) async {
     try {
-      // Capture current audio frame (simulated for demo)
-      final audioFrame = await _captureAudioFrame();
       
       // Detect significant audio events using Gemma 3n
       final audioAnalysis = await _analyzeAudioWithGemma3n(audioFrame);
@@ -228,26 +231,12 @@ of what is making this sound and its significance for a person with hearing loss
     _modelLoaded = true;
   }
   
-  /// Simulate audio frame capture
-  /// 
-  /// In production, this would interface with actual microphone hardware
-  Future<Float32List> _captureAudioFrame() async {
-    // Simulate 100ms of audio at 16kHz sample rate
-    final frameSize = 1600; // 100ms * 16kHz
-    final audioData = Float32List(frameSize);
-    
-    // Generate realistic audio pattern for demo
-    for (int i = 0; i < frameSize; i++) {
-      audioData[i] = (DateTime.now().millisecond % 1000) / 1000.0;
-    }
-    
-    return audioData;
-  }
 
   /// Stop audio processing and cleanup resources
   Future<void> stop() async {
     _isListening = false;
-    _processingTimer?.cancel();
+    await _captureSub?.cancel();
+    await _audioCapture.stopRecording();
     await _soundEventController?.close();
     gemma3nService.dispose();
     

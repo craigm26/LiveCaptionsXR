@@ -6,7 +6,7 @@ This guide outlines the iOS-specific implementation details for the speech local
 
 The iOS implementation leverages Apple's native frameworks for audio capture, computer vision, and augmented reality, which are called from the Dart service layer via platform channels.
 
-1.  **Stereo Audio Capture (`AVAudioEngine`):** The native Swift code configures an `AVAudioSession` for stereo recording and uses `AVAudioEngine` to capture high-quality stereo PCM buffers from the device's microphone array.
+1.  **Stereo Audio Capture (`AVAudioEngine` + `StereoAudioCapture`):** The native Swift code configures an `AVAudioSession` for stereo recording and uses `AVAudioEngine` to capture high-quality stereo PCM buffers. These buffers are streamed to Dart through the `StereoAudioCapture` class.
 2.  **Direction Estimation (Accelerate Framework):** The stereo buffers are analyzed to estimate the speaker's direction. This can be done using a basic amplitude comparison or a more advanced TDOA/GCC-PHAT algorithm (as defined in PRD #3), implemented efficiently using the Accelerate framework.
 3.  **Gemma 3n Inference (`MediaPipeTasks`):** The audio is downmixed to mono and, along with any visual context, is sent to the `MediaPipeTasks` framework to be processed by the Gemma 3n model for transcription.
 4.  **Visual Localization (`Vision` & `ARKit`):** The camera feed is processed by the Vision framework to detect faces and identify the active speaker. ARKit is used to determine the 3D position of the detected face.
