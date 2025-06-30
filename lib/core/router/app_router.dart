@@ -5,7 +5,7 @@ import 'package:live_captions_xr/features/sound_detection/view/sound_detection_s
 import 'package:live_captions_xr/features/localization/view/localization_screen.dart';
 import 'package:live_captions_xr/features/visual_identification/view/visual_identification_screen.dart';
 import 'package:live_captions_xr/features/settings/view/settings_screen.dart';
-import 'package:live_captions_xr/demo/web_demo_screen.dart';
+import 'package:live_captions_xr/webDev/demo/web_demo_screen.dart';
 
 final GoRouter router = GoRouter(
   routes: <GoRoute>[

@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../shared/theme/app_theme.dart';
+import '../../shared/theme/app_theme.dart';
 import 'web_demo_screen.dart';
 import 'navigation/web_navigation_cubit.dart';
-import '../core/router/app_router.dart';
+import '../../core/router/app_router.dart';
 
 class live_captions_xrWebApp extends StatelessWidget {
   const live_captions_xrWebApp({Key? key}) : super(key: key);
