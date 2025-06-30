@@ -110,3 +110,10 @@
 | [Name]            | Engineering Lead    |               |
 
 ---
+
+## Repository Updates
+
+- Implemented `GemmaASR` service for on-device streaming transcription.
+- Added `TranscriptionResult` model.
+- Updated architecture and technical documentation.
+- README now lists Streaming ASR feature.

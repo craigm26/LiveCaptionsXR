@@ -64,6 +64,7 @@ The system is designed with a clear separation of concerns, organized into four 
 *   **Responsibilities:**
     *   Encapsulating specific business functionalities into distinct services.
     *   **`Gemma3nService`:** Manages the interaction with the native Gemma 3n inference engine via platform channels. It prepares data for the model and parses the results.
+    *   **`GemmaASR`:** Provides streaming on-device ASR using the Gemma 3n model.
     *   **`AudioService`:** Handles the capture of stereo audio, performs TDOA analysis for direction estimation, and provides audio buffers for transcription.
     *   **`VisualService`:** Manages the camera feed and uses the Vision framework for face detection and speaker identification.
     *   **`LocalizationService`:** Fuses data from audio, visual, and IMU sources to provide a single, robust estimate of the speaker's position.
@@ -82,7 +83,7 @@ The system is designed with a clear separation of concerns, organized into four 
 
 1.  **Audio Capture (Platform Layer):** The `AudioService` initiates stereo audio capture on the native side.
 2.  **Direction Estimation (Service Layer):** The `AudioService` receives stereo buffers and uses TDOA (Task 3) to calculate a directional angle.
-3.  **ASR (Service/Platform Layer):** The mono audio stream is passed to the `Gemma3nService`, which sends it over a platform channel to the native MediaPipe backend for streaming transcription (Task 4).
+3.  **ASR (Service/Platform Layer):** The mono audio stream is passed to the `GemmaASR` service, which sends it over a platform channel to the native MediaPipe backend for streaming transcription (Task 4).
 4.  **Visual Identification (Service/Platform Layer):** Simultaneously, the `VisualService` analyzes the camera feed to identify the active speaker (Task 6).
 5.  **Localization Fusion (Service Layer):** The `LocalizationService` takes the audio angle, the visual position, and the device's IMU data and uses a Kalman filter to produce a stable 3D position for the speaker (Task 11).
 6.  **State Update (Business Logic Layer):** The services report the transcription and the speaker's position to the relevant Cubits.
