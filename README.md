@@ -14,7 +14,7 @@ This project is developed by Craig Merry, who, being Deaf, is driven by the pers
 
 *   **On-Device AI:** All processing is done locally using the Gemma 3n `.task` model, ensuring privacy and low latency.
 *   **Multimodal Input:** The system is designed to fuse audio and visual data, providing context-aware transcriptions.
-*   **Spatial Audio Localization:** Utilizes stereo audio analysis to determine the direction of sound sources, placing captions spatially in the UI.
+*   **Spatial Audio Localization:** Utilizes stereo audio analysis to determine the direction of sound sources, placing captions spatially in the UI. A new `SpeechLocalizer` service provides real-time left/right angle estimates using RMS amplitude comparison.
 *   **Stereo Audio Capture:** New `StereoAudioCapture` service provides low-latency PCM buffers from the device microphones.
 *   **Cross-Platform:** Built with Flutter, targeting Android (including XR) and iOS.
 *   **High-Performance:** Leverages Google's MediaPipe Tasks for optimized, hardware-accelerated inference.

@@ -815,6 +815,7 @@ Here’s how to break down the previous comprehensive solution into smaller, man
 * **Goal:** Estimate speaker direction from stereo audio by analyzing amplitude differences (RMS) between left/right channels.
 * **Deliverable:** A directional estimation function that outputs a horizontal angle from audio input.
 * **Outcome:** Approximate angle indicating left, center, or right direction of the speaker.
+* **Implementation Update:** This task is now implemented in the Dart `SpeechLocalizer` service which computes the angle using RMS amplitude comparison for each stereo audio frame.
 
 ---
 
