@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:scidart/scidart.dart';
+
 import 'stereo_audio_capture.dart';
 
 /// Basic audio direction estimation using RMS amplitude comparison.
@@ -21,6 +23,54 @@ class SpeechLocalizer {
     final diff = leftRms - rightRms;
     final normalized = (diff / sum).clamp(-1.0, 1.0);
     return normalized * (math.pi / 2);
+  }
+
+  /// Estimate horizontal angle using GCC-PHAT Time Difference of Arrival.
+  ///
+  /// [sampleRate] is the sampling rate of the audio buffers and
+  /// [micDistance] is the spacing between device microphones in meters.
+  double estimateDirectionAdvanced(
+    StereoAudioFrame frame, {
+    double sampleRate = 48000,
+    double micDistance = 0.08,
+    double soundSpeed = 343.0,
+  }) {
+    final n = frame.left.length;
+    final left = Array(frame.left.toList());
+    final right = Array(frame.right.toList());
+
+    var leftFft = fft(arrayToComplexArray(left));
+    var rightFft = fft(arrayToComplexArray(right));
+
+    // Cross power spectrum with PHAT weighting
+    var cross = ArrayComplex.fixed(n);
+    for (var i = 0; i < n; i++) {
+      final prod = leftFft[i] * complexConjugate(rightFft[i]);
+      final mag = complexAbs(prod);
+      cross[i] = mag > 0 ? prod / Complex(real: mag, imaginary: 0) : prod;
+    }
+
+    final corr = ifft(cross);
+
+    var maxVal = -double.infinity;
+    var maxIndex = 0;
+    for (var i = 0; i < corr.length; i++) {
+      final value = complexAbs(corr[i]);
+      if (value > maxVal) {
+        maxVal = value;
+        maxIndex = i;
+      }
+    }
+
+    var delay = maxIndex;
+    if (maxIndex > n / 2) {
+      delay = maxIndex - n;
+    }
+
+    final timeDelay = delay / sampleRate;
+    final maxDelay = micDistance / soundSpeed;
+    final clamped = (timeDelay / maxDelay).clamp(-1.0, 1.0);
+    return math.asin(clamped);
   }
 
   /// Convert an angle in radians to a simple left/center/right label.

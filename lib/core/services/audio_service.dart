@@ -66,7 +66,7 @@ class AudioService {
 
     await _audioCapture.startRecording();
     _captureSub = _audioCapture.frames.listen((frame) {
-      final angle = _speechLocalizer.estimateDirection(frame);
+      final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
       _processAudioFrame(frame.toMono(), angle);
     });
 

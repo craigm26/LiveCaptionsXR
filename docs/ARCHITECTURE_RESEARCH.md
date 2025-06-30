@@ -825,6 +825,10 @@ Here’s how to break down the previous comprehensive solution into smaller, man
 * **Deliverable:** Accurate angle and direction estimation method within the inference package.
 * **Outcome:** High-precision localization suitable for AR anchoring.
 
+* **Implementation Update:** This task is now implemented using a GCC-PHAT
+  algorithm in the Dart `SpeechLocalizer` service to calculate time-delay
+  between stereo channels for precise angle estimation.
+
 ---
 
 ## 🎯 **Task 4: Integration of Gemma 3n for Streaming On-Device ASR**
