@@ -16,6 +16,7 @@ This project is developed by Craig Merry, who, being Deaf, is driven by the pers
 *   **Multimodal Input:** The system is designed to fuse audio and visual data, providing context-aware transcriptions.
 *   **Spatial Audio Localization:** Utilizes stereo audio analysis to determine the direction of sound sources, placing captions spatially in the UI. The `SpeechLocalizer` service now uses a GCC-PHAT time-delay algorithm for precise angle estimation.
 *   **Stereo Audio Capture:** New `StereoAudioCapture` service provides low-latency PCM buffers from the device microphones.
+*   **Streaming ASR:** `GemmaASR` processes mono audio buffers and emits real-time transcription results.
 *   **Cross-Platform:** Built with Flutter, targeting Android (including XR) and iOS.
 *   **High-Performance:** Leverages Google's MediaPipe Tasks for optimized, hardware-accelerated inference.
 

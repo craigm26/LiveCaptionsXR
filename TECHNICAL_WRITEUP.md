@@ -53,7 +53,7 @@ The core of our technical strategy is the use of **Google's MediaPipe Tasks libr
 1.  **Audio Stream Processing:**
     *   Continuous audio capture from the device's stereo microphones.
     *   Real-time sound localization via Time Difference of Arrival (TDOA) analysis.
-    *   The audio stream is fed into the MediaPipe session for ASR.
+    *   The audio stream is fed into the MediaPipe session via the `GemmaASR` service for streaming ASR.
 
 2.  **Visual Context Acquisition:**
     *   The camera feed is analyzed to detect faces and identify active speakers.
