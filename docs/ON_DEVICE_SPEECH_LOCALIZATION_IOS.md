@@ -1,5 +1,7 @@
 # 📱 On-Device Speech Localization and AR Captioning (iOS)
 
+> **Note:** The project-wide approach is to use a native plugin/FFI layer for all Gemma 3n model integration and inference. All on-device ASR, multimodal, and captioning features are implemented natively (Swift/ObjC for iOS, Kotlin/Java for Android, etc.) and accessed from Flutter via FFI or platform channels. No Dart/Flutter inference packages are used.
+
 This guide outlines the iOS-specific implementation details for the speech localization and AR captioning features of `live_captions_xr`, following the architecture defined in `ARCHITECTURE.md`.
 
 ## Overview of the iOS Implementation

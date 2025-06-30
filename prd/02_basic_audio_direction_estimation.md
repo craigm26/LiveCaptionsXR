@@ -1,4 +1,3 @@
-
 # Product Requirements Document: Basic Audio Direction Estimation (Left/Right Localization)
 
 **Author:** Gemini
@@ -115,5 +114,15 @@ The following commits implement Task 2:
 * Added a new Dart service `SpeechLocalizer` that estimates the horizontal angle of incoming stereo audio using RMS amplitude comparison.
 * Integrated `SpeechLocalizer` into `AudioService` for real-time direction estimation.
 * Updated documentation and README to reflect the new localization pipeline.
+
+---
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All audio direction estimation and feature extraction will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's audio encoder and streaming capabilities.
+- The Flutter app will communicate with the native layer via FFI or platform channels.
 
 ---

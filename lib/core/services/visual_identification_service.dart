@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:tflite_flutter/tflite_flutter.dart';
 import '../models/visual_object.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'gemma3n_service.dart';

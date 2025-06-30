@@ -1,11 +1,10 @@
-
 # Product Requirements Document: ARKit Anchor Creation and Placement for Speaker Localization
 
 **Author:** Gemini
 **Date Created:** 2025-06-29
-**Last Updated:** 2025-06-29
-**Status:** Draft
-**Version:** 1.0
+**Last Updated:** 2025-06-30
+**Status:** Complete
+**Version:** 1.1
 
 ---
 
@@ -109,3 +108,19 @@
 | [Name]            | Engineering Lead    |               |
 
 ---
+
+## Repository Updates
+
+- Implemented `ARAnchorManager.swift` on iOS to create and manage AR anchors.
+- Implemented `ARAnchorManager.dart` in Flutter to provide a high-level API for anchor management.
+- Updated `AppDelegate.swift` to integrate the `ARAnchorManager` and expose its methods to Flutter.
+- Updated architecture and technical documentation.
+- README now lists ARKit Anchor Creation feature.
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All ARKit anchor creation and context analysis will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's multimodal and spatial encoders.
+- The Flutter app will communicate with the native layer via FFI or platform channels.

@@ -1,4 +1,3 @@
-
 # Product Requirements Document: Multimodal Fusion (Audio + Visual) using Gemma 3n
 
 **Author:** Gemini
@@ -104,5 +103,15 @@
 | :---------------- | :------------------ | :------------ |
 | [Name]            | Product Manager     |               |
 | [Name]            | Engineering Lead    |               |
+
+---
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All multimodal fusion and inference will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's multimodal encoder and streaming capabilities.
+- The Flutter app will communicate with the native layer via FFI or platform channels.
 
 ---

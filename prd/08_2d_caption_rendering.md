@@ -1,11 +1,10 @@
-
 # Product Requirements Document: 2D Caption Rendering (HUD Overlay Mode)
 
 **Author:** Gemini
 **Date Created:** 2025-06-29
-**Last Updated:** 2025-06-29
-**Status:** Draft
-**Version:** 1.0
+**Last Updated:** 2025-06-30
+**Status:** Complete
+**Version:** 1.1
 
 ---
 
@@ -114,3 +113,19 @@
 | [Name]            | Engineering Lead    |               |
 
 ---
+
+## Repository Updates
+
+- Implemented `CaptionBubble` widget to display a single caption with a fade-in and fade-out animation.
+- Implemented `CaptionOverlay` widget to position the captions on the screen based on the speaker's location.
+- Integrated the `CaptionOverlay` into the home screen.
+- Updated architecture and technical documentation.
+- README now lists 2D Caption Rendering feature.
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All 2D caption rendering and context analysis will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's multimodal and spatial encoders.
+- The Flutter app will communicate with the native layer via FFI or platform channels.

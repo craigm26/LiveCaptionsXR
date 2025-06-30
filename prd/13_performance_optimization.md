@@ -1,4 +1,3 @@
-
 # Product Requirements Document: Performance Optimization and Resource Management
 
 **Author:** Gemini
@@ -101,5 +100,15 @@
 | Stakeholder       | Role                | Date Approved |
 | :---------------- | :------------------ | :------------ |
 | [Name]            | Engineering Lead    |               |
+
+---
+
+## Implementation Approach Update (2024)
+
+**Performance optimization will focus on the native plugin/FFI approach interfacing directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All inference and optimization will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's performance features and hardware acceleration.
+- The Flutter app will communicate with the native layer via FFI or platform channels.
 
 ---

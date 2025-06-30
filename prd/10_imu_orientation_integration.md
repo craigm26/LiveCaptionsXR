@@ -1,4 +1,3 @@
-
 # Product Requirements Document: IMU-based Device Orientation Integration
 
 **Author:** Gemini
@@ -98,5 +97,15 @@
 | Stakeholder       | Role                | Date Approved |
 | :---------------- | :------------------ | :------------ |
 | [Name]            | Engineering Lead    |               |
+
+---
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All IMU orientation integration and sensor fusion will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's multimodal and sensor fusion capabilities.
+- The Flutter app will communicate with the native layer via FFI or platform channels.
 
 ---

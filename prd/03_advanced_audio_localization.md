@@ -1,4 +1,3 @@
-
 # Product Requirements Document: Advanced Audio Localization using TDOA/GCC-PHAT
 
 **Author:** Gemini
@@ -120,5 +119,15 @@ The following commits implement Task 3:
   GCC-PHAT algorithm for precise TDOA calculation.
 * Updated `AudioService` to use the new advanced localization method.
 * Revised README and technical docs to reflect the GCC-PHAT pipeline.
+
+---
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All advanced audio localization and inference will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's audio encoder and streaming capabilities.
+- The Flutter app will communicate with the native layer via FFI or platform channels.
 
 ---

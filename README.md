@@ -13,7 +13,11 @@ This project is developed by Craig Merry, who, being Deaf, is driven by the pers
 ## ✨ Core Features
 
 *   **On-Device AI:** All processing is done locally using the Gemma 3n `.task` model, ensuring privacy and low latency.
-*   **Multimodal Input:** The system is designed to fuse audio and visual data, providing context-aware transcriptions.
+*   **Multimodal Fusion:** The app combines audio and visual data for more accurate and context-aware transcriptions.
+*   **Visual Speaker Identification:** The app uses the Vision framework on iOS and ML Kit on Android to detect faces and identify the active speaker.
+*   **ARKit Anchor Creation:** The app can create and manage ARKit anchors to place captions in the 3D world.
+*   **2D Caption Rendering:** The app can display captions in a 2D overlay on the screen.
+*   **3D Caption Rendering:** The app can render captions as 3D text bubbles in the AR world.
 *   **Spatial Audio Localization:** Utilizes stereo audio analysis to determine the direction of sound sources, placing captions spatially in the UI. The `SpeechLocalizer` service now uses a GCC-PHAT time-delay algorithm for precise angle estimation.
 *   **Stereo Audio Capture:** New `StereoAudioCapture` service provides low-latency PCM buffers from the device microphones.
 *   **Streaming ASR:** `GemmaASR` processes mono audio buffers and emits real-time transcription results.

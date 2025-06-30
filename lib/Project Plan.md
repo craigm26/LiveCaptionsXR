@@ -40,7 +40,7 @@ The project will be developed by implementing the features outlined in the PRDs 
     -   `10_imu_orientation_integration.md`
 
 ### Milestone 2: Core AI Integration
--   **Goal:** Integrate the Gemma 3n model for ASR and multimodal fusion using MediaPipe.
+-   **Goal:** Integrate the Gemma 3n model for ASR and multimodal fusion using the `gemma_flutter` package and MediaPipe.
 -   **Relevant PRDs:**
     -   `04_gemma_3n_streaming_asr.md`
     -   `05_multimodal_fusion.md`

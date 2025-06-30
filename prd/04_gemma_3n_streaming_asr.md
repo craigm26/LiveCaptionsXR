@@ -1,4 +1,3 @@
-
 # Product Requirements Document: Integration of Gemma 3n for Streaming On-Device ASR
 
 **Author:** Gemini
@@ -12,7 +11,7 @@
 ## 1. Overview & Background
 
 *   **What is this feature?**
-    *   This feature involves integrating the Gemma 3n model into our Flutter package to provide real-time, on-device Automatic Speech Recognition (ASR). It will process a mono audio stream and output a continuous stream of transcribed text.
+    *   This feature involves integrating the Gemma 3n model using the `gemma_flutter` package into our Flutter application to provide real-time, on-device Automatic Speech Recognition (ASR). It will process a mono audio stream and output a continuous stream of transcribed text.
 *   **Why are we building this?**
     *   On-device ASR is the core of the LiveCaptionsXR application. It allows for private, low-latency transcription of speech without relying on a network connection. Gemma 3n's streaming capabilities are essential for the real-time "live" captioning experience.
 *   **Business Objectives & Key Results (OKRs):**
@@ -117,3 +116,11 @@
 - Added `TranscriptionResult` model.
 - Updated architecture and technical documentation.
 - README now lists Streaming ASR feature.
+
+## Implementation Approach Update (2024)
+
+**We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All streaming ASR and inference will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's audio encoder, streaming, and translation capabilities.
+- The Flutter app will communicate with the native layer via FFI or platform channels.

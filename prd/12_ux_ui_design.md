@@ -1,4 +1,3 @@
-
 # Product Requirements Document: UX/UI Design for AR Captioning Experience
 
 **Author:** Gemini
@@ -108,5 +107,15 @@
 | [Name]            | Product Manager     |               |
 | [Name]            | Design Lead         |               |
 | [Name]            | Engineering Lead    |               |
+
+---
+
+## Implementation Approach Update (2024)
+
+**UX/UI design will be informed by the capabilities of a native plugin/FFI approach interfacing directly with the Gemma 3n model and its .task file.**
+- No third-party Dart/Flutter packages will be used for inference.
+- All context and inference will be handled natively (C/C++/Rust or platform-specific code).
+- This enables full access to Gemma 3n's multimodal and context-aware capabilities.
+- The Flutter app will communicate with the native layer via FFI or platform channels.
 
 ---

@@ -1,0 +1,9 @@
+Re-Do this PRD: 
+
+@prd/01_on_device_audio_capture.md
+
+Make all changes and make an update to this markdown document about all repository updates. Update readme.md and other markdown technical documentation as necessary. Look at all previous PRD and planned PRD's with the @PROJECT_PLAN along with future PRDs
+
+We should also try to add some tests to the /tests folder that specifically test the PRD's intent and functionality.
+
+Use the flutter_gemma package for on-device speech recognition.

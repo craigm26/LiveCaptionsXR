@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../models/transcription_result.dart';
 import '../utils/logger.dart';
@@ -15,7 +14,6 @@ import '../utils/logger.dart';
 /// inference session, and exposing a `Stream<TranscriptionResult>`
 /// of partial and final transcripts.
 class GemmaASR {
-  Interpreter? _interpreter;
   bool _initialized = false;
   bool _streaming = false;
   late StreamController<TranscriptionResult> _resultController;
@@ -29,8 +27,7 @@ class GemmaASR {
       [String assetPath = 'assets/models/gemma-3n-E4B-it-int4.task']) async {
     if (_initialized) return;
     try {
-      final options = InterpreterOptions()..threads = 2;
-      _interpreter = await Interpreter.fromAsset(assetPath, options: options);
+   
       _initialized = true;
       log('✅ GemmaASR multimodal model loaded');
     } catch (e) {

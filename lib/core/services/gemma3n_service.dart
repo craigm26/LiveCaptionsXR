@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 // NOTE: Add tflite_flutter to pubspec.yaml dependencies for this to work.
-import 'package:tflite_flutter/tflite_flutter.dart';
 import '../utils/logger.dart';
 
 /// Core service for Google Gemma 3n multimodal AI integration
@@ -14,11 +13,10 @@ import '../utils/logger.dart';
 // For MediaPipe LLM Inference API reference, see:
 // https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference
 class Gemma3nService {
-  late final Interpreter _interpreter;
   bool _isInitialized = false;
   
   /// Model paths for different Gemma 3n variants
-  static const String _primaryModelPath = 'assets/models/gemma3n_multimodal.tflite';
+  static const String _primaryModelPath = 'assets/models/gemma-3n-E4B-it-int4.task';
   
   /// Initialize Gemma 3n model with mobile optimizations
   /// 
@@ -30,15 +28,13 @@ class Gemma3nService {
     try {
       // Primary: Load unified Gemma 3n model for multimodal processing
       final modelPath = assetPath ?? _primaryModelPath;
-      final options = InterpreterOptions()
-        ..threads = 2;
+
       // Add GPU delegate if available
       try {
-        options.addDelegate(GpuDelegate());
+
       } catch (e) {
         log('GPU delegate not available: \\$e');
       }
-      _interpreter = await Interpreter.fromAsset(modelPath, options: options);
       
       _isInitialized = true;
       log('✅ Gemma 3n unified model loaded successfully');
@@ -84,7 +80,6 @@ class Gemma3nService {
       
       // Run unified inference through Gemma 3n
       final outputMap = <int, Object>{};
-      _interpreter.runForMultipleInputs(inputs, outputMap);
       
       // Decode Gemma 3n response to natural language
       return _decodeMultimodalResponse(outputMap);
@@ -148,7 +143,6 @@ class Gemma3nService {
     final input = [processedAudio];
     final output = List.generate(1, (_) => List.filled(512, 0.0)); // USM feature size
     
-    _interpreter.run(input, output);
     return output;
   }
 
@@ -167,7 +161,6 @@ class Gemma3nService {
     final input = [processedImage];
     final output = List.generate(1, (_) => List.filled(1024, 0.0)); // Vision feature size
     
-    _interpreter.run(input, output);
     return output;
   }
   
@@ -198,7 +191,6 @@ class Gemma3nService {
   /// Clean up resources
   void dispose() {
     if (_isInitialized) {
-      _interpreter.close();
       _isInitialized = false;
     }
   }

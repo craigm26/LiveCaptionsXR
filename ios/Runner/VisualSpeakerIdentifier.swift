@@ -13,6 +13,7 @@ class VisualSpeakerIdentifier: NSObject {
     private var channel: FlutterMethodChannel
     private var isAudioSpeechDetected = false // This should be updated from audio service
     private var lastKnownSpeaker: VNFaceObservation?
+    private var latestPixelBuffer: CVPixelBuffer?
 
     init(channel: FlutterMethodChannel) {
         self.channel = channel
@@ -30,6 +31,27 @@ class VisualSpeakerIdentifier: NSObject {
         sessionQueue.async {
             self.captureSession.stopRunning()
         }
+    }
+    
+    func captureFrame() -> FlutterStandardTypedData? {
+        guard let pixelBuffer = self.latestPixelBuffer else {
+            return nil
+        }
+        
+        // Convert CVPixelBuffer to a UIImage
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            return nil
+        }
+        let uiImage = UIImage(cgImage: cgImage)
+        
+        // Convert UIImage to JPEG data
+        guard let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
+            return nil
+        }
+        
+        return FlutterStandardTypedData(bytes: jpegData)
     }
     
     // This would be called from the audio service via the platform channel
@@ -66,6 +88,9 @@ class VisualSpeakerIdentifier: NSObject {
 
     private func processFrame(sampleBuffer: CMSampleBuffer) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        
+        // Keep a reference to the latest buffer for capture
+        self.latestPixelBuffer = pixelBuffer
 
         let faceLandmarksRequest = VNDetectFaceLandmarksRequest(completionHandler: self.handleFaceLandmarks)
         
@@ -106,14 +131,37 @@ class VisualSpeakerIdentifier: NSObject {
     }
     
     private func calculateMouthMovement(landmarks: VNFaceLandmarks2D) -> CGFloat {
-        guard let innerLips = landmarks.innerLips, let outerLips = landmarks.outerLips else {
+        guard let outerLips = landmarks.outerLips,
+              let innerLips = landmarks.innerLips,
+              outerLips.pointCount > 0,
+              innerLips.pointCount > 0 else {
             return 0.0
         }
-        // A simple metric: average distance between corresponding top and bottom lip points
-        let topInner = innerLips.normalizedPoints[9] // A point on the top inner lip
-        let bottomInner = innerLips.normalizedPoints[3] // A point on the bottom inner lip
-        let movement = topInner.distance(to: bottomInner)
-        return movement
+
+        // Points for MAR calculation (approximated from the landmark map)
+        let p1 = outerLips.normalizedPoints[0]  // Mouth corner left
+        let p2 = outerLips.normalizedPoints[6]  // Mouth corner right
+        let p3 = outerLips.normalizedPoints[3]  // Upper lip top
+        let p4 = outerLips.normalizedPoints[9]  // Lower lip bottom
+        
+        let p5 = innerLips.normalizedPoints[2] // Upper lip bottom
+        let p6 = innerLips.normalizedPoints[6] // Lower lip top
+
+
+        // Calculate the distances
+        let verticalDist = p3.distance(to: p4)
+        let horizontalDist = p1.distance(to: p2)
+        
+        let innerVerticalDist = p5.distance(to: p6)
+
+        // Avoid division by zero
+        if horizontalDist == 0 {
+            return 0.0
+        }
+
+        // Calculate the Mouth Aspect Ratio (MAR)
+        let mar = innerVerticalDist / horizontalDist
+        return mar
     }
 
     private func reportSpeakerUpdate(_ speaker: VNFaceObservation?) {
