@@ -110,3 +110,15 @@
 | [Name]            | Engineering Lead    |               |
 
 ---
+
+## Repository Updates
+
+The following commits implement Task 3:
+
+* Added the **scidart** dependency for FFT-based signal processing.
+* Implemented `estimateDirectionAdvanced` in `SpeechLocalizer` using the
+  GCC-PHAT algorithm for precise TDOA calculation.
+* Updated `AudioService` to use the new advanced localization method.
+* Revised README and technical docs to reflect the GCC-PHAT pipeline.
+
+---

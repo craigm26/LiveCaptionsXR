@@ -31,7 +31,7 @@ class LocalizationAndCaptioningEngine {
     // Called when a new audio buffer is available from AVAudioEngine
     func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
         // 1. Estimate direction from the stereo buffer
-        let angle = estimateDirection(from: buffer) // Basic RMS left/right
+        let angle = estimateDirectionAdvanced(from: buffer) // GCC-PHAT TDOA
         
         // 2. Get transcription from Gemma 3n via MediaPipe
         let monoBuffer = downmixToMono(buffer: buffer)

@@ -14,6 +14,7 @@ dependencies:
   go_router: ^15.2.4
   get_it: ^8.0.3
   tflite_flutter: ^0.11.0
+  scidart: ^0.0.2-dev.12
   # Add your other dependencies here
 
 dev_dependencies:
