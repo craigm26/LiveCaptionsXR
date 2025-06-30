@@ -3,7 +3,7 @@
 
 **Author:** Gemini
 **Date Created:** 2025-06-29
-**Last Updated:** 2025-06-29
+**Last Updated:** 2025-06-30
 **Status:** Draft
 **Version:** 1.0
 
@@ -111,3 +111,14 @@
 | [Name]            | Engineering Lead    |               |
 
 ---
+
+## 11. Repository Updates
+
+The following library components were implemented to satisfy this PRD:
+
+* Added `lib/core/services/stereo_audio_capture.dart` which exposes a
+  `StereoAudioCapture` class. It provides `startRecording()` and
+  `stopRecording()` methods and streams `StereoAudioFrame` instances.
+* Updated `lib/core/services/audio_service.dart` to consume the new
+  capture service for real-time audio processing.
+* Documented the feature in `README.md` under **Core Features**.
