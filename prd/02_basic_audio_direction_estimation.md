@@ -3,9 +3,9 @@
 
 **Author:** Gemini
 **Date Created:** 2025-06-29
-**Last Updated:** 2025-06-29
-**Status:** Draft
-**Version:** 1.0
+**Last Updated:** 2025-06-30
+**Status:** Implemented
+**Version:** 1.1
 
 ---
 
@@ -105,5 +105,15 @@
 | :---------------- | :------------------ | :------------ |
 | [Name]            | Product Manager     |               |
 | [Name]            | Engineering Lead    |               |
+
+---
+
+## Repository Updates
+
+The following commits implement Task 2:
+
+* Added a new Dart service `SpeechLocalizer` that estimates the horizontal angle of incoming stereo audio using RMS amplitude comparison.
+* Integrated `SpeechLocalizer` into `AudioService` for real-time direction estimation.
+* Updated documentation and README to reflect the new localization pipeline.
 
 ---
