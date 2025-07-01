@@ -12,7 +12,7 @@ This project is developed by Craig Merry, who, being Deaf, is driven by the pers
 
 ## ✨ Core Features
 
-*   **On-Device AI:** All processing is done locally using the Gemma 3n `.task` model, ensuring privacy and low latency.
+*   **On-Device AI:** All processing is done locally using the Gemma 3n `.task` model, ensuring privacy and low latency. Model initialization now leverages the community [`flutter_gemma`](https://pub.dev/packages/flutter_gemma) plugin for optimized loading on iOS and Android.
 *   **Multimodal Fusion:** The app combines audio and visual data for more accurate and context-aware transcriptions.
 *   **Visual Speaker Identification:** The app uses the Vision framework on iOS and ML Kit on Android to detect faces and identify the active speaker.
 *   **ARKit Anchor Creation:** The app can create and manage ARKit anchors to place captions in the 3D world.

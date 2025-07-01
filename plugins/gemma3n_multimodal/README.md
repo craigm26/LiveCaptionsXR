@@ -18,7 +18,7 @@ samples, guidance on mobile development, and a full API reference.
 | Feature                        | PRD File                                 | Status    |
 |--------------------------------|------------------------------------------|-----------|
 | Android Model Loading          | prd/01_android_model_loading.md           | Draft     |
-| iOS Model Loading              | prd/02_ios_model_loading.md               | Planned   |
+| iOS Model Loading              | prd/02_ios_model_loading.md               | In Progress |
 | Dart API & MethodChannel       | prd/03_dart_api_and_method_channel.md     | Planned   |
 | Streaming Inference            | prd/04_streaming_inference.md             | Planned   |
 | Multimodal Input Handling      | prd/05_multimodal_input.md                | Planned   |
