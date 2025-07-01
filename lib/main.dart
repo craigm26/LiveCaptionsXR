@@ -31,11 +31,23 @@ class LiveCaptionsXrApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: onboardingComplete ? '/home' : '/onboarding',
-      routes: {
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/home': (context) => const HomeScreen(),
-      },
+      home: FutureBuilder<bool>(
+        future: _isOnboardingComplete(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.data == false) {
+            return const OnboardingScreen();
+          }
+          return const HomeScreen();
+        },
+      ),
     );
+  }
+
+  Future<bool> _isOnboardingComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('onboarding_complete') ?? false;
   }
 }
