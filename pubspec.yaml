@@ -15,6 +15,8 @@ dependencies:
   get_it: ^8.0.3
   flutter_gemma: ^0.9.0
   scidart: ^0.0.2-dev.12
+  gemma3n_multimodal:
+    path: plugins/gemma3n_multimodal
   # Add your other dependencies here
 
 dev_dependencies:
