@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
-
+import 'package:gemma3n_multimodal/gemma3n_multimodal.dart';
 
 import '../models/transcription_result.dart';
 import '../utils/logger.dart';
+import '../services/hybrid_localization_engine.dart';
+import '../../features/home/cubit/home_cubit.dart';
 
 /// Streaming Automatic Speech Recognition service using Gemma 3n
 /// with multimodal (audio + visual) capabilities.
@@ -14,20 +17,23 @@ import '../utils/logger.dart';
 /// inference session, and exposing a `Stream<TranscriptionResult>`
 /// of partial and final transcripts.
 class GemmaASR {
+  final Gemma3nMultimodal _plugin = Gemma3nMultimodal();
   bool _initialized = false;
   bool _streaming = false;
   late StreamController<TranscriptionResult> _resultController;
-  Uint8List? _visionContext;
+  StreamSubscription? _pluginSubscription;
+  Uint8List? _currentVisionContext;
 
   /// Initialize the Gemma 3n ASR model.
   ///
   /// [assetPath] is the path to the `.task` model bundled as a Flutter asset.
   /// This should be a multimodal-capable model.
-  Future<void> initialize(
-      [String assetPath = 'assets/models/gemma-3n-E4B-it-int4.task']) async {
+  Future<void> initialize([
+    String assetPath = 'assets/models/gemma-3n-E4B-it-int4.task',
+  ]) async {
     if (_initialized) return;
     try {
-   
+      await _plugin.loadModel(assetPath);
       _initialized = true;
       log('✅ GemmaASR multimodal model loaded');
     } catch (e) {
@@ -38,66 +44,90 @@ class GemmaASR {
 
   /// Start a new streaming transcription session.
   ///
-  /// An optional [visionContext] image can be provided to improve
-  /// transcription accuracy with visual cues.
-  void startStream({Uint8List? visionContext}) {
+  /// [audioBuffer] is the initial PCM16 mono audio buffer to transcribe.
+  /// [visionContext] is an optional image (Uint8List) to provide visual context.
+  /// Returns a broadcast stream of TranscriptionResult.
+  Stream<TranscriptionResult> startStream(Uint8List audioBuffer, {Uint8List? visionContext}) {
     if (!_initialized) {
       throw StateError('GemmaASR not initialized');
     }
-    if (_streaming) return;
+    if (_streaming) {
+      throw StateError('GemmaASR stream already started');
+    }
     _streaming = true;
-    _visionContext = visionContext;
     _resultController = StreamController<TranscriptionResult>.broadcast();
-    if (_visionContext != null) {
-      log('🖼️ GemmaASR stream started with vision context.');
+    _currentVisionContext = visionContext;
+    // Use multimodal streaming if vision context is provided
+    if (visionContext != null) {
+      _pluginSubscription = _plugin.streamMultimodal(audio: audioBuffer, image: visionContext).listen(
+        (event) async {
+          final map = _parseResult(event);
+          _resultController.add(TranscriptionResult(text: map['text'] ?? '', isFinal: map['isFinal'] ?? false));
+          if (map['isFinal'] == true && (map['text'] as String?)?.isNotEmpty == true) {
+            // Place caption at fused speaker position
+            await HomeCubit().hybridLocalizationEngine.placeCaption(map['text']);
+          }
+        },
+        onError: (e) {
+          _resultController.addError(e);
+        },
+        onDone: () {
+          _resultController.close();
+          _streaming = false;
+        },
+        cancelOnError: false,
+      );
+    } else {
+      _pluginSubscription = _plugin.streamTranscription(audioBuffer).listen(
+        (event) async {
+          final map = _parseResult(event);
+          _resultController.add(TranscriptionResult(text: map['text'] ?? '', isFinal: map['isFinal'] ?? false));
+          if (map['isFinal'] == true && (map['text'] as String?)?.isNotEmpty == true) {
+            // Place caption at fused speaker position
+            await HomeCubit().hybridLocalizationEngine.placeCaption(map['text']);
+          }
+        },
+        onError: (e) {
+          _resultController.addError(e);
+        },
+        onDone: () {
+          _resultController.close();
+          _streaming = false;
+        },
+        cancelOnError: false,
+      );
     }
+    return _resultController.stream;
   }
 
-  /// Updates the visual context for the current streaming session.
-  ///
-  /// [image] is a `Uint8List` representing the image data.
+  /// Update the visual context for the next streaming session.
+  /// Note: The plugin does not support updating the image mid-session.
+  /// To use a new image, stop the current stream and start a new one with the new visionContext.
   void setVisionContext(Uint8List image) {
-    if (!_streaming) return;
-    _visionContext = image;
-    log('🖼️ GemmaASR vision context updated.');
-    // TODO: Feed the new image to the underlying inference engine.
+    _currentVisionContext = image;
+    log('🖼️ GemmaASR vision context updated (will take effect on next stream start).');
   }
 
-  /// Add an audio buffer to the current stream.
-  ///
-  /// [audioBuffer] should contain mono PCM samples (e.g. 16kHz Float32).
-  /// If a vision context was provided, it will be used for inference.
-  Future<void> addToStream(Float32List audioBuffer) async {
-    if (!_streaming) return;
-    try {
-      // TODO: Replace this placeholder with actual Gemma 3n streaming inference.
-      // This should handle both audio and the optional _visionContext.
-      final energy = audioBuffer.fold<double>(0, (s, v) => s + v.abs());
-      var text = energy > 1.0 ? '...' : '';
-      if (_visionContext != null && text.isNotEmpty) {
-        // Simulate vision context improving the transcription
-        text = 'saw';
-      }
-      final result = TranscriptionResult(text: text, isFinal: false);
-      _resultController.add(result);
-    } catch (e) {
-      log('⚠️ GemmaASR streaming error: $e');
-    }
-  }
-
-  /// Stop the current streaming session and emit a final result.
+  /// Stop the current streaming session.
   void stopStream() {
     if (!_streaming) return;
-    // In a real implementation, this might do a final inference call.
-    final text = _visionContext != null ? 'I saw the tool.' : 'I see the tool.';
-    _resultController.add(TranscriptionResult(text: text, isFinal: true));
+    _pluginSubscription?.cancel();
+    _pluginSubscription = null;
     _resultController.close();
     _streaming = false;
-    _visionContext = null;
   }
 
-  /// Stream of transcription results.
-  Stream<TranscriptionResult> get results =>
-      _streaming ? _resultController.stream : const Stream.empty();
+  /// Parses the plugin result (JSON or Map) into a Map<String, dynamic>.
+  Map<String, dynamic> _parseResult(dynamic event) {
+    if (event is Map<String, dynamic>) return event;
+    if (event is String) {
+      try {
+        return jsonDecode(event) as Map<String, dynamic>;
+      } catch (_) {
+        return {'text': event, 'isFinal': false};
+      }
+    }
+    return {'text': event.toString(), 'isFinal': false};
+  }
 }
 

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:scidart/numdart.dart';
 import 'package:scidart/scidart.dart';
+import 'package:flutter/services.dart';
 
 import 'stereo_audio_capture.dart';
 
@@ -14,6 +15,58 @@ import 'stereo_audio_capture.dart';
 /// of a [StereoAudioFrame] and converts the normalized difference into a
 /// horizontal angle in radians (negative = left, positive = right).
 class SpeechLocalizer {
+  /// Minimum RMS to consider a frame as valid speech (tune as needed)
+  final double minRmsThreshold;
+  /// Smoothing factor for exponential moving average (0 = no smoothing, 1 = max smoothing)
+  final double smoothing;
+
+  double _lastAngle = 0.0;
+
+  SpeechLocalizer({this.minRmsThreshold = 0.01, this.smoothing = 0.2});
+
+  static const MethodChannel _channel =
+      MethodChannel('live_captions_xr/speech_localizer');
+
+  /// Basic amplitude-based direction estimation (native).
+  static Future<double> estimateDirectionNative({
+    required Float32List left,
+    required Float32List right,
+    double sampleRate = 16000.0,
+  }) async {
+    final result = await _channel.invokeMethod<double>(
+      'estimateDirection',
+      {
+        'left': left,
+        'right': right,
+        'sampleRate': sampleRate,
+      },
+    );
+    if (result == null) throw Exception('No result from native code');
+    return result;
+  }
+
+  /// Advanced GCC-PHAT direction estimation (native).
+  static Future<double> estimateDirectionAdvancedNative({
+    required Float32List left,
+    required Float32List right,
+    double sampleRate = 16000.0,
+    double micDistance = 0.08,
+    double soundSpeed = 343.0,
+  }) async {
+    final result = await _channel.invokeMethod<double>(
+      'estimateDirectionAdvanced',
+      {
+        'left': left,
+        'right': right,
+        'sampleRate': sampleRate,
+        'micDistance': micDistance,
+        'soundSpeed': soundSpeed,
+      },
+    );
+    if (result == null) throw Exception('No result from native code');
+    return result;
+  }
+
   /// Estimate horizontal angle from a stereo audio frame.
   ///
   /// Returns an angle in radians between `-pi/2` (full left) and `pi/2` (full right).
@@ -21,10 +74,17 @@ class SpeechLocalizer {
     final leftRms = _rms(frame.left);
     final rightRms = _rms(frame.right);
     final sum = leftRms + rightRms;
-    if (sum == 0) return 0;
+    if (sum < minRmsThreshold) {
+      // Too quiet, treat as center or hold last value
+      return _lastAngle;
+    }
     final diff = leftRms - rightRms;
     final normalized = (diff / sum).clamp(-1.0, 1.0);
-    return normalized * (math.pi / 2);
+    final angle = normalized * (math.pi / 2);
+
+    // Exponential moving average smoothing
+    _lastAngle = smoothing * _lastAngle + (1 - smoothing) * angle;
+    return _lastAngle;
   }
 
   /// Estimate horizontal angle using GCC-PHAT Time Difference of Arrival.
@@ -84,7 +144,7 @@ class SpeechLocalizer {
   }
 
   double _rms(Float32List samples) {
-    var sum = 0.0;
+    double sum = 0.0;
     for (var i = 0; i < samples.length; i++) {
       final v = samples[i];
       sum += v * v;

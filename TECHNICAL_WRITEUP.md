@@ -132,6 +132,33 @@ Our design process is guided by the principle of "nothing about us without us," 
 
 ---
 
+## New Features (2025 Update)
+- **Hybrid Localization Engine:** Fuses audio, vision, and IMU data using a Kalman filter for robust, real-time speaker localization.
+- **ARKit/ARCore Plugin Integration:** Native plugins for AR anchor management, visual object detection, and caption placement, with Dart wrappers and MethodChannel communication.
+- **Real-time AR Caption Placement:** Captions are anchored in AR at the fused speaker position as soon as speech is recognized.
+- **Streaming ASR & Multimodal Fusion:** On-device Gemma 3n model for low-latency, privacy-preserving speech recognition and multimodal context.
+- **Dart-Native Communication:** New MethodChannels for AR navigation, caption placement, hybrid localization, and visual object detection.
+
+## End-to-End Pipeline
+1. **Audio & Vision Capture:** Real-time stereo audio and camera frames.
+2. **Direction Estimation:** Audio direction (RMS, GCC-PHAT) and visual speaker identification.
+3. **Hybrid Localization Fusion:** Kalman filter fuses all modalities for 3D world position.
+4. **Streaming ASR:** Real-time speech transcription.
+5. **AR Caption Placement:** Fused transform and caption sent to native AR view for 3D anchoring.
+
+## MethodChannels
+- `live_captions_xr/ar_navigation`: Launch native AR view.
+- `live_captions_xr/caption_methods`: Place captions in AR.
+- `live_captions_xr/hybrid_localization_methods`: Hybrid localization engine API.
+- `live_captions_xr/visual_object_methods`: Visual object detection from native.
+
+## How Captions Are Anchored
+- The hybrid localization engine provides a fused 3D transform for the speaker.
+- When a final transcript is available, the caption and transform are sent to native AR for placement.
+- Captions appear in AR at the correct spatial location, following the speaker.
+
+---
+
 ## Conclusion
 
 `live_captions_xr` demonstrates a robust, production-ready approach to deploying advanced multimodal AI models like Gemma 3n on mobile devices. By using Google's official MediaPipe framework, we achieve the performance and stability necessary for a real-time accessibility application, while our layered architecture ensures the system is maintainable and scalable.
@@ -139,3 +166,6 @@ Our design process is guided by the principle of "nothing about us without us," 
 **Technical Achievement**: Successfully implementing a high-performance, on-device, multimodal AI pipeline that solves a real-world accessibility problem.
 
 **Impact Goal**: Empowering independence and communication accessibility for the 466 million people worldwide with hearing loss.
+
+---
+See [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md), and [prd/](prd/) for more.

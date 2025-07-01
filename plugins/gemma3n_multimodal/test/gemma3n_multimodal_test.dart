@@ -1,181 +1,164 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gemma3n_multimodal/gemma3n_multimodal.dart';
-import 'package:gemma3n_multimodal/gemma3n_multimodal_platform_interface.dart';
-import 'package:gemma3n_multimodal/gemma3n_multimodal_method_channel.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:flutter_gemma/pigeon.g.dart';
-import 'package:flutter_gemma/core/model.dart';
-import 'package:flutter_gemma/core/message.dart';
-import 'package:flutter_gemma/core/chat.dart';
+import 'dart:typed_data';
 
-class MockGemma3nMultimodalPlatform
-    with MockPlatformInterfaceMixin
-    implements Gemma3nMultimodalPlatform {
-
-  @override
-  Future<String?> getPlatformVersion() => Future.value('42');
-}
-
-class FakeModelManager implements ModelFileManager {
-  int setPathCalls = 0;
-  String? lastPath;
-
-  @override
-  Future<bool> get isModelInstalled async => true;
-
-  @override
-  Future<bool> get isLoraInstalled async => false;
-
-  @override
-  Future<void> setModelPath(String path, {String? loraPath}) async {
-    setPathCalls++;
-    lastPath = path;
-  }
-
-  // The remaining methods are no-ops for testing.
-  @override
-  Future<void> setLoraWeightsPath(String path) async {}
-
-  @override
-  Future<void> downloadModelFromNetwork(String url, {String? loraUrl}) async {}
-
-  @override
-  Stream<int> downloadModelFromNetworkWithProgress(String url,
-          {String? loraUrl}) async* {}
-
-  @override
-  Future<void> downloadLoraWeightsFromNetwork(String loraUrl) async {}
-
-  @override
-  Future<void> installModelFromAsset(String path, {String? loraPath}) async {}
-
-  @override
-  Future<void> installLoraWeightsFromAsset(String path) async {}
-
-  @override
-  Stream<int> installModelFromAssetWithProgress(String path,
-          {String? loraPath}) async* {}
-
-  @override
-  Future<void> deleteModel() async {}
-
-  @override
-  Future<void> deleteLoraWeights() async {}
-}
-
-class FakeFlutterGemma extends FlutterGemmaPlugin
-    with MockPlatformInterfaceMixin {
-  FakeFlutterGemma();
-
-  final FakeModelManager manager = FakeModelManager();
-  int createModelCalls = 0;
-
-  @override
-  ModelFileManager get modelManager => manager;
-
-  @override
-  InferenceModel? get initializedModel => null;
-
-  @override
-  Future<InferenceModel> createModel({
-    required ModelType modelType,
-    int maxTokens = 1024,
-    PreferredBackend? preferredBackend,
-    List<int>? loraRanks,
-    int? maxNumImages,
-    bool supportImage = false,
-  }) async {
-    createModelCalls++;
-    return DummyInferenceModel();
-  }
-
-  @override
-  Future<void> close() async {}
-}
-
-class DummyInferenceModel implements InferenceModel {
-  @override
-  InferenceModelSession? get session => null;
-
-  @override
-  InferenceChat? chat;
-
-  @override
-  int get maxTokens => 0;
-
-  @override
-  Future<InferenceModelSession> createSession({
-    double temperature = .8,
-    int randomSeed = 1,
-    int topK = 1,
-    double? topP,
-    String? loraPath,
-    bool? enableVisionModality,
-  }) async {
-    return DummyInferenceSession();
-  }
-
-  @override
-  Future<InferenceChat> createChat({
-    double temperature = .8,
-    int randomSeed = 1,
-    int topK = 1,
-    double? topP,
-    int tokenBuffer = 256,
-    String? loraPath,
-    bool? supportImage,
-  }) async {
-    return InferenceChat(
-      sessionCreator: () async => DummyInferenceSession(),
-      maxTokens: 0,
+class _FakeEventChannel {
+  static const String channelName = 'gemma3n_multimodal_stream';
+  static void mockStream({required List<dynamic> events, bool throwError = false}) {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
+      channelName,
+      (ByteData? message) async {
+        if (throwError) {
+          throw PlatformException(code: 'STREAM_FAILED', message: 'Stream error');
+        }
+        // Simulate a stream of events
+        for (final event in events) {
+          ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+            channelName,
+            const StandardMethodCodec().encodeSuccessEnvelope(event),
+            (_) {},
+          );
+        }
+        return null;
+      },
     );
   }
-
-  @override
-  Future<void> close() async {}
-}
-
-class DummyInferenceSession implements InferenceModelSession {
-  @override
-  Future<void> addQueryChunk(Message message) async {}
-
-  @override
-  Future<void> close() async {}
-
-  @override
-  Future<String> getResponse() async => '';
-
-  @override
-  Stream<String> getResponseAsync() async* {}
-
-  @override
-  Future<int> sizeInTokens(String text) async => 0;
+  static void clear() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(channelName, null);
+  }
 }
 
 void main() {
-  final Gemma3nMultimodalPlatform initialPlatform = Gemma3nMultimodalPlatform.instance;
+  TestWidgetsFlutterBinding.ensureInitialized();
+  const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+  final plugin = Gemma3nMultimodal();
 
-  test('$MethodChannelGemma3nMultimodal is the default instance', () {
-    expect(initialPlatform, isInstanceOf<MethodChannelGemma3nMultimodal>());
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (MethodCall methodCall) async {
+        switch (methodCall.method) {
+          case 'loadModel':
+            if (methodCall.arguments['path'] == 'fail') {
+              throw PlatformException(code: 'LOAD_FAILED', message: 'Failed to load');
+            }
+            return null;
+          case 'unloadModel':
+            return null;
+          case 'isModelLoaded':
+            return methodCall.arguments?['loaded'] ?? true;
+          case 'getPlatformVersion':
+            return 'iOS 17.0';
+          case 'transcribeAudio':
+            if (methodCall.arguments['audio'] == null) {
+              throw PlatformException(code: 'INVALID_ARGUMENT', message: 'Missing audio');
+            }
+            return 'transcribed text';
+          case 'runMultimodal':
+            if (methodCall.arguments['audio'] == null && methodCall.arguments['image'] == null && methodCall.arguments['text'] == null) {
+              throw PlatformException(code: 'INVALID_ARGUMENT', message: 'No input');
+            }
+            return 'multimodal result';
+          default:
+            throw PlatformException(code: 'NOT_IMPLEMENTED', message: 'Not implemented');
+        }
+      },
+    );
   });
 
-  test('getPlatformVersion', () async {
-    Gemma3nMultimodal gemma3nMultimodalPlugin = Gemma3nMultimodal();
-    MockGemma3nMultimodalPlatform fakePlatform = MockGemma3nMultimodalPlatform();
-    Gemma3nMultimodalPlatform.instance = fakePlatform;
-
-    expect(await gemma3nMultimodalPlugin.getPlatformVersion(), '42');
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
-  test('loadModel uses flutter_gemma', () async {
-    final fakeGemma = FakeFlutterGemma();
-    final plugin = Gemma3nMultimodal(gemma: fakeGemma);
+  test('loadModel succeeds', () async {
+    await plugin.loadModel('path/to/model.task', useANE: true, useGPU: false);
+  });
 
-    await plugin.loadModel('path/to/model.task', useANE: false, useGPU: true);
+  test('loadModel throws on failure', () async {
+    expect(
+      () => plugin.loadModel('fail'),
+      throwsA(isA<PlatformException>()),
+    );
+  });
 
-    expect(fakeGemma.manager.setPathCalls, 1);
-    expect(fakeGemma.manager.lastPath, 'path/to/model.task');
-    expect(fakeGemma.createModelCalls, 1);
+  test('unloadModel succeeds', () async {
+    await plugin.unloadModel();
+  });
+
+  test('isModelLoaded returns true', () async {
+    expect(await plugin.isModelLoaded, true);
+  });
+
+  test('getPlatformVersion returns version', () async {
+    expect(await plugin.getPlatformVersion(), 'iOS 17.0');
+  });
+
+  test('transcribeAudio returns transcription', () async {
+    final audio = Uint8List.fromList([1, 2, 3]);
+    expect(await plugin.transcribeAudio(audio), 'transcribed text');
+  });
+
+  test('transcribeAudio throws on missing audio', () async {
+    expect(
+      () => plugin.transcribeAudio(Uint8List(0)),
+      throwsA(isA<PlatformException>()),
+    );
+  });
+
+  test('runMultimodal returns result', () async {
+    final audio = Uint8List.fromList([1, 2, 3]);
+    expect(await plugin.runMultimodal(audio: audio), 'multimodal result');
+    expect(await plugin.runMultimodal(image: audio), 'multimodal result');
+    expect(await plugin.runMultimodal(text: 'hello'), 'multimodal result');
+  });
+
+  test('runMultimodal throws on no input', () async {
+    expect(
+      () => plugin.runMultimodal(),
+      throwsA(isA<PlatformException>()),
+    );
+  });
+
+  group('streamTranscription', () {
+    test('receives partial results', () async {
+      final audio = Uint8List.fromList([1, 2, 3]);
+      _FakeEventChannel.mockStream(events: ['partial1', 'partial2', 'partial3']);
+      final plugin = Gemma3nMultimodal();
+      final results = await plugin.streamTranscription(audio).take(3).toList();
+      expect(results, ['partial1', 'partial2', 'partial3']);
+      _FakeEventChannel.clear();
+    });
+    test('throws on stream error', () async {
+      final audio = Uint8List.fromList([1, 2, 3]);
+      _FakeEventChannel.mockStream(events: [], throwError: true);
+      final plugin = Gemma3nMultimodal();
+      expect(
+        () => plugin.streamTranscription(audio).first,
+        throwsA(isA<PlatformException>()),
+      );
+      _FakeEventChannel.clear();
+    });
+  });
+
+  group('streamMultimodal', () {
+    test('receives partial multimodal results', () async {
+      final audio = Uint8List.fromList([1, 2, 3]);
+      _FakeEventChannel.mockStream(events: ['mm1', 'mm2']);
+      final plugin = Gemma3nMultimodal();
+      final results = await plugin.streamMultimodal(audio: audio).take(2).toList();
+      expect(results, ['mm1', 'mm2']);
+      _FakeEventChannel.clear();
+    });
+    test('throws on stream error', () async {
+      final audio = Uint8List.fromList([1, 2, 3]);
+      _FakeEventChannel.mockStream(events: [], throwError: true);
+      final plugin = Gemma3nMultimodal();
+      expect(
+        () => plugin.streamMultimodal(audio: audio).first,
+        throwsA(isA<PlatformException>()),
+      );
+      _FakeEventChannel.clear();
+    });
   });
 }

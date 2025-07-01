@@ -75,3 +75,17 @@ This plan ensures that **live_captions_xr** meets and exceeds accessibility requ
 ---
 
 This testing plan ensures `live_captions_xr` delivers on its promise to provide reliable and accessible captioning for the D/HH community.
+
+## AR Caption Placement
+- Captions are now spatially anchored in AR at the estimated 3D position of the speaker using hybrid localization (audio, vision, IMU fusion).
+- Test that captions appear at the correct location in AR and follow the speaker as they move.
+- Use the AR navigation and caption placement MethodChannels to trigger and verify AR captioning from Flutter.
+
+## MethodChannels
+- `live_captions_xr/ar_navigation`: Launch native AR view.
+- `live_captions_xr/caption_methods`: Place captions in AR.
+
+## Other Accessibility Features
+- Real-time, privacy-preserving speech transcription.
+- Visual and audio event overlays.
+- Modular, extensible architecture for new accessibility features.

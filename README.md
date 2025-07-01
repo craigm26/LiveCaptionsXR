@@ -1,83 +1,30 @@
-# live_captions_xr
+# LiveCaptionsXR
 
-**Real-time, spatially-aware closed captioning for Android XR and iOS, powered by on-device multimodal AI.**
+LiveCaptionsXR is a cross-platform (Flutter, iOS, Android) AR captioning app that uses on-device multimodal inference (audio, vision, IMU) for real-time, privacy-preserving speech transcription and AR caption placement.
 
----
+## Key Features
+- **Cross-platform AR Captioning:** Anchors captions in AR at the estimated 3D position of the speaker using ARKit (iOS) and ARCore (Android).
+- **Hybrid Localization Engine:** Fuses audio direction, visual detection, and IMU orientation using a Kalman filter for robust, real-time speaker localization.
+- **Streaming ASR & Multimodal Fusion:** Uses Gemma 3n `.task` model via MediaPipe's LLM Inference API for low-latency, on-device speech recognition and multimodal (audio+vision) context.
+- **Native Plugin Integration:** Custom Flutter plugins for ARKit/ARCore, stereo audio capture, and direction estimation, with Dart wrappers and MethodChannel/EventChannel communication.
+- **Real-time Caption Placement:** Captions are placed in AR at the fused speaker position as soon as speech is recognized, using a dedicated MethodChannel for caption placement.
+- **AR Navigation:** Enter AR mode from Flutter via MethodChannel, launching native AR views.
 
-## 🎯 Purpose
+## How It Works
+1. **Audio and Vision Capture:** Captures stereo audio and camera frames in real time.
+2. **Direction Estimation:** Estimates speaker direction using RMS and GCC-PHAT (audio) and optionally visual speaker identification.
+3. **Hybrid Localization:** Fuses audio, vision, and IMU data to estimate the 3D world position of the speaker.
+4. **Streaming ASR:** Transcribes speech in real time using on-device Gemma 3n model.
+5. **AR Caption Placement:** When a final transcript is available, the app sends the caption and fused transform to the native AR view, which anchors the caption in 3D space at the speaker's location.
 
-`live_captions_xr` is a real-time closed captioning application that leverages the power of Google's Gemma 3n model to provide an immersive and accessible experience. The project is designed for Android XR headsets and standard iOS/Android devices, providing spatially-aware captions that indicate the direction of sound.
+## MethodChannels
+- `live_captions_xr/ar_navigation`: Launch native AR view from Flutter.
+- `live_captions_xr/caption_methods`: Place captions in AR at a specified world transform.
+- `live_captions_xr/hybrid_localization_methods`: Communicate with the hybrid localization engine for fusion updates.
+- `live_captions_xr/visual_object_methods`: Send detected visual objects (with 3D transforms) from native to Dart.
 
-This project is developed by Craig Merry, who, being Deaf, is driven by the personal need for more advanced and context-aware accessibility tools.
-
-## ✨ Core Features
-
-*   **On-Device AI:** All processing is done locally using the Gemma 3n `.task` model, ensuring privacy and low latency. Model initialization now leverages the community [`flutter_gemma`](https://pub.dev/packages/flutter_gemma) plugin for optimized loading on iOS and Android.
-*   **Multimodal Fusion:** The app combines audio and visual data for more accurate and context-aware transcriptions.
-*   **Visual Speaker Identification:** The app uses the Vision framework on iOS and ML Kit on Android to detect faces and identify the active speaker.
-*   **ARKit Anchor Creation:** The app can create and manage ARKit anchors to place captions in the 3D world.
-*   **2D Caption Rendering:** The app can display captions in a 2D overlay on the screen.
-*   **3D Caption Rendering:** The app can render captions as 3D text bubbles in the AR world.
-*   **Spatial Audio Localization:** Utilizes stereo audio analysis to determine the direction of sound sources, placing captions spatially in the UI. The `SpeechLocalizer` service now uses a GCC-PHAT time-delay algorithm for precise angle estimation.
-*   **Stereo Audio Capture:** New `StereoAudioCapture` service provides low-latency PCM buffers from the device microphones.
-*   **Streaming ASR:** `GemmaASR` processes mono audio buffers and emits real-time transcription results.
-*   **Cross-Platform:** Built with Flutter, targeting Android (including XR) and iOS.
-*   **High-Performance:** Leverages Google's MediaPipe Tasks for optimized, hardware-accelerated inference.
-
-## 🏛️ Architecture
-
-The application is built on a clean, layered architecture that separates concerns and promotes maintainability.
-
-*   **Presentation Layer:** Flutter UI, responsible for rendering 2D and 3D captions.
-*   **Business Logic Layer:** Manages application state and business logic using the Cubit pattern.
-*   **Service Layer:** Contains services for audio processing, visual identification, and Gemma 3n inference.
-*   **Data/Platform Layer:** Interfaces with hardware (camera, microphone) and the native MediaPipe inference engine.
-
-For a detailed explanation of the architecture, please see the [ARCHITECTURE.md](ARCHITECTURE.md) file.
+## Getting Started
+- See the docs and PRD files for architecture, plugin setup, and integration details.
 
 ---
-
-## Development Guidance
-
-This project is structured into a series of well-defined tasks, each with its own Product Requirements Document (PRD) located in the `/prd` directory. All development, by both humans and AI agents, must reference and align with these PRDs.
-
--   **Always consult the relevant PRD** before starting any new feature, refactor, or review.
--   The PRDs are the single source of truth for feature scope, acceptance criteria, and technical requirements.
--   When using AI-assisted development tools, provide the relevant PRD as context.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
--   Flutter 3.x
--   An IDE such as Android Studio or VS Code with the Flutter plugin.
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/craigm26/live_captions_xr.git
-    cd live_captions_xr
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    flutter pub get
-    ```
-
-3.  **Run the app:**
-    ```bash
-    flutter run
-    ```
-
----
-
-## 📚 Project Documentation
-
-For more detailed information, please refer to the following documents:
-
--   **[ARCHITECTURE.md](ARCHITECTURE.md):** The detailed technical architecture of the system.
--   **[TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md):** A comprehensive technical explanation of the project.
--   **`/prd` directory:** Contains the detailed Product Requirements Documents for each development task.
+For more, see [ARCHITECTURE.md](ARCHITECTURE.md), [docs/](docs/), and [prd/](prd/).

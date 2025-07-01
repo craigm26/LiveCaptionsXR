@@ -32,6 +32,9 @@ class VisualObject {
   
   /// Additional metadata for enhanced accessibility features
   final Map<String, dynamic> metadata;
+  
+  /// World transform matrix (16 doubles, row-major 4x4)
+  final List<double>? worldTransform;
 
   VisualObject({
     required this.label,
@@ -42,6 +45,7 @@ class VisualObject {
     this.isRelevantToAudio = false,
     this.estimatedDistance,
     this.metadata = const {},
+    this.worldTransform,
   });
   
   /// Create a copy with updated fields
@@ -54,6 +58,7 @@ class VisualObject {
     bool? isRelevantToAudio,
     double? estimatedDistance,
     Map<String, dynamic>? metadata,
+    List<double>? worldTransform,
   }) {
     return VisualObject(
       label: label ?? this.label,
@@ -64,6 +69,7 @@ class VisualObject {
       isRelevantToAudio: isRelevantToAudio ?? this.isRelevantToAudio,
       estimatedDistance: estimatedDistance ?? this.estimatedDistance,
       metadata: metadata ?? this.metadata,
+      worldTransform: worldTransform ?? this.worldTransform,
     );
   }
   
@@ -83,6 +89,7 @@ class VisualObject {
       'isRelevantToAudio': isRelevantToAudio,
       'estimatedDistance': estimatedDistance,
       'metadata': metadata,
+      'worldTransform': worldTransform,
     };
   }
   
@@ -103,6 +110,7 @@ class VisualObject {
       isRelevantToAudio: json['isRelevantToAudio'] as bool? ?? false,
       estimatedDistance: (json['estimatedDistance'] as num?)?.toDouble(),
       metadata: Map<String, dynamic>.from(json['metadata'] as Map? ?? {}),
+      worldTransform: (json['worldTransform'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList(),
     );
   }
   
@@ -110,7 +118,7 @@ class VisualObject {
   @override
   String toString() {
     return 'VisualObject(label: $label, confidence: ${confidence.toStringAsFixed(2)}, '
-           'relation: $spatialRelation, audioRelevant: $isRelevantToAudio)';
+           'relation: $spatialRelation, audioRelevant: $isRelevantToAudio, worldTransform: ${worldTransform != null ? '[${worldTransform!.take(4).map((e) => e.toStringAsFixed(2)).join(', ')} ...]' : 'null'})';
   }
   
   /// Check if confidence is high enough for reliable identification

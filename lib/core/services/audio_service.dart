@@ -6,6 +6,8 @@ import 'gemma3n_service.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
+import '../../features/home/cubit/home_cubit.dart';
+import 'package:flutter/material.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
 ///
@@ -65,8 +67,23 @@ class AudioService {
     _soundEventController = StreamController<SoundEvent>.broadcast();
 
     await _audioCapture.startRecording();
-    _captureSub = _audioCapture.frames.listen((frame) {
+    _captureSub = _audioCapture.frames.listen((frame) async {
       final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
+      // AUTOMATED: Update hybrid localization engine after every direction estimate
+      try {
+        final homeCubit = WidgetsBinding.instance != null && WidgetsBinding.instance!.renderViewElement != null
+            ? HomeCubit()
+            : null;
+        // Use Provider/Bloc if available in your app context
+        // For now, fallback to a static instance or pass HomeCubit as a dependency
+        await homeCubit?.updateWithAudioMeasurement(
+          angle: angle,
+          confidence: 1.0, // TODO: Use real confidence if available
+          deviceTransform: List<double>.filled(16, 0)..[0] = 1..[5] = 1..[10] = 1..[15] = 1, // 4x4 identity
+        );
+      } catch (e) {
+        print('⚠️ Failed to update hybrid localization: $e');
+      }
       _processAudioFrame(frame.toMono(), angle);
     });
 

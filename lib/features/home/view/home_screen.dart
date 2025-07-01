@@ -8,6 +8,8 @@ import '../cubit/home_cubit.dart';
 import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
 import 'dart:ui';
+import '../../../core/services/ar_anchor_manager.dart';
+import 'package:flutter/services.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -193,6 +195,39 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
                 return const SizedBox.shrink();
               },
+            ),
+          ],
+        ),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              onPressed: () async {
+                final homeCubit = context.read<HomeCubit>();
+                final arAnchorManager = ARAnchorManager();
+                try {
+                  final fusedTransform = await homeCubit.getFusedTransform();
+                  final anchorId = await arAnchorManager.createAnchorAtWorldTransform(fusedTransform);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('AR Anchor placed! ID: $anchorId')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to place AR Anchor: $e')),
+                  );
+                }
+              },
+              tooltip: 'Place AR Anchor (Fused)',
+              child: const Icon(Icons.add_location_alt),
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton(
+              onPressed: () async {
+                const MethodChannel('live_captions_xr/ar_navigation').invokeMethod('showARView');
+              },
+              tooltip: 'Enter AR Mode',
+              child: const Icon(Icons.view_in_ar),
             ),
           ],
         ),

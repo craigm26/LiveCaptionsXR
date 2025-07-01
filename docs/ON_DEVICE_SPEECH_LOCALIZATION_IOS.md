@@ -58,3 +58,21 @@ class LocalizationAndCaptioningEngine {
 ```
 
 This native Swift code handles the high-performance, real-time processing, while the Flutter app manages the UI and overall application logic. This approach ensures a responsive user experience by keeping heavy computations off the main Dart thread.
+
+## Hybrid Localization Engine
+- Fuses audio direction, visual detection, and IMU orientation using a Kalman filter for robust, real-time speaker localization.
+- Exposed to Dart via MethodChannel for prediction, update, and fused transform retrieval.
+
+## ARKit Plugin Integration
+- Native plugin for AR anchor management, visual object detection, and caption placement.
+- Communicates with Dart via MethodChannels for AR navigation and captioning.
+
+## Real-time AR Caption Placement
+- When a final transcript is available, the fused transform and caption are sent to the native AR view, which anchors the caption in 3D space at the speaker's location.
+- Captions follow the speaker in AR as they move, providing accessible, privacy-preserving communication.
+
+## MethodChannels
+- `live_captions_xr/ar_navigation`: Launch native AR view.
+- `live_captions_xr/caption_methods`: Place captions in AR.
+- `live_captions_xr/hybrid_localization_methods`: Hybrid localization engine API.
+- `live_captions_xr/visual_object_methods`: Visual object detection from native.

@@ -10,6 +10,30 @@
 
 **Core Innovation**: Rather than processing speech as isolated audio streams, live_captions_xr leverages Gemma 3n's unified multimodal architecture to understand conversational context holistically, providing spatial captions like "Person at your left said: 'The meeting starts in 5 minutes'" instead of simply displaying flat text transcriptions. This is all achieved on-device for maximum privacy and performance.
 
+## What's New
+- **Hybrid Localization Engine:** Fuses audio, vision, and IMU for robust, real-time speaker localization using a Kalman filter.
+- **ARKit/ARCore Plugin Integration:** Native plugins for AR anchor management, visual object detection, and caption placement, with Dart wrappers and MethodChannel communication.
+- **Real-time AR Caption Placement:** Captions are anchored in AR at the fused speaker position as soon as speech is recognized.
+- **Streaming ASR & Multimodal Fusion:** On-device Gemma 3n model for low-latency, privacy-preserving speech recognition and multimodal context.
+- **Dart-Native Communication:** New MethodChannels for AR navigation, caption placement, hybrid localization, and visual object detection.
+
+## End-to-End Pipeline
+1. **Audio & Vision Capture:** Real-time stereo audio and camera frames.
+2. **Direction Estimation:** Audio direction (RMS, GCC-PHAT) and visual speaker identification.
+3. **Hybrid Localization Fusion:** Kalman filter fuses all modalities for 3D world position.
+4. **Streaming ASR:** Real-time speech transcription.
+5. **AR Caption Placement:** Fused transform and caption sent to native AR view for 3D anchoring.
+
+## Modular Plugin Architecture
+- Easily extensible for new sensors, models, or AR features.
+- Testable, production-grade code with clear separation of concerns.
+
+## MethodChannels
+- `live_captions_xr/ar_navigation`: Launch native AR view.
+- `live_captions_xr/caption_methods`: Place captions in AR.
+- `live_captions_xr/hybrid_localization_methods`: Hybrid localization engine API.
+- `live_captions_xr/visual_object_methods`: Visual object detection from native.
+
 ---
 
 ## 📋 Hackathon Submission Checklist

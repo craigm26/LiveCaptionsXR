@@ -110,7 +110,7 @@
 
 ---
 
-## Implementation Approach Update (2024)
+## Implementation Approach Update (2025)
 
 **UX/UI design will be informed by the capabilities of a native plugin/FFI approach interfacing directly with the Gemma 3n model and its .task file.**
 - No third-party Dart/Flutter packages will be used for inference.

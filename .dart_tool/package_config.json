@@ -98,6 +98,12 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "gemma3n_multimodal",
+      "rootUri": "../plugins/gemma3n_multimodal",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
       "name": "get_it",
       "rootUri": "file:///C:/Users/CraigM/AppData/Local/Pub/Cache/hosted/pub.dev/get_it-8.0.3",
       "packageUri": "lib/",

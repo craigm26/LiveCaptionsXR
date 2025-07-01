@@ -123,7 +123,7 @@
 - Updated architecture and technical documentation.
 - README now lists 3D Caption Rendering feature.
 
-## Implementation Approach Update (2024)
+## Implementation Approach Update (2025)
 
 **We will use a native plugin/FFI approach to interface directly with the Gemma 3n model and its .task file.**
 - No third-party Dart/Flutter packages will be used for inference.

@@ -48,6 +48,9 @@ dependencies {
 
     // ML Kit
     implementation("com.google.mlkit:face-detection:16.1.6")
+
+    // JTransforms for FFT
+    implementation("com.github.wendykierp:JTransforms:3.1")
 }
 
 flutter {
