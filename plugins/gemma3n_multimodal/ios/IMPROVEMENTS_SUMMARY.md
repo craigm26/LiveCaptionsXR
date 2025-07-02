@@ -15,10 +15,9 @@ The original issue requested improved code for accurate flutter build iOS with b
 ### 1. Enhanced MediaPipe Dependencies ✅
 **File**: `ios/gemma3n_multimodal.podspec`
 ```ruby
-# Added comprehensive MediaPipe support
+# Core MediaPipe support (only include what's needed)
 s.dependency 'MediaPipeTasksGenAI'
-s.dependency 'MediaPipeTasksGenAIC' 
-s.dependency 'MediaPipeTasksVision'    # NEW - for vision tasks
+# Note: MediaPipeTasksGenAIC and MediaPipeTasksVision removed to reduce app size
 ```
 
 ### 2. Smart Bundle Asset Path Resolution ✅

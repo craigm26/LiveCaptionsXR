@@ -1,14 +1,30 @@
 # 🚨 iOS Build Status & Developer Alert
 
-## Current Status: ✅ ALL FEATURES RESTORED
+## Current Status: ✅ ALL FEATURES RESTORED + SIZE OPTIMIZED
 
 The iOS build succeeds and all Swift plugins, including the Gemma3n multimodal integration, are fully enabled.
+
+**NEW**: iOS app size optimization implemented to fix TestFlight upload issues.
 
 ## 🔧 What Was Fixed
 - MediaPipe plugin compilation errors
 - iOS deployment target updated to 14.0
 - Pod configuration for MediaPipe frameworks
 - Dependency resolution issues
+- **iOS app size reduced from 4GB to under limits** ⭐
+
+## 📱 TestFlight & App Store Readiness
+### Size Optimization (Latest Update)
+The app previously exceeded TestFlight's 4GB size limit. Now optimized with:
+- Dead code stripping and symbol removal
+- App thinning for all device variants  
+- Size-optimized compiler settings
+- Automated build script: `scripts/build_ios_optimized.sh`
+- Export configuration: `ios/ExportOptions.plist`
+
+**Result**: App size significantly reduced and TestFlight-ready ✅
+
+For details see: `docs/iOS_SIZE_OPTIMIZATION.md`
 
 
 ## 🎯 Next Steps for Developers
