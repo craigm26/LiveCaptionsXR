@@ -1,8 +1,8 @@
 # 🚨 iOS Build Status & Developer Alert
 
-## Current Status: ✅ BUILDS SUCCESSFULLY
+## Current Status: 🚧 FEATURES RESTORED, VERIFYING
 
-The iOS build has been fixed and is now working. However, **several features are temporarily disabled** and need to be restored.
+The iOS build succeeds and core functionality has been restored. All Swift plugins are now enabled again, but the MediaPipe integration remains a placeholder.
 
 ## 🔧 What Was Fixed
 - MediaPipe plugin compilation errors
@@ -12,17 +12,12 @@ The iOS build has been fixed and is now working. However, **several features are
 
 ## ⚠️ What's Temporarily Disabled
 
-### In `ios/Runner/AppDelegate.swift`:
-- `VisualSpeakerIdentifier` - Face detection and speaker ID
-- `ARAnchorManager` - ARKit anchor management  
-- `HybridLocalizationEngine` - Audio-visual fusion
-- `StereoAudioCapturePlugin` - Stereo audio capture
-- `SpeechLocalizerPlugin` - Speech localization
+The core Swift plugins have been re-enabled. The following features are still disabled pending further implementation:
 
 ### In `plugins/gemma3n_multimodal/ios/Classes/Gemma3nMultimodalPlugin.swift`:
-- Full MediaPipe LLM Inference integration
-- Streaming API capabilities
-- Advanced multimodal features
+ - Full MediaPipe LLM Inference integration
+ - Streaming API capabilities
+ - Advanced multimodal features
 
 ## 🎯 Next Steps for Developers
 
