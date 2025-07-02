@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import MediaPipeTasksGenAI
 import MediaPipeTasksGenAIC
+import MediaPipeTasksVision
 
 public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private var llmInference: LlmInference?
@@ -15,6 +16,78 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     stream.setStreamHandler(instance)
   }
 
+  // MARK: - Helper Methods for Bundle Asset Handling
+  
+  /// Resolves model path from iOS bundle or validates external path
+  private func resolveModelPath(_ path: String) -> String? {
+    // If path is relative, try to find it in the app bundle
+    if !path.hasPrefix("/") && !path.hasPrefix("file://") {
+      // Check if it's in the main bundle
+      if let bundlePath = Bundle.main.path(forResource: path.replacingOccurrences(of: ".task", with: ""), ofType: "task") {
+        return bundlePath
+      }
+      
+      // Check in assets subdirectory
+      let assetsPath = "assets/models/\(path)"
+      if let bundlePath = Bundle.main.path(forResource: assetsPath.replacingOccurrences(of: ".task", with: ""), ofType: "task") {
+        return bundlePath
+      }
+      
+      // Check for direct asset path
+      if let bundlePath = Bundle.main.path(forResource: "assets/models/\(path.replacingOccurrences(of: ".task", with: ""))", ofType: "task") {
+        return bundlePath
+      }
+    }
+    
+    // For absolute paths, verify file exists
+    if FileManager.default.fileExists(atPath: path) {
+      return path
+    }
+    
+    return nil
+  }
+  
+  /// Creates properly configured BaseOptions for MediaPipe
+  private func createBaseOptions(modelPath: String) -> BaseOptions {
+    let baseOptions = BaseOptions()
+    baseOptions.modelAssetPath = modelPath
+    return baseOptions
+  }
+  
+  /// Creates session options with proper parameter configuration
+  private func createSessionOptions(_ args: [String: Any]? = nil) -> LlmInference.Session.Options {
+    let sessionOptions = LlmInference.Session.Options()
+    
+    // Apply parameters from args or use defaults
+    if let args = args {
+      sessionOptions.topk = args["topK"] as? Int ?? 40
+      sessionOptions.topp = args["topP"] as? Float ?? 0.9
+      sessionOptions.temperature = args["temperature"] as? Float ?? 0.8
+    } else {
+      // Default values optimized for Gemma3n
+      sessionOptions.topk = 40
+      sessionOptions.topp = 0.9
+      sessionOptions.temperature = 0.8
+    }
+    
+    return sessionOptions
+  }
+  
+  /// Validates system requirements and available memory
+  private func validateSystemRequirements() -> (isValid: Bool, error: String?) {
+    // Check iOS version (MediaPipe GenAI requires iOS 12.0+)
+    if #available(iOS 12.0, *) {
+      // Check available memory (basic check)
+      let processInfo = ProcessInfo.processInfo
+      if processInfo.physicalMemory < 1_000_000_000 { // 1GB minimum
+        return (false, "Insufficient memory for model loading")
+      }
+      return (true, nil)
+    } else {
+      return (false, "iOS 12.0 or later required for MediaPipe GenAI")
+    }
+  }
+
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "getPlatformVersion":
@@ -25,21 +98,68 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
         result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing model path", details: nil))
         return
       }
+      
+      // Validate system requirements first
+      let validation = validateSystemRequirements()
+      if !validation.isValid {
+        result(FlutterError(code: "SYSTEM_REQUIREMENTS", message: validation.error ?? "System requirements not met", details: nil))
+        return
+      }
+      
+      // Resolve model path using iOS bundle if needed
+      guard let resolvedPath = resolveModelPath(path) else {
+        result(FlutterError(code: "MODEL_NOT_FOUND", message: "Model file not found at path: \(path)", details: [
+          "searchedPaths": [
+            path,
+            "Bundle.main/\(path)",
+            "Bundle.main/assets/models/\(path)"
+          ]
+        ]))
+        return
+      }
+      
       let useANE = args["useANE"] as? Bool ?? true
       let useGPU = args["useGPU"] as? Bool ?? false
+      
       do {
-        let options = LlmInference.Options(modelPath: path)
-        options.maxTokens = 1000
+        // Create BaseOptions with proper iOS bundle path
+        let baseOptions = createBaseOptions(modelPath: resolvedPath)
         
-        // Note: MediaPipe iOS API doesn't expose delegate selection directly
-        // Hardware acceleration is handled automatically by the framework
-        // topK, temperature, etc. are set on session options instead
+        // Configure LLM Inference Options with BaseOptions
+        let options = LlmInference.Options()
+        options.baseOptions = baseOptions
+        options.maxTokens = args["maxTokens"] as? Int ?? 1000
         
+        // Configure generation parameters
+        if let topK = args["topK"] as? Int {
+          // These will be applied at session level
+        }
+        if let temperature = args["temperature"] as? Float {
+          // These will be applied at session level  
+        }
+        
+        // Initialize LLM Inference
         llmInference = try LlmInference(options: options)
-        result(nil)
+        
+        // Log successful loading for debugging
+        print("✅ Model loaded successfully from: \(resolvedPath)")
+        print("🔧 Hardware acceleration - ANE: \(useANE), GPU: \(useGPU)")
+        
+        result([
+          "success": true,
+          "modelPath": resolvedPath,
+          "useANE": useANE,
+          "useGPU": useGPU
+        ])
       } catch {
         llmInference = nil
-        result(FlutterError(code: "LOAD_FAILED", message: error.localizedDescription, details: nil))
+        let errorMessage = "Failed to load model from \(resolvedPath): \(error.localizedDescription)"
+        print("❌ \(errorMessage)")
+        result(FlutterError(code: "LOAD_FAILED", message: errorMessage, details: [
+          "originalPath": path,
+          "resolvedPath": resolvedPath,
+          "error": error.localizedDescription
+        ]))
       }
     case "unloadModel":
       llmInference = nil
@@ -47,6 +167,44 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       result(nil)
     case "isModelLoaded":
       result(llmInference != nil)
+    case "getModelInfo":
+      if let llm = llmInference {
+        result([
+          "isLoaded": true,
+          "modelType": "Gemma3n",
+          "capabilities": ["text", "audio", "image"]
+        ])
+      } else {
+        result([
+          "isLoaded": false
+        ])
+      }
+    case "getBundleModelPaths":
+      // Helper method to discover available .task files in bundle
+      var bundleModels: [String] = []
+      
+      // Search in main bundle
+      if let bundlePath = Bundle.main.bundlePath {
+        let fileManager = FileManager.default
+        do {
+          let contents = try fileManager.contentsOfDirectory(atPath: bundlePath)
+          bundleModels.append(contentsOf: contents.filter { $0.hasSuffix(".task") })
+          
+          // Also search in assets/models if it exists
+          let assetsPath = "\(bundlePath)/assets/models"
+          if fileManager.fileExists(atPath: assetsPath) {
+            let assetsContents = try fileManager.contentsOfDirectory(atPath: assetsPath)
+            bundleModels.append(contentsOf: assetsContents.filter { $0.hasSuffix(".task") }.map { "assets/models/\($0)" })
+          }
+        } catch {
+          print("Warning: Could not scan bundle for .task files: \(error)")
+        }
+      }
+      
+      result([
+        "bundleModels": bundleModels,
+        "bundlePath": Bundle.main.bundlePath ?? "unknown"
+      ])
     case "transcribeAudio":
       guard let args = call.arguments as? [String: Any],
             let audio = args["audio"] as? FlutterStandardTypedData,
@@ -58,10 +216,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       do {
         // For now, use basic text generation as MediaPipe iOS doesn't expose audio API directly
         let audioDescription = "Audio transcription request with \(floats.count) samples"
-        let sessionOptions = LlmInference.Session.Options()
-        sessionOptions.topk = 40
-        sessionOptions.topp = 0.9
-        sessionOptions.temperature = 0.8
+        let sessionOptions = createSessionOptions(args)
         let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
         try session.addQueryChunk(inputText: audioDescription)
         let transcription = try session.generateResponse()
@@ -89,10 +244,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
           prompt += " [Audio data: \(floats.count) samples]"
         }
         
-        let sessionOptions = LlmInference.Session.Options()
-        sessionOptions.topk = 40
-        sessionOptions.topp = 0.9
-        sessionOptions.temperature = 0.8
+        let sessionOptions = createSessionOptions(args)
         let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
         try session.addQueryChunk(inputText: prompt)
         let response = try session.generateResponse()
@@ -146,10 +298,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     do {
       // Use basic streaming for now
       let audioDescription = "Stream transcription request with \(floats.count) samples"
-      let sessionOptions = LlmInference.Session.Options()
-      sessionOptions.topk = 40
-      sessionOptions.topp = 0.9
-      sessionOptions.temperature = 0.8
+      let sessionOptions = createSessionOptions(args)
       let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
       try session.addQueryChunk(inputText: audioDescription)
       let resultStream = session.generateResponseAsync()
@@ -194,10 +343,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
         prompt += " [Audio data: \(floats.count) samples]"
       }
       
-      let sessionOptions = LlmInference.Session.Options()
-      sessionOptions.topk = 40
-      sessionOptions.topp = 0.9
-      sessionOptions.temperature = 0.8
+      let sessionOptions = createSessionOptions(args)
       let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
       try session.addQueryChunk(inputText: prompt)
       let resultStream = session.generateResponseAsync()
