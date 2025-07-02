@@ -17,8 +17,6 @@ A new Flutter plugin project.
   s.dependency 'Flutter'
   s.static_framework = true
   s.dependency 'MediaPipeTasksGenAI'
-  s.dependency 'MediaPipeTasksGenAIC'
-  s.dependency 'MediaPipeTasksVision'
   s.platform = :ios, '12.0'
 
   # Flutter.framework does not contain a i386 slice.

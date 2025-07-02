@@ -1,11 +1,9 @@
 import Flutter
 import UIKit
 import MediaPipeTasksGenAI
-import MediaPipeTasksGenAIC
-import MediaPipeTasksVision
 
 public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
-  private var llmInference: LlmInference?
+  private var llmInference: MediaPipeTasksGenAI.LlmInference?
   private var eventSink: FlutterEventSink?
   private var bufferedAudio: [[Float]] = []
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -47,16 +45,16 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     return nil
   }
   
-  /// Creates properly configured BaseOptions for MediaPipe
-  private func createBaseOptions(modelPath: String) -> BaseOptions {
-    let baseOptions = BaseOptions()
-    baseOptions.modelAssetPath = modelPath
-    return baseOptions
+  /// Creates properly configured LLM Inference Options for MediaPipe
+  private func createLlmOptions(modelPath: String) -> MediaPipeTasksGenAI.LlmInference.Options {
+    let options = MediaPipeTasksGenAI.LlmInference.Options(modelPath: modelPath)
+    options.maxTokens = 1000
+    return options
   }
   
   /// Creates session options with proper parameter configuration
-  private func createSessionOptions(_ args: [String: Any]? = nil) -> LlmInference.Session.Options {
-    let sessionOptions = LlmInference.Session.Options()
+  private func createSessionOptions(_ args: [String: Any]? = nil) -> MediaPipeTasksGenAI.LlmInference.Session.Options {
+    let sessionOptions = MediaPipeTasksGenAI.LlmInference.Session.Options()
     
     // Apply parameters from args or use defaults
     if let args = args {
@@ -122,12 +120,10 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       let useGPU = args["useGPU"] as? Bool ?? false
       
       do {
-        // Create BaseOptions with proper iOS bundle path
-        let baseOptions = createBaseOptions(modelPath: resolvedPath)
+        // Create LLM Inference Options with proper iOS bundle path
+        let options = createLlmOptions(modelPath: resolvedPath)
         
-        // Configure LLM Inference Options with BaseOptions
-        let options = LlmInference.Options()
-        options.baseOptions = baseOptions
+        // Configure additional generation parameters
         options.maxTokens = args["maxTokens"] as? Int ?? 1000
         
         // Configure generation parameters
@@ -139,7 +135,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
         }
         
         // Initialize LLM Inference
-        llmInference = try LlmInference(options: options)
+        llmInference = try MediaPipeTasksGenAI.LlmInference(options: options)
         
         // Log successful loading for debugging
         print("✅ Model loaded successfully from: \(resolvedPath)")
@@ -184,26 +180,25 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       var bundleModels: [String] = []
       
       // Search in main bundle
-      if let bundlePath = Bundle.main.bundlePath {
-        let fileManager = FileManager.default
-        do {
-          let contents = try fileManager.contentsOfDirectory(atPath: bundlePath)
-          bundleModels.append(contentsOf: contents.filter { $0.hasSuffix(".task") })
-          
-          // Also search in assets/models if it exists
-          let assetsPath = "\(bundlePath)/assets/models"
-          if fileManager.fileExists(atPath: assetsPath) {
-            let assetsContents = try fileManager.contentsOfDirectory(atPath: assetsPath)
-            bundleModels.append(contentsOf: assetsContents.filter { $0.hasSuffix(".task") }.map { "assets/models/\($0)" })
-          }
-        } catch {
-          print("Warning: Could not scan bundle for .task files: \(error)")
+      let bundlePath = Bundle.main.bundlePath
+      let fileManager = FileManager.default
+      do {
+        let contents = try fileManager.contentsOfDirectory(atPath: bundlePath)
+        bundleModels.append(contentsOf: contents.filter { $0.hasSuffix(".task") })
+        
+        // Also search in assets/models if it exists
+        let assetsPath = "\(bundlePath)/assets/models"
+        if fileManager.fileExists(atPath: assetsPath) {
+          let assetsContents = try fileManager.contentsOfDirectory(atPath: assetsPath)
+          bundleModels.append(contentsOf: assetsContents.filter { $0.hasSuffix(".task") }.map { "assets/models/\($0)" })
         }
+      } catch {
+        print("Warning: Could not scan bundle for .task files: \(error)")
       }
       
       result([
         "bundleModels": bundleModels,
-        "bundlePath": Bundle.main.bundlePath ?? "unknown"
+        "bundlePath": Bundle.main.bundlePath
       ])
     case "transcribeAudio":
       guard let args = call.arguments as? [String: Any],
@@ -217,7 +212,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
         // For now, use basic text generation as MediaPipe iOS doesn't expose audio API directly
         let audioDescription = "Audio transcription request with \(floats.count) samples"
         let sessionOptions = createSessionOptions(args)
-        let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
+        let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
         try session.addQueryChunk(inputText: audioDescription)
         let transcription = try session.generateResponse()
         result(transcription)
@@ -245,7 +240,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
         }
         
         let sessionOptions = createSessionOptions(args)
-        let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
+        let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
         try session.addQueryChunk(inputText: prompt)
         let response = try session.generateResponse()
         result(response)
@@ -299,7 +294,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       // Use basic streaming for now
       let audioDescription = "Stream transcription request with \(floats.count) samples"
       let sessionOptions = createSessionOptions(args)
-      let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
+      let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
       try session.addQueryChunk(inputText: audioDescription)
       let resultStream = session.generateResponseAsync()
       
@@ -344,7 +339,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       }
       
       let sessionOptions = createSessionOptions(args)
-      let session = try LlmInference.Session(llmInference: llm, options: sessionOptions)
+      let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
       try session.addQueryChunk(inputText: prompt)
       let resultStream = session.generateResponseAsync()
       
