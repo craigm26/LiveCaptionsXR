@@ -15,6 +15,7 @@ A new Flutter plugin project.
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
+  s.static_framework = true
   s.dependency 'MediaPipeTasksGenAI'
   s.dependency 'MediaPipeTasksGenAIC'
   s.dependency 'MediaPipeTasksVision'
