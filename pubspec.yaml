@@ -1,3 +1,5 @@
+publish_to: none
+
 name: live_captions_xr
 description: A Flutter app for live captions and XR accessibility features.
 version: 1.0.0+1
@@ -13,8 +15,8 @@ dependencies:
   flutter_bloc: ^9.1.1
   go_router: ^15.2.4
   get_it: ^8.0.3
-  flutter_gemma: ^0.9.0
   scidart: ^0.0.2-dev.12
+  shared_preferences: ^2.5.3
   gemma3n_multimodal:
     path: plugins/gemma3n_multimodal
   # Add your other dependencies here
