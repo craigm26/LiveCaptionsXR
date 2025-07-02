@@ -41,6 +41,18 @@ await plugin.unloadModel();
 bool loaded = await plugin.isModelLoaded;
 ```
 
+### Model Information & Discovery
+```dart
+// Get model status and capabilities
+final info = await plugin.getModelInfo();
+print('Model loaded: ${info['isLoaded']}');
+print('Capabilities: ${info['capabilities']}');
+
+// Discover bundled models (iOS)
+final bundleInfo = await plugin.getBundleModelPaths();
+print('Available models: ${bundleInfo['bundleModels']}');
+```
+
 ### Transcribe Audio (ASR)
 ```dart
 final result = await plugin.transcribeAudio(audioBytes); // PCM16 mono 16kHz
@@ -91,6 +103,26 @@ plugin.streamMultimodal(audio: audioBytes, image: imageBytes, text: 'What is hap
 - **Android**: Model path must be accessible to the app. Use `useGPU: true` for best performance on supported devices.
 - **iOS**: Use `useANE: true` to leverage Apple Neural Engine. Model path must be accessible (e.g., app sandbox).
 - **Audio**: Input must be PCM16 mono, 16kHz, as required by Gemma 3n.
+
+### iOS Bundle Asset Embedding
+
+For iOS, you can embed `.task` model files directly in your app bundle for easier distribution:
+
+1. **Place model files** in `ios/Assets/models/` or your app's bundle
+2. **Add to Xcode project** via "Add Files to Runner" 
+3. **Load using relative paths**:
+   ```dart
+   await plugin.loadModel('gemma3n.task'); // Searches bundle automatically
+   await plugin.loadModel('assets/models/gemma3n.task'); // Explicit path
+   ```
+
+4. **Discover available models**:
+   ```dart
+   final info = await plugin.getBundleModelPaths();
+   print('Available models: ${info['bundleModels']}');
+   ```
+
+See `plugins/gemma3n_multimodal/ios/Assets/README.md` for detailed instructions.
 
 ---
 
