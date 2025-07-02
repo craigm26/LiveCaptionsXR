@@ -17,6 +17,13 @@ import SceneKit
     private let session: ARSession
     private let sceneView: ARSCNView
 
+    // Default initializer for plugin registration
+    override init() {
+        self.session = ARSession()
+        self.sceneView = ARSCNView()
+        super.init()
+    }
+
     init(session: ARSession, sceneView: ARSCNView) {
         self.session = session
         self.sceneView = sceneView
