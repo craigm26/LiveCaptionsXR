@@ -9,6 +9,7 @@ LiveCaptionsXR is a cross-platform (Flutter, iOS, Android) AR captioning app tha
 - **Native Plugin Integration:** Custom Flutter plugins for ARKit/ARCore, stereo audio capture, and direction estimation, with Dart wrappers and MethodChannel/EventChannel communication.
 - **Real-time Caption Placement:** Captions are placed in AR at the fused speaker position as soon as speech is recognized, using a dedicated MethodChannel for caption placement.
 - **AR Navigation:** Enter AR mode from Flutter via MethodChannel, launching native AR views.
+- **Privacy Aware:** Camera and microphone access are used only for on-device processing; permission strings are included in the iOS `Info.plist`.
 
 ## How It Works
 1. **Audio and Vision Capture:** Captures stereo audio and camera frames in real time.
