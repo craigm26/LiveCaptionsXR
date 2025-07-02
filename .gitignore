@@ -50,3 +50,14 @@ windows/build/
 *.log
 *.lock
 
+# Large model files (should not be committed to reduce app size)
+**/*.task
+**/*.tflite
+**/models/*.bin
+**/models/*.pb
+
+# iOS build artifacts and debug info
+build/ios-debug-info/
+ios/build/
+ios/Podfile.lock
+
