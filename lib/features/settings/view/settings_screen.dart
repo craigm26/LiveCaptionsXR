@@ -6,6 +6,18 @@ import '../cubit/settings_cubit.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 
+  /// Check if we're in a development or testing build
+  /// This includes debug mode, profile mode, or when assertions are enabled
+  bool get _isDevelopmentBuild {
+    bool isInDevelopmentMode = kDebugMode || kProfileMode;
+    
+    // Also check for assertions (which are enabled in debug and profile builds)
+    bool assertionsEnabled = false;
+    assert(assertionsEnabled = true);
+    
+    return isInDevelopmentMode || assertionsEnabled;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,20 +107,34 @@ class SettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Developer Settings Section (only show in debug/profile mode)
-              if (kDebugMode || kProfileMode) ...[
-                _buildSectionHeader('Developer Settings'),
+              // Developer Settings Section (show in development builds including TestFlight)
+              if (_isDevelopmentBuild) ...[
+                _buildSectionHeader('Developer & Testing'),
                 const SizedBox(height: 16),
 
-                // Debug Logging Toggle
-                _buildSettingTile(
-                  context,
-                  icon: Icons.bug_report,
-                  title: 'Debug Logging Overlay',
-                  subtitle: 'Show real-time debug logs on screen (TestFlight)',
-                  trailing: Switch(
-                    value: state.debugLoggingEnabled,
-                    onChanged: (_) {
+                // Debug Logging Toggle - Make it more prominent
+                Card(
+                  elevation: 2,
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.bug_report,
+                      color: state.debugLoggingEnabled ? Colors.orange : Theme.of(context).primaryColor,
+                    ),
+                    title: const Text(
+                      'Debug Logging Overlay',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                      'Show transparent debug log overlay on screen\n'
+                      'Useful for TestFlight debugging and issue reporting',
+                    ),
+                    trailing: Switch(
+                      value: state.debugLoggingEnabled,
+                      onChanged: (_) {
+                        context.read<SettingsCubit>().toggleDebugLogging();
+                      },
+                    ),
+                    onTap: () {
                       context.read<SettingsCubit>().toggleDebugLogging();
                     },
                   ),
@@ -119,7 +145,8 @@ class SettingsScreen extends StatelessWidget {
                 // Debug Info Card
                 if (state.debugLoggingEnabled)
                   Card(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.green.withOpacity(0.1),
+                    elevation: 1,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -128,15 +155,87 @@ class SettingsScreen extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                Icons.info_outline,
-                                color: Colors.orange[700],
+                                Icons.check_circle_outline,
+                                color: Colors.green[700],
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'Debug Logging Active',
                                 style: TextStyle(
-                                  color: Colors.orange[700],
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '📱 Look for the overlay on the Home screen',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'A transparent black box will appear at the top of the Home screen showing debug logs in real-time.',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'How to use the overlay:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            '• Tap the overlay header to expand/collapse\n'
+                            '• Blue arrow button: Toggle auto-scroll to latest logs\n'
+                            '• Copy button: Copy all logs to clipboard\n'
+                            '• Clear button: Clear all captured logs\n'
+                            '• Orange test button: Generate sample logs (when expanded)',
+                            style: TextStyle(fontSize: 12, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Helper card when debug logging is disabled
+                if (!state.debugLoggingEnabled)
+                  Card(
+                    color: Colors.blue.withOpacity(0.1),
+                    elevation: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.blue[700],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Enable Debug Logging',
+                                style: TextStyle(
+                                  color: Colors.blue[700],
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -144,24 +243,9 @@ class SettingsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Debug logs are now being captured and displayed in a transparent overlay. '
-                            'You can expand the overlay to view logs, copy them to clipboard, or clear them. '
-                            'This feature is designed for TestFlight debugging.',
+                            'Turn on debug logging to see a transparent overlay with real-time app logs on the Home screen. '
+                            'This is especially useful for TestFlight testing and troubleshooting issues.',
                             style: TextStyle(fontSize: 12),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Overlay Controls:',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 12),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            '• Tap to expand/collapse\n'
-                            '• Blue arrow: Toggle auto-scroll\n'
-                            '• Copy icon: Copy logs to clipboard\n'
-                            '• Clear icon: Clear all logs',
-                            style: TextStyle(fontSize: 11, height: 1.4),
                           ),
                         ],
                       ),
