@@ -6,7 +6,7 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.toString();
+    final String location = GoRouterState.of(context).location;
     final isMobile = MediaQuery.of(context).size.width < 700;
     if (isMobile) {
       return Material(
@@ -93,7 +93,8 @@ class _NavLink extends StatelessWidget {
   final String label;
   final String route;
   final bool selected;
-  const _NavLink({required this.label, required this.route, required this.selected});
+  const _NavLink(
+      {required this.label, required this.route, required this.selected});
 
   @override
   Widget build(BuildContext context) {
@@ -145,10 +146,18 @@ class NavDrawer extends StatelessWidget {
                 ),
               ),
             ),
-            _DrawerNavLink(label: 'Home', route: '/', selected: location == '/'),
-            _DrawerNavLink(label: 'Features', route: '/features', selected: location == '/features'),
-            _DrawerNavLink(label: 'Demo', route: '/demo', selected: location == '/demo'),
-            _DrawerNavLink(label: 'Technology', route: '/technology', selected: location == '/technology'),
+            _DrawerNavLink(
+                label: 'Home', route: '/', selected: location == '/'),
+            _DrawerNavLink(
+                label: 'Features',
+                route: '/features',
+                selected: location == '/features'),
+            _DrawerNavLink(
+                label: 'Demo', route: '/demo', selected: location == '/demo'),
+            _DrawerNavLink(
+                label: 'Technology',
+                route: '/technology',
+                selected: location == '/technology'),
           ],
         ),
       ),
@@ -160,7 +169,8 @@ class _DrawerNavLink extends StatelessWidget {
   final String label;
   final String route;
   final bool selected;
-  const _DrawerNavLink({required this.label, required this.route, required this.selected});
+  const _DrawerNavLink(
+      {required this.label, required this.route, required this.selected});
 
   @override
   Widget build(BuildContext context) {
@@ -179,4 +189,4 @@ class _DrawerNavLink extends StatelessWidget {
       },
     );
   }
-} 
+}

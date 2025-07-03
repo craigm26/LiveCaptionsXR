@@ -13,8 +13,16 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         view.addSubview(sceneView)
         sceneView.delegate = self
         sceneView.session = ARSession()
+        
+        // Set the session in ARAnchorManager for plugin access
+        ARAnchorManager.arSession = sceneView.session
+        
         let config = ARWorldTrackingConfiguration()
         sceneView.session.run(config)
+        
+        // Add close button
+        setupCloseButton()
+        
         // Set up MethodChannel for captions
         if let appDelegate = UIApplication.shared.delegate as? FlutterAppDelegate,
            let controller = appDelegate.window?.rootViewController as? FlutterViewController {
@@ -42,6 +50,36 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         }
     }
 
+    private func setupCloseButton() {
+        let closeButton = UIButton(type: .system)
+        closeButton.setTitle("Close", for: .normal)
+        closeButton.setTitleColor(.white, for: .normal)
+        closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        closeButton.layer.cornerRadius = 8
+        closeButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
+        
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(closeButton)
+        
+        NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            closeButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            closeButton.widthAnchor.constraint(equalToConstant: 60),
+            closeButton.heightAnchor.constraint(equalToConstant: 40)
+        ])
+    }
+    
+    @objc private func closeButtonTapped() {
+        sceneView.session.pause()
+        
+        // Clear the session reference in ARAnchorManager
+        ARAnchorManager.arSession = nil
+        ARAnchorManager.anchorMap.removeAll()
+        
+        dismiss(animated: true, completion: nil)
+    }
+
     // ARSCNViewDelegate: Called when a new anchor is added
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         // Example: Send detected anchor to Dart
@@ -60,4 +98,4 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         sceneView.scene.rootNode.addChildNode(captionNode)
         captionNode.simdTransform = transform
     }
-} 
+}

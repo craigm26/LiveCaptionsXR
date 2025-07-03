@@ -1,53 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'app.dart';
 import 'webDev/app_web.dart';
-import 'features/onboarding/view/onboarding_screen.dart';
-import 'features/home/view/home_screen.dart';
+import 'app.dart';
+import 'core/services/debug_capturing_logger.dart';
+import 'core/services/debug_logger_service.dart';
+
+// Configure logger for main app initialization
+final DebugCapturingLogger _logger = DebugCapturingLogger();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+  _logger.i('🚀 Starting LiveCaptionsXR application...');
 
-  if (kIsWeb) {
-    runApp(const LiveCaptionsXrWebApp());
-  } else {
-    runApp(LiveCaptionsXrApp(onboardingComplete: onboardingComplete));
-  }
-}
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    _logger.d('✅ Flutter widgets binding initialized');
 
-class LiveCaptionsXrApp extends StatelessWidget {
-  final bool onboardingComplete;
+    // Initialize debug logger service
+    DebugLoggerService().initialize();
+    _logger.d('🐛 Debug logger service initialized');
 
-  const LiveCaptionsXrApp({Key? key, required this.onboardingComplete}) : super(key: key);
+    if (kIsWeb) {
+      _logger.i('🌐 Running web version of LiveCaptionsXR');
+      runApp(const LiveCaptionsXrWebApp());
+    } else {
+      _logger.i('📱 Running native version of LiveCaptionsXR');
+      runApp(const LiveCaptionsXrApp());
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'LiveCaptionsXR',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: FutureBuilder<bool>(
-        future: _isOnboardingComplete(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data == false) {
-            return const OnboardingScreen();
-          }
-          return const HomeScreen();
-        },
-      ),
-    );
-  }
-
-  Future<bool> _isOnboardingComplete() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('onboarding_complete') ?? false;
+    _logger.i('✅ LiveCaptionsXR application launched successfully');
+  } catch (e, stackTrace) {
+    _logger.e('❌ Failed to start LiveCaptionsXR application',
+        error: e, stackTrace: stackTrace);
+    rethrow;
   }
 }

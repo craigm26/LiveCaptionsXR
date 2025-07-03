@@ -13,10 +13,12 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   flutter_bloc: ^9.1.1
-  go_router: ^15.2.4
+  go_router: ^6.0.0
+  equatable: ^2.0.7
   get_it: ^8.0.3
   scidart: ^0.0.2-dev.12
   shared_preferences: ^2.5.3
+  logger: ^2.0.2+1
   gemma3n_multimodal:
     path: plugins/gemma3n_multimodal
   # Add your other dependencies here

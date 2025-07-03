@@ -1,0 +1,349 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
+import '../../core/services/debug_logger_service.dart';
+
+/// An overlay widget that displays debug logs over the app content
+class DebugLoggingOverlay extends StatefulWidget {
+  final Widget child;
+  final bool isEnabled;
+
+  const DebugLoggingOverlay({
+    super.key,
+    required this.child,
+    required this.isEnabled,
+  });
+
+  @override
+  State<DebugLoggingOverlay> createState() => _DebugLoggingOverlayState();
+}
+
+class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
+  final DebugLoggerService _debugLogger = DebugLoggerService();
+  final ScrollController _scrollController = ScrollController();
+  StreamSubscription<LogEntry>? _logSubscription;
+  bool _isExpanded = false;
+  bool _autoScroll = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupLogStream();
+  }
+
+  @override
+  void didUpdateWidget(DebugLoggingOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isEnabled != oldWidget.isEnabled) {
+      if (widget.isEnabled) {
+        _setupLogStream();
+      } else {
+        _logSubscription?.cancel();
+      }
+    }
+  }
+
+  void _setupLogStream() {
+    if (!widget.isEnabled) return;
+
+    _logSubscription?.cancel();
+    _logSubscription = _debugLogger.logStream.listen((_) {
+      if (_autoScroll && _scrollController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _logSubscription?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Main app content
+        widget.child,
+
+        // Debug overlay
+        if (widget.isEnabled && _debugLogger.isEnabled)
+          _buildDebugOverlay(context),
+      ],
+    );
+  }
+
+  Widget _buildDebugOverlay(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10,
+      left: 10,
+      right: 10,
+      child: Material(
+        color: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: _isExpanded ? 300 : 50,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.blue.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              _buildHeader(context),
+              if (_isExpanded) ...[
+                const Divider(
+                  height: 1,
+                  color: Colors.white24,
+                ),
+                Expanded(child: _buildLogsList()),
+                _buildFooter(context),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final logCount = _debugLogger.logHistory.length;
+
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.bug_report,
+            color: Colors.blue[300],
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _isExpanded ? 'Debug Logs ($logCount)' : 'Debug: $logCount logs',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (_isExpanded) ...[
+            // Auto-scroll toggle
+            InkWell(
+              onTap: () => setState(() => _autoScroll = !_autoScroll),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: _autoScroll
+                      ? Colors.blue.withOpacity(0.3)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Icon(
+                  Icons.arrow_downward,
+                  color: _autoScroll ? Colors.blue[300] : Colors.white60,
+                  size: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Copy logs button
+            InkWell(
+              onTap: _copyLogs,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.copy,
+                  color: Colors.white60,
+                  size: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Clear logs button
+            InkWell(
+              onTap: _clearLogs,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.clear_all,
+                  color: Colors.white60,
+                  size: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          // Expand/collapse button
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Icon(
+              _isExpanded ? Icons.expand_less : Icons.expand_more,
+              color: Colors.white60,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogsList() {
+    final logs = _debugLogger.logHistory;
+
+    if (logs.isEmpty) {
+      return const Center(
+        child: Text(
+          'No logs captured yet',
+          style: TextStyle(
+            color: Colors.white60,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(8),
+      itemCount: logs.length,
+      itemBuilder: (context, index) {
+        final log = logs[index];
+        return _buildLogItem(log);
+      },
+    );
+  }
+
+  Widget _buildLogItem(LogEntry log) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _getLogBackgroundColor(log.level),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        log.formatForDisplay(),
+        style: TextStyle(
+          color: _getLogTextColor(log.level),
+          fontSize: 11,
+          fontFamily: 'monospace',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '${_debugLogger.logHistory.length}/${DebugLoggerService.maxLogEntries} logs',
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 10,
+            ),
+          ),
+          Text(
+            'TestFlight Debug Mode',
+            style: const TextStyle(
+              color: Colors.orange,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getLogBackgroundColor(Level level) {
+    switch (level) {
+      case Level.error:
+      case Level.fatal:
+        return Colors.red.withOpacity(0.2);
+      case Level.warning:
+        return Colors.orange.withOpacity(0.2);
+      case Level.info:
+        return Colors.blue.withOpacity(0.1);
+      default:
+        return Colors.transparent;
+    }
+  }
+
+  Color _getLogTextColor(Level level) {
+    switch (level) {
+      case Level.error:
+      case Level.fatal:
+        return Colors.red[300]!;
+      case Level.warning:
+        return Colors.orange[300]!;
+      case Level.info:
+        return Colors.blue[300]!;
+      case Level.debug:
+        return Colors.green[300]!;
+      default:
+        return Colors.white70;
+    }
+  }
+
+  Future<void> _copyLogs() async {
+    try {
+      await _debugLogger.copyLogsToClipboard();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Debug logs copied to clipboard'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy logs: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _clearLogs() {
+    _debugLogger.clearLogs();
+    setState(() {});
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debug logs cleared'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+}

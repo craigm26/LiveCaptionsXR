@@ -1,5 +1,8 @@
 import 'dart:typed_data';
 import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
+
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'gemma3n_service.dart';
@@ -7,7 +10,6 @@ import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
 import '../../features/home/cubit/home_cubit.dart';
-import 'package:flutter/material.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
 ///
@@ -17,6 +19,17 @@ import 'package:flutter/material.dart';
 /// For Google Gemma 3n Hackathon: This demonstrates the multimodal fusion
 /// that makes our accessibility solution uniquely powerful.
 class AudioService {
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 2,
+      errorMethodCount: 8,
+      lineLength: 120,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
+
   final SoundDetectionCubit soundDetectionCubit;
   final Gemma3nService gemma3nService = Gemma3nService();
   late final VisualIdentificationService visualService;
@@ -42,12 +55,15 @@ class AudioService {
   Future<void> start() async {
     if (!_modelLoaded) {
       try {
+        _logger
+            .i('🎙️ Loading Gemma 3n audio model for real-time processing...');
         // Load Gemma 3n model optimized for mobile audio processing
         await gemma3nService.loadModel('assets/models/gemma3n_audio.tflite');
         _modelLoaded = true;
-        print('✅ Gemma 3n audio model loaded for real-time processing');
+        _logger.i('✅ Gemma 3n audio model loaded for real-time processing');
       } catch (e) {
-        print('⚠️ Gemma 3n unavailable, using fallback audio model: $e');
+        _logger.w('⚠️ Gemma 3n unavailable, using fallback audio model',
+            error: e);
         // Fallback to standard TFLite audio model
         await _loadFallbackModel();
       }
@@ -71,7 +87,7 @@ class AudioService {
       final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
       // AUTOMATED: Update hybrid localization engine after every direction estimate
       try {
-        final homeCubit = WidgetsBinding.instance != null && WidgetsBinding.instance!.renderViewElement != null
+        final homeCubit = WidgetsBinding.instance.renderViewElement != null
             ? HomeCubit()
             : null;
         // Use Provider/Bloc if available in your app context
@@ -79,15 +95,19 @@ class AudioService {
         await homeCubit?.updateWithAudioMeasurement(
           angle: angle,
           confidence: 1.0, // TODO: Use real confidence if available
-          deviceTransform: List<double>.filled(16, 0)..[0] = 1..[5] = 1..[10] = 1..[15] = 1, // 4x4 identity
+          deviceTransform: List<double>.filled(16, 0)
+            ..[0] = 1
+            ..[5] = 1
+            ..[10] = 1
+            ..[15] = 1, // 4x4 identity
         );
       } catch (e) {
-        print('⚠️ Failed to update hybrid localization: $e');
+        _logger.w('⚠️ Failed to update hybrid localization', error: e);
       }
       _processAudioFrame(frame.toMono(), angle);
     });
 
-    print('🎤 Started real-time audio processing with Gemma 3n');
+    _logger.i('🎤 Started real-time audio processing with Gemma 3n');
   }
 
   /// Core audio processing method showing Gemma 3n integration
@@ -109,8 +129,8 @@ class AudioService {
         // Emit comprehensive event with spatial and contextual info
         soundDetectionCubit.detectSound(multimodalResult);
       }
-    } catch (e) {
-      print('❌ Audio processing error: $e');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Audio processing error', error: e, stackTrace: stackTrace);
       // Graceful degradation - continue with fallback processing
     }
   }
@@ -141,7 +161,7 @@ class AudioService {
         description: 'Detected by Gemma 3n USM',
       );
     } catch (e) {
-      print('⚠️ Gemma 3n audio analysis failed, using fallback: $e');
+      _logger.w('⚠️ Gemma 3n audio analysis failed, using fallback', error: e);
       return _fallbackAudioAnalysis(audioFrame);
     }
   }
@@ -178,7 +198,7 @@ class AudioService {
         isMultimodal: true,
       );
     } catch (e) {
-      print('⚠️ Multimodal analysis failed: $e');
+      _logger.w('⚠️ Multimodal analysis failed', error: e);
       return audioEvent; // Return original audio-only analysis
     }
   }
@@ -217,16 +237,6 @@ of what is making this sound and its significance for a person with hearing loss
     return features[0].reduce((a, b) => a > b ? a : b).clamp(0.0, 1.0);
   }
 
-  /// Calculate sound source direction using TDOA
-  ///
-  /// Demonstrates spatial audio processing for accessibility
-  Future<String> _calculateSoundDirection(Float32List audioFrame) async {
-    // Time Difference of Arrival (TDOA) calculation
-    // This would use actual microphone array data for spatial localization
-    // For demo: simplified direction calculation
-    return ['front', 'left', 'right', 'behind'][DateTime.now().millisecond % 4];
-  }
-
   /// Fallback audio analysis when Gemma 3n unavailable
   ///
   /// Demonstrates graceful degradation strategy
@@ -243,20 +253,27 @@ of what is making this sound and its significance for a person with hearing loss
 
   /// Load fallback TFLite model when Gemma 3n unavailable
   Future<void> _loadFallbackModel() async {
-    // Implementation would load standard audio classification model
-    print('📱 Loading fallback audio model for compatibility');
-    _modelLoaded = true;
+    try {
+      _logger.i('📱 Loading fallback audio model for compatibility...');
+      // Implementation would load standard audio classification model
+      _modelLoaded = true;
+      _logger.i('✅ Fallback audio model loaded successfully');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to load fallback audio model', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   /// Stop audio processing and cleanup resources
   Future<void> stop() async {
+    _logger.i('🛑 Stopping audio processing...');
     _isListening = false;
     await _captureSub?.cancel();
     await _audioCapture.stopRecording();
     await _soundEventController?.close();
     gemma3nService.dispose();
 
-    print('🛑 Stopped audio processing');
+    _logger.i('✅ Audio processing stopped successfully');
   }
 
   /// Get stream of detected sound events

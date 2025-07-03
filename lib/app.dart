@@ -1,18 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '/core/router/app_router.dart';
-import '/shared/theme/app_theme.dart';
-import '/features/settings/cubit/settings_cubit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logger/logger.dart';
 
-class live_captions_xrApp extends StatelessWidget {
-  const live_captions_xrApp({super.key});
+import 'core/router/app_router.dart';
+import 'core/services/speech_processor.dart';
+import 'core/services/debug_logger_service.dart';
+import 'shared/theme/app_theme.dart';
+import 'features/settings/cubit/settings_cubit.dart';
+import 'features/home/cubit/home_cubit.dart';
+import 'features/sound_detection/cubit/sound_detection_cubit.dart';
+import 'features/localization/cubit/localization_cubit.dart';
+import 'features/visual_identification/cubit/visual_identification_cubit.dart';
+import 'features/live_captions/cubit/live_captions_cubit.dart';
+import 'features/onboarding/view/onboarding_screen.dart';
+import 'app_shell.dart';
+
+final Logger _appLogger = Logger(
+  printer: PrettyPrinter(
+    methodCount: 2,
+    errorMethodCount: 8,
+    lineLength: 120,
+    colors: true,
+    printEmojis: true,
+    printTime: true,
+  ),
+);
+
+class LiveCaptionsXrApp extends StatelessWidget {
+  const LiveCaptionsXrApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => SettingsCubit(),
+    _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp');
+
+    // Initialize debug logger service
+    DebugLoggerService().initialize();
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<SettingsCubit>(
+          create: (context) => SettingsCubit(),
+        ),
+        BlocProvider<HomeCubit>(
+          create: (context) => HomeCubit(),
+        ),
+        BlocProvider<SoundDetectionCubit>(
+          create: (context) => SoundDetectionCubit(),
+        ),
+        BlocProvider<LocalizationCubit>(
+          create: (context) => LocalizationCubit(),
+        ),
+        BlocProvider<VisualIdentificationCubit>(
+          create: (context) => VisualIdentificationCubit(),
+        ),
+        BlocProvider<LiveCaptionsCubit>(
+          create: (context) => LiveCaptionsCubit(
+            speechProcessor: SpeechProcessor(),
+          )..initialize(),
+        ),
+      ],
       child: MaterialApp.router(
-        title: 'live_captions_xr',
+        title: 'LiveCaptionsXR',
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         routerConfig: router,
@@ -20,4 +69,61 @@ class live_captions_xrApp extends StatelessWidget {
       ),
     );
   }
-} 
+}
+
+class AppBootstrap extends StatefulWidget {
+  const AppBootstrap({super.key});
+
+  @override
+  State<AppBootstrap> createState() => _AppBootstrapState();
+}
+
+class _AppBootstrapState extends State<AppBootstrap> {
+  bool _isLoading = true;
+  bool _onboardingComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    try {
+      _appLogger.d('🔍 Checking onboarding completion status...');
+      final prefs = await SharedPreferences.getInstance();
+      final isComplete = prefs.getBool('onboarding_complete') ?? false;
+      _appLogger.d('📊 Onboarding status check result: $isComplete');
+
+      setState(() {
+        _onboardingComplete = isComplete;
+        _isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      _appLogger.e('❌ Error checking onboarding status',
+          error: e, stackTrace: stackTrace);
+      setState(() {
+        _onboardingComplete = false;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      _appLogger.d('⏳ Waiting for onboarding status check...');
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_onboardingComplete) {
+      _appLogger.i('🎯 Navigating to OnboardingScreen');
+      return const OnboardingScreen();
+    }
+
+    _appLogger.i('🏠 Navigating to AppShell');
+    return const AppShell();
+  }
+}

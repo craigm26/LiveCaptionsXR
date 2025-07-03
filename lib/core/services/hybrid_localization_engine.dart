@@ -1,13 +1,38 @@
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 
 /// Dart wrapper for the native HybridLocalizationEngine (iOS/Android).
 /// Provides Kalman filter fusion of audio, vision, and IMU for AR anchor placement.
 class HybridLocalizationEngine {
-  static const MethodChannel _channel = MethodChannel('live_captions_xr/hybrid_localization_methods');
+  static const MethodChannel _channel =
+      MethodChannel('live_captions_xr/hybrid_localization_methods');
+
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 2,
+      errorMethodCount: 8,
+      lineLength: 120,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
 
   /// Predict step (advances state based on elapsed time).
   Future<void> predict() async {
-    await _channel.invokeMethod('predict');
+    try {
+      _logger.d('🔮 Executing prediction step for hybrid localization...');
+      await _channel.invokeMethod('predict');
+      _logger.d('✅ Prediction step completed successfully');
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Platform error during prediction step',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error during prediction step',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   /// Update with audio measurement (angle in radians, confidence 0-1, deviceTransform as 16 doubles, row-major).
@@ -16,11 +41,24 @@ class HybridLocalizationEngine {
     required double confidence,
     required List<double> deviceTransform,
   }) async {
-    await _channel.invokeMethod('updateWithAudioMeasurement', {
-      'angle': angle,
-      'confidence': confidence,
-      'deviceTransform': deviceTransform,
-    });
+    try {
+      _logger.d(
+          '🎙️ Updating with audio measurement - angle: ${angle.toStringAsFixed(3)} rad, confidence: ${confidence.toStringAsFixed(3)}');
+      await _channel.invokeMethod('updateWithAudioMeasurement', {
+        'angle': angle,
+        'confidence': confidence,
+        'deviceTransform': deviceTransform,
+      });
+      _logger.d('✅ Audio measurement update completed successfully');
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Platform error updating audio measurement',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error updating audio measurement',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   /// Update with visual measurement (transform as 16 doubles, row-major, confidence 0-1).
@@ -28,25 +66,69 @@ class HybridLocalizationEngine {
     required List<double> transform,
     required double confidence,
   }) async {
-    await _channel.invokeMethod('updateWithVisualMeasurement', {
-      'transform': transform,
-      'confidence': confidence,
-    });
+    try {
+      _logger.d(
+          '👁️ Updating with visual measurement - confidence: ${confidence.toStringAsFixed(3)}, transform length: ${transform.length}');
+      await _channel.invokeMethod('updateWithVisualMeasurement', {
+        'transform': transform,
+        'confidence': confidence,
+      });
+      _logger.d('✅ Visual measurement update completed successfully');
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Platform error updating visual measurement',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error updating visual measurement',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   /// Get the fused world transform (returns 16 doubles, row-major 4x4 matrix).
   Future<List<double>> getFusedTransform() async {
-    final result = await _channel.invokeMethod<List<dynamic>>('getFusedTransform');
-    if (result == null) throw Exception('No fused transform returned');
-    return result.cast<double>();
+    try {
+      _logger.d('🔄 Requesting fused transform from hybrid localization...');
+      final result =
+          await _channel.invokeMethod<List<dynamic>>('getFusedTransform');
+      if (result == null) {
+        _logger.e('❌ No fused transform returned from native side');
+        throw Exception('No fused transform returned');
+      }
+      final fusedTransform = result.cast<double>();
+      _logger.d(
+          '✅ Fused transform retrieved successfully - length: ${fusedTransform.length}');
+      return fusedTransform;
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Platform error getting fused transform',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error getting fused transform',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   /// Place a caption at the current fused transform in AR (native).
   Future<void> placeCaption(String text) async {
-    final transform = await getFusedTransform();
-    await const MethodChannel('live_captions_xr/caption_methods').invokeMethod('placeCaption', {
-      'transform': transform,
-      'text': text,
-    });
+    try {
+      _logger.i('🎯 Placing caption in AR: "$text"');
+      final transform = await getFusedTransform();
+      await const MethodChannel('live_captions_xr/caption_methods')
+          .invokeMethod('placeCaption', {
+        'transform': transform,
+        'text': text,
+      });
+      _logger.i('✅ Caption placed successfully in AR space');
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Platform error placing caption',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error placing caption',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
-} 
+}

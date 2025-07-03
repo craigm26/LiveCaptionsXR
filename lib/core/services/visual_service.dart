@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
-
-import '../utils/logger.dart';
+import 'package:logger/logger.dart';
 
 /// Represents the location and state of an identified speaker.
 class SpeakerInfo {
@@ -25,6 +24,17 @@ class SpeakerInfo {
 class VisualService {
   static const _channel = MethodChannel('com.craig.livecaptions/visual');
 
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 2,
+      errorMethodCount: 8,
+      lineLength: 120,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
+
   final _speakerController = StreamController<SpeakerInfo?>.broadcast();
   bool _isDetecting = false;
 
@@ -42,13 +52,24 @@ class VisualService {
   ///
   /// This will activate the camera and begin the native vision processing.
   Future<void> startDetection() async {
-    if (_isDetecting) return;
+    if (_isDetecting) {
+      _logger.w('⚠️ Visual detection already running, skipping start request');
+      return;
+    }
+
     try {
+      _logger.i('👁️ Starting visual speaker detection...');
       await _channel.invokeMethod('startDetection');
       _isDetecting = true;
-      log('👁️ Visual speaker detection started.');
-    } on PlatformException catch (e) {
-      log('❌ Failed to start visual detection: ${e.message}');
+      _logger.i('✅ Visual speaker detection started successfully');
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Failed to start visual detection',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error starting visual detection',
+          error: e, stackTrace: stackTrace);
+      rethrow;
     }
   }
 
@@ -56,39 +77,63 @@ class VisualService {
   ///
   /// This will release the camera and stop the native vision processing.
   Future<void> stopDetection() async {
-    if (!_isDetecting) return;
+    if (!_isDetecting) {
+      _logger.w('⚠️ Visual detection not running, skipping stop request');
+      return;
+    }
+
     try {
+      _logger.i('👁️ Stopping visual speaker detection...');
       await _channel.invokeMethod('stopDetection');
       _isDetecting = false;
-      log('👁️ Visual speaker detection stopped.');
-    } on PlatformException catch (e) {
-      log('❌ Failed to stop visual detection: ${e.message}');
+      _logger.i('✅ Visual speaker detection stopped successfully');
+    } on PlatformException catch (e, stackTrace) {
+      _logger.e('❌ Failed to stop visual detection',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Unexpected error stopping visual detection',
+          error: e, stackTrace: stackTrace);
+      rethrow;
     }
   }
 
   Future<void> _handleMethodCall(MethodCall call) async {
-    switch (call.method) {
-      case 'onSpeakerUpdated':
-        final data = call.arguments as Map<dynamic, dynamic>?;
-        if (data != null) {
-          final box = Rect.fromLTWH(
-            data['x'],
-            data['y'],
-            data['width'],
-            data['height'],
-          );
-          final confidence = data['confidence'] as double;
-          _speakerController.add(SpeakerInfo(boundingBox: box, confidence: confidence));
-        } else {
-          _speakerController.add(null);
-        }
-        break;
-      default:
-        log('Unknown method call from native: ${call.method}');
+    try {
+      switch (call.method) {
+        case 'onSpeakerUpdated':
+          final data = call.arguments as Map<dynamic, dynamic>?;
+          if (data != null) {
+            _logger.d('👁️ Speaker detected with data: $data');
+            final box = Rect.fromLTWH(
+              data['x'],
+              data['y'],
+              data['width'],
+              data['height'],
+            );
+            final confidence = data['confidence'] as double;
+            final speakerInfo =
+                SpeakerInfo(boundingBox: box, confidence: confidence);
+            _speakerController.add(speakerInfo);
+            _logger.d(
+                '✅ Speaker info updated - confidence: ${confidence.toStringAsFixed(2)}, box: $box');
+          } else {
+            _logger.d('👁️ No speaker detected - clearing speaker info');
+            _speakerController.add(null);
+          }
+          break;
+        default:
+          _logger.w('⚠️ Unknown method call from native: ${call.method}');
+      }
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error handling method call: ${call.method}',
+          error: e, stackTrace: stackTrace);
     }
   }
 
   void dispose() {
+    _logger.i('🗑️ Disposing VisualService resources...');
     _speakerController.close();
+    _logger.d('✅ VisualService disposed successfully');
   }
 }
