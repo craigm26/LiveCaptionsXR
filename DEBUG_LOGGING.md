@@ -18,9 +18,11 @@ This feature provides a comprehensive debug logging system designed specifically
 ### 1. Enable Debug Logging
 
 1. Open the app and go to **Settings**
-2. Scroll down to **Developer Settings** (only visible in debug/profile builds)
-3. Toggle **"Debug Logging Overlay"** to ON
-4. You'll see a small overlay appear at the top of the screen
+2. Scroll down to **Developer & Testing** (visible in debug, profile, and TestFlight builds)
+3. Look for the prominent **"Debug Logging Overlay"** card with bug report icon
+4. Toggle the switch to **ON** or tap anywhere on the card to enable
+5. You'll see a confirmation message and instructions appear below the toggle
+6. Navigate to the **Home screen** to see the transparent overlay at the top
 
 ### 2. Using the Overlay
 
@@ -74,7 +76,7 @@ lib/
 
 ## Security & Privacy
 
-- Only works in debug and profile builds (`kDebugMode || kProfileMode`)
+- Only works in debug, profile, and TestFlight builds (`kDebugMode || kProfileMode || assertions enabled`)
 - Automatically clears logs when disabled
 - Logs are stored only in memory, not persisted to disk
 - Limited to 500 entries to prevent memory issues

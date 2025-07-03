@@ -37,7 +37,7 @@ import 'package:logger/logger.dart';
 /// - Clear logs functionality
 /// - Privacy-aware (clears logs when disabled)
 /// - Memory efficient (limits to 500 entries)
-/// - Only works in debug/profile builds for security
+/// - Only works in debug/profile builds and TestFlight builds for security
 class DebugLoggerService {
   static final DebugLoggerService _instance = DebugLoggerService._internal();
   factory DebugLoggerService() => _instance;
@@ -61,7 +61,13 @@ class DebugLoggerService {
 
   /// Initialize the debug logger service
   void initialize() {
-    if (kDebugMode || kProfileMode) {
+    // Allow debug logging in debug, profile builds, and when assertions are enabled
+    // This covers TestFlight builds which typically have assertions enabled
+    bool isDevelopmentBuild = kDebugMode || kProfileMode;
+    bool assertionsEnabled = false;
+    assert(assertionsEnabled = true);
+    
+    if (isDevelopmentBuild || assertionsEnabled) {
       _setupLogInterception();
     }
   }
