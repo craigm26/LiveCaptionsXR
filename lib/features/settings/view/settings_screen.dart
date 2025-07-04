@@ -125,7 +125,7 @@ class SettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Developer Settings Section (show in development builds including TestFlight)
+              // Developer Settings Section
               if (_isDevelopmentBuild) ...[
                 _buildSectionHeader('Developer & Testing'),
                 const SizedBox(height: 16),
@@ -144,7 +144,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     subtitle: const Text(
                       'Show transparent debug log overlay on screen\n'
-                      'Useful for TestFlight debugging and issue reporting',
+                      'Useful for debugging and issue reporting',
                     ),
                     trailing: Switch(
                       value: state.debugLoggingEnabled,
@@ -262,7 +262,7 @@ class SettingsScreen extends StatelessWidget {
                           const SizedBox(height: 8),
                           const Text(
                             'Turn on debug logging to see a transparent overlay with real-time app logs on the Home screen. '
-                            'This is especially useful for TestFlight testing and troubleshooting issues.',
+                            'This is especially useful for troubleshooting issues.',
                             style: TextStyle(fontSize: 12),
                           ),
                         ],

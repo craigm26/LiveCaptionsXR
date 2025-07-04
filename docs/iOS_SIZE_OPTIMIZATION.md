@@ -27,13 +27,7 @@ Enhanced the Podfile with size-specific optimizations:
 - Ensured proper stripping of symbols
 - Optimized MediaPipe framework linking
 
-### 3. App Thinning Configuration
-Created `ios/ExportOptions.plist` with:
-- App thinning for all variants
-- Symbol stripping enabled
-- Bitcode disabled (as required by MediaPipe)
-
-### 4. Build Script
+### 3. Build Script
 Created `scripts/build_ios_optimized.sh` with:
 - Tree shaking for icons
 - Code obfuscation
@@ -63,11 +57,11 @@ flutter build ios --release \
   --obfuscate
 ```
 
-### Option 3: Xcode Archive (Recommended for TestFlight)
+### Option 3: Xcode Archive
 1. Open `ios/Runner.xcworkspace` in Xcode
 2. Select "Any iOS Device" as target
 3. Product → Archive
-4. Export with `ios/ExportOptions.plist`
+4. Use Xcode's standard export options for distribution
 
 ## Additional Recommendations
 

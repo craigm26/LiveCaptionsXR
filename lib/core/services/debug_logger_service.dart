@@ -3,12 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 
-/// A service that captures and manages debug logs for TestFlight builds
+/// A service that captures and manages debug logs
 ///
 /// This service provides a centralized logging system that captures debug logs
 /// and displays them in a transparent overlay on the app screen. It's designed
-/// specifically for TestFlight builds where developers need to see real-time
-/// logs without connecting to a debugger.
+/// for viewing real-time logs directly on the device without connecting to a
+/// debugger.
 ///
 /// ## How to Use:
 ///

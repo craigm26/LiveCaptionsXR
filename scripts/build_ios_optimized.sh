@@ -36,7 +36,7 @@ flutter build ios --release \
   --obfuscate
 
 echo "✅ iOS build completed with size optimizations!"
-echo "📱 To create archive for TestFlight:"
+echo "📱 To create archive:"
 echo "   1. Open ios/Runner.xcworkspace in Xcode"
 echo "   2. Select 'Any iOS Device' as target"
 echo "   3. Product -> Archive"

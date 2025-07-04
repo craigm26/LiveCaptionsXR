@@ -1,6 +1,6 @@
-# Debug Logging Overlay for TestFlight
+# Debug Logging Overlay
 
-This feature provides a comprehensive debug logging system designed specifically for TestFlight builds, allowing developers to view real-time logs directly on the device without needing a debugger connection.
+This feature provides a comprehensive debug logging system that lets developers view real-time logs directly on the device without needing a debugger connection. The overlay can be enabled in any build variant.
 
 ## Features
 
@@ -18,7 +18,7 @@ This feature provides a comprehensive debug logging system designed specifically
 ### 1. Enable Debug Logging
 
 1. Open the app and go to **Settings**
-2. Scroll down to **Developer & Testing** (visible in debug, profile, and TestFlight builds)
+2. Scroll down to **Developer & Testing** (visible in all build variants)
 3. Look for the prominent **"Debug Logging Overlay"** card with bug report icon
 4. Toggle the switch to **ON** or tap anywhere on the card to enable
 5. You'll see a confirmation message and instructions appear below the toggle
@@ -81,7 +81,7 @@ lib/
 - Logs are stored only in memory, not persisted to disk
 - Limited to 500 entries to prevent memory issues
 
-## TestFlight Usage
+## Why It's Useful
 
 This feature is particularly useful for TestFlight builds where:
 - Traditional debugging tools aren't available
