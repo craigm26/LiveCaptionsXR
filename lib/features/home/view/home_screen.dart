@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: Scaffold(
               appBar: AppBar(
-                title: const Text('Home'),
+                title: const Text('LiveCaptionsXR'),
                 actions: [
                   BlocBuilder<HomeCubit, HomeState>(
                     builder: (context, state) {
@@ -187,13 +187,143 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               body: Stack(
                 children: [
-                  // Simulated camera preview background
+                  // Camera preview background with instruction overlay
                   Container(
                     color: Colors.black,
-                    child: Center(
-                      child: Icon(Icons.camera_alt,
-                          color: Colors.white24, size: 200),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.camera_alt,
+                                  color: Colors.white24, size: 120),
+                              const SizedBox(height: 16),
+                              Text(
+                                'AR Camera View',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'All features integrated here:\nSound Detection • Localization • Visual ID • Live Captions',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Demo mode indicator
+                        BlocBuilder<HomeCubit, HomeState>(
+                          builder: (context, state) {
+                            if (state.demoMode) {
+                              return Positioned(
+                                top: 16,
+                                left: 16,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.science, 
+                                          size: 16, color: Colors.black87),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'DEMO MODE',
+                                        style: TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ],
                     ),
+                  ),
+                  // Welcome message overlay (when not in demo mode)
+                  BlocBuilder<HomeCubit, HomeState>(
+                    builder: (context, state) {
+                      if (!state.demoMode) {
+                        return Positioned(
+                          top: 80,
+                          left: 16,
+                          right: 16,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.info, 
+                                        color: Colors.white, size: 20),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Welcome to LiveCaptionsXR',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'This is your integrated AR experience. All features work together here:',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  '• Live Captions appear at the bottom\n'
+                                  '• Sound events show in the top-left\n'
+                                  '• Direction arrows indicate sound location\n'
+                                  '• Visual objects appear on the right\n'
+                                  '• Tap the demo button to see it in action!',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
                   // Live Captions overlay (bottom center)
                   Positioned(

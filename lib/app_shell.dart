@@ -91,7 +91,7 @@ class _AppShellState extends State<AppShell> {
                   ),
                 ),
                 Text(
-                  'AR Live Captions',
+                  'Integrated AR Live Captions',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
@@ -103,27 +103,12 @@ class _AppShellState extends State<AppShell> {
           _buildDrawerItem(
             context,
             icon: Icons.home,
-            title: 'Home',
+            title: 'Live Captions XR',
+            subtitle: 'Integrated AR experience',
             route: '/home',
           ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.hearing,
-            title: 'Sound Detection',
-            route: '/sound',
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.location_on,
-            title: 'Localization',
-            route: '/localization',
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.visibility,
-            title: 'Visual ID',
-            route: '/visual',
-          ),
+          const Divider(),
+          _buildInfoSection(context),
           const Divider(),
           _buildDrawerItem(
             context,
@@ -146,6 +131,7 @@ class _AppShellState extends State<AppShell> {
     BuildContext context, {
     required IconData icon,
     required String title,
+    String? subtitle,
     required String route,
   }) {
     final currentLocation = GoRouterState.of(context).location;
@@ -163,6 +149,17 @@ class _AppShellState extends State<AppShell> {
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: TextStyle(
+                color: isSelected 
+                    ? Theme.of(context).primaryColor.withOpacity(0.7) 
+                    : Colors.grey[600],
+                fontSize: 12,
+              ),
+            )
+          : null,
       selected: isSelected,
       selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
       onTap: () {
@@ -170,6 +167,66 @@ class _AppShellState extends State<AppShell> {
         Navigator.of(context).pop(); // Close drawer
         context.go(route);
       },
+    );
+  }
+
+  Widget _buildInfoSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Integrated Features',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            children: [
+              Icon(Icons.hearing, size: 16, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Live Sound Detection', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Row(
+            children: [
+              Icon(Icons.location_on, size: 16, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Spatial Localization', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Row(
+            children: [
+              Icon(Icons.visibility, size: 16, color: Colors.green),
+              SizedBox(width: 8),
+              Text('Visual Identification', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Row(
+            children: [
+              Icon(Icons.closed_caption, size: 16, color: Colors.purple),
+              SizedBox(width: 8),
+              Text('Real-time Captions', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'All features work together on the main screen',
+            style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
