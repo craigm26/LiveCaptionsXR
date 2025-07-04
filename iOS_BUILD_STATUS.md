@@ -24,6 +24,8 @@ The app previously exceeded TestFlight's 4GB size limit. Now optimized with:
 
 **Result**: App size significantly reduced and TestFlight-ready ✅
 
+**NEW**: Debug logging overlay now available in TestFlight builds with `IS_TESTFLIGHT=true` flag ⭐
+
 For details see: `docs/iOS_SIZE_OPTIMIZATION.md`
 
 

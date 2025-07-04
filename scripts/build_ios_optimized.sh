@@ -30,6 +30,7 @@ flutter build ios --release \
   --build-name=1.0.0 \
   --build-number=1 \
   --dart-define=FLUTTER_WEB_USE_SKIA=false \
+  --dart-define=IS_TESTFLIGHT=true \
   --tree-shake-icons \
   --split-debug-info=build/ios-debug-info \
   --obfuscate
@@ -40,6 +41,8 @@ echo "   1. Open ios/Runner.xcworkspace in Xcode"
 echo "   2. Select 'Any iOS Device' as target"
 echo "   3. Product -> Archive"
 echo "   4. Use the ExportOptions.plist for app store distribution"
+echo ""
+echo "ℹ️  This build includes IS_TESTFLIGHT=true flag to enable debug logging in TestFlight builds"
 
 # Display approximate build size
 if [ -d "build/ios/iphoneos/Runner.app" ]; then
