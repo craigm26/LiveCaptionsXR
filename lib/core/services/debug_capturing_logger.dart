@@ -1,7 +1,7 @@
 import 'package:logger/logger.dart';
 import 'debug_logger_service.dart';
 
-/// A custom logger that captures logs to the debug logger service for TestFlight builds
+/// A custom logger that captures logs to the debug logger service
 class DebugCapturingLogger {
   final Logger _logger;
   final DebugLoggerService _debugService = DebugLoggerService();

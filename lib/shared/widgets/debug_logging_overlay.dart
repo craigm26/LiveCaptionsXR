@@ -282,7 +282,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
             ),
           ),
           Text(
-            'TestFlight Debug Mode',
+            'Debug Overlay',
             style: const TextStyle(
               color: Colors.orange,
               fontSize: 10,

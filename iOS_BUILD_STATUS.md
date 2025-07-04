@@ -20,7 +20,6 @@ The app previously exceeded TestFlight's 4GB size limit. Now optimized with:
 - App thinning for all device variants  
 - Size-optimized compiler settings
 - Automated build script: `scripts/build_ios_optimized.sh`
-- Export configuration: `ios/ExportOptions.plist`
 
 **Result**: App size significantly reduced and TestFlight-ready ✅
 

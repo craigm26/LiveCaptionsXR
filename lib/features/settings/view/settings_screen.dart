@@ -9,13 +9,8 @@ class SettingsScreen extends StatelessWidget {
   /// Check if we're in a development or testing build
   /// This includes debug mode, profile mode, or when assertions are enabled
   bool get _isDevelopmentBuild {
-    bool isInDevelopmentMode = kDebugMode || kProfileMode;
-    
-    // Also check for assertions (which are enabled in debug and profile builds)
-    bool assertionsEnabled = false;
-    assert(assertionsEnabled = true);
-    
-    return isInDevelopmentMode || assertionsEnabled;
+    // The debug logging overlay is available in all build variants
+    return true;
   }
 
   @override
@@ -107,7 +102,7 @@ class SettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Developer Settings Section (show in development builds including TestFlight)
+              // Developer Settings Section
               if (_isDevelopmentBuild) ...[
                 _buildSectionHeader('Developer & Testing'),
                 const SizedBox(height: 16),
@@ -126,7 +121,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     subtitle: const Text(
                       'Show transparent debug log overlay on screen\n'
-                      'Useful for TestFlight debugging and issue reporting',
+                      'Useful for debugging and issue reporting',
                     ),
                     trailing: Switch(
                       value: state.debugLoggingEnabled,
@@ -244,7 +239,7 @@ class SettingsScreen extends StatelessWidget {
                           const SizedBox(height: 8),
                           const Text(
                             'Turn on debug logging to see a transparent overlay with real-time app logs on the Home screen. '
-                            'This is especially useful for TestFlight testing and troubleshooting issues.',
+                            'This is especially useful for troubleshooting issues.',
                             style: TextStyle(fontSize: 12),
                           ),
                         ],
