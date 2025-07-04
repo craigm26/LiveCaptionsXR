@@ -7,10 +7,33 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 
   /// Check if we're in a development or testing build
-  /// This includes debug mode, profile mode, or when assertions are enabled
+  /// This includes debug mode, profile mode, TestFlight builds, or when assertions are enabled
   bool get _isDevelopmentBuild {
-    // The debug logging overlay is available in all build variants
-    return true;
+    bool isInDevelopmentMode = kDebugMode || kProfileMode;
+    
+    // Also check for assertions (which are enabled in debug and profile builds)
+    bool assertionsEnabled = false;
+    assert(assertionsEnabled = true);
+    
+    // Check for TestFlight builds using build-time flag
+    const bool isTestFlight = bool.fromEnvironment('IS_TESTFLIGHT', defaultValue: false);
+    
+    return isInDevelopmentMode || assertionsEnabled || isTestFlight;
+  }
+
+  /// Get the current build mode description
+  String _getBuildModeText() {
+    const bool isTestFlight = bool.fromEnvironment('IS_TESTFLIGHT', defaultValue: false);
+    
+    if (kDebugMode) {
+      return 'Debug';
+    } else if (kProfileMode) {
+      return 'Profile';
+    } else if (isTestFlight) {
+      return 'Release (TestFlight)';
+    } else {
+      return 'Release';
+    }
   }
 
   @override
@@ -277,11 +300,7 @@ class SettingsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.code),
                 title: const Text('Build Mode'),
-                subtitle: Text(kDebugMode
-                    ? 'Debug'
-                    : kProfileMode
-                        ? 'Profile'
-                        : 'Release'),
+                subtitle: Text(_getBuildModeText()),
               ),
 
               const SizedBox(height: 32),

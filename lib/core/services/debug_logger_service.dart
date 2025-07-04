@@ -37,7 +37,7 @@ import 'package:logger/logger.dart';
 /// - Clear logs functionality
 /// - Privacy-aware (clears logs when disabled)
 /// - Memory efficient (limits to 500 entries)
-/// - Works in all build variants
+/// - Only works in debug/profile builds and TestFlight builds (with IS_TESTFLIGHT=true flag) for security
 class DebugLoggerService {
   static final DebugLoggerService _instance = DebugLoggerService._internal();
   factory DebugLoggerService() => _instance;
@@ -61,8 +61,18 @@ class DebugLoggerService {
 
   /// Initialize the debug logger service
   void initialize() {
-    // Always set up log interception so the overlay works in all build variants
-    _setupLogInterception();
+    // Allow debug logging in debug, profile builds, TestFlight builds, and when assertions are enabled
+    // This covers TestFlight builds which have the IS_TESTFLIGHT flag set
+    bool isDevelopmentBuild = kDebugMode || kProfileMode;
+    bool assertionsEnabled = false;
+    assert(assertionsEnabled = true);
+    
+    // Check for TestFlight builds using build-time flag
+    const bool isTestFlight = bool.fromEnvironment('IS_TESTFLIGHT', defaultValue: false);
+    
+    if (isDevelopmentBuild || assertionsEnabled || isTestFlight) {
+      _setupLogInterception();
+    }
   }
 
   /// Enable or disable debug logging

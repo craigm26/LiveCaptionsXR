@@ -76,18 +76,20 @@ lib/
 
 ## Security & Privacy
 
-- Works in all build variants
+- Only works in debug, profile, and TestFlight builds (`kDebugMode || kProfileMode || IS_TESTFLIGHT=true || assertions enabled`)
 - Automatically clears logs when disabled
 - Logs are stored only in memory, not persisted to disk
 - Limited to 500 entries to prevent memory issues
 
 ## Why It's Useful
 
-This overlay is helpful when traditional debugging tools aren't available because it lets you:
-- Capture logs from real user devices
-- Troubleshoot issues reported by testers
-- Verify log output in production-like environments
+This feature is particularly useful for TestFlight builds where:
+- Traditional debugging tools aren't available
+- You need to capture logs from real user devices
+- You want to troubleshoot issues reported by beta testers
+- You need to verify log output in production-like environments
 
+**Note**: TestFlight builds must be compiled with the `--dart-define=IS_TESTFLIGHT=true` flag to enable debug logging. This is automatically included in the optimized iOS build script (`scripts/build_ios_optimized.sh`).
 
 ## Customization
 
