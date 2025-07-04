@@ -6,42 +6,57 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
   private var llmInference: MediaPipeTasksGenAI.LlmInference?
   private var eventSink: FlutterEventSink?
   private var bufferedAudio: [[Float]] = []
+  private var registrar: FlutterPluginRegistrar?
+  
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "gemma3n_multimodal", binaryMessenger: registrar.messenger())
     let stream = FlutterEventChannel(name: "gemma3n_multimodal_stream", binaryMessenger: registrar.messenger())
     let instance = Gemma3nMultimodalPlugin()
+    instance.registrar = registrar
     registrar.addMethodCallDelegate(instance, channel: channel)
     stream.setStreamHandler(instance)
   }
 
   // MARK: - Helper Methods for Bundle Asset Handling
   
-  /// Resolves model path from iOS bundle or validates external path
+  /// Resolves model path from Flutter assets or validates external path
   private func resolveModelPath(_ path: String) -> String? {
-    // If path is relative, try to find it in the app bundle
-    if !path.hasPrefix("/") && !path.hasPrefix("file://") {
-      // Check if it's in the main bundle
-      if let bundlePath = Bundle.main.path(forResource: path.replacingOccurrences(of: ".task", with: ""), ofType: "task") {
-        return bundlePath
+    // If path is absolute, verify file exists
+    if path.hasPrefix("/") || path.hasPrefix("file://") {
+      if FileManager.default.fileExists(atPath: path) {
+        return path
       }
-      
-      // Check in assets subdirectory
-      let assetsPath = "assets/models/\(path)"
-      if let bundlePath = Bundle.main.path(forResource: assetsPath.replacingOccurrences(of: ".task", with: ""), ofType: "task") {
-        return bundlePath
-      }
-      
-      // Check for direct asset path
-      if let bundlePath = Bundle.main.path(forResource: "assets/models/\(path.replacingOccurrences(of: ".task", with: ""))", ofType: "task") {
-        return bundlePath
-      }
+      return nil
     }
     
-    // For absolute paths, verify file exists
-    if FileManager.default.fileExists(atPath: path) {
-      return path
+    // For Flutter assets, use the registrar to lookup the asset
+    guard let registrar = self.registrar else {
+      print("❌ No registrar available for asset lookup")
+      return nil
     }
     
+    // Try to find the asset using Flutter's asset lookup
+    let assetKey = registrar.lookupKey(forAsset: path)
+    if let assetPath = Bundle.main.path(forResource: assetKey, ofType: nil) {
+      print("✅ Found Flutter asset at: \(assetPath)")
+      return assetPath
+    }
+    
+    // Fallback: Check if it's in the main bundle directly (for manual bundle inclusion)
+    if let bundlePath = Bundle.main.path(forResource: path.replacingOccurrences(of: ".task", with: ""), ofType: "task") {
+      print("✅ Found bundled model at: \(bundlePath)")
+      return bundlePath
+    }
+    
+    // Additional fallback for assets/models/ prefix
+    let assetsPath = "assets/models/\(path)"
+    let assetsKey = registrar.lookupKey(forAsset: assetsPath)
+    if let assetPath = Bundle.main.path(forResource: assetsKey, ofType: nil) {
+      print("✅ Found Flutter asset with assets/models/ prefix at: \(assetPath)")
+      return assetPath
+    }
+    
+    print("❌ Model file not found. Searched paths: [\(path), \(assetKey), \(assetsKey)]")
     return nil
   }
   
@@ -263,17 +278,25 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
 
   // MARK: - FlutterStreamHandler
   public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-    guard let args = arguments as? [String: Any] else {
-      return FlutterError(code: "INVALID_ARGUMENT", message: "Missing arguments", details: nil)
-    }
     eventSink = events
-    let type = args["type"] as? String
+    
+    // Handle case where no arguments are provided (default to transcription)
+    if arguments == nil {
+      // Default stream setup for backwards compatibility - no actual processing yet
+      return nil
+    }
+    
+    guard let args = arguments as? [String: Any] else {
+      return FlutterError(code: "INVALID_ARGUMENT", message: "Invalid arguments format", details: nil)
+    }
+    
+    let type = args["type"] as? String ?? "transcription"
     if type == "transcription" {
       handleStreamTranscription(args)
     } else if type == "multimodal" {
       handleStreamMultimodal(args)
     } else {
-      return FlutterError(code: "INVALID_ARGUMENT", message: "Unknown stream type", details: nil)
+      return FlutterError(code: "INVALID_ARGUMENT", message: "Unknown stream type: \(type)", details: nil)
     }
     return nil
   }

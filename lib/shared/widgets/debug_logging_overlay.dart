@@ -26,6 +26,14 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
   bool _isExpanded = false;
   bool _autoScroll = true;
 
+  // Regular expression to match ANSI escape sequences
+  static final RegExp _ansiRegex = RegExp(r'\x1B\[[0-9;]*[A-Za-z]|\^?\[\[?[0-9;]*[A-Za-z]');
+
+  /// Strips ANSI escape sequences from text to clean up log display
+  String _stripAnsiCodes(String text) {
+    return text.replaceAll(_ansiRegex, '');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -234,19 +242,26 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
   }
 
   Widget _buildLogItem(LogEntry log) {
+    // Clean the log message by stripping ANSI escape sequences
+    final cleanMessage = _stripAnsiCodes(log.formatForDisplay());
+    
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: _getLogBackgroundColor(log.level),
         borderRadius: BorderRadius.circular(4),
+        border: log.level == Level.error || log.level == Level.fatal
+            ? Border.all(color: Colors.red.withOpacity(0.3), width: 1)
+            : null,
       ),
-      child: Text(
-        log.formatForDisplay(),
+      child: SelectableText(
+        cleanMessage,
         style: TextStyle(
           color: _getLogTextColor(log.level),
           fontSize: 11,
           fontFamily: 'monospace',
+          height: 1.2,
         ),
       ),
     );
@@ -254,7 +269,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
 
   Widget _buildFooter(BuildContext context) {
     return Container(
-      height: 40,
+      height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -311,11 +326,14 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
 
   Future<void> _copyLogs() async {
     try {
-      await _debugLogger.copyLogsToClipboard();
+      // Get formatted logs and strip ANSI codes
+      final formattedLogs = _getFormattedLogsWithoutAnsi();
+      await Clipboard.setData(ClipboardData(text: formattedLogs));
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Debug logs copied to clipboard'),
+            content: Text('Debug logs copied to clipboard (ANSI codes stripped)'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -331,6 +349,48 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
         );
       }
     }
+  }
+
+  /// Get formatted logs with ANSI escape sequences stripped
+  String _getFormattedLogsWithoutAnsi() {
+    final buffer = StringBuffer();
+    buffer.writeln('=== LiveCaptionsXR Debug Logs (Clean) ===');
+    buffer.writeln('Generated: ${DateTime.now().toIso8601String()}');
+    buffer.writeln('Total entries: ${_debugLogger.logHistory.length}');
+    buffer.writeln('==========================================\n');
+
+    for (final entry in _debugLogger.logHistory) {
+      // Format each log entry and strip ANSI codes
+      final cleanEntry = _formatLogEntryForCopy(entry);
+      buffer.writeln(cleanEntry);
+      buffer.writeln('---');
+    }
+
+    return buffer.toString();
+  }
+
+  /// Format a single log entry for copying with ANSI codes stripped
+  String _formatLogEntryForCopy(LogEntry entry) {
+    final buffer = StringBuffer();
+    
+    // Strip ANSI codes from message
+    final cleanMessage = _stripAnsiCodes(entry.message);
+    
+    buffer.writeln(
+        '[${entry.timestamp.toIso8601String()}] ${entry.level.name.toUpperCase()}: $cleanMessage');
+
+    if (entry.error != null) {
+      final cleanError = _stripAnsiCodes(entry.error!);
+      buffer.writeln('Error: $cleanError');
+    }
+
+    if (entry.stackTrace != null) {
+      final cleanStackTrace = _stripAnsiCodes(entry.stackTrace!);
+      buffer.writeln('Stack Trace:');
+      buffer.writeln(cleanStackTrace);
+    }
+
+    return buffer.toString().trim();
   }
 
   void _clearLogs() {

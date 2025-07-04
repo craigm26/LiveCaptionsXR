@@ -59,11 +59,13 @@ class SpeechProcessor {
         _logger.i('✅ SpeechProcessor initialized successfully');
         _logger.d('📁 Model loaded from: ${result['modelPath']}');
 
-        // Set up the stream for real-time results
-        _streamSubscription = _stream.receiveBroadcastStream().listen(
-              _handleStreamData,
-              onError: _handleStreamError,
-            );
+        // Set up the stream for real-time results - specify transcription type
+        _streamSubscription = _stream.receiveBroadcastStream({
+          'type': 'transcription',
+        }).listen(
+          _handleStreamData,
+          onError: _handleStreamError,
+        );
 
         return true;
       } else {

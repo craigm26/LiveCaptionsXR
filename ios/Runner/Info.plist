@@ -30,6 +30,8 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
         <key>NSCameraUsageDescription</key>
         <string>Camera access is required for visual speaker identification.</string>
         <key>NSMicrophoneUsageDescription</key>
