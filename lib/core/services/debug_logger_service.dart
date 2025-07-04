@@ -3,12 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 
-/// A service that captures and manages debug logs for TestFlight builds
+/// A service that captures and manages debug logs
 ///
 /// This service provides a centralized logging system that captures debug logs
 /// and displays them in a transparent overlay on the app screen. It's designed
-/// specifically for TestFlight builds where developers need to see real-time
-/// logs without connecting to a debugger.
+/// for viewing real-time logs directly on the device without connecting to a
+/// debugger.
 ///
 /// ## How to Use:
 ///
@@ -37,7 +37,7 @@ import 'package:logger/logger.dart';
 /// - Clear logs functionality
 /// - Privacy-aware (clears logs when disabled)
 /// - Memory efficient (limits to 500 entries)
-/// - Only works in debug/profile builds and TestFlight builds for security
+/// - Works in all build variants
 class DebugLoggerService {
   static final DebugLoggerService _instance = DebugLoggerService._internal();
   factory DebugLoggerService() => _instance;
@@ -61,15 +61,8 @@ class DebugLoggerService {
 
   /// Initialize the debug logger service
   void initialize() {
-    // Allow debug logging in debug, profile builds, and when assertions are enabled
-    // This covers TestFlight builds which typically have assertions enabled
-    bool isDevelopmentBuild = kDebugMode || kProfileMode;
-    bool assertionsEnabled = false;
-    assert(assertionsEnabled = true);
-    
-    if (isDevelopmentBuild || assertionsEnabled) {
-      _setupLogInterception();
-    }
+    // Always set up log interception so the overlay works in all build variants
+    _setupLogInterception();
   }
 
   /// Enable or disable debug logging
