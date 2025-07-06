@@ -8,6 +8,13 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Check if ARKit is available before setting up ARSCNView
+        guard ARWorldTrackingConfiguration.isSupported else {
+            showARNotSupportedMessage()
+            return
+        }
+        
         sceneView = ARSCNView(frame: view.bounds)
         sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(sceneView)
@@ -78,6 +85,18 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         ARAnchorManager.anchorMap.removeAll()
         
         dismiss(animated: true, completion: nil)
+    }
+
+    private func showARNotSupportedMessage() {
+        let alert = UIAlertController(
+            title: "AR Not Supported", 
+            message: "ARKit features are not available on this device. The app will continue with audio-only features.", 
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+            self.dismiss(animated: true, completion: nil)
+        })
+        present(alert, animated: true, completion: nil)
     }
 
     // ARSCNViewDelegate: Called when a new anchor is added

@@ -40,9 +40,9 @@
         <string>Location access helps improve audio-visual localization accuracy.</string>
         <key>NSPhotoLibraryUsageDescription</key>
         <string>Photo library access allows saving captured AR sessions.</string>
-        <key>UIRequiredDeviceCapabilities</key>
+        <key>UIBackgroundModes</key>
         <array>
-                <string>arkit</string>
+        	<string>audio</string>
         </array>
         <key>UISupportedInterfaceOrientations</key>
         <array>
@@ -54,6 +54,12 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~vision</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
