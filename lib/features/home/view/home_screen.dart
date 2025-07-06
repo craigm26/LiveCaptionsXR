@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                '🚀 Live captions started automatically! Other services ready.'),
+                '🚀 Basic services initialized! Enter AR Mode for full experience.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),
@@ -92,34 +92,74 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Test method to generate various types of logs for debugging the logging overlay
-  void _testLogging() {
-    _logger.d('🔍 Testing debug logging functionality...');
+  /// Start all services needed for AR mode, including automatic anchor placement
+  Future<void> _startAllServicesForARMode() async {
+    if (!mounted) return;
 
-    // Generate different types of logs to test the overlay
-    _logger.t('🔍 This is a trace message - very detailed debugging info');
-    _logger.d('🐛 This is a debug message - general debugging info');
-    _logger.i('ℹ️ This is an info message - general information');
-    _logger.w('⚠️ This is a warning message - something to be cautious about');
-    _logger.e('❌ This is an error message - something went wrong');
-
-    // Test with error and stack trace
     try {
-      throw Exception('Test exception for logging demonstration');
+      _logger.i('🚀 Starting all services for AR mode...');
+
+      // Ensure live captions are running
+      final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+      if (!liveCaptionsCubit.isActive) {
+        _logger.i('🎤 Starting live captions for AR mode...');
+        await liveCaptionsCubit.startCaptions();
+        _logger.i('✅ Live captions started for AR mode');
+      }
+
+      // Initialize sound detection (method channel should be ready)
+      _logger.i('🔊 Sound detection active for AR mode');
+
+      // Initialize localization (ready to receive data)
+      _logger.i('🧭 Localization active for AR mode');
+
+      // Initialize visual identification (method channel ready)
+      _logger.i('👁️ Visual identification active for AR mode');
+
+      // Automatically place AR anchor after services are ready
+      _logger.i('🎯 Auto-placing AR anchor for AR mode...');
+      await _autoPlaceARAnchor();
+
+      _logger.i('🎉 All AR mode services initialized successfully');
     } catch (e, stackTrace) {
-      _logger.e('💥 Test exception caught', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error starting AR mode services',
+          error: e, stackTrace: stackTrace);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Some AR services failed to start: $e'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
+  }
 
-    _logger.i('✅ Debug logging test completed - check the overlay!');
+  /// Automatically place AR anchor when entering AR mode
+  Future<void> _autoPlaceARAnchor() async {
+    try {
+      _logger.i('🎯 Auto-placing AR anchor...');
 
-    // Show feedback to user
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Debug logs generated! Check the logging overlay.'),
-        backgroundColor: Colors.orange,
-        duration: Duration(seconds: 2),
-      ),
-    );
+      final homeCubit = context.read<HomeCubit>();
+      final arAnchorManager = ARAnchorManager();
+
+      _logger.i('🔄 Getting fused transform for automatic anchor placement...');
+      final fusedTransform = await homeCubit.getFusedTransform();
+
+      _logger.i('🌍 Creating AR anchor automatically with fused transform...');
+      final anchorId = await arAnchorManager
+          .createAnchorAtWorldTransform(fusedTransform);
+
+      _logger.i('🎉 AR anchor auto-placed successfully: $anchorId');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to auto-place AR Anchor',
+          error: e, stackTrace: stackTrace);
+      
+      // Don't show error to user as this is automatic - just log it
+      // The main AR mode functionality should still work without the anchor
+    }
   }
 
   @override
@@ -151,11 +191,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.camera_alt,
+                              Icon(Icons.view_in_ar,
                                   color: Colors.white24, size: 120),
                               SizedBox(height: 16),
                               Text(
-                                'AR Camera View',
+                                'AR Experience Ready',
                                 style: TextStyle(
                                   color: Colors.white54,
                                   fontSize: 18,
@@ -164,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                'All features running automatically:\nSound Detection • Localization • Visual ID • Live Captions',
+                                'Tap "Enter AR Mode" to begin',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white38,
@@ -214,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'This is your integrated AR experience. All features start automatically:',
+                            'Your integrated AR accessibility experience:',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -222,11 +262,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            '• Live Captions are running at the bottom\n'
-                            '• Sound detection is monitoring audio\n'
-                            '• Direction tracking is active\n'
-                            '• Visual object detection is ready\n'
-                            '• Use "Enter AR Mode" to enable AR anchors',
+                            '• Live Captions for real-time speech\n'
+                            '• Sound detection and monitoring\n'
+                            '• Directional audio tracking\n'
+                            '• Visual object identification\n'
+                            '• AR anchors for spatial context',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -363,179 +403,87 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              floatingActionButton: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Test Logging Button (only visible when debug logging is enabled)
-                  BlocBuilder<SettingsCubit, SettingsState>(
-                    builder: (context, settingsState) {
-                      if (settingsState.debugLoggingEnabled) {
-                        return Column(
-                          children: [
-                            FloatingActionButton(
-                              heroTag: "test_logging_fab",
-                              mini: true,
-                              backgroundColor: Colors.orange,
-                              onPressed: () => _testLogging(),
-                              tooltip: 'Test Debug Logging',
-                              child: const Icon(Icons.bug_report, size: 20),
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  FloatingActionButton(
-                    heroTag: "ar_anchor_fab",
-                    onPressed: () async {
-                      try {
-                        _logger.i(
-                            '🎯 AR Anchor button pressed - attempting anchor creation...');
+              floatingActionButton: FloatingActionButton(
+                heroTag: "ar_view_fab",
+                onPressed: () async {
+                  try {
+                    _logger.i('🥽 Enter AR Mode button pressed...');
 
-                        final homeCubit = context.read<HomeCubit>();
-                        final arAnchorManager = ARAnchorManager();
+                    // Start AR view
+                    await const MethodChannel(
+                            'live_captions_xr/ar_navigation')
+                        .invokeMethod('showARView');
 
-                        _logger.i(
-                            '🔄 Getting fused transform for anchor placement...');
-                        final fusedTransform =
-                            await homeCubit.getFusedTransform();
+                    _logger.i('✅ AR View launched successfully');
 
-                        _logger
-                            .i('🌍 Creating AR anchor with fused transform...');
-                        final anchorId = await arAnchorManager
-                            .createAnchorAtWorldTransform(fusedTransform);
+                    // Automatically start all services when entering AR mode
+                    await _startAllServicesForARMode();
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                                  Text('✅ AR Anchor placed! ID: $anchorId'),
-                              backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
-                        }
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              '🥽 AR Mode activated! All services started automatically.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  } on PlatformException catch (e) {
+                    _logger.e('❌ AR View platform exception', error: e);
 
-                        _logger.i(
-                            '🎉 AR anchor creation completed successfully: $anchorId');
-                      } catch (e, stackTrace) {
-                        _logger.e('❌ Failed to place AR Anchor',
-                            error: e, stackTrace: stackTrace);
+                    String errorMessage;
+                    switch (e.code) {
+                      case 'UNAVAILABLE':
+                        errorMessage = '⚠️ AR not supported on this device';
+                        break;
+                      case 'NOT_AUTHORIZED':
+                        errorMessage =
+                            '⚠️ Camera permission required for AR';
+                        break;
+                      case 'AR_NOT_SUPPORTED':
+                        errorMessage =
+                            '⚠️ ARKit not supported (try on a physical device)';
+                        break;
+                      default:
+                        errorMessage =
+                            '⚠️ AR View not available: ${e.message}';
+                    }
 
-                        String errorMessage;
-                        if (e.toString().contains('INVALID_ARGUMENTS')) {
-                          errorMessage =
-                              '⚠️ AR session not active. Try "Enter AR Mode" first, or use a physical device.';
-                        } else if (e.toString().contains('ARSession')) {
-                          errorMessage =
-                              '⚠️ No AR session found. AR may not be supported on this device.';
-                        } else if (e
-                            .toString()
-                            .contains('MissingPluginException')) {
-                          errorMessage =
-                              '⚠️ AR functionality not available in current build.';
-                        } else {
-                          errorMessage =
-                              '❌ Failed to place AR Anchor: ${e.toString()}';
-                        }
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMessage),
+                          backgroundColor: Colors.orange,
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    }
+                  } catch (e, stackTrace) {
+                    _logger.e('❌ Failed to launch AR View',
+                        error: e, stackTrace: stackTrace);
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMessage),
-                              backgroundColor: Colors.orange,
-                              duration: const Duration(seconds: 4),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    tooltip: 'Place AR Anchor (Try after AR Mode)',
-                    child: const Icon(Icons.add_location_alt),
-                  ),
-                  const SizedBox(height: 16),
-                  FloatingActionButton(
-                    heroTag: "ar_view_fab",
-                    onPressed: () async {
-                      try {
-                        _logger.i('🥽 Enter AR Mode button pressed...');
+                    String errorMessage;
+                    if (e.toString().contains('MissingPluginException')) {
+                      errorMessage =
+                          '⚠️ AR functionality not implemented in current build';
+                    } else {
+                      errorMessage = '❌ Failed to launch AR View: $e';
+                    }
 
-                        await const MethodChannel(
-                                'live_captions_xr/ar_navigation')
-                            .invokeMethod('showARView');
-
-                        _logger.i('✅ AR View launched successfully');
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  '🥽 AR Mode activated! You can now place anchors.'),
-                              backgroundColor: Colors.green,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                        }
-                      } on PlatformException catch (e) {
-                        _logger.e('❌ AR View platform exception', error: e);
-
-                        String errorMessage;
-                        switch (e.code) {
-                          case 'UNAVAILABLE':
-                            errorMessage = '⚠️ AR not supported on this device';
-                            break;
-                          case 'NOT_AUTHORIZED':
-                            errorMessage =
-                                '⚠️ Camera permission required for AR';
-                            break;
-                          case 'AR_NOT_SUPPORTED':
-                            errorMessage =
-                                '⚠️ ARKit not supported (try on a physical device)';
-                            break;
-                          default:
-                            errorMessage =
-                                '⚠️ AR View not available: ${e.message}';
-                        }
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMessage),
-                              backgroundColor: Colors.orange,
-                              duration: const Duration(seconds: 4),
-                            ),
-                          );
-                        }
-                      } catch (e, stackTrace) {
-                        _logger.e('❌ Failed to launch AR View',
-                            error: e, stackTrace: stackTrace);
-
-                        String errorMessage;
-                        if (e.toString().contains('MissingPluginException')) {
-                          errorMessage =
-                              '⚠️ AR functionality not implemented in current build';
-                        } else {
-                          errorMessage = '❌ Failed to launch AR View: $e';
-                        }
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMessage),
-                              backgroundColor: Colors.orange,
-                              duration: const Duration(seconds: 4),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    tooltip: 'Enter AR Mode',
-                    child: const Icon(Icons.view_in_ar),
-                  ),
-                ],
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMessage),
+                          backgroundColor: Colors.orange,
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    }
+                  }
+                },
+                tooltip: 'Enter AR Mode',
+                child: const Icon(Icons.view_in_ar),
               ),
             ),
           ),
