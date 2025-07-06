@@ -73,7 +73,11 @@ import Accelerate
                 vDSP_fft_zrip(fftSetup!, &cross, 1, vDSP_Length(log2(Double(N))), FFTDirection(FFT_INVERSE))
                 // Find max index (time delay)
                 var corr = [Float](repeating: 0, count: N)
-                vDSP_ztoc(&cross, 1, UnsafeMutablePointer<DSPComplex>(mutating: corr), 2, vDSP_Length(N/2))
+                corr.withUnsafeMutableBufferPointer { corrPtr in
+                    corrPtr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: N/2) { complexPtr in
+                        vDSP_ztoc(&cross, 1, complexPtr, 2, vDSP_Length(N/2))
+                    }
+                }
                 var maxVal: Float = 0
                 var maxIdx: vDSP_Length = 0
                 vDSP_maxvi(corr, 1, &maxVal, &maxIdx, vDSP_Length(N))
