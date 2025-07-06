@@ -87,6 +87,14 @@ class HybridLocalizationEngine {
             VisualObjectPlugin.register(with: registrar)
         }
         
+        if let registrar = self.registrar(forPlugin: "StereoAudioCapturePlugin") {
+            StereoAudioCapturePlugin.register(with: registrar)
+        }
+        
+        if let registrar = self.registrar(forPlugin: "SpeechLocalizerPlugin") {
+            SpeechLocalizerPlugin.register(with: registrar)
+        }
+        
         // Set up AR navigation method channel
         if let controller = window?.rootViewController as? FlutterViewController {
             let arNavigationChannel = FlutterMethodChannel(
