@@ -95,7 +95,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
 
   Widget _buildDebugOverlay(BuildContext context) {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 10,
+      top: MediaQuery.of(context).padding.top + 2,
       left: 10,
       right: 10,
       child: Material(
@@ -103,7 +103,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          height: _isExpanded ? 300 : 50,
+          height: _isExpanded ? 500 : 50,
           decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.85),
             borderRadius: BorderRadius.circular(12),
@@ -134,7 +134,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
     final logCount = _debugLogger.logHistory.length;
 
     return Container(
-      height: 50,
+      height: 30,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
@@ -269,8 +269,8 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
 
   Widget _buildFooter(BuildContext context) {
     return Container(
-      height: 38,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -279,14 +279,6 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
             style: const TextStyle(
               color: Colors.white60,
               fontSize: 10,
-            ),
-          ),
-          Text(
-            'Debug Overlay',
-            style: const TextStyle(
-              color: Colors.orange,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],

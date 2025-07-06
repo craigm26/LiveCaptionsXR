@@ -99,28 +99,51 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       _logger.i('🚀 Starting all services for AR mode...');
 
-      // Ensure live captions are running
+      // --- Live Captions ---
       final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
       if (!liveCaptionsCubit.isActive) {
         _logger.i('🎤 Starting live captions for AR mode...');
         await liveCaptionsCubit.startCaptions();
         _logger.i('✅ Live captions started for AR mode');
+      } else {
+        _logger.i('🎤 Live captions already active');
       }
 
-      // Initialize sound detection (method channel should be ready)
-      _logger.i('🔊 Sound detection active for AR mode');
+      // --- Sound Detection ---
+      final soundDetectionCubit = context.read<SoundDetectionCubit>();
+      if (!soundDetectionCubit.isActive) {
+        _logger.i('🔊 Starting sound detection for AR mode...');
+        await soundDetectionCubit.start();
+        _logger.i('✅ Sound detection started for AR mode');
+      } else {
+        _logger.i('🔊 Sound detection already active');
+      }
 
-      // Initialize localization (ready to receive data)
-      _logger.i('🧭 Localization active for AR mode');
+      // --- Localization ---
+      final localizationCubit = context.read<LocalizationCubit>();
+      if (!localizationCubit.isActive) {
+        _logger.i('🧭 Starting localization for AR mode...');
+        await localizationCubit.start();
+        _logger.i('✅ Localization started for AR mode');
+      } else {
+        _logger.i('🧭 Localization already active');
+      }
 
-      // Initialize visual identification (method channel ready)
-      _logger.i('👁️ Visual identification active for AR mode');
+      // --- Visual Identification ---
+      final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+      if (!visualIdentificationCubit.isActive) {
+        _logger.i('👁️ Starting visual identification for AR mode...');
+        await visualIdentificationCubit.start();
+        _logger.i('✅ Visual identification started for AR mode');
+      } else {
+        _logger.i('👁️ Visual identification already active');
+      }
 
-      // Automatically place AR anchor after services are ready
+      // --- AR Anchor Placement ---
       _logger.i('🎯 Auto-placing AR anchor for AR mode...');
       await _autoPlaceARAnchor();
 
-      _logger.i('🎉 All AR mode services initialized successfully');
+      _logger.i('🎉 All AR mode services checked and initialized successfully');
     } catch (e, stackTrace) {
       _logger.e('❌ Error starting AR mode services',
           error: e, stackTrace: stackTrace);
