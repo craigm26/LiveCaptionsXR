@@ -40,6 +40,10 @@
         <string>Location access helps improve audio-visual localization accuracy.</string>
         <key>NSPhotoLibraryUsageDescription</key>
         <string>Photo library access allows saving captured AR sessions.</string>
+        <key>UIRequiredDeviceCapabilities</key>
+        <array>
+                <string>arkit</string>
+        </array>
         <key>UISupportedInterfaceOrientations</key>
         <array>
                 <string>UIInterfaceOrientationPortrait</string>

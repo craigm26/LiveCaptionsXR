@@ -94,8 +94,10 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
     func placeCaption(at transform: simd_float4x4, text: String) {
         let anchor = ARAnchor(transform: transform)
         sceneView.session.add(anchor: anchor)
-        let captionNode = CaptionNode(text: text)
-        sceneView.scene.rootNode.addChildNode(captionNode)
-        captionNode.simdTransform = transform
+        if #available(iOS 14.0, *) {
+            let captionNode = CaptionNode(text: text)
+            sceneView.scene.rootNode.addChildNode(captionNode)
+            captionNode.simdTransform = transform
+        }
     }
 }

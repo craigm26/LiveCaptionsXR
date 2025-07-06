@@ -5,197 +5,15 @@ import simd
 import SceneKit
 import Foundation
 
-// CaptionNode class for AR captions
-@available(iOS 14.0, *)
-class CaptionNode: SCNNode {
-    private let textNode: SCNNode
-    private let backgroundNode: SCNNode
+// CaptionNode is defined in CaptionNode.swift
 
-    init(text: String, fontSize: CGFloat = 0.08, bubbleWidth: CGFloat = 0.25) {
-        self.textNode = SCNNode()
-        self.backgroundNode = SCNNode()
-        super.init()
-
-        // Create the text geometry
-        let textGeometry = SCNText(string: text, extrusionDepth: 0.01)
-        textGeometry.font = UIFont.systemFont(ofSize: fontSize, weight: .bold)
-        textGeometry.firstMaterial?.diffuse.contents = UIColor.white
-        textGeometry.firstMaterial?.isDoubleSided = true
-        textNode.geometry = textGeometry
-        textNode.scale = SCNVector3(0.01, 0.01, 0.01)
-        let (min, max) = textGeometry.boundingBox
-        textNode.position = SCNVector3(-((max.x - min.x) / 2), min.y, 0.01)
-
-        // Create the background geometry
-        let width = max.x - min.x
-        let height = max.y - min.y
-        let backgroundGeometry = SCNPlane(width: bubbleWidth, height: fontSize * 1.5)
-        backgroundGeometry.cornerRadius = fontSize * 0.4
-        backgroundGeometry.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.7)
-        backgroundNode.geometry = backgroundGeometry
-        backgroundNode.position = SCNVector3(0, 0, 0)
-
-        // Add the nodes to the hierarchy
-        addChildNode(backgroundNode)
-        addChildNode(textNode)
-
-        // Add a billboard constraint
-        let billboardConstraint = SCNBillboardConstraint()
-        billboardConstraint.freeAxes = .Y
-        constraints = [billboardConstraint]
-
-        // Fade-in animation
-        opacity = 0.0
-        let fadeIn = SCNAction.fadeIn(duration: 0.3)
-        runAction(fadeIn)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
-// ARAnchorManager class for AR anchor management
-@objc class ARAnchorManager: NSObject, FlutterPlugin {
-    static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "live_captions_xr/ar_anchor_methods", binaryMessenger: registrar.messenger())
-        let instance = ARAnchorManager()
-        registrar.addMethodCallDelegate(instance, channel: channel)
-    }
-
-    // Reference to the ARSession (should be set from your ARViewController)
-    static weak var arSession: ARSession?
-    static var anchorMap: [String: ARAnchor] = [:]
-
-    private let session: ARSession
-    private let sceneView: ARSCNView
-
-    // Default initializer for plugin registration
-    override init() {
-        self.session = ARSession()
-        self.sceneView = ARSCNView()
-        super.init()
-    }
-
-    init(session: ARSession, sceneView: ARSCNView) {
-        self.session = session
-        self.sceneView = sceneView
-        super.init()
-    }
-
-    func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        switch call.method {
-        case "createAnchorAtAngle":
-            guard let args = call.arguments as? [String: Any],
-                  let angle = args["angle"] as? Double,
-                  let distance = args["distance"] as? Double,
-                  let session = ARAnchorManager.arSession,
-                  let camera = session.currentFrame?.camera else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing angle, distance, or ARSession", details: nil))
-                return
-            }
-            let cameraTransform = camera.transform
-            let yRotation = simd_float4x4(SCNMatrix4MakeRotation(Float(angle), 0, 1, 0))
-            let translation = simd_float4x4(SCNMatrix4MakeTranslation(0, 0, -Float(distance)))
-            let anchorTransform = simd_mul(cameraTransform, simd_mul(yRotation, translation))
-            let anchor = ARAnchor(transform: anchorTransform)
-            session.add(anchor: anchor)
-            let id = anchor.identifier.uuidString
-            ARAnchorManager.anchorMap[id] = anchor
-            result(id)
-        case "createAnchorAtWorldTransform":
-            guard let args = call.arguments as? [String: Any],
-                  let transformArray = args["transform"] as? [Double],
-                  transformArray.count == 16,
-                  let session = ARAnchorManager.arSession else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing or invalid transform/ARSession", details: nil))
-                return
-            }
-            var matrix = matrix_identity_float4x4
-            for row in 0..<4 {
-                for col in 0..<4 {
-                    matrix[row][col] = Float(transformArray[row * 4 + col])
-                }
-            }
-            let anchor = ARAnchor(transform: matrix)
-            session.add(anchor: anchor)
-            let id = anchor.identifier.uuidString
-            ARAnchorManager.anchorMap[id] = anchor
-            result(id)
-        case "removeAnchor":
-            guard let args = call.arguments as? [String: Any],
-                  let identifier = args["identifier"] as? String,
-                  let session = ARAnchorManager.arSession,
-                  let anchor = ARAnchorManager.anchorMap[identifier] else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing identifier or anchor", details: nil))
-                return
-            }
-            session.remove(anchor: anchor)
-            ARAnchorManager.anchorMap.removeValue(forKey: identifier)
-            result(nil)
-        case "getDeviceOrientation":
-            guard let session = ARAnchorManager.arSession,
-                  let camera = session.currentFrame?.camera else {
-                result(FlutterError(code: "NO_SESSION", message: "ARSession or camera not available", details: nil))
-                return
-            }
-            let m = camera.transform
-            let flat: [Float] = [
-                m[0][0], m[0][1], m[0][2], m[0][3],
-                m[1][0], m[1][1], m[1][2], m[1][3],
-                m[2][0], m[2][1], m[2][2], m[2][3],
-                m[3][0], m[3][1], m[3][2], m[3][3]
-            ]
-            result(flat)
-        default:
-            result(FlutterMethodNotImplemented)
-        }
-    }
-
-    func createAnchor(at angle: Float, distance: Float = 2.0, text: String) {
-        guard let frame = session.currentFrame else { return }
-        let cameraTransform = frame.camera.transform
-        
-        // Create a rotation matrix from the angle
-        let rotation = simd_float4x4(SCNMatrix4MakeRotation(angle, 0, 1, 0))
-        
-        // Create a translation matrix from the distance
-        let translation = simd_float4x4(SCNMatrix4MakeTranslation(0, 0, -distance))
-        
-        // Combine the transforms
-        let transform = simd_mul(simd_mul(cameraTransform, translation), rotation)
-        
-        let anchor = ARAnchor(transform: transform)
-        session.add(anchor: anchor)
-
-        if #available(iOS 14.0, *) {
-            let captionNode = CaptionNode(text: text)
-            sceneView.scene.rootNode.addChildNode(captionNode)
-            captionNode.position = SCNVector3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z)
-        }
-    }
-
-    func createAnchor(at worldTransform: simd_float4x4, text: String) {
-        let anchor = ARAnchor(transform: worldTransform)
-        session.add(anchor: anchor)
-
-        if #available(iOS 14.0, *) {
-            let captionNode = CaptionNode(text: text)
-            sceneView.scene.rootNode.addChildNode(captionNode)
-            captionNode.position = SCNVector3(worldTransform.columns.3.x, worldTransform.columns.3.y, worldTransform.columns.3.z)
-        }
-    }
-
-    func removeAnchor(_ anchor: ARAnchor) {
-        session.remove(anchor: anchor)
-        // TODO: Remove the corresponding CaptionNode from the scene
-    }
-}
+// ARAnchorManager is defined in ARAnchorManager.swift
 
 // Simple HybridLocalizationEngine implementation
 class HybridLocalizationEngine {
     // Simple state tracking - position only for now
-    private var position = simd_float3(0, 0, 0)
+    // Default to 2 meters in front of device at eye level
+    private var position = simd_float3(0, 0, -2.0)
     private var lastUpdate: Date = Date()
     
     // Prediction step - simplified
@@ -263,6 +81,18 @@ class HybridLocalizationEngine {
         // Register custom plugins - use registrar for proper plugin registration
         if let registrar = self.registrar(forPlugin: "ARAnchorManager") {
             ARAnchorManager.register(with: registrar)
+        }
+        
+        if let registrar = self.registrar(forPlugin: "VisualObjectPlugin") {
+            VisualObjectPlugin.register(with: registrar)
+        }
+        
+        if let registrar = self.registrar(forPlugin: "StereoAudioCapturePlugin") {
+            StereoAudioCapturePlugin.register(with: registrar)
+        }
+        
+        if let registrar = self.registrar(forPlugin: "SpeechLocalizerPlugin") {
+            SpeechLocalizerPlugin.register(with: registrar)
         }
         
         // Set up AR navigation method channel
@@ -385,17 +215,12 @@ class HybridLocalizationEngine {
                 return
             }
             
-            // For now, show an alert indicating AR mode would be launched
-            // TODO: Replace with actual ARViewController once Swift compilation issues are resolved
-            let alert = UIAlertController(
-                title: "AR Mode",
-                message: "AR View would launch here. ARViewController needs to be properly configured in Xcode project.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+            // Launch actual ARViewController
+            let arViewController = ARViewController()
+            arViewController.modalPresentationStyle = .fullScreen
+            controller.present(arViewController, animated: true) {
                 result(nil)
-            })
-            controller.present(alert, animated: true)
+            }
         }
     }
 }
