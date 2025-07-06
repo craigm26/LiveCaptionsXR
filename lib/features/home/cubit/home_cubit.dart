@@ -3,12 +3,11 @@ import 'package:logger/logger.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 
 class HomeState {
-  final bool demoMode;
   final bool arMode;
-  HomeState({this.demoMode = false, this.arMode = false});
+  HomeState({this.arMode = false});
 
-  HomeState copyWith({bool? demoMode, bool? arMode}) => HomeState(
-      demoMode: demoMode ?? this.demoMode, arMode: arMode ?? this.arMode);
+  HomeState copyWith({bool? arMode}) =>
+      HomeState(arMode: arMode ?? this.arMode);
 }
 
 class HomeCubit extends Cubit<HomeState> {
@@ -27,12 +26,6 @@ class HomeCubit extends Cubit<HomeState> {
 
   final HybridLocalizationEngine hybridLocalizationEngine =
       HybridLocalizationEngine();
-
-  void toggleDemoMode() {
-    final newMode = !state.demoMode;
-    _logger.i('🎛️ Toggling demo mode: ${state.demoMode} -> $newMode');
-    emit(state.copyWith(demoMode: newMode));
-  }
 
   void toggleArMode() {
     final newMode = !state.arMode;

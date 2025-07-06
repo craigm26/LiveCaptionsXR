@@ -72,31 +72,27 @@ class _AppShellState extends State<AppShell> {
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor,
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(
-                  Icons.spatial_audio_off,
-                  size: 48,
-                  color: Colors.white,
+                // App logo or icon
+                Image.asset(
+                  'assets/logos/logo.png',
+                  height: 60,
+                  width: 60,
+                  fit: BoxFit.cover,
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'LiveCaptionsXR',
+                const SizedBox(height: 8),
+                const Text(
+                  'Live Captions XR',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  'Integrated AR Live Captions',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                
               ],
             ),
           ),
@@ -153,8 +149,8 @@ class _AppShellState extends State<AppShell> {
           ? Text(
               subtitle,
               style: TextStyle(
-                color: isSelected 
-                    ? Theme.of(context).primaryColor.withOpacity(0.7) 
+                color: isSelected
+                    ? Theme.of(context).primaryColor.withOpacity(0.7)
                     : Colors.grey[600],
                 fontSize: 12,
               ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import 'dart:ui';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
@@ -33,68 +32,63 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _logger.i('🏠 HomeScreen initialized');
+
+    // Auto-start all main activities after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoStartServices();
+    });
   }
 
-  void _onDemoModePressed(BuildContext context) {
-    _logger.i('🎭 Demo mode toggle requested');
+  /// Automatically start all main app services
+  void _autoStartServices() async {
+    if (!mounted) return;
+
     try {
-      context.read<HomeCubit>().toggleDemoMode();
-      _logger.d('✅ Demo mode toggle completed successfully');
+      _logger.i('🚀 Auto-starting all main services...');
+
+      // Start live captions automatically
+      final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+      if (!liveCaptionsCubit.isActive) {
+        _logger.i('🎤 Auto-starting live captions...');
+        await liveCaptionsCubit.startCaptions();
+        _logger.i('✅ Live captions auto-started');
+      }
+
+      // Initialize sound detection (it's already listening via method channel)
+      _logger.i('🔊 Sound detection initialized and ready');
+
+      // Initialize localization (it's already ready to receive data)
+      _logger.i('🧭 Localization initialized and ready');
+
+      // Initialize visual identification (it's already listening via method channel)
+      _logger.i('👁️ Visual identification initialized and ready');
+
+      // Show notification that services are running
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                '🚀 Live captions started automatically! Other services ready.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      _logger.i('🎉 All main services initialized successfully');
     } catch (e, stackTrace) {
-      _logger.e('❌ Error toggling demo mode', error: e, stackTrace: stackTrace);
-    }
-  }
+      _logger.e('❌ Error auto-starting services',
+          error: e, stackTrace: stackTrace);
 
-  void _startDemoMode() {
-    try {
-      _logger.i('🎭 Starting demo mode with periodic fake events...');
-      _demoTimer?.cancel();
-      _demoTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-        try {
-          _logger.d('🎭 Injecting demo events - cycle ${timer.tick}');
-
-          // Inject fake sound event
-          final soundEvent = SoundEvent(
-              type: 'Beep', confidence: 0.9, timestamp: DateTime.now());
-          context.read<SoundDetectionCubit>().detectSound(soundEvent);
-          _logger.d('🔊 Injected fake sound event: ${soundEvent.type}');
-
-          // Inject fake localization
-          final directions = ['left', 'right', 'center'];
-          final dir = directions[DateTime.now().second % 3];
-          context.read<LocalizationCubit>().localize(dir, 0.8);
-          _logger.d('🧭 Injected fake localization: $dir (confidence: 0.8)');
-
-          // Inject fake visual object
-          final visualObject = VisualObject(
-            label: 'Microwave',
-            confidence: 0.95,
-            boundingBox: const Rect.fromLTWH(0, 0, 100, 100),
-          );
-          context
-              .read<VisualIdentificationCubit>()
-              .detectObjects([visualObject]);
-          _logger.d(
-              '👁️ Injected fake visual object: ${visualObject.label} (confidence: ${visualObject.confidence})');
-        } catch (e, stackTrace) {
-          _logger.e('❌ Error injecting demo events',
-              error: e, stackTrace: stackTrace);
-        }
-      });
-      _logger.i('✅ Demo mode started successfully');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error starting demo mode', error: e, stackTrace: stackTrace);
-    }
-  }
-
-  void _stopDemoMode() {
-    try {
-      _logger.i('🛑 Stopping demo mode...');
-      _demoTimer?.cancel();
-      _demoTimer = null;
-      _logger.i('✅ Demo mode stopped successfully');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error stopping demo mode', error: e, stackTrace: stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Some services failed to start: $e'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 
@@ -131,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _logger.i('🗑️ HomeScreen disposing...');
-    _stopDemoMode();
     super.dispose();
     _logger.d('✅ HomeScreen disposed successfully');
   }
@@ -145,46 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return DebugLoggingOverlay(
           isEnabled: settingsState.debugLoggingEnabled,
           child: BlocListener<HomeCubit, HomeState>(
-            listenWhen: (prev, curr) => prev.demoMode != curr.demoMode,
-            listener: (context, state) {
-              _logger.d(
-                  '🎭 Demo mode state changed: ${state.demoMode ? "ON" : "OFF"}');
-
-              if (state.demoMode) {
-                _startDemoMode();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Demo mode ON: Injecting fake events')),
-                );
-                _logger.i('📢 Demo mode ON notification shown');
-              } else {
-                _stopDemoMode();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Demo mode OFF')),
-                );
-                _logger.i('📢 Demo mode OFF notification shown');
-              }
-            },
+            listener: (context, state) {},
             child: Scaffold(
-              appBar: AppBar(
-                title: const Text('LiveCaptionsXR'),
-                actions: [
-                  BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) {
-                      _logger.d(
-                          '🏗️ Building AppBar demo mode button - state: ${state.demoMode}');
-                      return IconButton(
-                        icon: Icon(
-                          Icons.science,
-                          color: state.demoMode ? Colors.amber : null,
-                        ),
-                        tooltip: 'Toggle Demo Mode',
-                        onPressed: () => _onDemoModePressed(context),
-                      );
-                    },
-                  ),
-                ],
-              ),
               body: Stack(
                 children: [
                   // Camera preview background with instruction overlay
@@ -192,13 +147,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.black,
                     child: Stack(
                       children: [
-                        Center(
+                        const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.camera_alt,
                                   color: Colors.white24, size: 120),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               Text(
                                 'AR Camera View',
                                 style: TextStyle(
@@ -207,9 +162,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(
-                                'All features integrated here:\nSound Detection • Localization • Visual ID • Live Captions',
+                                'All features running automatically:\nSound Detection • Localization • Visual ID • Live Captions',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white38,
@@ -219,111 +174,67 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        // Demo mode indicator
-                        BlocBuilder<HomeCubit, HomeState>(
-                          builder: (context, state) {
-                            if (state.demoMode) {
-                              return Positioned(
-                                top: 16,
-                                left: 16,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber.withOpacity(0.9),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.science, 
-                                          size: 16, color: Colors.black87),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        'DEMO MODE',
-                                        style: TextStyle(
-                                          color: Colors.black87,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
                       ],
                     ),
                   ),
-                  // Welcome message overlay (when not in demo mode)
-                  BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) {
-                      if (!state.demoMode) {
-                        return Positioned(
-                          top: 80,
-                          left: 16,
-                          right: 16,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+                  // Welcome message overlay
+                  Positioned(
+                    top: 80,
+                    left: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.info, color: Colors.white, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Welcome to Live Captions XR',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.info, 
-                                        color: Colors.white, size: 20),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Welcome to LiveCaptionsXR',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'This is your integrated AR experience. All features work together here:',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  '• Live Captions appear at the bottom\n'
-                                  '• Sound events show in the top-left\n'
-                                  '• Direction arrows indicate sound location\n'
-                                  '• Visual objects appear on the right\n'
-                                  '• Tap the demo button to see it in action!',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'This is your integrated AR experience. All features start automatically:',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
                             ),
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
+                          SizedBox(height: 8),
+                          Text(
+                            '• Live Captions are running at the bottom\n'
+                            '• Sound detection is monitoring audio\n'
+                            '• Direction tracking is active\n'
+                            '• Visual object detection is ready\n'
+                            '• Use "Enter AR Mode" to enable AR anchors',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   // Live Captions overlay (bottom center)
                   Positioned(
@@ -480,25 +391,69 @@ class _HomeScreenState extends State<HomeScreen> {
                   FloatingActionButton(
                     heroTag: "ar_anchor_fab",
                     onPressed: () async {
-                      final homeCubit = context.read<HomeCubit>();
-                      final arAnchorManager = ARAnchorManager();
                       try {
+                        _logger.i(
+                            '🎯 AR Anchor button pressed - attempting anchor creation...');
+
+                        final homeCubit = context.read<HomeCubit>();
+                        final arAnchorManager = ARAnchorManager();
+
+                        _logger.i(
+                            '🔄 Getting fused transform for anchor placement...');
                         final fusedTransform =
                             await homeCubit.getFusedTransform();
+
+                        _logger
+                            .i('🌍 Creating AR anchor with fused transform...');
                         final anchorId = await arAnchorManager
                             .createAnchorAtWorldTransform(fusedTransform);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('AR Anchor placed! ID: $anchorId')),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Failed to place AR Anchor: $e')),
-                        );
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content:
+                                  Text('✅ AR Anchor placed! ID: $anchorId'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+
+                        _logger.i(
+                            '🎉 AR anchor creation completed successfully: $anchorId');
+                      } catch (e, stackTrace) {
+                        _logger.e('❌ Failed to place AR Anchor',
+                            error: e, stackTrace: stackTrace);
+
+                        String errorMessage;
+                        if (e.toString().contains('INVALID_ARGUMENTS')) {
+                          errorMessage =
+                              '⚠️ AR session not active. Try "Enter AR Mode" first, or use a physical device.';
+                        } else if (e.toString().contains('ARSession')) {
+                          errorMessage =
+                              '⚠️ No AR session found. AR may not be supported on this device.';
+                        } else if (e
+                            .toString()
+                            .contains('MissingPluginException')) {
+                          errorMessage =
+                              '⚠️ AR functionality not available in current build.';
+                        } else {
+                          errorMessage =
+                              '❌ Failed to place AR Anchor: ${e.toString()}';
+                        }
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMessage),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
                       }
                     },
-                    tooltip: 'Place AR Anchor (Fused)',
+                    tooltip: 'Place AR Anchor (Try after AR Mode)',
                     child: const Icon(Icons.add_location_alt),
                   ),
                   const SizedBox(height: 16),
@@ -506,24 +461,75 @@ class _HomeScreenState extends State<HomeScreen> {
                     heroTag: "ar_view_fab",
                     onPressed: () async {
                       try {
+                        _logger.i('🥽 Enter AR Mode button pressed...');
+
                         await const MethodChannel(
                                 'live_captions_xr/ar_navigation')
                             .invokeMethod('showARView');
+
+                        _logger.i('✅ AR View launched successfully');
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  '🥽 AR Mode activated! You can now place anchors.'),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
                       } on PlatformException catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                Text('AR View not available: ${e.message}'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to launch AR View: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        _logger.e('❌ AR View platform exception', error: e);
+
+                        String errorMessage;
+                        switch (e.code) {
+                          case 'UNAVAILABLE':
+                            errorMessage = '⚠️ AR not supported on this device';
+                            break;
+                          case 'NOT_AUTHORIZED':
+                            errorMessage =
+                                '⚠️ Camera permission required for AR';
+                            break;
+                          case 'AR_NOT_SUPPORTED':
+                            errorMessage =
+                                '⚠️ ARKit not supported (try on a physical device)';
+                            break;
+                          default:
+                            errorMessage =
+                                '⚠️ AR View not available: ${e.message}';
+                        }
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMessage),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                      } catch (e, stackTrace) {
+                        _logger.e('❌ Failed to launch AR View',
+                            error: e, stackTrace: stackTrace);
+
+                        String errorMessage;
+                        if (e.toString().contains('MissingPluginException')) {
+                          errorMessage =
+                              '⚠️ AR functionality not implemented in current build';
+                        } else {
+                          errorMessage = '❌ Failed to launch AR View: $e';
+                        }
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMessage),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
                       }
                     },
                     tooltip: 'Enter AR Mode',

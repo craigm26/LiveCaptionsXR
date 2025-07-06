@@ -17,8 +17,16 @@ class HomePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // App logo or icon
+              Image.asset(
+                'assets/logos/logo.png',
+                height: 120,
+                width: 120,
+                fit: BoxFit.cover,
+              ),
+              const SizedBox(height: 24),
               Text(
-                'LiveCaptionsXR',
+                'Live Captions XR',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).primaryColor,

@@ -61,7 +61,7 @@ class LiveCaptionsXrApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp.router(
-        title: 'LiveCaptionsXR',
+        title: 'Live Captions XR',
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         routerConfig: router,

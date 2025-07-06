@@ -49,6 +49,17 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
         child: Row(
           children: [
             // Logo or App Name
+            const SizedBox(width: 8),
+            // Logo is in assets/logos/logo.png
+            Image.asset(
+              'assets/logos/logo.png',
+              height: 40,
+              width: 40,
+              fit: BoxFit.cover,
+            ),
+            const SizedBox(width: 8),
+            // App Name
+            const Spacer(),
             Text(
               'LiveCaptionsXR',
               style: TextStyle(
