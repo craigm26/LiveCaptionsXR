@@ -5,55 +5,7 @@ import simd
 import SceneKit
 import Foundation
 
-// CaptionNode class for AR captions
-@available(iOS 14.0, *)
-class CaptionNode: SCNNode {
-    private let textNode: SCNNode
-    private let backgroundNode: SCNNode
-
-    init(text: String, fontSize: CGFloat = 0.08, bubbleWidth: CGFloat = 0.25) {
-        self.textNode = SCNNode()
-        self.backgroundNode = SCNNode()
-        super.init()
-
-        // Create the text geometry
-        let textGeometry = SCNText(string: text, extrusionDepth: 0.01)
-        textGeometry.font = UIFont.systemFont(ofSize: fontSize, weight: .bold)
-        textGeometry.firstMaterial?.diffuse.contents = UIColor.white
-        textGeometry.firstMaterial?.isDoubleSided = true
-        textNode.geometry = textGeometry
-        textNode.scale = SCNVector3(0.01, 0.01, 0.01)
-        let (min, max) = textGeometry.boundingBox
-        textNode.position = SCNVector3(-((max.x - min.x) / 2), min.y, 0.01)
-
-        // Create the background geometry
-        let width = max.x - min.x
-        let height = max.y - min.y
-        let backgroundGeometry = SCNPlane(width: bubbleWidth, height: fontSize * 1.5)
-        backgroundGeometry.cornerRadius = fontSize * 0.4
-        backgroundGeometry.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.7)
-        backgroundNode.geometry = backgroundGeometry
-        backgroundNode.position = SCNVector3(0, 0, 0)
-
-        // Add the nodes to the hierarchy
-        addChildNode(backgroundNode)
-        addChildNode(textNode)
-
-        // Add a billboard constraint
-        let billboardConstraint = SCNBillboardConstraint()
-        billboardConstraint.freeAxes = .Y
-        constraints = [billboardConstraint]
-
-        // Fade-in animation
-        opacity = 0.0
-        let fadeIn = SCNAction.fadeIn(duration: 0.3)
-        runAction(fadeIn)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
+// CaptionNode is defined in CaptionNode.swift
 
 // ARAnchorManager class for AR anchor management
 @objc class ARAnchorManager: NSObject, FlutterPlugin {
@@ -265,6 +217,10 @@ class HybridLocalizationEngine {
             ARAnchorManager.register(with: registrar)
         }
         
+        if let registrar = self.registrar(forPlugin: "VisualObjectPlugin") {
+            VisualObjectPlugin.register(with: registrar)
+        }
+        
         // Set up AR navigation method channel
         if let controller = window?.rootViewController as? FlutterViewController {
             let arNavigationChannel = FlutterMethodChannel(
@@ -385,17 +341,12 @@ class HybridLocalizationEngine {
                 return
             }
             
-            // For now, show an alert indicating AR mode would be launched
-            // TODO: Replace with actual ARViewController once Swift compilation issues are resolved
-            let alert = UIAlertController(
-                title: "AR Mode",
-                message: "AR View would launch here. ARViewController needs to be properly configured in Xcode project.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+            // Launch actual ARViewController
+            let arViewController = ARViewController()
+            arViewController.modalPresentationStyle = .fullScreen
+            controller.present(arViewController, animated: true) {
                 result(nil)
-            })
-            controller.present(alert, animated: true)
+            }
         }
     }
 }
