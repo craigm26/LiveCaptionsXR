@@ -38,7 +38,7 @@ import SceneKit
                   let distance = args["distance"] as? Double,
                   let session = ARAnchorManager.arSession,
                   let camera = session.currentFrame?.camera else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing angle, distance, or ARSession", details: nil))
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing angle, distance, or ARSession not ready", details: nil))
                 return
             }
             // The camera.transform is a 4x4 matrix representing the device's orientation and position in world space.
@@ -57,8 +57,9 @@ import SceneKit
             guard let args = call.arguments as? [String: Any],
                   let transformArray = args["transform"] as? [Double],
                   transformArray.count == 16,
-                  let session = ARAnchorManager.arSession else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing or invalid transform/ARSession", details: nil))
+                  let session = ARAnchorManager.arSession,
+                  session.currentFrame != nil else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing or invalid transform/ARSession or ARSession not ready", details: nil))
                 return
             }
             var matrix = matrix_identity_float4x4
