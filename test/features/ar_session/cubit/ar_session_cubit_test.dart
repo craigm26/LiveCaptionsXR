@@ -1,23 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:live_captions_xr/features/ar_session/cubit/ar_session_cubit.dart';
 import 'package:live_captions_xr/features/ar_session/cubit/ar_session_state.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
+import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 
 import 'ar_session_cubit_test.mocks.dart';
 
-@GenerateMocks([HybridLocalizationEngine])
+@GenerateMocks([HybridLocalizationEngine, ARSessionPersistenceService])
 void main() {
   group('ARSessionCubit', () {
     late ARSessionCubit arSessionCubit;
     late MockHybridLocalizationEngine mockHybridLocalizationEngine;
+    late MockARSessionPersistenceService mockPersistenceService;
 
     setUp(() {
+      // Set up mock shared preferences
+      SharedPreferences.setMockInitialValues({});
+      
       mockHybridLocalizationEngine = MockHybridLocalizationEngine();
+      mockPersistenceService = MockARSessionPersistenceService();
+      
       arSessionCubit = ARSessionCubit(
         hybridLocalizationEngine: mockHybridLocalizationEngine,
+        persistenceService: mockPersistenceService,
       );
     });
 
@@ -161,6 +170,178 @@ void main() {
 
       // Assert - should end up in initial state
       expect(arSessionCubit.state, isA<ARSessionInitial>());
+    });
+
+    group('Persistence Integration', () {
+      test('saves state when initializing session', () async {
+        // Arrange
+        when(mockPersistenceService.restoreSessionState())
+            .thenAnswer((_) async => null);
+
+        // Act
+        await arSessionCubit.initializeARSession();
+
+        // Assert
+        verify(mockPersistenceService.saveSessionState(any)).called(1);
+      });
+
+      test('restores previous session when initializing', () async {
+        // Arrange
+        const restoredState = ARSessionReady(
+          anchorPlaced: true,
+          anchorId: 'restored_anchor',
+        );
+        when(mockPersistenceService.restoreSessionState())
+            .thenAnswer((_) async => restoredState);
+        when(mockPersistenceService.restoreAnchorData())
+            .thenAnswer((_) async => {
+              'anchorId': 'restored_anchor',
+              'transform': List.generate(16, (i) => i.toDouble()),
+            });
+
+        // Act
+        await arSessionCubit.initializeARSession();
+
+        // Assert
+        expect(arSessionCubit.state, isA<ARSessionReady>());
+        final state = arSessionCubit.state as ARSessionReady;
+        expect(state.anchorId, 'restored_anchor');
+        expect(state.anchorPlaced, true);
+      });
+
+      test('clears persistence when stopping session', () async {
+        // Arrange
+        arSessionCubit.emit(const ARSessionReady());
+
+        // Act
+        await arSessionCubit.stopARSession();
+
+        // Assert
+        verify(mockPersistenceService.clearAllSessionData()).called(1);
+      });
+    });
+
+    group('Granular State Management', () {
+      test('pauseARSession saves current state', () async {
+        // Arrange
+        arSessionCubit.emit(const ARSessionReady(
+          anchorPlaced: true,
+          anchorId: 'test_anchor',
+        ));
+        when(mockHybridLocalizationEngine.getFusedTransform())
+            .thenAnswer((_) async => List.generate(16, (i) => i.toDouble()));
+
+        // Act
+        await arSessionCubit.pauseARSession();
+
+        // Assert
+        expect(arSessionCubit.state, isA<ARSessionPaused>());
+        final state = arSessionCubit.state as ARSessionPaused;
+        expect(state.previousAnchorPlaced, true);
+        expect(state.previousAnchorId, 'test_anchor');
+        
+        verify(mockPersistenceService.saveSessionState(any)).called(1);
+        verify(mockPersistenceService.saveAnchorData(
+          anchorId: 'test_anchor',
+          transform: any,
+          metadata: any,
+        )).called(1);
+      });
+
+      test('resumeARSession restores from paused state', () async {
+        // Arrange
+        final pausedState = ARSessionPaused(
+          previousAnchorPlaced: true,
+          previousAnchorId: 'paused_anchor',
+          pausedAt: DateTime.now(),
+        );
+        arSessionCubit.emit(pausedState);
+
+        // Act
+        await arSessionCubit.resumeARSession();
+
+        // Assert
+        expect(arSessionCubit.state, isA<ARSessionReady>());
+        final state = arSessionCubit.state as ARSessionReady;
+        expect(state.anchorPlaced, true);
+        expect(state.anchorId, 'paused_anchor');
+      });
+
+      test('handleTrackingLost emits tracking lost state', () async {
+        // Arrange
+        const reason = 'Poor lighting conditions';
+
+        // Act
+        await arSessionCubit.handleTrackingLost(reason);
+
+        // Assert
+        expect(arSessionCubit.state, isA<ARSessionTrackingLost>());
+        final state = arSessionCubit.state as ARSessionTrackingLost;
+        expect(state.reason, reason);
+      });
+
+      test('calibration goes through proper states', () async {
+        // Arrange
+        final states = <ARSessionState>[];
+        arSessionCubit.stream.listen(states.add);
+
+        // Act
+        when(mockPersistenceService.restoreSessionState())
+            .thenAnswer((_) async => null);
+        await arSessionCubit.initializeARSession();
+
+        // Assert
+        expect(states.any((s) => s is ARSessionConfiguring), true);
+        expect(states.any((s) => s is ARSessionInitializing), true);
+        expect(states.any((s) => s is ARSessionCalibrating), true);
+        expect(states.any((s) => s is ARSessionReady), true);
+      });
+    });
+
+    group('New State Properties', () {
+      test('ARSessionCalibrating has progress and type', () {
+        const state = ARSessionCalibrating(
+          progress: 0.5,
+          calibrationType: 'advanced',
+        );
+        
+        expect(state.progress, 0.5);
+        expect(state.calibrationType, 'advanced');
+      });
+
+      test('ARSessionTrackingLost has reason and timestamp', () {
+        final now = DateTime.now();
+        final state = ARSessionTrackingLost(
+          reason: 'Test reason',
+          lostAt: now,
+        );
+        
+        expect(state.reason, 'Test reason');
+        expect(state.lostAt, now);
+      });
+
+      test('ARSessionPaused preserves previous state', () {
+        final now = DateTime.now();
+        final state = ARSessionPaused(
+          previousAnchorPlaced: true,
+          previousAnchorId: 'previous_123',
+          pausedAt: now,
+        );
+        
+        expect(state.previousAnchorPlaced, true);
+        expect(state.previousAnchorId, 'previous_123');
+        expect(state.pausedAt, now);
+      });
+
+      test('ARSessionResuming tracks restoration progress', () {
+        const state = ARSessionResuming(
+          restoringAnchorId: 'restoring_456',
+          progress: 0.75,
+        );
+        
+        expect(state.restoringAnchorId, 'restoring_456');
+        expect(state.progress, 0.75);
+      });
     });
   });
 }

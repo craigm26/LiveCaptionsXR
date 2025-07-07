@@ -53,13 +53,13 @@ class LiveCaptionsXrApp extends StatelessWidget {
           ),
         ),
         BlocProvider<SoundDetectionCubit>(
-          create: (context) => SoundDetectionCubit(),
+          create: (context) => sl<SoundDetectionCubit>(),
         ),
         BlocProvider<LocalizationCubit>(
           create: (context) => LocalizationCubit(),
         ),
         BlocProvider<VisualIdentificationCubit>(
-          create: (context) => VisualIdentificationCubit(),
+          create: (context) => sl<VisualIdentificationCubit>(),
         ),
         BlocProvider<LiveCaptionsCubit>(
           create: (context) => LiveCaptionsCubit(
@@ -70,6 +70,7 @@ class LiveCaptionsXrApp extends StatelessWidget {
         BlocProvider<ARSessionCubit>(
           create: (context) => ARSessionCubit(
             hybridLocalizationEngine: sl(),
+            persistenceService: sl(),
           ),
         ),
       ],
