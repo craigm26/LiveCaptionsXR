@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 
 import '../../../core/services/speech_processor.dart';
+import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/models/speech_result.dart';
 import 'live_captions_state.dart';
 
@@ -174,6 +175,11 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         ));
 
         _logger.i('📝 Final caption added: "${result.text}"');
+        
+        // Place caption in AR space if text is not empty
+        if (result.text.trim().isNotEmpty) {
+          _placeCaptionInAR(result.text.trim());
+        }
       } else {
         // Update current caption (interim result)
         emit(currentState.copyWith(
@@ -187,6 +193,28 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       _logger.e('❌ Error handling speech result',
           error: e, stackTrace: stackTrace);
     }
+  }
+
+  /// Place caption in AR space using the hybrid localization engine
+  void _placeCaptionInAR(String text) {
+    // Run caption placement asynchronously so it doesn't block UI updates
+    Future.microtask(() async {
+      try {
+        _logger.i('🎯 Placing caption in AR: "$text"');
+        
+        // Get the hybrid localization engine from the DI container or HomeCubit
+        // For now, we'll create a new instance - in a real app this should be injected
+        final hybridLocalizationEngine = HybridLocalizationEngine();
+        await hybridLocalizationEngine.placeCaption(text);
+        
+        _logger.i('✅ Caption placed successfully in AR space');
+      } catch (e, stackTrace) {
+        _logger.e('❌ Failed to place caption in AR', 
+            error: e, stackTrace: stackTrace);
+        // Don't update UI state with this error as caption placement 
+        // failures shouldn't break the main captions functionality
+      }
+    });
   }
 
   /// Handle speech processing errors

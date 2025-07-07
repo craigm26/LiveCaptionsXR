@@ -162,26 +162,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Automatically place AR anchor when entering AR mode
   Future<void> _autoPlaceARAnchor() async {
-    try {
-      _logger.i('🎯 Auto-placing AR anchor...');
+    const maxRetries = 3;
+    const retryDelay = Duration(milliseconds: 500);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        _logger.i('🎯 Auto-placing AR anchor... (attempt $attempt/$maxRetries)');
 
-      final homeCubit = context.read<HomeCubit>();
-      final arAnchorManager = ARAnchorManager();
+        final homeCubit = context.read<HomeCubit>();
+        final arAnchorManager = ARAnchorManager();
 
-      _logger.i('🔄 Getting fused transform for automatic anchor placement...');
-      final fusedTransform = await homeCubit.getFusedTransform();
+        _logger.i('🔄 Getting fused transform for automatic anchor placement...');
+        final fusedTransform = await homeCubit.getFusedTransform();
 
-      _logger.i('🌍 Creating AR anchor automatically with fused transform...');
-      final anchorId = await arAnchorManager
-          .createAnchorAtWorldTransform(fusedTransform);
+        _logger.i('🌍 Creating AR anchor automatically with fused transform...');
+        final anchorId = await arAnchorManager
+            .createAnchorAtWorldTransform(fusedTransform);
 
-      _logger.i('🎉 AR anchor auto-placed successfully: $anchorId');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Failed to auto-place AR Anchor',
-          error: e, stackTrace: stackTrace);
-      
-      // Don't show error to user as this is automatic - just log it
-      // The main AR mode functionality should still work without the anchor
+        _logger.i('🎉 AR anchor auto-placed successfully: $anchorId');
+        return; // Success, exit retry loop
+      } catch (e, stackTrace) {
+        _logger.e('❌ Failed to auto-place AR Anchor (attempt $attempt/$maxRetries)',
+            error: e, stackTrace: stackTrace);
+        
+        if (attempt < maxRetries) {
+          _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+          await Future.delayed(retryDelay);
+        } else {
+          _logger.e('❌ All anchor placement attempts failed. AR mode will continue without auto-anchor.');
+          // Don't show error to user as this is automatic - just log it
+          // The main AR mode functionality should still work without the anchor
+        }
+      }
     }
   }
 
@@ -438,6 +450,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         .invokeMethod('showARView');
 
                     _logger.i('✅ AR View launched successfully');
+
+                    // Give ARSession a moment to initialize before starting services
+                    _logger.i('⏳ Waiting for ARSession to initialize...');
+                    await Future.delayed(const Duration(milliseconds: 1000));
 
                     // Automatically start all services when entering AR mode
                     await _startAllServicesForARMode();

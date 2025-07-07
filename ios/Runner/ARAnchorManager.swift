@@ -35,12 +35,22 @@ import SceneKit
         case "createAnchorAtAngle":
             guard let args = call.arguments as? [String: Any],
                   let angle = args["angle"] as? Double,
-                  let distance = args["distance"] as? Double,
-                  let session = ARAnchorManager.arSession,
-                  let camera = session.currentFrame?.camera else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing angle, distance, or ARSession not ready", details: nil))
+                  let distance = args["distance"] as? Double else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing angle or distance", details: nil))
                 return
             }
+            
+            guard let session = ARAnchorManager.arSession else {
+                result(FlutterError(code: "NO_SESSION", message: "ARSession not available", details: nil))
+                return
+            }
+            
+            guard let camera = session.currentFrame?.camera,
+                  case .normal = camera.trackingState else {
+                result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera frame or tracking not normal", details: nil))
+                return
+            }
+            
             // The camera.transform is a 4x4 matrix representing the device's orientation and position in world space.
             // This matrix is IMU-fused and updated in real time by ARKit.
             // We use it as the base for all anchor placement to ensure world-accurate positioning.
@@ -56,12 +66,23 @@ import SceneKit
         case "createAnchorAtWorldTransform":
             guard let args = call.arguments as? [String: Any],
                   let transformArray = args["transform"] as? [Double],
-                  transformArray.count == 16,
-                  let session = ARAnchorManager.arSession,
-                  session.currentFrame != nil else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing or invalid transform/ARSession or ARSession not ready", details: nil))
+                  transformArray.count == 16 else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing or invalid transform array", details: nil))
                 return
             }
+            
+            guard let session = ARAnchorManager.arSession else {
+                result(FlutterError(code: "NO_SESSION", message: "ARSession not available", details: nil))
+                return
+            }
+            
+            // Check if ARSession is tracking and has at least one frame
+            guard session.currentFrame != nil,
+                  case .normal = session.currentFrame?.camera.trackingState else {
+                result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera frame or tracking not normal", details: nil))
+                return
+            }
+            
             var matrix = matrix_identity_float4x4
             for row in 0..<4 {
                 for col in 0..<4 {
