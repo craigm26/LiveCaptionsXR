@@ -9,10 +9,11 @@ import '../../visual_identification/cubit/visual_identification_cubit.dart';
 import '../../live_captions/cubit/live_captions_cubit.dart';
 import '../../live_captions/widgets/live_captions_widget.dart';
 import '../../settings/cubit/settings_cubit.dart';
+import '../../ar_session/cubit/ar_session_cubit.dart';
+import '../../ar_session/cubit/ar_session_state.dart';
 import '../cubit/home_cubit.dart';
 import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
-import '../../../core/services/ar_anchor_manager.dart';
 import '../../../core/services/debug_capturing_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
 
@@ -92,109 +93,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Start all services needed for AR mode, including automatic anchor placement
+  /// Start all services needed for AR mode using the ARSessionCubit
   Future<void> _startAllServicesForARMode() async {
     if (!mounted) return;
 
-    try {
-      _logger.i('🚀 Starting all services for AR mode...');
-
-      // --- Live Captions ---
-      final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-      if (!liveCaptionsCubit.isActive) {
-        _logger.i('🎤 Starting live captions for AR mode...');
-        await liveCaptionsCubit.startCaptions();
-        _logger.i('✅ Live captions started for AR mode');
-      } else {
-        _logger.i('🎤 Live captions already active');
-      }
-
-      // --- Sound Detection ---
-      final soundDetectionCubit = context.read<SoundDetectionCubit>();
-      if (!soundDetectionCubit.isActive) {
-        _logger.i('🔊 Starting sound detection for AR mode...');
-        await soundDetectionCubit.start();
-        _logger.i('✅ Sound detection started for AR mode');
-      } else {
-        _logger.i('🔊 Sound detection already active');
-      }
-
-      // --- Localization ---
-      final localizationCubit = context.read<LocalizationCubit>();
-      if (!localizationCubit.isActive) {
-        _logger.i('🧭 Starting localization for AR mode...');
-        await localizationCubit.start();
-        _logger.i('✅ Localization started for AR mode');
-      } else {
-        _logger.i('🧭 Localization already active');
-      }
-
-      // --- Visual Identification ---
-      final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
-      if (!visualIdentificationCubit.isActive) {
-        _logger.i('👁️ Starting visual identification for AR mode...');
-        await visualIdentificationCubit.start();
-        _logger.i('✅ Visual identification started for AR mode');
-      } else {
-        _logger.i('👁️ Visual identification already active');
-      }
-
-      // --- AR Anchor Placement ---
-      _logger.i('🎯 Auto-placing AR anchor for AR mode...');
-      await _autoPlaceARAnchor();
-
-      _logger.i('🎉 All AR mode services checked and initialized successfully');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error starting AR mode services',
-          error: e, stackTrace: stackTrace);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('⚠️ Some AR services failed to start: $e'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
-  }
-
-  /// Automatically place AR anchor when entering AR mode
-  Future<void> _autoPlaceARAnchor() async {
-    const maxRetries = 3;
-    const retryDelay = Duration(milliseconds: 500);
+    final arSessionCubit = context.read<ARSessionCubit>();
     
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        _logger.i('🎯 Auto-placing AR anchor... (attempt $attempt/$maxRetries)');
-
-        final homeCubit = context.read<HomeCubit>();
-        final arAnchorManager = ARAnchorManager();
-
-        _logger.i('🔄 Getting fused transform for automatic anchor placement...');
-        final fusedTransform = await homeCubit.getFusedTransform();
-
-        _logger.i('🌍 Creating AR anchor automatically with fused transform...');
-        final anchorId = await arAnchorManager
-            .createAnchorAtWorldTransform(fusedTransform);
-
-        _logger.i('🎉 AR anchor auto-placed successfully: $anchorId');
-        return; // Success, exit retry loop
-      } catch (e, stackTrace) {
-        _logger.e('❌ Failed to auto-place AR Anchor (attempt $attempt/$maxRetries)',
-            error: e, stackTrace: stackTrace);
-        
-        if (attempt < maxRetries) {
-          _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
-          await Future.delayed(retryDelay);
+    // Use the ARSessionCubit to manage starting all services
+    await arSessionCubit.startAllARServices(
+      startLiveCaptions: () async {
+        final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+        if (!liveCaptionsCubit.isActive) {
+          _logger.i('🎤 Starting live captions for AR mode...');
+          await liveCaptionsCubit.startCaptions();
+          _logger.i('✅ Live captions started for AR mode');
         } else {
-          _logger.e('❌ All anchor placement attempts failed. AR mode will continue without auto-anchor.');
-          // Don't show error to user as this is automatic - just log it
-          // The main AR mode functionality should still work without the anchor
+          _logger.i('🎤 Live captions already active');
         }
-      }
-    }
+      },
+      startSoundDetection: () async {
+        final soundDetectionCubit = context.read<SoundDetectionCubit>();
+        if (!soundDetectionCubit.isActive) {
+          _logger.i('🔊 Starting sound detection for AR mode...');
+          await soundDetectionCubit.start();
+          _logger.i('✅ Sound detection started for AR mode');
+        } else {
+          _logger.i('🔊 Sound detection already active');
+        }
+      },
+      startLocalization: () async {
+        final localizationCubit = context.read<LocalizationCubit>();
+        if (!localizationCubit.isActive) {
+          _logger.i('🧭 Starting localization for AR mode...');
+          await localizationCubit.start();
+          _logger.i('✅ Localization started for AR mode');
+        } else {
+          _logger.i('🧭 Localization already active');
+        }
+      },
+      startVisualIdentification: () async {
+        final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+        if (!visualIdentificationCubit.isActive) {
+          _logger.i('👁️ Starting visual identification for AR mode...');
+          await visualIdentificationCubit.start();
+          _logger.i('✅ Visual identification started for AR mode');
+        } else {
+          _logger.i('👁️ Visual identification already active');
+        }
+      },
+    );
   }
 
   @override
@@ -438,91 +385,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              floatingActionButton: FloatingActionButton(
-                heroTag: "ar_view_fab",
-                onPressed: () async {
-                  try {
-                    _logger.i('🥽 Enter AR Mode button pressed...');
-
-                    // Start AR view
-                    await const MethodChannel(
-                            'live_captions_xr/ar_navigation')
-                        .invokeMethod('showARView');
-
-                    _logger.i('✅ AR View launched successfully');
-
-                    // Give ARSession a moment to initialize before starting services
-                    _logger.i('⏳ Waiting for ARSession to initialize...');
-                    await Future.delayed(const Duration(milliseconds: 1000));
-
-                    // Automatically start all services when entering AR mode
-                    await _startAllServicesForARMode();
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              '🥽 AR Mode activated! All services started automatically.'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  } on PlatformException catch (e) {
-                    _logger.e('❌ AR View platform exception', error: e);
-
-                    String errorMessage;
-                    switch (e.code) {
-                      case 'UNAVAILABLE':
-                        errorMessage = '⚠️ AR not supported on this device';
-                        break;
-                      case 'NOT_AUTHORIZED':
-                        errorMessage =
-                            '⚠️ Camera permission required for AR';
-                        break;
-                      case 'AR_NOT_SUPPORTED':
-                        errorMessage =
-                            '⚠️ ARKit not supported (try on a physical device)';
-                        break;
-                      default:
-                        errorMessage =
-                            '⚠️ AR View not available: ${e.message}';
-                    }
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(errorMessage),
-                          backgroundColor: Colors.orange,
-                          duration: const Duration(seconds: 4),
-                        ),
-                      );
-                    }
-                  } catch (e, stackTrace) {
-                    _logger.e('❌ Failed to launch AR View',
-                        error: e, stackTrace: stackTrace);
-
-                    String errorMessage;
-                    if (e.toString().contains('MissingPluginException')) {
-                      errorMessage =
-                          '⚠️ AR functionality not implemented in current build';
-                    } else {
-                      errorMessage = '❌ Failed to launch AR View: $e';
-                    }
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(errorMessage),
-                          backgroundColor: Colors.orange,
-                          duration: const Duration(seconds: 4),
-                        ),
-                      );
-                    }
+              floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
+                listener: (context, state) {
+                  if (state is ARSessionReady) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            '🥽 AR Mode activated! All services started automatically.'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  } else if (state is ARSessionError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('⚠️ ${state.message}'),
+                        backgroundColor: Colors.orange,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
                   }
                 },
-                tooltip: 'Enter AR Mode',
-                child: const Icon(Icons.view_in_ar),
+                child: FloatingActionButton(
+                  heroTag: "ar_view_fab",
+                  onPressed: () async {
+                    _logger.i('🥽 Enter AR Mode button pressed...');
+                    
+                    final arSessionCubit = context.read<ARSessionCubit>();
+                    
+                    // Initialize AR session using the cubit
+                    await arSessionCubit.initializeARSession();
+                    
+                    // Start all services if AR session is ready
+                    if (arSessionCubit.isReady) {
+                      await _startAllServicesForARMode();
+                    }
+                  },
+                  tooltip: 'Enter AR Mode',
+                  child: const Icon(Icons.view_in_ar),
+                ),
               ),
             ),
           ),
