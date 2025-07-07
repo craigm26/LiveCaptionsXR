@@ -64,6 +64,21 @@ class SpeechResult {
     return 'SpeechResult(text: "$text", confidence: $confidence, isFinal: $isFinal, timestamp: $timestamp)';
   }
 
+  /// Check if this is a language detection result
+  bool get isLanguageDetection => metadata?['type'] == 'languageDetection';
+
+  /// Get detected language if this is a language detection result
+  String? get detectedLanguage => metadata?['language'] as String?;
+
+  /// Get audio level if available
+  double? get audioLevel => metadata?['audioLevel'] as double?;
+
+  /// Get language confidence score if available
+  double? get languageConfidence => metadata?['confidence'] as double?;
+
+  /// Check if this result contains actual speech content
+  bool get hasActualSpeech => !isLanguageDetection && text.trim().isNotEmpty && !text.startsWith('[');
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
