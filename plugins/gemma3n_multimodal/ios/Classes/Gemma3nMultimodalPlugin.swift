@@ -393,6 +393,18 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     return floats
   }
   
+  /// Calculate RMS audio level for voice activity detection
+  private func calculateAudioLevel(_ audioSamples: [Float]) -> Float {
+    guard !audioSamples.isEmpty else { return 0.0 }
+    
+    let sumOfSquares = audioSamples.reduce(0.0) { sum, sample in
+      sum + (sample * sample)
+    }
+    
+    let rms = sqrt(sumOfSquares / Float(audioSamples.count))
+    return rms
+  }
+  
   // MARK: - Audio Capture Methods
   
   private func startAudioCapture(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -429,54 +441,80 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
           let audioData = args["audioData"] as? FlutterStandardTypedData,
           isCapturingAudio,
           let llm = llmInference else {
-      result(FlutterError(code: "NOT_READY", message: "Audio capture not started or missing audio data", details: nil))
+      let errorMsg = "Audio capture not started, missing audio data, or model not loaded"
+      print("❌ \(errorMsg)")
+      result(FlutterError(code: "NOT_READY", message: errorMsg, details: nil))
       return
     }
     
     let floats = convertPcm16ToFloat32(audioData.data)
     audioBuffer.append(contentsOf: floats)
     
+    print("📊 Audio chunk processed: \(floats.count) samples, buffer total: \(audioBuffer.count)")
+    
     // Process transcription when we have enough audio data
     if audioBuffer.count >= 16000 { // Process every 1 second of audio at 16kHz
       // Send speech result to stream if we have a listener
       if let eventSink = self.eventSink {
-        // For now, simulate speech recognition results
-        // In a real implementation, you would process the audio buffer for actual transcription
-        let speechResult: [String: Any] = [
-          "type": "speechResult",
-          "text": "Transcribed text from audio chunk",
-          "confidence": 0.85,
-          "isFinal": false,
-          "timestamp": Int(Date().timeIntervalSince1970 * 1000)
-        ]
+        print("🎤 Processing audio buffer with \(audioBuffer.count) samples")
         
-        DispatchQueue.main.async {
-          eventSink(speechResult)
-        }
+        // TODO: Replace with actual Gemma 3 speech processing
+        // For now, simulate speech recognition results until Gemma 3 ASR is implemented
+        let audioLevel = calculateAudioLevel(audioBuffer)
+        let hasVoiceActivity = audioLevel > 0.01 // Simple voice activity detection
         
-        // Every 3 seconds, send a final result
-        if audioBuffer.count >= 48000 { // 3 seconds
-          let finalResult: [String: Any] = [
-            "type": "speechResult", 
-            "text": "Final transcribed speech result",
-            "confidence": 0.9,
-            "isFinal": true,
-            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        if hasVoiceActivity {
+          let speechResult: [String: Any] = [
+            "type": "speechResult",
+            "text": "Speech detected (level: \(String(format: "%.3f", audioLevel)))",
+            "confidence": min(0.9, audioLevel * 10), // Scale audio level to confidence
+            "isFinal": false,
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000),
+            "audioLevel": audioLevel
           ]
           
+          print("📤 Sending interim speech result: confidence=\(speechResult["confidence"] ?? 0)")
           DispatchQueue.main.async {
-            eventSink(finalResult)
+            eventSink(speechResult)
+          }
+        } else {
+          print("🔇 No significant voice activity detected (level: \(String(format: "%.3f", audioLevel)))")
+        }
+        
+        // Every 3 seconds, send a final result if there was voice activity
+        if audioBuffer.count >= 48000 { // 3 seconds
+          let avgLevel = calculateAudioLevel(audioBuffer)
+          if avgLevel > 0.005 { // Threshold for final result
+            let finalResult: [String: Any] = [
+              "type": "speechResult", 
+              "text": "Final speech segment (3sec avg level: \(String(format: "%.3f", avgLevel)))",
+              "confidence": min(0.95, avgLevel * 12),
+              "isFinal": true,
+              "timestamp": Int(Date().timeIntervalSince1970 * 1000),
+              "audioLevel": avgLevel
+            ]
+            
+            print("✅ Sending final speech result")
+            DispatchQueue.main.async {
+              eventSink(finalResult)
+            }
+          } else {
+            print("🔇 No final result sent - insufficient voice activity")
           }
           
           // Clear buffer after final result
+          print("🗑️ Clearing audio buffer (\(audioBuffer.count) samples)")
           audioBuffer.removeAll()
         }
+      } else {
+        print("⚠️ No event sink available for speech results")
       }
     }
     
     // If buffer is getting too large, trim it to prevent memory issues
     if audioBuffer.count > maxBufferSize {
       let keepSize = maxBufferSize / 2
+      print("⚠️ Audio buffer too large (\(audioBuffer.count)), trimming to \(keepSize)")
       audioBuffer = Array(audioBuffer.suffix(keepSize))
     }
     
