@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 
@@ -256,6 +257,12 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   bool get isActive {
     final currentState = state;
     return currentState is LiveCaptionsActive && currentState.isListening;
+  }
+
+  /// Handle speech result for testing purposes
+  @visibleForTesting
+  void handleSpeechResult(SpeechResult result) {
+    _handleSpeechResult(result);
   }
 
   @override
