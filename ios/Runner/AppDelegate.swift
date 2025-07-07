@@ -155,9 +155,38 @@ import Foundation
             // Launch actual ARViewController
             let arViewController = ARViewController()
             arViewController.modalPresentationStyle = .fullScreen
-            controller.present(arViewController, animated: true) {
-                result(nil)
+            
+            var hasCompleted = false
+            
+            // Set completion callback to notify when AR session is truly ready
+            arViewController.onSessionReady = { [weak arViewController] in
+                guard !hasCompleted else { return }
+                hasCompleted = true
+                
+                // Ensure the session is actually set and ready
+                if ARAnchorManager.arSession != nil {
+                    result(nil)
+                } else {
+                    result(FlutterError(
+                        code: "SESSION_INIT_FAILED",
+                        message: "ARSession failed to initialize properly",
+                        details: nil
+                    ))
+                }
             }
+            
+            // Add timeout to prevent hanging if session never becomes ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                guard !hasCompleted else { return }
+                hasCompleted = true
+                result(FlutterError(
+                    code: "SESSION_TIMEOUT",
+                    message: "ARSession initialization timed out",
+                    details: nil
+                ))
+            }
+            
+            controller.present(arViewController, animated: true, completion: nil)
         }
     }
 }

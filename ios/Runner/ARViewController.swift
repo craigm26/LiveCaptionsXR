@@ -5,6 +5,7 @@ import Flutter
 class ARViewController: UIViewController, ARSCNViewDelegate {
     var sceneView: ARSCNView!
     var captionChannel: FlutterMethodChannel?
+    var onSessionReady: (() -> Void)?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,6 +27,21 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         
         let config = ARWorldTrackingConfiguration()
         sceneView.session.run(config)
+        
+        // Notify that the session is ready after a brief delay to ensure initialization
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            // Verify that the session is actually ready for anchor operations
+            guard let self = self,
+                  let session = ARAnchorManager.arSession,
+                  session.currentFrame != nil else {
+                // If not ready, wait a bit more and try again
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.onSessionReady?()
+                }
+                return
+            }
+            self.onSessionReady?()
+        }
         
         // Add close button
         setupCloseButton()
