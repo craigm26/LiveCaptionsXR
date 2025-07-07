@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/services.dart';
+import 'debug_capturing_logger.dart';
 
 /// Model for detected speaker face info.
 class SpeakerFaceInfo {
@@ -26,6 +27,7 @@ class SpeakerFaceInfo {
 class VisualSpeakerIdentifier {
   static const MethodChannel _methodChannel = MethodChannel('live_captions_xr/visual_speaker_methods');
   static const EventChannel _eventChannel = EventChannel('live_captions_xr/visual_speaker_events');
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   StreamController<SpeakerFaceInfo>? _controller;
   Stream<SpeakerFaceInfo>? _activeSpeakerStream;

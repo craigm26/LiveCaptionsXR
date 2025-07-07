@@ -7,6 +7,7 @@ import 'package:scidart/scidart.dart';
 import 'package:flutter/services.dart';
 
 import 'stereo_audio_capture.dart';
+import 'debug_capturing_logger.dart';
 
 /// Basic audio direction estimation using RMS amplitude comparison.
 ///
@@ -15,6 +16,8 @@ import 'stereo_audio_capture.dart';
 /// of a [StereoAudioFrame] and converts the normalized difference into a
 /// horizontal angle in radians (negative = left, positive = right).
 class SpeechLocalizer {
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  
   /// Minimum RMS to consider a frame as valid speech (tune as needed)
   final double minRmsThreshold;
   /// Smoothing factor for exponential moving average (0 = no smoothing, 1 = max smoothing)
@@ -22,7 +25,10 @@ class SpeechLocalizer {
 
   double _lastAngle = 0.0;
 
-  SpeechLocalizer({this.minRmsThreshold = 0.01, this.smoothing = 0.2});
+  SpeechLocalizer({this.minRmsThreshold = 0.01, this.smoothing = 0.2}) {
+    _logger.i('🏗️ Initializing SpeechLocalizer...');
+    _logger.d('RMS threshold: $minRmsThreshold, Smoothing: $smoothing');
+  }
 
   static const MethodChannel _channel =
       MethodChannel('live_captions_xr/speech_localizer');

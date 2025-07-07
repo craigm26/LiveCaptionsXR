@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
+import 'debug_capturing_logger.dart';
 
 /// Represents a chunk of stereo audio sampled from the microphone.
 class StereoAudioFrame {
@@ -36,29 +37,26 @@ class StereoAudioCapture {
   static const EventChannel _eventChannel =
       EventChannel('live_captions_xr/audio_capture_events');
 
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   Stream<StereoAudioFrame>? _frameStream;
 
   /// Starts stereo audio capture on the native side.
   Future<void> startRecording() async {
     _logger.i('🎙️ Starting stereo audio capture');
+    _logger.d('Configuring native audio capture system...');
 
     try {
+      _logger.d('Invoking native startRecording method...');
       await _methodChannel.invokeMethod<void>('startRecording');
+      
+      _logger.d('Setting up audio frame stream...');
       _frameStream = _eventChannel.receiveBroadcastStream().map(_parseFrame);
+      
       _logger.i('✅ Stereo audio capture started successfully');
-    } catch (e) {
-      _logger.e('❌ Failed to start stereo audio capture: $e');
+      _logger.d('Audio stream ready for frame processing');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to start stereo audio capture', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
@@ -66,13 +64,18 @@ class StereoAudioCapture {
   /// Stops stereo audio capture.
   Future<void> stopRecording() async {
     _logger.i('⏹️ Stopping stereo audio capture');
+    _logger.d('Current stream state: ${_frameStream != null ? 'active' : 'inactive'}');
 
     try {
+      _logger.d('Invoking native stopRecording method...');
       await _methodChannel.invokeMethod<void>('stopRecording');
+      
+      _logger.d('Clearing audio frame stream...');
       _frameStream = null;
+      
       _logger.i('✅ Stereo audio capture stopped successfully');
-    } catch (e) {
-      _logger.e('❌ Failed to stop stereo audio capture: $e');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to stop stereo audio capture', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
