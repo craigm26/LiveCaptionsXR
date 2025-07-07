@@ -198,6 +198,13 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
   /// Place caption in AR space using the hybrid localization engine
   void _placeCaptionInAR(String text) {
+    // Only place captions if we're in an active state
+    final currentState = state;
+    if (currentState is! LiveCaptionsActive) {
+      _logger.d('⚠️ Skipping caption placement - not in active state');
+      return;
+    }
+    
     // Run caption placement asynchronously so it doesn't block UI updates
     Future.microtask(() async {
       try {
