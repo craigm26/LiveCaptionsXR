@@ -17,10 +17,6 @@ final GoRouter webRouter = GoRouter(
       builder: (context, state) => const AppShellWeb(child: FeaturesPage()),
     ),
     GoRoute(
-      path: '/demo',
-      builder: (context, state) => const AppShellWeb(child: DemoPage()),
-    ),
-    GoRoute(
       path: '/technology',
       builder: (context, state) => const AppShellWeb(child: TechnologyPage()),
     ),

@@ -10,7 +10,7 @@ import 'core/services/debug_logger_service.dart';
 final DebugCapturingLogger _logger = DebugCapturingLogger();
 
 void main() async {
-  _logger.i('🚀 Starting LiveCaptionsXR application...');
+  _logger.i('🚀 Starting Live Captions XR application...');
 
   try {
     WidgetsFlutterBinding.ensureInitialized();

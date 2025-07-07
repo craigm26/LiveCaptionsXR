@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../shared/theme/app_theme.dart';
-import 'web_demo_screen.dart';
 import 'navigation/web_navigation_cubit.dart';
 import '../../core/router/app_router.dart';
 
@@ -14,7 +13,7 @@ class live_captions_xrWebApp extends StatelessWidget {
     return BlocProvider(
       create: (_) => WebNavigationCubit(),
       child: MaterialApp.router(
-        title: 'live_captions_xr - Real-Time Closed Captioning',
+        title: 'Live Captions XR',
         theme: AppTheme.light.copyWith(
           // Web-specific theme modifications for better desktop viewing
           textTheme: AppTheme.light.textTheme.copyWith(

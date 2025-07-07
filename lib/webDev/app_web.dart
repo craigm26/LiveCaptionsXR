@@ -9,7 +9,7 @@ class LiveCaptionsXrWebApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'LiveCaptionsXR Web',
+      title: 'Live Captions XR',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       routerConfig: webRouter,

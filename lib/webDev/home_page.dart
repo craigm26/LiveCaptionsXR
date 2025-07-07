@@ -56,21 +56,36 @@ class HomePage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).pushNamed('/demo'),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Try Live Demo'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  // Navigate to the features page
+                  Navigator.pushNamed(context, '/features');
+                },
+                icon: const Icon(Icons.featured_play_list),
+                label: const Text('Explore Features'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  elevation: 4,
                 ),
               ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () {
+                  // Navigate to the technology page
+                  Navigator.pushNamed(context, '/technology');
+                },
+                icon: const Icon(Icons.code),
+                label: const Text('View Technology'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
