@@ -8,6 +8,11 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
   private var bufferedAudio: [[Float]] = []
   private var registrar: FlutterPluginRegistrar?
   
+  // Audio capture state
+  private var isCapturingAudio = false
+  private var audioBuffer: [Float] = []
+  private let maxBufferSize = 16000 * 2 // 2 seconds at 16kHz
+  
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "gemma3n_multimodal", binaryMessenger: registrar.messenger())
     let stream = FlutterEventChannel(name: "gemma3n_multimodal_stream", binaryMessenger: registrar.messenger())
@@ -271,6 +276,14 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       let floats = convertPcm16ToFloat32(audio.data)
       bufferedAudio.append(floats)
       result(nil)
+    case "startAudioCapture":
+      startAudioCapture(call, result: result)
+    case "stopAudioCapture":
+      stopAudioCapture(result)
+    case "processAudioChunk":
+      processAudioChunk(call, result: result)
+    case "generateText":
+      generateText(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -396,5 +409,77 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       }
     }
     return floats
+  }
+  
+  // MARK: - Audio Capture Methods
+  
+  private func startAudioCapture(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard llmInference != nil else {
+      result(FlutterError(code: "NOT_READY", message: "Model not loaded", details: nil))
+      return
+    }
+    
+    let args = call.arguments as? [String: Any] ?? [:]
+    let sampleRate = args["sampleRate"] as? Int ?? 16000
+    let channels = args["channels"] as? Int ?? 1
+    let format = args["format"] as? String ?? "pcm16"
+    
+    print("🎤 Starting audio capture - sampleRate: \(sampleRate), channels: \(channels), format: \(format)")
+    
+    isCapturingAudio = true
+    audioBuffer.removeAll()
+    
+    result(nil)
+  }
+  
+  private func stopAudioCapture(_ result: @escaping FlutterResult) {
+    print("🛑 Stopping audio capture")
+    isCapturingAudio = false
+    audioBuffer.removeAll()
+    result(nil)
+  }
+  
+  private func processAudioChunk(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any],
+          let audioData = args["audioData"] as? FlutterStandardTypedData,
+          isCapturingAudio else {
+      result(FlutterError(code: "NOT_READY", message: "Audio capture not started or missing audio data", details: nil))
+      return
+    }
+    
+    let floats = convertPcm16ToFloat32(audioData.data)
+    audioBuffer.append(contentsOf: floats)
+    
+    // If buffer is getting large, process it and potentially trigger transcription
+    if audioBuffer.count > maxBufferSize {
+      // For now, just trim the buffer to prevent memory issues
+      let keepSize = maxBufferSize / 2
+      audioBuffer = Array(audioBuffer.suffix(keepSize))
+    }
+    
+    result(nil)
+  }
+  
+  private func generateText(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any],
+          let prompt = args["prompt"] as? String,
+          let llm = llmInference else {
+      result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing prompt or model not loaded", details: nil))
+      return
+    }
+    
+    do {
+      let sessionOptions = createSessionOptions(args)
+      let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
+      try session.addQueryChunk(inputText: prompt)
+      let response = try session.generateResponse()
+      
+      result([
+        "success": true,
+        "text": response
+      ])
+    } catch {
+      result(FlutterError(code: "INFERENCE_FAILED", message: error.localizedDescription, details: nil))
+    }
   }
 }

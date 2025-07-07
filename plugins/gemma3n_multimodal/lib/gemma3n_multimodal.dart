@@ -102,4 +102,64 @@ class Gemma3nMultimodal {
         .receiveBroadcastStream(args)
         .map((event) => event as String);
   }
+
+  /// Start audio capture for speech processing.
+  ///
+  /// [sampleRate] - Audio sample rate (default: 16000)
+  /// [channels] - Number of audio channels (default: 1)
+  /// [format] - Audio format (default: 'pcm16')
+  Future<void> startAudioCapture({
+    int sampleRate = 16000,
+    int channels = 1,
+    String format = 'pcm16',
+  }) async {
+    await _channel.invokeMethod('startAudioCapture', {
+      'sampleRate': sampleRate,
+      'channels': channels,
+      'format': format,
+    });
+  }
+
+  /// Stop audio capture for speech processing.
+  Future<void> stopAudioCapture() async {
+    await _channel.invokeMethod('stopAudioCapture');
+  }
+
+  /// Process an audio chunk for speech recognition.
+  ///
+  /// [audioData] - PCM audio data as Float32List
+  /// [sampleRate] - Audio sample rate (default: 16000)
+  Future<void> processAudioChunk(
+    Uint8List audioData, {
+    int sampleRate = 16000,
+  }) async {
+    await _channel.invokeMethod('processAudioChunk', {
+      'audioData': audioData,
+      'sampleRate': sampleRate,
+    });
+  }
+
+  /// Generate enhanced text using the loaded model.
+  ///
+  /// [prompt] - Text prompt for generation
+  /// [maxTokens] - Maximum number of tokens to generate (default: 100)
+  /// [temperature] - Sampling temperature (default: 0.7)
+  /// [topK] - Top-K sampling parameter (default: 40)
+  /// [topP] - Top-P sampling parameter (default: 0.9)
+  Future<Map<String, dynamic>> generateText(
+    String prompt, {
+    int maxTokens = 100,
+    double temperature = 0.7,
+    int topK = 40,
+    double topP = 0.9,
+  }) async {
+    final result = await _channel.invokeMethod('generateText', {
+      'prompt': prompt,
+      'maxTokens': maxTokens,
+      'temperature': temperature,
+      'topK': topK,
+      'topP': topP,
+    });
+    return Map<String, dynamic>.from(result);
+  }
 }
