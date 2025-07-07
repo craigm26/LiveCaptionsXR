@@ -144,6 +144,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Generate sample debug logs for testing the overlay
+  void _generateTestLogs() {
+    _logger.i('🧪 Generating test logs for debug overlay...');
+    
+    // Generate different types of logs
+    _logger.t('🔍 This is a trace level log message');
+    _logger.d('🐛 This is a debug level log message');
+    _logger.i('ℹ️ This is an info level log message');
+    _logger.w('⚠️ This is a warning level log message');
+    _logger.e('❌ This is an error level log message');
+    
+    // Generate a log with fake error details
+    try {
+      throw Exception('Sample exception for testing');
+    } catch (e, stackTrace) {
+      _logger.e('🚨 Sample error log with stack trace', error: e, stackTrace: stackTrace);
+    }
+    
+    _logger.i('✅ Test logs generated successfully');
+  }
+
   @override
   void dispose() {
     _logger.i('🗑️ HomeScreen disposing...');
@@ -383,6 +404,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       return const SizedBox.shrink();
                     },
                   ),
+
+                  // Debug test button (appears when debug logging is enabled)
+                  if (settingsState.debugLoggingEnabled)
+                    Positioned(
+                      bottom: 180,
+                      right: 16,
+                      child: FloatingActionButton(
+                        heroTag: "debug_test_fab",
+                        backgroundColor: Colors.orange,
+                        mini: true,
+                        onPressed: _generateTestLogs,
+                        tooltip: 'Generate Test Debug Logs',
+                        child: const Icon(
+                          Icons.bug_report,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(

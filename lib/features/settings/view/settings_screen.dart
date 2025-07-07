@@ -224,7 +224,7 @@ class SettingsScreen extends StatelessWidget {
                             '• Blue arrow button: Toggle auto-scroll to latest logs\n'
                             '• Copy button: Copy all logs to clipboard\n'
                             '• Clear button: Clear all captured logs\n'
-                            '• Orange test button: Generate sample logs (when expanded)',
+                            '• Orange test button (Home screen): Generate sample logs',
                             style: TextStyle(fontSize: 12, height: 1.4),
                           ),
                         ],
