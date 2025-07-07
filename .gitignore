@@ -7,6 +7,7 @@ assets/models/
 .pub-cache/
 .pub/
 build/
+!/build/web/
 flutter_*.png
 
 # IDEs
@@ -64,4 +65,3 @@ windows/build/
 build/ios-debug-info/
 ios/build/
 ios/Podfile.lock
-
