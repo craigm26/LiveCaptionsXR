@@ -11,6 +11,7 @@ import 'live_captions_state.dart';
 /// Cubit for managing live captions functionality
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final SpeechProcessor _speechProcessor;
+  final HybridLocalizationEngine _hybridLocalizationEngine;
 
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
@@ -29,7 +30,9 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
   LiveCaptionsCubit({
     required SpeechProcessor speechProcessor,
+    required HybridLocalizationEngine hybridLocalizationEngine,
   })  : _speechProcessor = speechProcessor,
+        _hybridLocalizationEngine = hybridLocalizationEngine,
         super(const LiveCaptionsInitial());
 
   /// Initialize the speech processor and prepare for live captions
@@ -196,7 +199,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     }
   }
 
-  /// Place caption in AR space using the hybrid localization engine
+  /// Place caption in AR space using the injected hybrid localization engine
   void _placeCaptionInAR(String text) {
     // Only place captions if we're in an active state
     final currentState = state;
@@ -210,10 +213,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       try {
         _logger.i('🎯 Placing caption in AR: "$text"');
         
-        // Get the hybrid localization engine from the DI container or HomeCubit
-        // For now, we'll create a new instance - in a real app this should be injected
-        final hybridLocalizationEngine = HybridLocalizationEngine();
-        await hybridLocalizationEngine.placeCaption(text);
+        // Use the injected hybrid localization engine
+        await _hybridLocalizationEngine.placeCaption(text);
         
         _logger.i('✅ Caption placed successfully in AR space');
       } catch (e, stackTrace) {

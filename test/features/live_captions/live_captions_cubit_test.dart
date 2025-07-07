@@ -4,20 +4,26 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/speech_processor.dart';
+import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/models/speech_result.dart';
 
 import 'live_captions_cubit_test.mocks.dart';
 
-@GenerateMocks([SpeechProcessor])
+@GenerateMocks([SpeechProcessor, HybridLocalizationEngine])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockSpeechProcessor mockSpeechProcessor;
+  late MockHybridLocalizationEngine mockHybridLocalizationEngine;
   late LiveCaptionsCubit cubit;
 
   setUp(() {
     mockSpeechProcessor = MockSpeechProcessor();
-    cubit = LiveCaptionsCubit(speechProcessor: mockSpeechProcessor);
+    mockHybridLocalizationEngine = MockHybridLocalizationEngine();
+    cubit = LiveCaptionsCubit(
+      speechProcessor: mockSpeechProcessor,
+      hybridLocalizationEngine: mockHybridLocalizationEngine,
+    );
     
     // Set up mock method channels for hybrid localization
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

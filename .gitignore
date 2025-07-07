@@ -50,6 +50,10 @@ windows/build/
 *.log
 *.lock
 
+# Generated test mocks
+*.mocks.dart
+*.lock
+
 # Large model files (should not be committed to reduce app size)
 **/*.task
 **/*.tflite

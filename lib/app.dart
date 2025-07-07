@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'core/router/app_router.dart';
 import 'core/services/speech_processor.dart';
 import 'core/services/debug_logger_service.dart';
+import 'core/di/service_locator.dart';
 import 'shared/theme/app_theme.dart';
 import 'features/settings/cubit/settings_cubit.dart';
 import 'features/home/cubit/home_cubit.dart';
@@ -13,6 +14,7 @@ import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/localization/cubit/localization_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'features/live_captions/cubit/live_captions_cubit.dart';
+import 'features/ar_session/cubit/ar_session_cubit.dart';
 import 'features/onboarding/view/onboarding_screen.dart';
 import 'app_shell.dart';
 
@@ -37,13 +39,18 @@ class LiveCaptionsXrApp extends StatelessWidget {
     // Initialize debug logger service
     DebugLoggerService().initialize();
 
+    // Set up dependency injection
+    setupServiceLocator();
+
     return MultiBlocProvider(
       providers: [
         BlocProvider<SettingsCubit>(
           create: (context) => SettingsCubit(),
         ),
         BlocProvider<HomeCubit>(
-          create: (context) => HomeCubit(),
+          create: (context) => HomeCubit(
+            hybridLocalizationEngine: sl(),
+          ),
         ),
         BlocProvider<SoundDetectionCubit>(
           create: (context) => SoundDetectionCubit(),
@@ -57,7 +64,13 @@ class LiveCaptionsXrApp extends StatelessWidget {
         BlocProvider<LiveCaptionsCubit>(
           create: (context) => LiveCaptionsCubit(
             speechProcessor: SpeechProcessor(),
+            hybridLocalizationEngine: sl(),
           )..initialize(),
+        ),
+        BlocProvider<ARSessionCubit>(
+          create: (context) => ARSessionCubit(
+            hybridLocalizationEngine: sl(),
+          ),
         ),
       ],
       child: MaterialApp.router(
