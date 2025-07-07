@@ -59,6 +59,36 @@ Use this checklist to integrate the improved iOS plugin into your Flutter app.
   print('Model loaded: ${info['isLoaded']}');
   ```
 
+- [ ] Test ASR capabilities:
+  ```dart
+  final capabilities = await plugin.getASRCapabilities();
+  print('Real-time ASR supported: ${capabilities['supportsRealTimeASR']}');
+  print('Supported languages: ${capabilities['supportedLanguages']}');
+  ```
+
+- [ ] Test audio transcription:
+  ```dart
+  // Assuming you have audio data as Uint8List
+  try {
+    final result = await plugin.transcribeAudio(audioData);
+    print('Transcription: $result');
+  } catch (e) {
+    print('Transcription failed: $e');
+  }
+  ```
+
+- [ ] Test streaming ASR:
+  ```dart
+  final stream = plugin.streamTranscription();
+  stream.listen((result) {
+    print('Streaming result: ${result['text']} (final: ${result['isFinal']})');
+  });
+  
+  // Start audio capture and send chunks
+  await plugin.startAudioCapture();
+  // Send audio chunks via processAudioChunk()
+  ```
+
 ### 6. Device Testing
 - [ ] Test on iOS Simulator (if supported)
 - [ ] Test on physical iOS device (recommended)
