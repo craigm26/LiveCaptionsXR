@@ -1,6 +1,8 @@
 import Flutter
 import UIKit
 import MediaPipeTasksGenAI
+import Speech
+import AVFoundation
 
 /// Gemma 3n Multimodal Plugin for iOS
 /// 
@@ -27,6 +29,13 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
   private var audioBuffer: [Float] = []
   private let maxBufferSize = 16000 * 2 // 2 seconds at 16kHz
   
+  // Speech Recognition state
+  private var speechRecognizer: SFSpeechRecognizer?
+  private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+  private var recognitionTask: SFSpeechRecognitionTask?
+  private var audioEngine: AVAudioEngine?
+  private var isSpeechRecognitionAvailable = false
+  
   // Configurable speech processing parameters
   private var voiceActivityThreshold: Float = 0.01
   private var finalResultThreshold: Float = 0.005
@@ -36,14 +45,48 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
   private var currentLanguage: String = "en"
   private var enableLanguageDetection: Bool = false
   private var enableRealTimeEnhancement: Bool = true
+  private var useNativeSpeechRecognition: Bool = true
   
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "gemma3n_multimodal", binaryMessenger: registrar.messenger())
     let stream = FlutterEventChannel(name: "gemma3n_multimodal_stream", binaryMessenger: registrar.messenger())
     let instance = Gemma3nMultimodalPlugin()
     instance.registrar = registrar
+    instance.initializeSpeechRecognition()
     registrar.addMethodCallDelegate(instance, channel: channel)
     stream.setStreamHandler(instance)
+  }
+  
+  // MARK: - Speech Recognition Initialization
+  
+  private func initializeSpeechRecognition() {
+    // Initialize Speech Recognition
+    speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: currentLanguage))
+    speechRecognizer?.delegate = self
+    
+    // Check availability
+    if speechRecognizer?.isAvailable == true {
+      isSpeechRecognitionAvailable = true
+      print("✅ iOS Speech Recognition initialized for language: \(currentLanguage)")
+    } else {
+      isSpeechRecognitionAvailable = false
+      print("❌ iOS Speech Recognition not available for language: \(currentLanguage)")
+    }
+    
+    // Request speech recognition authorization
+    SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
+      switch authStatus {
+      case .authorized:
+        print("✅ Speech recognition authorized")
+        self?.isSpeechRecognitionAvailable = true
+      case .denied, .restricted, .notDetermined:
+        print("❌ Speech recognition not authorized: \(authStatus)")
+        self?.isSpeechRecognitionAvailable = false
+      @unknown default:
+        print("❌ Unknown speech recognition authorization status")
+        self?.isSpeechRecognitionAvailable = false
+      }
+    }
   }
 
   // MARK: - Helper Methods for Bundle Asset Handling
@@ -476,8 +519,87 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     return rms
   }
   
-  /// Perform Gemma 3n ASR on audio buffer
+  /// Perform ASR using iOS Speech framework or fallback to Gemma 3n bridge
   private func performGemma3nASR(audioBuffer: [Float], isFinal: Bool) throws -> String {
+    // Use native iOS Speech Recognition if available and enabled
+    if useNativeSpeechRecognition && isSpeechRecognitionAvailable {
+      return try performNativeSpeechRecognition(audioBuffer: audioBuffer, isFinal: isFinal)
+    } else {
+      // Fallback to the bridge implementation using text prompts
+      return try performBridgeASR(audioBuffer: audioBuffer, isFinal: isFinal)
+    }
+  }
+  
+  /// Perform speech recognition using iOS Speech framework
+  private func performNativeSpeechRecognition(audioBuffer: [Float], isFinal: Bool) throws -> String {
+    guard let speechRecognizer = speechRecognizer,
+          speechRecognizer.isAvailable else {
+      throw NSError(domain: "ASRError", code: -2, userInfo: [NSLocalizedDescriptionKey: "Speech recognition not available"])
+    }
+    
+    // Convert Float array to PCM buffer for Speech framework
+    let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, 
+                                   sampleRate: 16000, 
+                                   channels: 1, 
+                                   interleaved: false)!
+    
+    let frameCount = UInt32(audioBuffer.count)
+    guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: frameCount) else {
+      throw NSError(domain: "ASRError", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to create audio buffer"])
+    }
+    
+    pcmBuffer.frameLength = frameCount
+    let channelData = pcmBuffer.floatChannelData![0]
+    for i in 0..<audioBuffer.count {
+      channelData[i] = audioBuffer[i]
+    }
+    
+    // Use synchronous recognition for the audio buffer
+    var transcriptionResult = ""
+    let semaphore = DispatchSemaphore(value: 0)
+    var recognitionError: Error?
+    
+    let request = SFSpeechAudioBufferRecognitionRequest()
+    request.append(pcmBuffer)
+    request.endAudio()
+    
+    let task = speechRecognizer.recognitionTask(with: request) { result, error in
+      if let error = error {
+        recognitionError = error
+      } else if let result = result {
+        transcriptionResult = result.bestTranscription.formattedString
+        if result.isFinal {
+          semaphore.signal()
+        }
+      }
+      
+      if error != nil || result?.isFinal == true {
+        semaphore.signal()
+      }
+    }
+    
+    // Wait for recognition to complete (with timeout)
+    let timeoutResult = semaphore.wait(timeout: .now() + 5.0)
+    task.cancel()
+    
+    if timeoutResult == .timedOut {
+      throw NSError(domain: "ASRError", code: -4, userInfo: [NSLocalizedDescriptionKey: "Speech recognition timed out"])
+    }
+    
+    if let error = recognitionError {
+      throw error
+    }
+    
+    // Enhance the result with Gemma 3n if available and text enhancement is enabled
+    if enableRealTimeEnhancement && !transcriptionResult.isEmpty {
+      return try enhanceTranscriptionWithGemma3n(transcriptionResult, isFinal: isFinal)
+    }
+    
+    return transcriptionResult.isEmpty ? "[No speech detected]" : transcriptionResult
+  }
+  
+  /// Fallback bridge implementation using text prompts (original approach)
+  private func performBridgeASR(audioBuffer: [Float], isFinal: Bool) throws -> String {
     guard let llm = llmInference else {
       throw NSError(domain: "ASRError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
     }
@@ -505,6 +627,52 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     
     // Post-process the response to extract clean transcription
     return cleanTranscriptionResponse(response)
+  }
+  
+  /// Enhance transcription result using Gemma 3n for better accuracy and context
+  private func enhanceTranscriptionWithGemma3n(_ rawTranscription: String, isFinal: Bool) throws -> String {
+    guard let llm = llmInference else {
+      return rawTranscription // Return as-is if Gemma 3n not available
+    }
+    
+    let sessionOptions = MediaPipeTasksGenAI.LlmInference.Session.Options()
+    sessionOptions.topk = 40
+    sessionOptions.topp = 0.9
+    sessionOptions.temperature = 0.2 // Slightly higher temperature for enhancement
+    
+    let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
+    
+    let enhancementPrompt = buildEnhancementPrompt(rawTranscription: rawTranscription, isFinal: isFinal)
+    try session.addQueryChunk(inputText: enhancementPrompt)
+    
+    let response = try session.generateResponse()
+    let enhancedText = cleanTranscriptionResponse(response)
+    
+    // Return enhanced text if it seems reasonable, otherwise return original
+    if !enhancedText.isEmpty && enhancedText != "[No speech detected]" {
+      return enhancedText
+    }
+    
+    return rawTranscription
+  }
+  
+  /// Build enhancement prompt for improving transcription quality
+  private func buildEnhancementPrompt(rawTranscription: String, isFinal: Bool) -> String {
+    let promptType = isFinal ? "Improve and finalize this transcription" : "Clean up this partial transcription"
+    let languageHint = currentLanguage != "en" ? " The text is in \(getLanguageName(currentLanguage))." : ""
+    
+    return """
+    \(promptType): "\(rawTranscription)"
+    
+    Instructions:
+    1. Fix any obvious transcription errors
+    2. Add proper punctuation and capitalization
+    3. Keep the original meaning and language\(languageHint)
+    4. Make it suitable for live captions
+    5. Return only the improved text, no additional commentary
+    
+    Improved text:
+    """
   }
   
   /// Preprocess audio to match Gemma 3n requirements (mono, 16kHz, float32, ±1 range)
@@ -839,5 +1007,18 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       "finalResultThreshold": finalResultThreshold,
       "bufferSizeMs": bufferSizeMs
     ])
+  }
+}
+
+// MARK: - SFSpeechRecognizerDelegate
+
+extension Gemma3nMultimodalPlugin: SFSpeechRecognizerDelegate {
+  public func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
+    isSpeechRecognitionAvailable = available
+    if available {
+      print("✅ Speech recognition became available for language: \(speechRecognizer.locale?.identifier ?? "unknown")")
+    } else {
+      print("❌ Speech recognition became unavailable for language: \(speechRecognizer.locale?.identifier ?? "unknown")")
+    }
   }
 }

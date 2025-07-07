@@ -36,6 +36,8 @@
         <string>Camera access is required for visual speaker identification.</string>
         <key>NSMicrophoneUsageDescription</key>
         <string>Microphone access is required for audio capture and speech processing.</string>
+        <key>NSSpeechRecognitionUsageDescription</key>
+        <string>Speech recognition is used to convert speech to text for live captions.</string>
         <key>NSLocationWhenInUseUsageDescription</key>
         <string>Location access helps improve audio-visual localization accuracy.</string>
         <key>NSPhotoLibraryUsageDescription</key>
