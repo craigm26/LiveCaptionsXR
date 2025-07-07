@@ -78,6 +78,25 @@ void main() {
             (e) => e.code, 'code', 'SESSION_NOT_READY')));
   });
 
+  test('createAnchorAtWorldTransform handles NO_SESSION error', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(const MethodChannel(channelName),
+            (MethodCall methodCall) async {
+      if (methodCall.method == 'createAnchorAtWorldTransform') {
+        throw PlatformException(
+            code: 'NO_SESSION',
+            message: 'ARSession not available',
+            details: null);
+      }
+      return null;
+    });
+
+    expect(
+        () => manager.createAnchorAtWorldTransform(List.filled(16, 1.0)),
+        throwsA(isA<PlatformException>().having(
+            (e) => e.code, 'code', 'NO_SESSION')));
+  });
+
   test('createAnchorAtAngle handles NO_SESSION error', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(const MethodChannel(channelName),
