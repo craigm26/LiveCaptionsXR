@@ -23,7 +23,7 @@ class CaptionBubble extends StatelessWidget {
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           padding: EdgeInsets.symmetric(vertical: 10, horizontal: 18),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.7),
+            color: Colors.black.withAlpha((255 * 0.7).round()),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Text(

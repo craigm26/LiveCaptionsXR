@@ -153,14 +153,14 @@ class _AppShellState extends State<AppShell> {
               subtitle,
               style: TextStyle(
                 color: isSelected
-                    ? Theme.of(context).primaryColor.withOpacity(0.7)
+                    ? Theme.of(context).primaryColor.withAlpha((255 * 0.7).round())
                     : Colors.grey[600],
                 fontSize: 12,
               ),
             )
           : null,
       selected: isSelected,
-      selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
+      selectedTileColor: Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
       onTap: () {
         _shellLogger.d('🎯 Navigating to $route');
         Navigator.of(context).pop(); // Close drawer

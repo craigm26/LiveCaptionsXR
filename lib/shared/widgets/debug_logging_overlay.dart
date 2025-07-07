@@ -27,7 +27,8 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
   bool _autoScroll = true;
 
   // Regular expression to match ANSI escape sequences
-  static final RegExp _ansiRegex = RegExp(r'\x1B\[[0-9;]*[A-Za-z]|\^?\[\[?[0-9;]*[A-Za-z]');
+  static final RegExp _ansiRegex =
+      RegExp(r'\x1B\[[0-9;]*[A-Za-z]|\^?\[\[?[0-9;]*[A-Za-z]');
 
   /// Strips ANSI escape sequences from text to clean up log display
   String _stripAnsiCodes(String text) {
@@ -103,28 +104,28 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          height: _isExpanded ? 500 : 50,
+          height: _isExpanded ? 700 : 50,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
+            color: Colors.black.withAlpha((255 * 0.85).round()),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.blue.withOpacity(0.3),
+              color: Colors.blue.withAlpha((255 * 0.3).round()),
               width: 1,
             ),
           ),
-          child: Column(
-            children: [
-              _buildHeader(context),
-              if (_isExpanded) ...[
-                const Divider(
-                  height: 1,
-                  color: Colors.white24,
-                ),
-                Expanded(child: _buildLogsList()),
-                _buildFooter(context),
-              ],
-            ],
-          ),
+          child: _isExpanded
+              ? Column(
+                  children: [
+                    _buildHeader(context),
+                    const Divider(
+                      height: 1,
+                      color: Colors.white24,
+                    ),
+                    Expanded(child: _buildLogsList()),
+                    _buildFooter(context),
+                  ],
+                )
+              : _buildHeader(context),
         ),
       ),
     );
@@ -133,14 +134,14 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
   Widget _buildHeader(BuildContext context) {
     final logCount = _debugLogger.logHistory.length;
 
-    return Container(
-      height: 30,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
+          const Icon(
             Icons.bug_report,
-            color: Colors.blue[300],
+            color: Colors.white,
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -159,10 +160,10 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
             InkWell(
               onTap: () => setState(() => _autoScroll = !_autoScroll),
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: _autoScroll
-                      ? Colors.blue.withOpacity(0.3)
+                      ? Colors.blue.withAlpha((255 * 0.3).round())
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -179,7 +180,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
               onTap: _copyLogs,
               child: Container(
                 padding: const EdgeInsets.all(4),
-                child: Icon(
+                child: const Icon(
                   Icons.copy,
                   color: Colors.white60,
                   size: 16,
@@ -192,7 +193,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
               onTap: _clearLogs,
               child: Container(
                 padding: const EdgeInsets.all(4),
-                child: Icon(
+                child: const Icon(
                   Icons.clear_all,
                   color: Colors.white60,
                   size: 16,
@@ -244,7 +245,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
   Widget _buildLogItem(LogEntry log) {
     // Clean the log message by stripping ANSI escape sequences
     final cleanMessage = _stripAnsiCodes(log.formatForDisplay());
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -252,7 +253,7 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
         color: _getLogBackgroundColor(log.level),
         borderRadius: BorderRadius.circular(4),
         border: log.level == Level.error || log.level == Level.fatal
-            ? Border.all(color: Colors.red.withOpacity(0.3), width: 1)
+            ? Border.all(color: Colors.red.withAlpha((255 * 0.3).round()), width: 1)
             : null,
       ),
       child: SelectableText(
@@ -290,11 +291,11 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
     switch (level) {
       case Level.error:
       case Level.fatal:
-        return Colors.red.withOpacity(0.2);
+        return Colors.red.withAlpha((255 * 0.2).round());
       case Level.warning:
-        return Colors.orange.withOpacity(0.2);
+        return Colors.orange.withAlpha((255 * 0.2).round());
       case Level.info:
-        return Colors.blue.withOpacity(0.1);
+        return Colors.blue.withAlpha((255 * 0.1).round());
       default:
         return Colors.transparent;
     }
@@ -321,11 +322,12 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
       // Get formatted logs and strip ANSI codes
       final formattedLogs = _getFormattedLogsWithoutAnsi();
       await Clipboard.setData(ClipboardData(text: formattedLogs));
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Debug logs copied to clipboard (ANSI codes stripped)'),
+            content:
+                Text('Debug logs copied to clipboard (ANSI codes stripped)'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -364,10 +366,10 @@ class _DebugLoggingOverlayState extends State<DebugLoggingOverlay> {
   /// Format a single log entry for copying with ANSI codes stripped
   String _formatLogEntryForCopy(LogEntry entry) {
     final buffer = StringBuffer();
-    
+
     // Strip ANSI codes from message
     final cleanMessage = _stripAnsiCodes(entry.message);
-    
+
     buffer.writeln(
         '[${entry.timestamp.toIso8601String()}] ${entry.level.name.toUpperCase()}: $cleanMessage');
 

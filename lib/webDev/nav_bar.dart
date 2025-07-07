@@ -119,7 +119,7 @@ class _NavLink extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: selected
             ? BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                color: Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
                 borderRadius: BorderRadius.circular(8),
               )
             : null,

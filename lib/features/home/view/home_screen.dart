@@ -207,11 +207,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.9),
+                        color: Colors.blue.withAlpha((255 * 0.9).round()),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withAlpha((255 * 0.3).round()),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -292,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           return Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.8),
+                              color: Colors.blue.withAlpha((255 * 0.8).round()),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -363,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               border: Border.all(
                                   color: Colors.greenAccent, width: 3),
                               borderRadius: BorderRadius.circular(12),
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withAlpha((255 * 0.3).round()),
                             ),
                             child: Row(
                               children: [

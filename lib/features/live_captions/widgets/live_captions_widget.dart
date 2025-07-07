@@ -244,17 +244,17 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withAlpha((255 * 0.8).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isInterim
-              ? Colors.orange.withOpacity(0.6)
-              : Colors.blue.withOpacity(0.6),
+              ? Colors.orange.withAlpha((255 * 0.6).round())
+              : Colors.blue.withAlpha((255 * 0.6).round()),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withAlpha((255 * 0.5).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -278,13 +278,13 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
                 Icon(
                   Icons.mic,
                   size: 14,
-                  color: Colors.orange.withOpacity(0.7),
+                  color: Colors.orange.withAlpha((255 * 0.7).round()),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Processing...',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.orange.withOpacity(0.7),
+                        color: Colors.orange.withAlpha((255 * 0.7).round()),
                         fontStyle: FontStyle.italic,
                       ),
                 ),
@@ -292,7 +292,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
                 Text(
                   '${(state.currentCaption!.confidence * 100).toStringAsFixed(0)}%',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.orange.withOpacity(0.7),
+                        color: Colors.orange.withAlpha((255 * 0.7).round()),
                       ),
                 ),
               ],
@@ -327,10 +327,10 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withAlpha((255 * 0.6).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withOpacity(0.4),
+          color: color.withAlpha((255 * 0.4).round()),
           width: 1,
         ),
       ),
@@ -352,7 +352,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return Container(
       constraints: const BoxConstraints(maxHeight: 200),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withAlpha((255 * 0.5).round()),
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListView.builder(
@@ -373,7 +373,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withAlpha((255 * 0.2).round()),
             width: 0.5,
           ),
         ),
@@ -411,10 +411,10 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.2),
+        color: Colors.red.withAlpha((255 * 0.2).round()),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Colors.red.withOpacity(0.5),
+          color: Colors.red.withAlpha((255 * 0.5).round()),
           width: 1,
         ),
       ),

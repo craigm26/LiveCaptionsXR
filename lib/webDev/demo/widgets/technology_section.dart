@@ -46,7 +46,7 @@ class TechnologySection extends StatelessWidget {
                       end: Alignment.bottomRight,
                       colors: [
                         Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.7),
+                        Theme.of(context).primaryColor.withAlpha((255 * 0.7).round()),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
@@ -59,7 +59,7 @@ class TechnologySection extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withAlpha((255 * 0.2).round()),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -184,7 +184,7 @@ class TechnologySection extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withAlpha((255 * 0.1).round()),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -281,7 +281,7 @@ class _TechStackCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha((255 * 0.3).round())),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +316,7 @@ class _TechStackCard extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.6),
+                    color: color.withAlpha((255 * 0.6).round()),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -376,9 +376,9 @@ class _ArchLayer extends StatelessWidget {
       width: 200,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((255 * 0.1).round()),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha((255 * 0.3).round())),
       ),
       child: Column(
         children: [

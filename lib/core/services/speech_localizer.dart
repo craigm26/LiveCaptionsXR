@@ -1,4 +1,4 @@
-import 'dart:ffi';
+// import 'dart:ffi'; // Not available on web
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -30,48 +30,48 @@ class SpeechLocalizer {
     _logger.d('RMS threshold: $minRmsThreshold, Smoothing: $smoothing');
   }
 
-  static const MethodChannel _channel =
-      MethodChannel('live_captions_xr/speech_localizer');
+  // static const MethodChannel _channel =
+  //     MethodChannel('live_captions_xr/speech_localizer');
 
-  /// Basic amplitude-based direction estimation (native).
-  static Future<double> estimateDirectionNative({
-    required Float32List left,
-    required Float32List right,
-    double sampleRate = 16000.0,
-  }) async {
-    final result = await _channel.invokeMethod<double>(
-      'estimateDirection',
-      {
-        'left': left,
-        'right': right,
-        'sampleRate': sampleRate,
-      },
-    );
-    if (result == null) throw Exception('No result from native code');
-    return result;
-  }
+  // /// Basic amplitude-based direction estimation (native).
+  // static Future<double> estimateDirectionNative({
+  //   required Float32List left,
+  //   required Float32List right,
+  //   double sampleRate = 16000.0,
+  // }) async {
+  //   final result = await _channel.invokeMethod<double>(
+  //     'estimateDirection',
+  //     {
+  //       'left': left,
+  //       'right': right,
+  //       'sampleRate': sampleRate,
+  //     },
+  //   );
+  //   if (result == null) throw Exception('No result from native code');
+  //   return result;
+  // }
 
-  /// Advanced GCC-PHAT direction estimation (native).
-  static Future<double> estimateDirectionAdvancedNative({
-    required Float32List left,
-    required Float32List right,
-    double sampleRate = 16000.0,
-    double micDistance = 0.08,
-    double soundSpeed = 343.0,
-  }) async {
-    final result = await _channel.invokeMethod<double>(
-      'estimateDirectionAdvanced',
-      {
-        'left': left,
-        'right': right,
-        'sampleRate': sampleRate,
-        'micDistance': micDistance,
-        'soundSpeed': soundSpeed,
-      },
-    );
-    if (result == null) throw Exception('No result from native code');
-    return result;
-  }
+  // /// Advanced GCC-PHAT direction estimation (native).
+  // static Future<double> estimateDirectionAdvancedNative({
+  //   required Float32List left,
+  //   required Float32List right,
+  //   double sampleRate = 16000.0,
+  //   double micDistance = 0.08,
+  //   double soundSpeed = 343.0,
+  // }) async {
+  //   final result = await _channel.invokeMethod<double>(
+  //     'estimateDirectionAdvanced',
+  //     {
+  //       'left': left,
+  //       'right': right,
+  //       'sampleRate': sampleRate,
+  //       'micDistance': micDistance,
+  //       'soundSpeed': soundSpeed,
+  //     },
+  //   );
+  //   if (result == null) throw Exception('No result from native code');
+  //   return result;
+  // }
 
   /// Estimate horizontal angle from a stereo audio frame.
   ///

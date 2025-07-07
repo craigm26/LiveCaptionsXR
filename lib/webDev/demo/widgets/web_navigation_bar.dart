@@ -14,7 +14,7 @@ class WebNavigationBar extends StatelessWidget {
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((255 * 0.1).round()),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -141,7 +141,7 @@ class _NavItem extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             color: isActive 
-                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                ? Theme.of(context).primaryColor.withAlpha((255 * 0.1).round())
                 : null,
           ),
           child: Text(

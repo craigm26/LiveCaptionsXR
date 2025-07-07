@@ -163,7 +163,7 @@ class SettingsScreen extends StatelessWidget {
                 // Debug Info Card
                 if (state.debugLoggingEnabled)
                   Card(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withAlpha((255 * 0.1).round()),
                     elevation: 1,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -191,7 +191,7 @@ class SettingsScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
+                              color: Colors.blue.withAlpha((255 * 0.1).round()),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Column(
@@ -235,7 +235,7 @@ class SettingsScreen extends StatelessWidget {
                 // Helper card when debug logging is disabled
                 if (!state.debugLoggingEnabled)
                   Card(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withAlpha((255 * 0.1).round()),
                     elevation: 1,
                     child: Padding(
                       padding: const EdgeInsets.all(16),

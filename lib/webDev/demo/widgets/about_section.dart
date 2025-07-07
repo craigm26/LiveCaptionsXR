@@ -13,7 +13,7 @@ class AboutSection extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [
             Theme.of(context).scaffoldBackgroundColor,
-            Theme.of(context).primaryColor.withOpacity(0.05),
+            Theme.of(context).primaryColor.withAlpha((255 * 0.05).round()),
           ],
         ),
       ),
@@ -120,7 +120,7 @@ class AboutSection extends StatelessWidget {
                         gradient: LinearGradient(
                           colors: [
                             Theme.of(context).primaryColor,
-                            Theme.of(context).primaryColor.withOpacity(0.8),
+                            Theme.of(context).primaryColor.withAlpha((255 * 0.8).round()),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(16),
@@ -195,7 +195,7 @@ class AboutSection extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                        border: Border.all(color: Colors.grey.withAlpha((255 * 0.3).round())),
                       ),
                       child: Column(
                         children: [
@@ -246,7 +246,7 @@ class AboutSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 32),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                top: BorderSide(color: Colors.grey.withAlpha((255 * 0.3).round())),
               ),
             ),
             child: Row(
@@ -305,7 +305,7 @@ class _ImpactItem extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -360,7 +360,7 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withAlpha((255 * 0.2).round())),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

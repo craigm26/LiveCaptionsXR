@@ -209,7 +209,7 @@ class _FeatureCardState extends State<_FeatureCard>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.gradient.first.withOpacity(0.3),
+                    color: widget.gradient.first.withAlpha((255 * 0.3).round()),
                     blurRadius: _isHovered ? 20 : 10,
                     offset: const Offset(0, 8),
                   ),
@@ -240,7 +240,7 @@ class _FeatureCardState extends State<_FeatureCard>
                     child: Text(
                       widget.description,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withAlpha((255 * 0.9).round()),
                         height: 1.5,
                       ),
                       maxLines: 4,
@@ -278,7 +278,7 @@ class _ProcessStep extends StatelessWidget {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withAlpha((255 * 0.1).round()),
             shape: BoxShape.circle,
             border: Border.all(color: color, width: 2),
           ),
