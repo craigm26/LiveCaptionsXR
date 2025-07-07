@@ -289,30 +289,70 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       ])
     case "transcribeAudio":
       guard let args = call.arguments as? [String: Any],
-            let audio = args["audio"] as? FlutterStandardTypedData,
-            let llm = llmInference else {
-        result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing audio or model not loaded", details: nil))
+            let audio = args["audio"] as? FlutterStandardTypedData else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing audio argument", details: nil))
         return
       }
+      
+      let isFinal = args["isFinal"] as? Bool ?? false
+      let language = args["language"] as? String ?? currentLanguage
+      let useNativeASR = args["useNativeSpeechRecognition"] as? Bool ?? useNativeSpeechRecognition
+      let enableEnhancement = args["enableRealTimeEnhancement"] as? Bool ?? enableRealTimeEnhancement
+      
+      // Update configuration if needed
+      if language != currentLanguage {
+        currentLanguage = language
+        // Reinitialize speech recognizer for new language
+        speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: currentLanguage))
+      }
+      useNativeSpeechRecognition = useNativeASR
+      enableRealTimeEnhancement = enableEnhancement
+      
       let floats = convertPcm16ToFloat32(audio.data)
       do {
-        // Use Gemma 3n ASR with proper audio input format
-        let sessionOptions = createSessionOptions(args)
-        let session = try MediaPipeTasksGenAI.LlmInference.Session(llmInference: llm, options: sessionOptions)
-        
-        // Create chat-style prompt with audio input as specified in Gemma 3n documentation
-        let transcriptionPrompt = "Transcribe this audio."
-        try session.addQueryChunk(inputText: transcriptionPrompt)
-        
-        // TODO: When MediaPipe iOS supports audio input directly, replace with:
-        // try session.addQueryChunk(audioData: floats)
-        // For now, use the text-based approach as a bridge until audio API is available
-        
-        let transcription = try session.generateResponse()
+        let transcription = try performGemma3nASR(audioBuffer: floats, isFinal: isFinal)
         result(transcription)
       } catch {
-        result(FlutterError(code: "INFERENCE_FAILED", message: error.localizedDescription, details: nil))
+        result(FlutterError(code: "ASR_FAILED", message: error.localizedDescription, details: nil))
       }
+      
+    case "configureASR":
+      guard let args = call.arguments as? [String: Any] else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing configuration arguments", details: nil))
+        return
+      }
+      
+      if let language = args["language"] as? String {
+        currentLanguage = language
+        speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: currentLanguage))
+      }
+      if let useNative = args["useNativeSpeechRecognition"] as? Bool {
+        useNativeSpeechRecognition = useNative
+      }
+      if let enableEnhancement = args["enableRealTimeEnhancement"] as? Bool {
+        enableRealTimeEnhancement = enableEnhancement
+      }
+      if let threshold = args["voiceActivityThreshold"] as? Float {
+        voiceActivityThreshold = threshold
+      }
+      if let finalThreshold = args["finalResultThreshold"] as? Float {
+        finalResultThreshold = finalThreshold
+      }
+      
+      result(nil)
+      
+    case "getASRCapabilities":
+      let capabilities: [String: Any] = [
+        "nativeSpeechRecognitionAvailable": isSpeechRecognitionAvailable,
+        "gemma3nEnhancementAvailable": llmInference != nil,
+        "currentLanguage": currentLanguage,
+        "supportedLanguages": ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ar"],
+        "useNativeSpeechRecognition": useNativeSpeechRecognition,
+        "enableRealTimeEnhancement": enableRealTimeEnhancement,
+        "voiceActivityThreshold": voiceActivityThreshold,
+        "finalResultThreshold": finalResultThreshold
+      ]
+      result(capabilities)
     case "runMultimodal":
       guard let llm = llmInference else {
         result(FlutterError(code: "NOT_READY", message: "Model not loaded", details: nil))

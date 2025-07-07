@@ -112,10 +112,21 @@ class Gemma3nMultimodalPlugin: FlutterPlugin, MethodCallHandler {
       "transcribeAudio" -> {
         val audioBytes = call.argument<ByteArray>("audio")
         val isFinal = call.argument<Boolean>("isFinal") ?: false
+        val language = call.argument<String>("language") ?: currentLanguage
+        val useNativeASR = call.argument<Boolean>("useNativeSpeechRecognition") ?: useNativeSpeechRecognition
+        val enableEnhancement = call.argument<Boolean>("enableRealTimeEnhancement") ?: enableRealTimeEnhancement
+        
         if (audioBytes == null) {
           result.error("INVALID_ARGUMENT", "Missing 'audio' argument", null)
           return
         }
+        
+        // Update configuration if needed
+        if (language != currentLanguage) {
+          currentLanguage = language
+        }
+        useNativeSpeechRecognition = useNativeASR
+        enableRealTimeEnhancement = enableEnhancement
         
         try {
           val transcription = performASR(audioBytes, isFinal)
@@ -205,6 +216,31 @@ class Gemma3nMultimodalPlugin: FlutterPlugin, MethodCallHandler {
         val floatAudio = convertPcm16ToFloat32(audioBytes)
         audioBuffer.add(floatAudio)
         result.success(null)
+      }
+      "configureASR" -> {
+        val language = call.argument<String>("language") ?: currentLanguage
+        val useNative = call.argument<Boolean>("useNativeSpeechRecognition") ?: useNativeSpeechRecognition
+        val enableEnhancement = call.argument<Boolean>("enableRealTimeEnhancement") ?: enableRealTimeEnhancement
+        val voiceThreshold = call.argument<Double>("voiceActivityThreshold")?.toFloat()
+        val finalThreshold = call.argument<Double>("finalResultThreshold")?.toFloat()
+        
+        currentLanguage = language
+        useNativeSpeechRecognition = useNative
+        enableRealTimeEnhancement = enableEnhancement
+        
+        Log.i("Gemma3nPlugin", "ASR configured: language=$language, native=$useNative, enhancement=$enableEnhancement")
+        result.success(null)
+      }
+      "getASRCapabilities" -> {
+        val capabilities = mapOf(
+          "nativeSpeechRecognitionAvailable" to isSpeechRecognitionAvailable,
+          "gemma3nEnhancementAvailable" to (llmInference != null),
+          "currentLanguage" to currentLanguage,
+          "supportedLanguages" to listOf("en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ar"),
+          "useNativeSpeechRecognition" to useNativeSpeechRecognition,
+          "enableRealTimeEnhancement" to enableRealTimeEnhancement
+        )
+        result.success(capabilities)
       }
       else -> {
         result.notImplemented()
