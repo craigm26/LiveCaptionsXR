@@ -1056,9 +1056,9 @@ extension Gemma3nMultimodalPlugin: SFSpeechRecognizerDelegate {
   public func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
     isSpeechRecognitionAvailable = available
     if available {
-      print("✅ Speech recognition became available for language: \(speechRecognizer.locale?.identifier ?? "unknown")")
+      print("✅ Speech recognition became available for language: \(speechRecognizer.locale.identifier)")
     } else {
-      print("❌ Speech recognition became unavailable for language: \(speechRecognizer.locale?.identifier ?? "unknown")")
+      print("❌ Speech recognition became unavailable for language: \(speechRecognizer.locale.identifier)")
     }
   }
 }

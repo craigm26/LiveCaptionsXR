@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:gemma3n_multimodal/gemma3n_multimodal.dart';
 
 /// Complete validation example for the ASR implementation
@@ -172,7 +173,7 @@ class ASRValidator {
         try {
           final result = await _plugin.transcribeAudio(
             audio: audioData,
-            isFinal: testCase['name']!.contains('final'),
+            isFinal: (testCase['name'] as String).contains('final'),
             language: 'en',
           );
           

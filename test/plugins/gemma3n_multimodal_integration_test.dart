@@ -12,6 +12,10 @@ void main() {
     List<MethodCall> methodCalls = [];
     List<dynamic> streamEvents = [];
     
+    void _triggerStreamEvent(Map<String, dynamic> event) {
+      streamEvents.add(event);
+    }
+
     setUp(() {
       methodCalls.clear();
       streamEvents.clear();
@@ -78,13 +82,8 @@ void main() {
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(const MethodChannel('gemma3n_multimodal'), null);
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMessageHandler('gemma3n_multimodal_stream', null);
     });
 
-    void _triggerStreamEvent(Map<String, dynamic> event) {
-      streamEvents.add(event);
-    }
 
     test('should initialize speech processor without errors', () async {
       // Act

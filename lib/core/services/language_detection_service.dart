@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 
 import '../models/speech_config.dart';
@@ -333,5 +334,3 @@ extension on double {
   double sqrt() => this >= 0 ? math.sqrt(this) : 0.0;
 }
 
-// Import math for sqrt function
-import 'dart:math' as math;

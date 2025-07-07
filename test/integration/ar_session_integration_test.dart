@@ -9,7 +9,9 @@ import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 import 'package:live_captions_xr/core/services/ar_anchor_manager.dart';
 
-import 'ar_session_integration_test.mocks.dart';
+import '../features/ar_session/cubit/ar_session_cubit_test.mocks.dart' as ar_session_mocks;
+import '../features/live_captions/live_captions_cubit_test.mocks.dart';
+
 
 @GenerateMocks([HybridLocalizationEngine, ARSessionPersistenceService])
 void main() {
@@ -17,13 +19,13 @@ void main() {
   
   group('AR Session Integration Tests', () {
     late ARSessionCubit arSessionCubit;
-    late MockHybridLocalizationEngine mockHybridLocalizationEngine;
-    late MockARSessionPersistenceService mockPersistenceService;
+    late ar_session_mocks.MockHybridLocalizationEngine mockHybridLocalizationEngine;
+    late ar_session_mocks.MockARSessionPersistenceService mockPersistenceService;
     late ARAnchorManager anchorManager;
 
     setUp(() {
-      mockHybridLocalizationEngine = MockHybridLocalizationEngine();
-      mockPersistenceService = MockARSessionPersistenceService();
+      mockHybridLocalizationEngine = ar_session_mocks.MockHybridLocalizationEngine();
+      mockPersistenceService = ar_session_mocks.MockARSessionPersistenceService();
       anchorManager = ARAnchorManager();
 
       arSessionCubit = ARSessionCubit(

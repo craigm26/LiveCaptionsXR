@@ -110,12 +110,12 @@ void main() {
 
   test('transcribeAudio returns transcription', () async {
     final audio = Uint8List.fromList([1, 2, 3]);
-    expect(await plugin.transcribeAudio(audio), 'transcribed text');
+    expect(await plugin.transcribeAudio(audio: audio), 'transcribed text');
   });
 
   test('transcribeAudio throws on missing audio', () async {
     expect(
-      () => plugin.transcribeAudio(Uint8List(0)),
+      () => plugin.transcribeAudio(audio: Uint8List(0)),
       throwsA(isA<PlatformException>()),
     );
   });
