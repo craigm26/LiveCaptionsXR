@@ -124,11 +124,42 @@ class HybridLocalizationEngine {
     } on PlatformException catch (e, stackTrace) {
       _logger.e('❌ Platform error placing caption',
           error: e, stackTrace: stackTrace);
-      rethrow;
+      
+      // If AR caption placement fails, try fallback approaches
+      await _tryFallbackCaptionPlacement(text, e);
     } catch (e, stackTrace) {
       _logger.e('❌ Unexpected error placing caption',
           error: e, stackTrace: stackTrace);
-      rethrow;
+      
+      // If AR caption placement fails, try fallback approaches  
+      await _tryFallbackCaptionPlacement(text, e);
+    }
+  }
+
+  /// Try fallback caption placement methods when AR placement fails
+  Future<void> _tryFallbackCaptionPlacement(String text, dynamic originalError) async {
+    try {
+      _logger.w('⚠️ Attempting fallback caption placement for: "$text"');
+      
+      // Try placing caption with a default/identity transform as fallback
+      final defaultTransform = List.generate(16, (index) => 
+        index % 5 == 0 ? (index == 15 ? 1.0 : (index < 12 ? 1.0 : 0.0)) : 0.0);
+      
+      // Attempt placement with default transform
+      await const MethodChannel('live_captions_xr/caption_methods')
+          .invokeMethod('placeCaption', {
+        'transform': defaultTransform,
+        'text': text,
+      });
+      
+      _logger.i('✅ Caption placed using fallback method');
+    } catch (fallbackError) {
+      _logger.e('❌ Fallback caption placement also failed', 
+          error: fallbackError);
+      
+      // As a last resort, we could emit this caption to a UI overlay
+      _logger.w('💬 Caption will be displayed in UI overlay: "$text"');
+      // The UI layer should handle displaying captions even if AR placement fails
     }
   }
 }

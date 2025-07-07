@@ -58,4 +58,42 @@ void main() {
     expect(call?.method, 'removeAnchor');
     expect(call?.arguments['identifier'], 'abc');
   });
+
+  test('createAnchorAtWorldTransform handles SESSION_NOT_READY error', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(const MethodChannel(channelName),
+            (MethodCall methodCall) async {
+      if (methodCall.method == 'createAnchorAtWorldTransform') {
+        throw PlatformException(
+            code: 'SESSION_NOT_READY',
+            message: 'ARSession not ready - no camera frame or tracking not normal',
+            details: null);
+      }
+      return null;
+    });
+
+    expect(
+        () => manager.createAnchorAtWorldTransform(List.filled(16, 1.0)),
+        throwsA(isA<PlatformException>().having(
+            (e) => e.code, 'code', 'SESSION_NOT_READY')));
+  });
+
+  test('createAnchorAtAngle handles NO_SESSION error', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(const MethodChannel(channelName),
+            (MethodCall methodCall) async {
+      if (methodCall.method == 'createAnchorAtAngle') {
+        throw PlatformException(
+            code: 'NO_SESSION',
+            message: 'ARSession not available',
+            details: null);
+      }
+      return null;
+    });
+
+    expect(
+        () => manager.createAnchorAtAngle(0.5),
+        throwsA(isA<PlatformException>().having(
+            (e) => e.code, 'code', 'NO_SESSION')));
+  });
 }
