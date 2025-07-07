@@ -1,12 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import '../../../core/models/visual_object.dart';
-import '../../home/cubit/home_cubit.dart';
+import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/debug_capturing_logger.dart';
 
 abstract class VisualIdentificationState {}
 
 class VisualIdentificationInitial extends VisualIdentificationState {}
+
 class VisualIdentificationLoaded extends VisualIdentificationState {
   final List<VisualObject> objects;
   VisualIdentificationLoaded(this.objects);
@@ -14,10 +15,13 @@ class VisualIdentificationLoaded extends VisualIdentificationState {
 
 class VisualIdentificationCubit extends Cubit<VisualIdentificationState> {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
-  static const MethodChannel _channel = MethodChannel('live_captions_xr/visual_object_methods');
+  static const MethodChannel _channel =
+      MethodChannel('live_captions_xr/visual_object_methods');
+  final HybridLocalizationEngine hybridLocalizationEngine;
   bool _isActive = false;
 
-  VisualIdentificationCubit() : super(VisualIdentificationInitial());
+  VisualIdentificationCubit({required this.hybridLocalizationEngine})
+      : super(VisualIdentificationInitial());
 
   bool get isActive => _isActive;
 
@@ -41,7 +45,9 @@ class VisualIdentificationCubit extends Cubit<VisualIdentificationState> {
     if (call.method == 'onVisualObjectDetected') {
       final args = Map<String, dynamic>.from(call.arguments);
       final bbox = args['boundingBox'] as List<dynamic>;
-      final worldTransform = (args['worldTransform'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList();
+      final worldTransform = (args['worldTransform'] as List<dynamic>?)
+          ?.map((e) => (e as num).toDouble())
+          .toList();
       final obj = VisualObject(
         label: args['label'] as String,
         confidence: (args['confidence'] as num).toDouble(),
@@ -61,10 +67,9 @@ class VisualIdentificationCubit extends Cubit<VisualIdentificationState> {
     if (!_isActive) return;
     emit(VisualIdentificationLoaded(objects));
     // AUTOMATED: Update hybrid localization engine after every visual detection
-    final homeCubit = HomeCubit(); // In production, use Provider/Bloc context
     for (final obj in objects) {
       if (obj.worldTransform != null && obj.worldTransform!.length == 16) {
-        homeCubit.updateWithVisualMeasurement(
+        hybridLocalizationEngine.updateWithVisualMeasurement(
           transform: obj.worldTransform!,
           confidence: obj.confidence,
         );

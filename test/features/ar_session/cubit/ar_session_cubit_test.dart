@@ -12,6 +12,7 @@ import 'ar_session_cubit_test.mocks.dart';
 
 @GenerateMocks([HybridLocalizationEngine, ARSessionPersistenceService])
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('ARSessionCubit', () {
     late ARSessionCubit arSessionCubit;
     late MockHybridLocalizationEngine mockHybridLocalizationEngine;
@@ -20,10 +21,10 @@ void main() {
     setUp(() {
       // Set up mock shared preferences
       SharedPreferences.setMockInitialValues({});
-      
+
       mockHybridLocalizationEngine = MockHybridLocalizationEngine();
       mockPersistenceService = MockARSessionPersistenceService();
-      
+
       arSessionCubit = ARSessionCubit(
         hybridLocalizationEngine: mockHybridLocalizationEngine,
         persistenceService: mockPersistenceService,
@@ -66,7 +67,7 @@ void main() {
       test('places anchor when AR session is ready', () async {
         // Arrange - Set AR session to ready state
         arSessionCubit.emit(const ARSessionReady());
-        
+
         when(mockHybridLocalizationEngine.getFusedTransform())
             .thenAnswer((_) async => List.generate(16, (i) => i.toDouble()));
 
@@ -80,7 +81,8 @@ void main() {
 
       test('does not place anchor if already placed', () async {
         // Arrange - Set AR session to ready state with anchor already placed
-        arSessionCubit.emit(const ARSessionReady(anchorPlaced: true, anchorId: 'test-anchor'));
+        arSessionCubit.emit(
+            const ARSessionReady(anchorPlaced: true, anchorId: 'test-anchor'));
 
         // Act
         await arSessionCubit.placeAutoAnchor();
@@ -102,10 +104,18 @@ void main() {
 
         // Act
         await arSessionCubit.startAllARServices(
-          startLiveCaptions: () async { liveCaptionsCalled = true; },
-          startSoundDetection: () async { soundDetectionCalled = true; },
-          startLocalization: () async { localizationCalled = true; },
-          startVisualIdentification: () async { visualIdentificationCalled = true; },
+          startLiveCaptions: () async {
+            liveCaptionsCalled = true;
+          },
+          startSoundDetection: () async {
+            soundDetectionCalled = true;
+          },
+          startLocalization: () async {
+            localizationCalled = true;
+          },
+          startVisualIdentification: () async {
+            visualIdentificationCalled = true;
+          },
         );
 
         // Assert - no services should be started if AR session is not ready
@@ -118,7 +128,7 @@ void main() {
       test('starts all services when AR session is ready', () async {
         // Arrange - Set AR session to ready state
         arSessionCubit.emit(const ARSessionReady());
-        
+
         bool liveCaptionsCalled = false;
         bool soundDetectionCalled = false;
         bool localizationCalled = false;
@@ -129,10 +139,18 @@ void main() {
 
         // Act
         await arSessionCubit.startAllARServices(
-          startLiveCaptions: () async { liveCaptionsCalled = true; },
-          startSoundDetection: () async { soundDetectionCalled = true; },
-          startLocalization: () async { localizationCalled = true; },
-          startVisualIdentification: () async { visualIdentificationCalled = true; },
+          startLiveCaptions: () async {
+            liveCaptionsCalled = true;
+          },
+          startSoundDetection: () async {
+            soundDetectionCalled = true;
+          },
+          startLocalization: () async {
+            localizationCalled = true;
+          },
+          startVisualIdentification: () async {
+            visualIdentificationCalled = true;
+          },
         );
 
         // Assert - all services should be started
@@ -148,7 +166,9 @@ void main() {
 
         // Act - one of the services throws an error
         await arSessionCubit.startAllARServices(
-          startLiveCaptions: () async { throw Exception('Service startup failed'); },
+          startLiveCaptions: () async {
+            throw Exception('Service startup failed');
+          },
           startSoundDetection: () async {},
           startLocalization: () async {},
           startVisualIdentification: () async {},
@@ -195,9 +215,9 @@ void main() {
             .thenAnswer((_) async => restoredState);
         when(mockPersistenceService.restoreAnchorData())
             .thenAnswer((_) async => {
-              'anchorId': 'restored_anchor',
-              'transform': List.generate(16, (i) => i.toDouble()),
-            });
+                  'anchorId': 'restored_anchor',
+                  'transform': List.generate(16, (i) => i.toDouble()),
+                });
 
         // Act
         await arSessionCubit.initializeARSession();
@@ -239,12 +259,12 @@ void main() {
         final state = arSessionCubit.state as ARSessionPaused;
         expect(state.previousAnchorPlaced, true);
         expect(state.previousAnchorId, 'test_anchor');
-        
+
         verify(mockPersistenceService.saveSessionState(any)).called(1);
         verify(mockPersistenceService.saveAnchorData(
-          anchorId: 'test_anchor',
-          transform: any,
-          metadata: any,
+          anchorId: anyNamed('anchorId'),
+          transform: anyNamed('transform'),
+          metadata: anyNamed('metadata'),
         )).called(1);
       });
 
@@ -304,7 +324,7 @@ void main() {
           progress: 0.5,
           calibrationType: 'advanced',
         );
-        
+
         expect(state.progress, 0.5);
         expect(state.calibrationType, 'advanced');
       });
@@ -315,7 +335,7 @@ void main() {
           reason: 'Test reason',
           lostAt: now,
         );
-        
+
         expect(state.reason, 'Test reason');
         expect(state.lostAt, now);
       });
@@ -327,7 +347,7 @@ void main() {
           previousAnchorId: 'previous_123',
           pausedAt: now,
         );
-        
+
         expect(state.previousAnchorPlaced, true);
         expect(state.previousAnchorId, 'previous_123');
         expect(state.pausedAt, now);
@@ -338,7 +358,7 @@ void main() {
           restoringAnchorId: 'restoring_456',
           progress: 0.75,
         );
-        
+
         expect(state.restoringAnchorId, 'restoring_456');
         expect(state.progress, 0.75);
       });

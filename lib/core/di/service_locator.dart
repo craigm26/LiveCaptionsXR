@@ -17,39 +17,44 @@ void setupServiceLocator() {
   sl.registerLazySingleton<HybridLocalizationEngine>(
     () => HybridLocalizationEngine(),
   );
-  
+
   sl.registerLazySingleton<ARAnchorManager>(
     () => ARAnchorManager(),
   );
-  
+
   sl.registerLazySingleton<LocalizationService>(
     () => LocalizationService(),
   );
-  
+
   sl.registerLazySingleton<CameraService>(
     () => CameraService(),
   );
-  
+
   sl.registerLazySingleton<ARSessionPersistenceService>(
     () => ARSessionPersistenceService(),
   );
-  
+
   // Services that depend on cubits need to be registered as factories
   // since cubits are created fresh for each screen
   sl.registerFactory<AudioService>(
-    () => AudioService(sl<SoundDetectionCubit>()),
+    () => AudioService(
+      soundDetectionCubit: sl<SoundDetectionCubit>(),
+      hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+    ),
   );
-  
+
   sl.registerFactory<VisualIdentificationService>(
     () => VisualIdentificationService(sl<VisualIdentificationCubit>()),
   );
-  
+
   // Register cubits as factories (they should be fresh for each usage)
   sl.registerFactory<SoundDetectionCubit>(
     () => SoundDetectionCubit(),
   );
-  
+
   sl.registerFactory<VisualIdentificationCubit>(
-    () => VisualIdentificationCubit(),
+    () => VisualIdentificationCubit(
+      hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+    ),
   );
-} 
+}

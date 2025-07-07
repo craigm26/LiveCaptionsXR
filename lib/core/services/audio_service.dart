@@ -1,15 +1,13 @@
 import 'dart:typed_data';
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
 
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'gemma3n_service.dart';
+import 'hybrid_localization_engine.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
-import '../../features/home/cubit/home_cubit.dart';
 import 'debug_capturing_logger.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
@@ -23,6 +21,7 @@ class AudioService {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   final SoundDetectionCubit soundDetectionCubit;
+  final HybridLocalizationEngine hybridLocalizationEngine;
   final Gemma3nService gemma3nService = Gemma3nService();
   late final VisualIdentificationService visualService;
   late final StereoAudioCapture _audioCapture;
@@ -33,7 +32,10 @@ class AudioService {
   StreamSubscription<StereoAudioFrame>? _captureSub;
   StreamController<SoundEvent>? _soundEventController;
 
-  AudioService(this.soundDetectionCubit) {
+  AudioService({
+    required this.soundDetectionCubit,
+    required this.hybridLocalizationEngine,
+  }) {
     _logger.i('🏗️ Initializing AudioService...');
     _audioCapture = StereoAudioCapture();
     _speechLocalizer = SpeechLocalizer();
@@ -106,12 +108,7 @@ class AudioService {
         
         // AUTOMATED: Update hybrid localization engine after every direction estimate
         try {
-          final homeCubit = WidgetsBinding.instance.renderViewElement != null
-              ? HomeCubit()
-              : null;
-          // Use Provider/Bloc if available in your app context
-          // For now, fallback to a static instance or pass HomeCubit as a dependency
-          await homeCubit?.updateWithAudioMeasurement(
+          await hybridLocalizationEngine.updateWithAudioMeasurement(
             angle: angle,
             confidence: 1.0, // TODO: Use real confidence if available
             deviceTransform: List<double>.filled(16, 0)

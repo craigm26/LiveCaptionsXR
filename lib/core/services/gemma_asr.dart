@@ -2,11 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:gemma3n_multimodal/gemma3n_multimodal.dart';
-import 'package:logger/logger.dart';
 
 import '../models/transcription_result.dart';
-import '../services/hybrid_localization_engine.dart';
-import '../../features/home/cubit/home_cubit.dart';
+import 'hybrid_localization_engine.dart';
 import 'debug_capturing_logger.dart';
 
 /// Streaming Automatic Speech Recognition service using Gemma 3n
@@ -20,12 +18,14 @@ import 'debug_capturing_logger.dart';
 class GemmaASR {
   final Gemma3nMultimodal _plugin = Gemma3nMultimodal();
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  final HybridLocalizationEngine hybridLocalizationEngine;
 
   bool _initialized = false;
   bool _streaming = false;
   late StreamController<TranscriptionResult> _resultController;
   StreamSubscription? _pluginSubscription;
-  Uint8List? _currentVisionContext;
+
+  GemmaASR({required this.hybridLocalizationEngine});
 
   /// Initialize the Gemma 3n ASR model.
   ///
@@ -77,7 +77,6 @@ class GemmaASR {
 
     _streaming = true;
     _resultController = StreamController<TranscriptionResult>.broadcast();
-    _currentVisionContext = visionContext;
 
     // Use multimodal streaming if vision context is provided
     if (visionContext != null) {
@@ -99,9 +98,7 @@ class GemmaASR {
             _logger.i(
                 '🎯 Placing caption at fused speaker position: "${map['text']}"');
             // Place caption at fused speaker position
-            await HomeCubit()
-                .hybridLocalizationEngine
-                .placeCaption(map['text']);
+            await hybridLocalizationEngine.placeCaption(map['text']);
           }
         },
         onError: (e) {
@@ -125,14 +122,12 @@ class GemmaASR {
               text: map['text'] ?? '', isFinal: map['isFinal'] ?? false);
           _logger.i('📝 Audio transcription: "${result.text}" (final: ${result.isFinal})');
           _resultController.add(result);
-          
+
           if (map['isFinal'] == true &&
               (map['text'] as String?)?.isNotEmpty == true) {
             _logger.i('🎯 Placing caption at fused speaker position: "${map['text']}"');
             // Place caption at fused speaker position
-            await HomeCubit()
-                .hybridLocalizationEngine
-                .placeCaption(map['text']);
+            await hybridLocalizationEngine.placeCaption(map['text']);
           }
         },
         onError: (e) {
@@ -154,7 +149,6 @@ class GemmaASR {
   /// Note: The plugin does not support updating the image mid-session.
   /// To use a new image, stop the current stream and start a new one with the new visionContext.
   void setVisionContext(Uint8List image) {
-    _currentVisionContext = image;
     _logger.i('🖼️ GemmaASR vision context updated (${image.length} bytes) - will take effect on next stream start');
   }
 
@@ -164,7 +158,7 @@ class GemmaASR {
       _logger.w('⚠️ No active stream to stop');
       return;
     }
-    
+
     _logger.i('⏹️ Stopping GemmaASR stream');
     _pluginSubscription?.cancel();
     _pluginSubscription = null;
@@ -176,7 +170,7 @@ class GemmaASR {
   /// Parses the plugin result (JSON or Map) into a Map<String, dynamic>.
   Map<String, dynamic> _parseResult(dynamic event) {
     _logger.d('🔍 Parsing result: ${event.runtimeType} - $event');
-    
+
     if (event is Map<String, dynamic>) return event;
     if (event is String) {
       try {
