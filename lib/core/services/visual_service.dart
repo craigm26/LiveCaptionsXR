@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
+import 'debug_capturing_logger.dart';
 
 /// Represents the location and state of an identified speaker.
 class SpeakerInfo {
@@ -24,16 +25,7 @@ class SpeakerInfo {
 class VisualService {
   static const _channel = MethodChannel('com.craig.livecaptions/visual');
 
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   final _speakerController = StreamController<SpeakerInfo?>.broadcast();
   bool _isDetecting = false;
@@ -45,7 +37,10 @@ class VisualService {
   Stream<SpeakerInfo?> get speakerStream => _speakerController.stream;
 
   VisualService() {
+    _logger.i('🏗️ Initializing VisualService...');
+    _logger.d('Setting up method channel handler...');
     _channel.setMethodCallHandler(_handleMethodCall);
+    _logger.d('✅ VisualService initialized successfully');
   }
 
   /// Starts the visual speaker detection process.

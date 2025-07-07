@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
+import 'debug_capturing_logger.dart';
 
 /// Model for AR anchor info.
 class ARAnchorInfo {
@@ -19,16 +20,7 @@ class ARAnchorInfo {
 class ARAnchorManager {
   static const MethodChannel _methodChannel =
       MethodChannel('live_captions_xr/ar_anchor_methods');
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   /// Create an AR anchor at a given horizontal angle (radians) and distance (meters) from the camera.
   /// Returns the anchor identifier.

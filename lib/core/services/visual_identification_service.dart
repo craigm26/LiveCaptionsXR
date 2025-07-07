@@ -3,6 +3,7 @@ import '../models/visual_object.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'gemma3n_service.dart';
 import 'dart:ui';
+import 'debug_capturing_logger.dart';
 
 /// Visual identification service demonstrating Gemma 3n vision integration
 /// 
@@ -11,25 +12,39 @@ import 'dart:ui';
 /// 
 /// For Google Gemma 3n Hackathon: Demonstrates vision component of multimodal AI
 class VisualIdentificationService {
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  
   final VisualIdentificationCubit visualIdentificationCubit;
   final Gemma3nService gemma3nService = Gemma3nService();
   bool _modelLoaded = false;
 
   /// Default constructor for dependency injection
-  VisualIdentificationService(this.visualIdentificationCubit);
+  VisualIdentificationService(this.visualIdentificationCubit) {
+    _logger.i('🏗️ Initializing VisualIdentificationService with provided cubit...');
+  }
   
   /// Constructor for standalone use (needed for AudioService integration)
-  VisualIdentificationService.standalone() : visualIdentificationCubit = VisualIdentificationCubit();
+  VisualIdentificationService.standalone() : visualIdentificationCubit = VisualIdentificationCubit() {
+    _logger.i('🏗️ Initializing VisualIdentificationService in standalone mode...');
+  }
 
   /// Initialize Gemma 3n vision model
   Future<void> start() async {
+    _logger.i('🚀 Starting VisualIdentificationService...');
+    _logger.d('Model loaded state: $_modelLoaded');
+    
     if (!_modelLoaded) {
       try {
+        _logger.i('👁️ Loading Gemma 3n vision model...');
+        _logger.d('Loading model from: assets/models/gemma3n_vision.tflite');
+        
         await gemma3nService.loadModel('assets/models/gemma3n_vision.tflite');
         _modelLoaded = true;
-        print('✅ Gemma 3n vision model loaded successfully');
-      } catch (e) {
-        print('⚠️ Gemma 3n vision model unavailable: $e');
+        _logger.i('✅ Gemma 3n vision model loaded successfully');
+        
+      } catch (e, stackTrace) {
+        _logger.e('❌ Gemma 3n vision model loading failed', error: e, stackTrace: stackTrace);
+        _logger.w('⚠️ Gemma 3n vision model unavailable, using fallback...');
         await _loadFallbackVisionModel();
       }
     }

@@ -5,22 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 
 import '../models/speech_result.dart';
+import 'debug_capturing_logger.dart';
 
 /// Service for processing speech using Gemma 3 multimodal capabilities
 class SpeechProcessor {
   static const _channel = MethodChannel('gemma3n_multimodal');
   static const _stream = EventChannel('gemma3n_multimodal_stream');
 
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   StreamSubscription? _streamSubscription;
   final StreamController<SpeechResult> _speechResultController =

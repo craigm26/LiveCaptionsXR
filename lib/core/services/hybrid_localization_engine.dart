@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
+import 'debug_capturing_logger.dart';
 
 /// Dart wrapper for the native HybridLocalizationEngine (iOS/Android).
 /// Provides Kalman filter fusion of audio, vision, and IMU for AR anchor placement.
@@ -7,16 +8,7 @@ class HybridLocalizationEngine {
   static const MethodChannel _channel =
       MethodChannel('live_captions_xr/hybrid_localization_methods');
 
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   /// Predict step (advances state based on elapsed time).
   Future<void> predict() async {

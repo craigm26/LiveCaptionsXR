@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import '../models/transcription_result.dart';
 import '../services/hybrid_localization_engine.dart';
 import '../../features/home/cubit/home_cubit.dart';
+import 'debug_capturing_logger.dart';
 
 /// Streaming Automatic Speech Recognition service using Gemma 3n
 /// with multimodal (audio + visual) capabilities.
@@ -18,16 +19,7 @@ import '../../features/home/cubit/home_cubit.dart';
 /// of partial and final transcripts.
 class GemmaASR {
   final Gemma3nMultimodal _plugin = Gemma3nMultimodal();
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   bool _initialized = false;
   bool _streaming = false;
