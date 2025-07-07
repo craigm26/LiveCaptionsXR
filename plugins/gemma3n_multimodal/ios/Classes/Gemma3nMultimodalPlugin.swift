@@ -13,6 +13,16 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
   private var audioBuffer: [Float] = []
   private let maxBufferSize = 16000 * 2 // 2 seconds at 16kHz
   
+  // Configurable speech processing parameters
+  private var voiceActivityThreshold: Float = 0.01
+  private var finalResultThreshold: Float = 0.005
+  private var bufferSizeMs: Int = 2000
+  private var interimResultIntervalMs: Int = 1000
+  private var finalResultIntervalMs: Int = 3000
+  private var currentLanguage: String = "en"
+  private var enableLanguageDetection: Bool = false
+  private var enableRealTimeEnhancement: Bool = true
+  
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "gemma3n_multimodal", binaryMessenger: registrar.messenger())
     let stream = FlutterEventChannel(name: "gemma3n_multimodal_stream", binaryMessenger: registrar.messenger())
@@ -282,8 +292,12 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       stopAudioCapture(result)
     case "processAudioChunk":
       processAudioChunk(call, result: result)
+    case "updateConfig":
+      updateSpeechConfig(call, result: result)
     case "generateText":
       generateText(call, result: result)
+    case "getASRCapabilities":
+      getASRCapabilities(result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -333,8 +347,13 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       return
     }
     
+    // Apply configuration if provided
+    if let config = args["config"] as? [String: Any] {
+      updateConfigFromMap(config)
+    }
+    
     // Stream setup successful - the actual transcription will happen in processAudioChunk
-    print("✅ Transcription stream set up successfully")
+    print("✅ Transcription stream set up successfully with config")
   }
 
   private func handleStreamMultimodal(_ args: [String: Any]) {
@@ -419,7 +438,13 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
     let channels = args["channels"] as? Int ?? 1
     let format = args["format"] as? String ?? "pcm16"
     
+    // Apply configuration if provided
+    if let config = args["config"] as? [String: Any] {
+      updateConfigFromMap(config)
+    }
+    
     print("🎤 Starting audio capture - sampleRate: \(sampleRate), channels: \(channels), format: \(format)")
+    print("📋 Voice activity threshold: \(voiceActivityThreshold), language: \(currentLanguage)")
     print("✅ Stream handler available: \(eventSink != nil)")
     
     isCapturingAudio = true
@@ -447,30 +472,41 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       return
     }
     
+    // Apply configuration if provided
+    if let config = args["config"] as? [String: Any] {
+      updateConfigFromMap(config)
+    }
+    
     let floats = convertPcm16ToFloat32(audioData.data)
     audioBuffer.append(contentsOf: floats)
     
     print("📊 Audio chunk processed: \(floats.count) samples, buffer total: \(audioBuffer.count)")
     
+    // Calculate intervals based on sample rate
+    let sampleRate = 16000
+    let interimSamples = (interimResultIntervalMs * sampleRate) / 1000
+    let finalSamples = (finalResultIntervalMs * sampleRate) / 1000
+    
     // Process transcription when we have enough audio data
-    if audioBuffer.count >= 16000 { // Process every 1 second of audio at 16kHz
+    if audioBuffer.count >= interimSamples {
       // Send speech result to stream if we have a listener
       if let eventSink = self.eventSink {
         print("🎤 Processing audio buffer with \(audioBuffer.count) samples")
         
-        // TODO: Replace with actual Gemma 3 speech processing
-        // For now, simulate speech recognition results until Gemma 3 ASR is implemented
+        // TODO: Replace with actual Gemma 3 ASR when available
+        // For now, simulate speech recognition results with configurable thresholds
         let audioLevel = calculateAudioLevel(audioBuffer)
-        let hasVoiceActivity = audioLevel > 0.01 // Simple voice activity detection
+        let hasVoiceActivity = audioLevel > voiceActivityThreshold
         
         if hasVoiceActivity {
           let speechResult: [String: Any] = [
             "type": "speechResult",
-            "text": "Speech detected (level: \(String(format: "%.3f", audioLevel)))",
+            "text": generateSimulatedSpeechText(audioLevel: audioLevel),
             "confidence": min(0.9, audioLevel * 10), // Scale audio level to confidence
             "isFinal": false,
             "timestamp": Int(Date().timeIntervalSince1970 * 1000),
-            "audioLevel": audioLevel
+            "audioLevel": audioLevel,
+            "language": currentLanguage
           ]
           
           print("📤 Sending interim speech result: confidence=\(speechResult["confidence"] ?? 0)")
@@ -478,20 +514,21 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
             eventSink(speechResult)
           }
         } else {
-          print("🔇 No significant voice activity detected (level: \(String(format: "%.3f", audioLevel)))")
+          print("🔇 No significant voice activity detected (level: \(String(format: "%.3f", audioLevel)), threshold: \(voiceActivityThreshold))")
         }
         
-        // Every 3 seconds, send a final result if there was voice activity
-        if audioBuffer.count >= 48000 { // 3 seconds
+        // Send final result based on configured interval
+        if audioBuffer.count >= finalSamples {
           let avgLevel = calculateAudioLevel(audioBuffer)
-          if avgLevel > 0.005 { // Threshold for final result
+          if avgLevel > finalResultThreshold {
             let finalResult: [String: Any] = [
               "type": "speechResult", 
-              "text": "Final speech segment (3sec avg level: \(String(format: "%.3f", avgLevel)))",
+              "text": generateSimulatedSpeechText(audioLevel: avgLevel, isFinal: true),
               "confidence": min(0.95, avgLevel * 12),
               "isFinal": true,
               "timestamp": Int(Date().timeIntervalSince1970 * 1000),
-              "audioLevel": avgLevel
+              "audioLevel": avgLevel,
+              "language": currentLanguage
             ]
             
             print("✅ Sending final speech result")
@@ -499,7 +536,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
               eventSink(finalResult)
             }
           } else {
-            print("🔇 No final result sent - insufficient voice activity")
+            print("🔇 No final result sent - insufficient voice activity (level: \(String(format: "%.3f", avgLevel)), threshold: \(finalResultThreshold))")
           }
           
           // Clear buffer after final result
@@ -511,9 +548,10 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       }
     }
     
-    // If buffer is getting too large, trim it to prevent memory issues
-    if audioBuffer.count > maxBufferSize {
-      let keepSize = maxBufferSize / 2
+    // Dynamic buffer size based on configuration
+    let maxConfiguredBufferSize = (bufferSizeMs * 16000) / 1000
+    if audioBuffer.count > maxConfiguredBufferSize {
+      let keepSize = maxConfiguredBufferSize / 2
       print("⚠️ Audio buffer too large (\(audioBuffer.count)), trimming to \(keepSize)")
       audioBuffer = Array(audioBuffer.suffix(keepSize))
     }
@@ -541,6 +579,87 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       ])
     } catch {
       result(FlutterError(code: "INFERENCE_FAILED", message: error.localizedDescription, details: nil))
+    }
+  }
+  
+  /// Update speech processing configuration
+  private func updateSpeechConfig(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any],
+          let config = args["config"] as? [String: Any] else {
+      result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing config", details: nil))
+      return
+    }
+    
+    updateConfigFromMap(config)
+    
+    print("📋 Updated speech config: VAD=\(voiceActivityThreshold), Lang=\(currentLanguage)")
+    result(nil)
+  }
+  
+  /// Update configuration from map
+  private func updateConfigFromMap(_ config: [String: Any]) {
+    if let threshold = config["voiceActivityThreshold"] as? Double {
+      voiceActivityThreshold = Float(threshold)
+    }
+    if let threshold = config["finalResultThreshold"] as? Double {
+      finalResultThreshold = Float(threshold)
+    }
+    if let bufferMs = config["bufferSizeMs"] as? Int {
+      bufferSizeMs = bufferMs
+    }
+    if let intervalMs = config["interimResultIntervalMs"] as? Int {
+      interimResultIntervalMs = intervalMs
+    }
+    if let intervalMs = config["finalResultIntervalMs"] as? Int {
+      finalResultIntervalMs = intervalMs
+    }
+    if let language = config["language"] as? String {
+      currentLanguage = language
+    }
+    if let enabled = config["enableLanguageDetection"] as? Bool {
+      enableLanguageDetection = enabled
+    }
+    if let enabled = config["enableRealTimeEnhancement"] as? Bool {
+      enableRealTimeEnhancement = enabled
+    }
+  }
+  
+  /// Get ASR capabilities
+  private func getASRCapabilities(_ result: @escaping FlutterResult) {
+    result([
+      "supportsRealTimeASR": false, // Will be true when Gemma 3 ASR is fully implemented
+      "supportsLanguageDetection": enableLanguageDetection,
+      "supportsConfigurableThresholds": true,
+      "supportedLanguages": ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ar"],
+      "currentLanguage": currentLanguage,
+      "voiceActivityThreshold": voiceActivityThreshold,
+      "finalResultThreshold": finalResultThreshold,
+      "bufferSizeMs": bufferSizeMs
+    ])
+  }
+  
+  /// Generate simulated speech text based on audio characteristics
+  private func generateSimulatedSpeechText(audioLevel: Float, isFinal: Bool = false) -> String {
+    // TODO: Replace with actual Gemma 3 ASR transcription
+    let intensity = audioLevel > 0.05 ? "strong" : audioLevel > 0.02 ? "moderate" : "weak"
+    let type = isFinal ? "Final" : "Interim"
+    
+    // Simulate language-specific patterns
+    switch currentLanguage {
+    case "es":
+      return "\(type) transcripción detectada (\(intensity) nivel: \(String(format: "%.3f", audioLevel)))"
+    case "fr":
+      return "\(type) transcription détectée (\(intensity) niveau: \(String(format: "%.3f", audioLevel)))"
+    case "de":
+      return "\(type) Transkription erkannt (\(intensity) Stufe: \(String(format: "%.3f", audioLevel)))"
+    case "it":
+      return "\(type) trascrizione rilevata (\(intensity) livello: \(String(format: "%.3f", audioLevel)))"
+    case "pt":
+      return "\(type) transcrição detectada (\(intensity) nível: \(String(format: "%.3f", audioLevel)))"
+    case "zh":
+      return "\(type) 检测到转录 (\(intensity) 级别: \(String(format: "%.3f", audioLevel)))"
+    default: // en
+      return "\(type) speech detected (\(intensity) level: \(String(format: "%.3f", audioLevel)))"
     }
   }
 }
