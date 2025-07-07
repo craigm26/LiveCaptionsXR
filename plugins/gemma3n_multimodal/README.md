@@ -77,6 +77,26 @@ plugin.streamMultimodal(audio: audioBytes, image: imageBytes, text: 'Describe th
 });
 ```
 
+### Audio Capture Methods
+```dart
+// Start audio capture for speech processing
+await plugin.startAudioCapture(sampleRate: 16000, channels: 1, format: 'pcm16');
+
+// Process audio chunks
+await plugin.processAudioChunk(audioBytes);
+
+// Stop audio capture
+await plugin.stopAudioCapture();
+```
+
+### Text Generation
+```dart
+final result = await plugin.generateText('Enhance this text: "hello world"', maxTokens: 100);
+if (result['success']) {
+  print('Generated: ${result['text']}');
+}
+```
+
 ---
 
 ## Example: Live ASR

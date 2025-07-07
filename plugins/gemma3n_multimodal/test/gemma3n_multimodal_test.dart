@@ -60,6 +60,20 @@ void main() {
               throw PlatformException(code: 'INVALID_ARGUMENT', message: 'No input');
             }
             return 'multimodal result';
+          case 'startAudioCapture':
+            return null;
+          case 'stopAudioCapture':
+            return null;
+          case 'processAudioChunk':
+            if (methodCall.arguments['audioData'] == null) {
+              throw PlatformException(code: 'NOT_READY', message: 'Audio capture not started or missing audio data');
+            }
+            return null;
+          case 'generateText':
+            if (methodCall.arguments['prompt'] == null) {
+              throw PlatformException(code: 'INVALID_ARGUMENT', message: 'Missing prompt or model not loaded');
+            }
+            return {'success': true, 'text': 'generated text result'};
           default:
             throw PlatformException(code: 'NOT_IMPLEMENTED', message: 'Not implemented');
         }
@@ -159,6 +173,73 @@ void main() {
         throwsA(isA<PlatformException>()),
       );
       _FakeEventChannel.clear();
+    });
+  });
+
+  // Tests for new audio capture methods
+  group('audio capture methods', () {
+    test('startAudioCapture succeeds', () async {
+      const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+      final plugin = Gemma3nMultimodal();
+
+      // This should not throw since we added startAudioCapture to the mock
+      await channel.invokeMethod('startAudioCapture', {
+        'sampleRate': 16000,
+        'channels': 1,
+        'format': 'pcm16',
+      });
+    });
+
+    test('stopAudioCapture succeeds', () async {
+      const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+      final plugin = Gemma3nMultimodal();
+
+      // This should not throw since we added stopAudioCapture to the mock
+      await channel.invokeMethod('stopAudioCapture');
+    });
+
+    test('processAudioChunk succeeds with audio data', () async {
+      const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+      final plugin = Gemma3nMultimodal();
+      final audioData = Uint8List.fromList([1, 2, 3, 4]);
+
+      // This should not throw since we added processAudioChunk to the mock
+      await channel.invokeMethod('processAudioChunk', {
+        'audioData': audioData,
+        'sampleRate': 16000,
+      });
+    });
+
+    test('processAudioChunk throws on missing audio data', () async {
+      const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+
+      expect(
+        () => channel.invokeMethod('processAudioChunk', {}),
+        throwsA(isA<PlatformException>()),
+      );
+    });
+
+    test('generateText succeeds with prompt', () async {
+      const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+      final plugin = Gemma3nMultimodal();
+
+      final result = await channel.invokeMethod('generateText', {
+        'prompt': 'Test prompt',
+        'maxTokens': 100,
+        'temperature': 0.3,
+      });
+
+      expect(result['success'], true);
+      expect(result['text'], 'generated text result');
+    });
+
+    test('generateText throws on missing prompt', () async {
+      const MethodChannel channel = MethodChannel('gemma3n_multimodal');
+
+      expect(
+        () => channel.invokeMethod('generateText', {}),
+        throwsA(isA<PlatformException>()),
+      );
     });
   });
 }
