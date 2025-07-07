@@ -40,13 +40,27 @@ class Gemma3nMultimodal {
     return await _channel.invokeMethod<String>('getPlatformVersion');
   }
 
-  /// Transcribes audio using the native model.
+  /// Transcribes audio using the hybrid ASR implementation.
   ///
-  /// [audioBytes] should be a PCM-encoded audio buffer.
+  /// [audio] should be a PCM-encoded audio buffer.
+  /// [isFinal] indicates if this is a final or interim transcription.
+  /// [language] specifies the target language (default: 'en').
+  /// [useNativeSpeechRecognition] enables native platform ASR (default: true).
+  /// [enableRealTimeEnhancement] enables Gemma 3n enhancement (default: true).
   /// Returns the transcription result as a [String].
-  Future<String> transcribeAudio(Uint8List audioBytes) async {
+  Future<String> transcribeAudio({
+    required Uint8List audio,
+    bool isFinal = false,
+    String language = 'en',
+    bool useNativeSpeechRecognition = true,
+    bool enableRealTimeEnhancement = true,
+  }) async {
     final result = await _channel.invokeMethod<String>('transcribeAudio', {
-      'audio': audioBytes,
+      'audio': audio,
+      'isFinal': isFinal,
+      'language': language,
+      'useNativeSpeechRecognition': useNativeSpeechRecognition,
+      'enableRealTimeEnhancement': enableRealTimeEnhancement,
     });
     if (result == null) {
       throw PlatformException(
@@ -55,6 +69,15 @@ class Gemma3nMultimodal {
       );
     }
     return result;
+  }
+
+  /// Legacy transcribes audio method for backward compatibility.
+  ///
+  /// [audioBytes] should be a PCM-encoded audio buffer.
+  /// Returns the transcription result as a [String].
+  @Deprecated('Use transcribeAudio with named parameters instead')
+  Future<String> transcribeAudioLegacy(Uint8List audioBytes) async {
+    return transcribeAudio(audio: audioBytes, isFinal: true);
   }
 
   /// Runs multimodal inference using the native model.
@@ -161,5 +184,36 @@ class Gemma3nMultimodal {
       'topP': topP,
     });
     return Map<String, dynamic>.from(result);
+  }
+
+  /// Configure ASR settings for the plugin.
+  ///
+  /// [language] - Target language for speech recognition (default: 'en')
+  /// [useNativeSpeechRecognition] - Enable native platform ASR (default: true)
+  /// [enableRealTimeEnhancement] - Enable Gemma 3n enhancement (default: true)
+  /// [voiceActivityThreshold] - Voice activity detection threshold (default: 0.01)
+  /// [finalResultThreshold] - Final result confidence threshold (default: 0.005)
+  Future<void> configureASR({
+    String language = 'en',
+    bool useNativeSpeechRecognition = true,
+    bool enableRealTimeEnhancement = true,
+    double voiceActivityThreshold = 0.01,
+    double finalResultThreshold = 0.005,
+  }) async {
+    await _channel.invokeMethod('configureASR', {
+      'language': language,
+      'useNativeSpeechRecognition': useNativeSpeechRecognition,
+      'enableRealTimeEnhancement': enableRealTimeEnhancement,
+      'voiceActivityThreshold': voiceActivityThreshold,
+      'finalResultThreshold': finalResultThreshold,
+    });
+  }
+
+  /// Get ASR capabilities and status.
+  ///
+  /// Returns information about available ASR features and current configuration.
+  Future<Map<String, dynamic>> getASRCapabilities() async {
+    final result = await _channel.invokeMethod('getASRCapabilities');
+    return Map<String, dynamic>.from(result ?? {});
   }
 }
