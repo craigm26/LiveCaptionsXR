@@ -19,6 +19,7 @@ dependencies:
   scidart: ^0.0.2-dev.12
   shared_preferences: ^2.5.3
   logger: ^2.0.2+1
+  url_launcher: ^6.2.2
   gemma3n_multimodal:
     path: plugins/gemma3n_multimodal
   flutter_launcher_icons: ^0.14.4
@@ -46,4 +47,16 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/logos/logo.png
+  web:
+    generate: true
+    image_path: assets/logos/logo.png
+    background_color: "#ffffff"
+    theme_color: "#1E40AF"
+  windows:
+    generate: true
+    image_path: assets/logos/logo.png
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: assets/logos/logo.png
 

@@ -1,13 +1,28 @@
 {
-    "name": "live_captions_xr - Hackathon Demo",
-    "short_name": "live_captions_xr",
+    "name": "LiveCaptionsXR - AI Accessibility Platform",
+    "short_name": "LiveCaptionsXR",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#2196F3",
-    "theme_color": "#2196F3",
-    "description": "Multimodal AI Accessibility for the Deaf and Hard of Hearing - Google Gemma 3n Hackathon Entry",
-    "orientation": "portrait-primary",
+    "background_color": "#ffffff",
+    "theme_color": "#1E40AF",
+    "description": "Real-time AI closed captioning platform for deaf and hard of hearing accessibility. Powered by Gemma 3n multimodal AI with spatial audio awareness.",
+    "orientation": "any",
     "prefer_related_applications": false,
+    "categories": [
+        "accessibility",
+        "education",
+        "productivity"
+    ],
+    "lang": "en",
+    "scope": "/",
+    "screenshots": [
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",

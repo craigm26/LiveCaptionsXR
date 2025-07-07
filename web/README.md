@@ -1,13 +1,32 @@
-# live_captions_xr: Flutter Web Demo
+# LiveCaptionsXR Web Platform
 
-**Interactive Flutter web demonstration of live_captions_xr's multimodal AI captioning capabilities.**
+A modern, interactive web demonstration of the LiveCaptionsXR AI accessibility platform, built with Flutter Web.
 
----
+## 🚀 Recent Improvements
 
-## 🎯 Purpose
+### Enhanced User Experience
+- **Modern Landing Page**: Redesigned home page with animations, gradient backgrounds, and improved typography
+- **Interactive Demo**: Real-time simulation showcasing spatial audio detection and live captioning
+- **Responsive Design**: Optimized for mobile, tablet, and desktop experiences
+- **Smooth Animations**: Micro-interactions and transitions throughout the interface
 
-- **🏆 Hackathon Demonstration**: An interactive showcase for the Google Gemma 3n Hackathon.
-- **📱 Product Visualization**: A comprehensive demonstration of the app's features and user experience.
+### Advanced Features Showcase
+- **Features Gallery**: Comprehensive feature cards with detailed capabilities
+- **Technology Deep Dive**: Tabbed interface exploring AI/ML, audio processing, computer vision, and AR frameworks
+- **Performance Metrics**: Live statistics and technical specifications
+- **Progressive Web App**: Full PWA support with offline capabilities
+
+### Navigation & Accessibility
+- **Enhanced Navigation**: Modern navigation bar with hover effects and active states
+- **Mobile-First Design**: Responsive drawer navigation for mobile devices
+- **Keyboard Navigation**: Full keyboard accessibility support
+- **Screen Reader Support**: Proper ARIA labels and semantic markup
+
+### Technical Implementations
+- **Go Router Integration**: Modern navigation with deep linking support
+- **Animation Controllers**: Smooth page transitions and element animations
+- **Optimized Performance**: Lazy loading and efficient rendering
+- **SEO Optimization**: Complete meta tags and structured data
 - **🧠 Technical Proof**: A live representation of the Gemma 3n and MediaPipe integration.
 
 ## 🚀 How to Experience the Demo
