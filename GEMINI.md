@@ -32,9 +32,14 @@ The core challenge is to accurately place captions in 3D space corresponding to 
 The following MethodChannels are critical for the app's functionality. Gemini should be aware of their purpose when analyzing code or implementing new features.
 
 - `live_captions_xr/ar_navigation`: Used to initiate and manage the transition from the Flutter UI to the native AR view.
+- `live_captions_xr/ar_anchor_methods`: Manages the lifecycle of AR anchors.
 - `live_captions_xr/caption_methods`: The primary channel for sending finalized text and the corresponding 3D transform to the native layer for rendering AR captions.
 - `live_captions_xr/hybrid_localization_methods`: Facilitates communication between the Dart layer and the native Hybrid Localization Engine.
 - `live_captions_xr/visual_object_methods`: Sends information about visually detected objects (e.g., faces) from the native AR view back to the Dart application logic.
+- `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
+- `live_captions_xr/visual_speaker_methods`: Manages the visual identification of speakers.
+- `gemma3n_multimodal`: Handles communication with the Gemma 3n ASR model.
+- `com.craig.livecaptions/visual`: Provides visual data from the camera.
 
 ## 5. Project Structure & Conventions
 

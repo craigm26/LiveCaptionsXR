@@ -49,7 +49,7 @@ Our system features a **Hybrid Localization Engine** that fuses audio, vision, a
 
 ---
 
-## 🚀 Video Demonstration (30 points)
+## 🚀 Video Pitch & Storytelling (30 points)
 
 Our video demonstration is the primary artifact for evaluating the project's impact and functionality. It showcases the real-time, spatially-aware captioning in action, highlighting the user experience and the seamless integration of Gemma 3n.
 
@@ -62,7 +62,7 @@ Our video demonstration is the primary artifact for evaluating the project's imp
 
 ---
 
-## 🎯 Technical Achievements (30 points)
+## 🎯 Technical Depth & Execution (30 points)
 
 ### 1. Robust Multimodal Architecture
 ```
@@ -89,7 +89,7 @@ Our architecture is designed for high-performance, on-device multimodal AI. It i
 ## 🔗 Judge Navigation Guide
 
 ### Primary Documents (Start Here)
-1.  **🎬 Video Demonstration**: Our primary submission artifact, showcasing the project in action.
+1.  **🎬 Video Pitch & Storytelling**: Our primary submission artifact, showcasing the project in action.
 2.  **📄 [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md)** - Main hackathon submission, detailing technical architecture and Gemma 3n integration.
 3.  **🏗️ [ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed system design and architectural patterns.
 

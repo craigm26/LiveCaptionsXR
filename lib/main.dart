@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-
-import 'webDev/app_web.dart';
+import 'package:live_captions_xr/web/app/app_web.dart';
 import 'app.dart';
 import 'core/services/debug_capturing_logger.dart';
 import 'core/services/debug_logger_service.dart';

@@ -1,0 +1,616 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../widgets/nav_bar.dart';
+import '../../utils/testflight_utils.dart';
+
+class TechnologyPage extends StatefulWidget {
+  const TechnologyPage({super.key});
+
+  @override
+  State<TechnologyPage> createState() => _TechnologyPageState();
+}
+
+class _TechnologyPageState extends State<TechnologyPage>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String location = GoRouterState.of(context).location;
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    return Scaffold(
+      appBar: const NavBar(),
+      endDrawer: isMobile ? NavDrawer(location: location) : null,
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildHeroSection(context, isMobile),
+              _buildTechTabs(context, isMobile),
+              _buildArchitectureOverview(context, isMobile),
+              _buildPerformanceMetrics(context, isMobile),
+              _buildCallToAction(context, isMobile),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroSection(BuildContext context, bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24.0 : 48.0,
+        vertical: isMobile ? 48.0 : 80.0,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).primaryColor.withOpacity(0.1),
+            Colors.purple.withOpacity(0.05),
+            Colors.white,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.memory,
+            size: isMobile ? 64 : 80,
+            color: Theme.of(context).primaryColor,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Advanced Technology Stack',
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            constraints:
+                BoxConstraints(maxWidth: isMobile ? double.infinity : 700),
+            child: Text(
+              'Powered by on-device AI, multimodal sensor fusion, and native Augmented Reality frameworks.',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTechTabs(BuildContext context, bool isMobile) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 48.0),
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            labelColor: Theme.of(context).primaryColor,
+            unselectedLabelColor: Colors.grey[600],
+            indicatorColor: Theme.of(context).primaryColor,
+            indicatorWeight: 3,
+            tabs: const [
+              Tab(text: 'AI & ML'),
+              Tab(text: 'Audio & Localization'),
+              Tab(text: 'Computer Vision'),
+              Tab(text: 'Augmented Reality'),
+            ],
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            height: 400,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAISection(),
+                _buildAudioSection(),
+                _buildVisionSection(),
+                _buildARSection(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAISection() {
+    final aiTechnologies = [
+      {
+        'name': 'Google Gemma 3n',
+        'description':
+            'On-device large language model for real-time, streaming speech recognition.',
+        'icon': Icons.psychology,
+        'features': [
+          'On-device inference',
+          'Low latency',
+          'Privacy-first',
+          'Multimodal context'
+        ],
+      },
+      {
+        'name': 'MediaPipe LLM Inference API',
+        'description':
+            'Optimized engine for running large models like Gemma on mobile devices.',
+        'icon': Icons.apps,
+        'features': [
+          'GPU acceleration',
+          'Efficient runtime',
+          'Cross-platform',
+          'Streaming support'
+        ],
+      },
+      {
+        'name': 'Kalman Filter',
+        'description':
+            'Algorithm for fusing noisy sensor data from multiple sources for robust tracking.',
+        'icon': Icons.filter_center_focus,
+        'features': [
+          'Sensor fusion',
+          'Real-time estimation',
+          'Noise reduction',
+          'Predictive tracking'
+        ],
+      },
+    ];
+
+    return _buildTechnologyGrid(aiTechnologies);
+  }
+
+  Widget _buildAudioSection() {
+    final audioTechnologies = [
+      {
+        'name': 'Hybrid Localization Engine',
+        'description':
+            'Custom engine to determine speaker location by fusing audio, vision, and IMU data.',
+        'icon': Icons.hearing,
+        'features': [
+          'Audio-visual fusion',
+          'IMU integration',
+          'High accuracy',
+          'Real-time'
+        ],
+      },
+      {
+        'name': 'AVAudioEngine',
+        'description':
+            'Native iOS framework for real-time stereo audio capture and processing.',
+        'icon': Icons.audiotrack,
+        'features': [
+          'Low-latency capture',
+          'Hardware acceleration',
+          'Stereo processing',
+          'iOS optimized'
+        ],
+      },
+      {
+        'name': 'Direction Estimation (RMS & GCC-PHAT)',
+        'description':
+            'Algorithms applied to stereo audio to estimate the direction of a sound source.',
+        'icon': Icons.graphic_eq,
+        'features': [
+          'Sound source localization',
+          'Noise resilient',
+          'Real-time analysis',
+          'Core of localization'
+        ],
+      },
+    ];
+
+    return _buildTechnologyGrid(audioTechnologies);
+  }
+
+  Widget _buildVisionSection() {
+    final visionTechnologies = [
+      {
+        'name': 'Visual Speaker Identifier',
+        'description':
+            'Custom module to detect faces and identify the current speaker visually.',
+        'icon': Icons.face_retouching_natural,
+        'features': [
+          'Active speaker detection',
+          'Face tracking',
+          'Multimodal context',
+          'Privacy-focused'
+        ],
+      },
+      {
+        'name': 'Apple Vision Framework',
+        'description':
+            'Native iOS framework for high-performance face detection and analysis.',
+        'icon': Icons.visibility,
+        'features': [
+          'Hardware accelerated',
+          'Face detection',
+          'Facial landmark analysis',
+          'iOS optimized'
+        ],
+      },
+    ];
+
+    return _buildTechnologyGrid(visionTechnologies);
+  }
+
+  Widget _buildARSection() {
+    final arTechnologies = [
+      {
+        'name': 'ARKit',
+        'description':
+            'Apple\'s native augmented reality framework for world tracking and scene understanding on iOS.',
+        'icon': Icons.view_in_ar,
+        'features': [
+          'World tracking',
+          'Plane detection',
+          'Light estimation',
+          '3D object rendering'
+        ],
+      },
+      {
+        'name': 'ARCore',
+        'description':
+            'Google\'s native augmented reality framework for world tracking and scene understanding on Android.',
+        'icon': Icons.view_in_ar_outlined,
+        'features': [
+          'World tracking',
+          'Plane detection',
+          'Light estimation',
+          'Cross-platform (Android)'
+        ],
+      },
+      {
+        'name': 'Custom Flutter Plugins',
+        'description':
+            'A robust bridge connecting the Flutter UI with native AR, AI, and sensor processing code.',
+        'icon': Icons.flutter_dash,
+        'features': [
+          'Method & Event Channels',
+          'Native performance',
+          'Seamless integration',
+          'Extensible'
+        ],
+      },
+    ];
+
+    return _buildTechnologyGrid(arTechnologies);
+  }
+
+  Widget _buildTechnologyGrid(List<Map<String, dynamic>> technologies) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 1,
+        childAspectRatio: 3.5,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: technologies.length,
+      itemBuilder: (context, index) {
+        final tech = technologies[index];
+        return Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Icon(
+                  tech['icon'] as IconData,
+                  size: 40,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tech['name'] as String,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tech['description'] as String,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: (tech['features'] as List<String>)
+                            .map((feature) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .primaryColor
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    feature,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context).primaryColor,
+                                        ),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildArchitectureOverview(BuildContext context, bool isMobile) {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 48.0),
+      padding: const EdgeInsets.symmetric(vertical: 48.0),
+      child: Column(
+        children: [
+          Text(
+            'System Architecture',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 800),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Column(
+              children: [
+                _buildArchitectureLayer('Input Layer',
+                    'Camera • Stereo Microphone • IMU', Icons.input),
+                const SizedBox(height: 16),
+                Icon(Icons.arrow_downward, color: Colors.grey[600]),
+                const SizedBox(height: 16),
+                _buildArchitectureLayer(
+                    'Processing Layer',
+                    'Gemma 3n • Hybrid Localization • Native Vision/Audio',
+                    Icons.memory),
+                const SizedBox(height: 16),
+                Icon(Icons.arrow_downward, color: Colors.grey[600]),
+                const SizedBox(height: 16),
+                _buildArchitectureLayer('Output Layer',
+                    'ARKit/ARCore Overlay • Real-time Captions', Icons.output),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArchitectureLayer(
+      String title, String components, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor, size: 32),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  components,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceMetrics(BuildContext context, bool isMobile) {
+    final metrics = [
+      {'metric': 'Latency', 'value': '<100ms', 'icon': Icons.speed},
+      {'metric': 'Accuracy', 'value': '>95%', 'icon': Icons.check_circle},
+      {'metric': 'CPU Usage', 'value': 'Optimized', 'icon': Icons.memory},
+      {'metric': 'Power', 'value': 'Efficient', 'icon': Icons.battery_charging_full},
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16.0 : 48.0,
+        vertical: 48.0,
+      ),
+      color: Colors.grey[50],
+      child: Column(
+        children: [
+          Text(
+            'Performance Goals',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 2 : 4,
+              childAspectRatio: 1.2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+            ),
+            itemCount: metrics.length,
+            itemBuilder: (context, index) {
+              final metric = metrics[index];
+              return Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        metric['icon'] as IconData,
+                        size: 32,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        metric['value'] as String,
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        metric['metric'] as String,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCallToAction(BuildContext context, bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24.0 : 48.0,
+        vertical: 48.0,
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.rocket_launch,
+            size: 48,
+            color: Theme.of(context).primaryColor,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Ready to Experience the Future?',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Download LiveCaptionsXR from TestFlight and experience real-time AR captions.',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: () async {
+                  await TestFlightUtils.openTestFlight();
+                },
+                icon: const Icon(Icons.apple),
+                label: const Text('Download on TestFlight'),
+                style: FilledButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => context.go('/features'),
+                icon: const Icon(Icons.list),
+                label: const Text('View Features'),
+                style: OutlinedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
