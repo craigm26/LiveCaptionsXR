@@ -213,6 +213,13 @@ import Foundation
             print("🚀 Presenting ARViewController...")
             controller.present(arViewController, animated: true, completion: {
                 print("✅ ARViewController presentation completed")
+                
+                // Verify the AR view is actually presented
+                if controller.presentedViewController == arViewController {
+                    print("✅ ARViewController is now the presented view controller")
+                } else {
+                    print("❌ ARViewController presentation may have failed - not the presented view controller")
+                }
             })
         }
     }

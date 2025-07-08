@@ -457,7 +457,11 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         startVisualIdentification(),
       ]);
 
-      // Place anchor after services are started
+      // Give services a moment to fully initialize before placing anchor
+      _logger.i('⏳ Waiting for services to fully initialize before anchor placement...');
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      // Place anchor after services are started and ready
       await placeAutoAnchor();
 
       _logger.i('🎉 All AR mode services started successfully');
