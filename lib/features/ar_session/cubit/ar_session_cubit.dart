@@ -55,8 +55,15 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       emit(const ARSessionInitializing());
 
       // Start AR view using the AR navigation channel
-      await const MethodChannel('live_captions_xr/ar_navigation')
-          .invokeMethod('showARView');
+      _logger.i('🔗 Calling showARView via method channel...');
+      try {
+        await const MethodChannel('live_captions_xr/ar_navigation')
+            .invokeMethod('showARView');
+        _logger.i('✅ AR View method channel call completed successfully');
+      } catch (e) {
+        _logger.e('❌ AR View method channel call failed', error: e);
+        rethrow;
+      }
 
       _logger.i('✅ AR View launched successfully');
 
@@ -66,6 +73,16 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       // Give ARSession a moment to initialize before declaring ready
       _logger.i('⏳ Waiting for ARSession to fully initialize...');
       await Future.delayed(const Duration(milliseconds: 1000));
+
+      // Validate that the AR session is actually ready before declaring it ready
+      _logger.i('🔍 Validating AR session readiness...');
+      try {
+        await _validateARSessionReadiness();
+        _logger.i('✅ AR session validation passed');
+      } catch (e) {
+        _logger.w('⚠️ AR session validation failed, but continuing: $e');
+        // Continue anyway as the session might still work
+      }
 
       final readyState = const ARSessionReady();
       emit(readyState);
@@ -155,6 +172,33 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to restore AR session', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  /// Validate that the AR session is actually ready for operations
+  Future<void> _validateARSessionReadiness() async {
+    try {
+      _logger.i('🔬 Testing AR session availability via anchor methods...');
+      
+      // Try to call a simple method to check if the AR session is available
+      await const MethodChannel('live_captions_xr/ar_anchor_methods')
+          .invokeMethod('getDeviceOrientation');
+      
+      _logger.i('✅ AR session responded to validation call');
+    } on PlatformException catch (e) {
+      if (e.code == 'NO_SESSION') {
+        _logger.e('❌ AR session validation failed: NO_SESSION');
+        throw Exception('AR session not available during validation');
+      } else if (e.code == 'SESSION_NOT_READY') {
+        _logger.w('⚠️ AR session not ready during validation, but may become ready');
+        throw Exception('AR session not ready during validation');
+      } else {
+        _logger.w('⚠️ AR session validation returned unexpected error: ${e.code}');
+        throw Exception('AR session validation failed: ${e.code}');
+      }
+    } catch (e) {
+      _logger.e('❌ AR session validation failed with unexpected error', error: e);
+      throw Exception('AR session validation failed: $e');
     }
   }
 
@@ -304,7 +348,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   Future<void> placeAutoAnchor() async {
     final currentState = state;
     if (currentState is! ARSessionReady) {
-      _logger.w('⚠️ Cannot place anchor - AR session not ready');
+      _logger.w('⚠️ Cannot place anchor - AR session not ready. Current state: ${currentState.runtimeType}');
       return;
     }
 
@@ -322,10 +366,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
         final arAnchorManager = ARAnchorManager();
 
-        _logger.i('🔄 Getting fused transform for automatic anchor placement...');
+        _logger.d('🔄 Requesting fused transform from hybrid localization...');
         final fusedTransform = await _hybridLocalizationEngine.getFusedTransform();
+        _logger.d('✅ Fused transform retrieved successfully - length: ${fusedTransform.length}');
 
-        _logger.i('🌍 Creating AR anchor automatically with fused transform...');
+        _logger.i('🌍 Creating AR anchor at world transform: [${fusedTransform.take(4).map((e) => e.toStringAsFixed(3)).join(', ')}...]');
+        
         final anchorId = await arAnchorManager
             .createAnchorAtWorldTransform(fusedTransform);
 
@@ -344,14 +390,33 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           metadata: {
             'placedAt': DateTime.now().millisecondsSinceEpoch,
             'method': 'auto',
+            'attempt': attempt,
           },
         );
 
         _logger.i('🎉 AR anchor auto-placed successfully: $anchorId');
         return; // Success, exit retry loop
       } catch (e, stackTrace) {
-        _logger.e('❌ Failed to auto-place AR Anchor (attempt $attempt/$maxRetries)',
-            error: e, stackTrace: stackTrace);
+        if (e is PlatformException) {
+          _logger.e('❌ Platform exception during anchor placement (attempt $attempt/$maxRetries): ${e.code} - ${e.message}', error: e);
+          
+          // Add specific handling for different error types
+          switch (e.code) {
+            case 'NO_SESSION':
+              _logger.e('💥 Critical: ARSession not available during anchor placement');
+              break;
+            case 'SESSION_NOT_READY':
+              _logger.w('⏳ ARSession not ready, will retry');
+              break;
+            case 'INVALID_ARGUMENTS':
+              _logger.e('📝 Invalid arguments passed to anchor creation');
+              break;
+            default:
+              _logger.e('🔍 Unknown platform exception: ${e.code}');
+          }
+        } else {
+          _logger.e('❌ Unexpected error during anchor placement (attempt $attempt/$maxRetries)', error: e, stackTrace: stackTrace);
+        }
 
         if (attempt < maxRetries) {
           _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
@@ -374,12 +439,15 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   }) async {
     final currentState = state;
     if (currentState is! ARSessionReady) {
-      _logger.w('⚠️ Cannot start AR services - AR session not ready');
+      _logger.w('⚠️ Cannot start AR services - AR session not ready. Current state: ${currentState.runtimeType}');
       return;
     }
 
     try {
       _logger.i('🚀 Starting all services for AR mode...');
+
+      // Start session health monitoring
+      _startSessionHealthMonitoring();
 
       // Start all services in parallel for better performance
       await Future.wait([
@@ -404,11 +472,55 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     }
   }
 
+  Timer? _sessionHealthTimer;
+
+  /// Start monitoring AR session health
+  void _startSessionHealthMonitoring() {
+    _logger.d('🏥 Starting AR session health monitoring...');
+    
+    _sessionHealthTimer?.cancel();
+    _sessionHealthTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _checkSessionHealth();
+    });
+  }
+
+  /// Check AR session health
+  Future<void> _checkSessionHealth() async {
+    if (state is! ARSessionReady) {
+      _sessionHealthTimer?.cancel();
+      return;
+    }
+
+    try {
+      _logger.d('🔍 Performing AR session health check...');
+      await const MethodChannel('live_captions_xr/ar_anchor_methods')
+          .invokeMethod('getDeviceOrientation');
+      _logger.d('✅ AR session health check passed');
+    } catch (e) {
+      _logger.w('⚠️ AR session health check failed', error: e);
+      
+      if (e is PlatformException && e.code == 'NO_SESSION') {
+        _logger.e('💥 CRITICAL: AR session lost during health check');
+        // Session was lost, emit error state
+        emit(ARSessionError(
+          message: 'AR session was lost during operation',
+          details: 'Session health check failed: ${e.message}',
+          errorCode: 'SESSION_LOST',
+        ));
+      }
+    }
+  }
+
   /// Stop AR session and clean up
   Future<void> stopARSession() async {
     try {
       _logger.i('🛑 Stopping AR session...');
       emit(const ARSessionStopping());
+
+      // Stop session health monitoring
+      _sessionHealthTimer?.cancel();
+      _sessionHealthTimer = null;
+      _logger.d('🏥 AR session health monitoring stopped');
 
       // Clear persisted session data when stopping
       await _persistenceService.clearAllSessionData();

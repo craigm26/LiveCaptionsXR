@@ -34,19 +34,24 @@ import Foundation
         
         // Set up AR navigation method channel
         if let controller = window?.rootViewController as? FlutterViewController {
+            print("📡 Setting up AR navigation method channel...")
             let arNavigationChannel = FlutterMethodChannel(
                 name: "live_captions_xr/ar_navigation",
                 binaryMessenger: controller.binaryMessenger
             )
             
             arNavigationChannel.setMethodCallHandler { [weak self] (call, result) in
+                print("📨 AR navigation method call received: \(call.method)")
                 switch call.method {
                 case "showARView":
+                    print("🎯 Handling showARView method call")
                     self?.showARView(from: controller, result: result)
                 default:
+                    print("❓ Unknown AR navigation method: \(call.method)")
                     result(FlutterMethodNotImplemented)
                 }
             }
+            print("✅ AR navigation method channel setup complete")
             
             // Set up hybrid localization method channel
             let hybridChannel = FlutterMethodChannel(
@@ -141,9 +146,11 @@ import Foundation
     }
     
     private func showARView(from controller: FlutterViewController, result: @escaping FlutterResult) {
+        print("📺 AppDelegate.showARView() called")
         DispatchQueue.main.async {
             // Check if ARKit is available on device
             guard ARWorldTrackingConfiguration.isSupported else {
+                print("❌ ARWorldTrackingConfiguration not supported")
                 result(FlutterError(
                     code: "AR_NOT_SUPPORTED",
                     message: "ARKit is not supported on this device",
@@ -152,21 +159,32 @@ import Foundation
                 return
             }
             
+            print("✅ ARWorldTrackingConfiguration is supported")
+            print("🏗️ Creating ARViewController...")
+            
             // Launch actual ARViewController
             let arViewController = ARViewController()
             arViewController.modalPresentationStyle = .fullScreen
             
             var hasCompleted = false
             
+            print("🔗 Setting up ARViewController session ready callback...")
+            
             // Set completion callback to notify when AR session is truly ready
             arViewController.onSessionReady = { [weak arViewController] in
-                guard !hasCompleted else { return }
+                print("📞 ARViewController.onSessionReady callback triggered")
+                guard !hasCompleted else { 
+                    print("⚠️ Callback already completed, ignoring")
+                    return 
+                }
                 hasCompleted = true
                 
                 // Ensure the session is actually set and ready
                 if ARAnchorManager.arSession != nil {
+                    print("✅ Session ready callback: ARAnchorManager.arSession is available")
                     result(nil)
                 } else {
+                    print("❌ Session ready callback: ARAnchorManager.arSession is nil!")
                     result(FlutterError(
                         code: "SESSION_INIT_FAILED",
                         message: "ARSession failed to initialize properly",
@@ -175,10 +193,16 @@ import Foundation
                 }
             }
             
+            print("⏰ Setting up 5-second timeout for AR session initialization...")
+            
             // Add timeout to prevent hanging if session never becomes ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                guard !hasCompleted else { return }
+                guard !hasCompleted else { 
+                    print("✅ Timeout avoided - session was ready in time")
+                    return 
+                }
                 hasCompleted = true
+                print("⏰ ARSession initialization timed out after 5 seconds")
                 result(FlutterError(
                     code: "SESSION_TIMEOUT",
                     message: "ARSession initialization timed out",
@@ -186,7 +210,10 @@ import Foundation
                 ))
             }
             
-            controller.present(arViewController, animated: true, completion: nil)
+            print("🚀 Presenting ARViewController...")
+            controller.present(arViewController, animated: true, completion: {
+                print("✅ ARViewController presentation completed")
+            })
         }
     }
 }
