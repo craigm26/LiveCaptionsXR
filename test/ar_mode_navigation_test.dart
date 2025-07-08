@@ -7,12 +7,13 @@ import 'package:live_captions_xr/features/ar_session/cubit/ar_session_cubit.dart
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 
+import 'features/ar_session/cubit/ar_session_cubit_test.mocks.dart';
+
 // Generate mocks for testing
 @GenerateMocks([
   ARSessionPersistenceService,
   HybridLocalizationEngine,
 ])
-import 'ar_mode_navigation_test.mocks.dart';
 
 void main() {
   group('AR Mode Navigation Tests', () {

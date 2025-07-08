@@ -16,6 +16,9 @@ import 'package:live_captions_xr/features/home/cubit/home_cubit.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 
+import 'ar_mode_test.mocks.dart';
+import 'features/ar_session/cubit/ar_session_cubit_test.mocks.dart';
+
 // Generate mocks for testing  
 @GenerateMocks([
   ARSessionPersistenceService,
@@ -27,7 +30,6 @@ import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
   SettingsCubit,
   HomeCubit,
 ])
-import 'ar_mode_button_test.mocks.dart';
 
 void main() {
   group('AR Mode Button Integration Tests', () {
@@ -106,25 +108,25 @@ void main() {
           .thenAnswer((_) async => List.filled(16, 1.0));
 
       // Setup cubit initial states
-      when(mockSettingsCubit.state).thenReturn(SettingsState.initial());
+      when(mockSettingsCubit.state).thenReturn(SettingsState());
       when(mockSoundDetectionCubit.isActive).thenReturn(false);
       when(mockLocalizationCubit.isActive).thenReturn(false);
       when(mockVisualIdentificationCubit.isActive).thenReturn(false);
       when(mockLiveCaptionsCubit.isActive).thenReturn(false);
       
       // Setup cubit streams
-      when(mockSettingsCubit.stream).thenAnswer((_) => Stream.value(SettingsState.initial()));
+      when(mockSettingsCubit.stream).thenAnswer((_) => Stream.value(SettingsState()));
       when(mockSoundDetectionCubit.stream).thenAnswer((_) => Stream.empty());
       when(mockLocalizationCubit.stream).thenAnswer((_) => Stream.empty());
       when(mockVisualIdentificationCubit.stream).thenAnswer((_) => Stream.empty());
       when(mockLiveCaptionsCubit.stream).thenAnswer((_) => Stream.empty());
       when(mockHomeCubit.stream).thenAnswer((_) => Stream.empty());
-
+      
       // Setup service start methods
       when(mockSoundDetectionCubit.start()).thenAnswer((_) async {});
       when(mockLocalizationCubit.start()).thenAnswer((_) async {});
       when(mockVisualIdentificationCubit.start()).thenAnswer((_) async {});
-      when(mockLiveCaptionsCubit.start()).thenAnswer((_) async {});
+      when(mockLiveCaptionsCubit.startLiveCaptions()).thenAnswer((_) async {});
 
       // Create AR session cubit
       final arSessionCubit = ARSessionCubit(
@@ -202,8 +204,8 @@ void main() {
 
       // Setup mock behaviors
       when(mockPersistenceService.restoreSessionState()).thenAnswer((_) async => null);
-      when(mockSettingsCubit.state).thenReturn(SettingsState.initial());
-      when(mockSettingsCubit.stream).thenAnswer((_) => Stream.value(SettingsState.initial()));
+      when(mockSettingsCubit.state).thenReturn(SettingsState());
+      when(mockSettingsCubit.stream).thenAnswer((_) => Stream.value(SettingsState()));
       when(mockSoundDetectionCubit.stream).thenAnswer((_) => Stream.empty());
       when(mockLocalizationCubit.stream).thenAnswer((_) => Stream.empty());
       when(mockVisualIdentificationCubit.stream).thenAnswer((_) => Stream.empty());

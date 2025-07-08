@@ -403,10 +403,13 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           // Add specific handling for different error types
           switch (e.code) {
             case 'NO_SESSION':
-              _logger.e('💥 Critical: ARSession not available during anchor placement');
-              break;
             case 'SESSION_NOT_READY':
-              _logger.w('⏳ ARSession not ready, will retry');
+              _logger.w('⏳ ARSession not ready, will retry. Error: ${e.code}');
+              if (attempt < maxRetries) {
+                _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+                await Future.delayed(retryDelay);
+                continue; // Continue to the next attempt immediately
+              }
               break;
             case 'INVALID_ARGUMENTS':
               _logger.e('📝 Invalid arguments passed to anchor creation');
@@ -457,10 +460,6 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         startVisualIdentification(),
       ]);
 
-      // Give services a moment to fully initialize before placing anchor
-      _logger.i('⏳ Waiting for services to fully initialize before anchor placement...');
-      await Future.delayed(const Duration(milliseconds: 1000));
-      
       // Place anchor after services are started and ready
       await placeAutoAnchor();
 

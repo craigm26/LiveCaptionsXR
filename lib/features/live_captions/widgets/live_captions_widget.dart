@@ -303,46 +303,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context, LiveCaptionsState state) {
-    String message;
-    Color color;
 
-    if (state is LiveCaptionsInitial) {
-      message = 'Tap play to start live captions';
-      color = Colors.grey;
-    } else if (state is LiveCaptionsLoading) {
-      message = 'Initializing speech recognition...';
-      color = Colors.orange;
-    } else if (state is LiveCaptionsError) {
-      message = 'Error: ${state.message}';
-      color = Colors.red;
-    } else if (state is LiveCaptionsActive && !state.isListening) {
-      message = 'Captions ready - tap play to start';
-      color = Colors.blue;
-    } else {
-      message = 'Listening for speech...';
-      color = Colors.green;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha((255 * 0.6).round()),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withAlpha((255 * 0.4).round()),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: color,
-              fontStyle: FontStyle.italic,
-            ),
-      ),
-    );
-  }
 
   Widget _buildCaptionHistory(BuildContext context, LiveCaptionsState state) {
     if (state is! LiveCaptionsActive || state.captions.isEmpty) {
@@ -362,6 +323,28 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
           final caption = state.captions[index];
           return _buildHistoryItem(context, caption, index);
         },
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(
+      BuildContext context, LiveCaptionsState state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha((255 * 0.8).round()),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.withAlpha((255 * 0.6).round()),
+          width: 2,
+        ),
+      ),
+      child: Text(
+        'Waiting for captions...',
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Colors.white,
+              fontSize: 18,
+            ),
       ),
     );
   }

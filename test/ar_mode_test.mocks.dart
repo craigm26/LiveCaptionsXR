@@ -268,6 +268,10 @@ class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
         ),
         returnValueForMissingStub: null,
       );
+
+  startLiveCaptions() {}
+
+  start() {}
 }
 
 /// A class which mocks [SoundDetectionCubit].

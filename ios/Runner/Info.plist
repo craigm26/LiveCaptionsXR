@@ -26,29 +26,29 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required for visual speaker identification.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location access helps improve audio-visual localization accuracy.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is required for audio capture and speech processing.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access allows saving captured AR sessions.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech recognition is used to convert speech to text for live captions.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-        <key>NSCameraUsageDescription</key>
-        <string>Camera access is required for visual speaker identification.</string>
-        <key>NSMicrophoneUsageDescription</key>
-        <string>Microphone access is required for audio capture and speech processing.</string>
-        <key>NSSpeechRecognitionUsageDescription</key>
-        <string>Speech recognition is used to convert speech to text for live captions.</string>
-        <key>NSLocationWhenInUseUsageDescription</key>
-        <string>Location access helps improve audio-visual localization accuracy.</string>
-        <key>NSPhotoLibraryUsageDescription</key>
-        <string>Photo library access allows saving captured AR sessions.</string>
-        <key>UIBackgroundModes</key>
-        <array>
-        	<string>audio</string>
-        </array>
-        <key>UISupportedInterfaceOrientations</key>
-        <array>
-                <string>UIInterfaceOrientationPortrait</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
