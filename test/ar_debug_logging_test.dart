@@ -8,11 +8,12 @@ import 'package:live_captions_xr/features/ar_session/cubit/ar_session_state.dart
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 
+import 'features/ar_session/cubit/ar_session_cubit_test.mocks.dart';
+
 @GenerateMocks([
   HybridLocalizationEngine,
   ARSessionPersistenceService,
 ])
-import 'ar_debug_logging_test.mocks.dart';
 
 void main() {
   group('AR Session Debug Logging Tests', () {
