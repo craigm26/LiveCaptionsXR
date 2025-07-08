@@ -429,8 +429,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                       
-                      // Initialize AR session using the cubit
-                      await arSessionCubit.initializeARSession();
+                      // Initialize AR session using the cubit (start fresh, don't restore from backup)
+                      await arSessionCubit.initializeARSession(restoreFromPersistence: false);
                       
                       // Check if AR session initialization succeeded
                       if (!arSessionCubit.isReady) {
