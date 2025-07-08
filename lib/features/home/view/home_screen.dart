@@ -413,12 +413,61 @@ class _HomeScreenState extends State<HomeScreen> {
                     
                     final arSessionCubit = context.read<ARSessionCubit>();
                     
-                    // Initialize AR session using the cubit
-                    await arSessionCubit.initializeARSession();
-                    
-                    // Start all services if AR session is ready
-                    if (arSessionCubit.isReady) {
+                    try {
+                      // Show loading indicator to user
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              SizedBox(width: 16),
+                              Text('🥽 Entering AR Mode...'),
+                            ],
+                          ),
+                          backgroundColor: Colors.blue,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                      
+                      // Initialize AR session using the cubit
+                      await arSessionCubit.initializeARSession();
+                      
+                      // Check if AR session initialization succeeded
+                      if (!arSessionCubit.isReady) {
+                        _logger.w('⚠️ AR session not ready after initialization');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('❌ Failed to enter AR mode. Please try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      // Give additional time for AR view to be fully presented
+                      _logger.i('⏳ Waiting for AR view to be fully presented...');
+                      await Future.delayed(const Duration(milliseconds: 1500));
+                      
+                      // Start all services if AR session is ready
+                      _logger.i('🚀 Starting all services for AR mode...');
                       await _startAllServicesForARMode();
+                      
+                      _logger.i('🎉 Successfully entered AR mode with all services');
+                      
+                      // Hide the loading snackbar
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      
+                    } catch (e, stackTrace) {
+                      _logger.e('❌ Failed to enter AR mode', error: e, stackTrace: stackTrace);
+                      
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('❌ Failed to enter AR mode: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                          duration: Duration(seconds: 5),
+                        ),
+                      );
                     }
                   },
                   tooltip: 'Enter AR Mode',
