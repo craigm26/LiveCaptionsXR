@@ -439,12 +439,15 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   }) async {
     final currentState = state;
     if (currentState is! ARSessionReady) {
-      _logger.w('⚠️ Cannot start AR services - AR session not ready');
+      _logger.w('⚠️ Cannot start AR services - AR session not ready. Current state: ${currentState.runtimeType}');
       return;
     }
 
     try {
       _logger.i('🚀 Starting all services for AR mode...');
+
+      // Start session health monitoring
+      _startSessionHealthMonitoring();
 
       // Start all services in parallel for better performance
       await Future.wait([
@@ -469,11 +472,55 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     }
   }
 
+  Timer? _sessionHealthTimer;
+
+  /// Start monitoring AR session health
+  void _startSessionHealthMonitoring() {
+    _logger.d('🏥 Starting AR session health monitoring...');
+    
+    _sessionHealthTimer?.cancel();
+    _sessionHealthTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _checkSessionHealth();
+    });
+  }
+
+  /// Check AR session health
+  Future<void> _checkSessionHealth() async {
+    if (state is! ARSessionReady) {
+      _sessionHealthTimer?.cancel();
+      return;
+    }
+
+    try {
+      _logger.d('🔍 Performing AR session health check...');
+      await const MethodChannel('live_captions_xr/ar_anchor_methods')
+          .invokeMethod('getDeviceOrientation');
+      _logger.d('✅ AR session health check passed');
+    } catch (e) {
+      _logger.w('⚠️ AR session health check failed', error: e);
+      
+      if (e is PlatformException && e.code == 'NO_SESSION') {
+        _logger.e('💥 CRITICAL: AR session lost during health check');
+        // Session was lost, emit error state
+        emit(ARSessionError(
+          message: 'AR session was lost during operation',
+          details: 'Session health check failed: ${e.message}',
+          errorCode: 'SESSION_LOST',
+        ));
+      }
+    }
+  }
+
   /// Stop AR session and clean up
   Future<void> stopARSession() async {
     try {
       _logger.i('🛑 Stopping AR session...');
       emit(const ARSessionStopping());
+
+      // Stop session health monitoring
+      _sessionHealthTimer?.cancel();
+      _sessionHealthTimer = null;
+      _logger.d('🏥 AR session health monitoring stopped');
 
       // Clear persisted session data when stopping
       await _persistenceService.clearAllSessionData();
