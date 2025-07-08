@@ -41,24 +41,25 @@ class WebNavigationBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'live_captions_xr',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
-                        ),
+                        'Live Captions XR',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).primaryColor,
+                                ),
                       ),
                       Text(
                         'Real-Time Closed Captioning for Accessibility',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                              color: Colors.grey[600],
+                            ),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            
+
             // Navigation Items
             Flexible(
               child: SingleChildScrollView(
@@ -140,18 +141,18 @@ class _NavItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: isActive 
+            color: isActive
                 ? Theme.of(context).primaryColor.withAlpha((255 * 0.1).round())
                 : null,
           ),
           child: Text(
             title,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-              color: isActive 
-                  ? Theme.of(context).primaryColor
-                  : Theme.of(context).textTheme.bodyLarge?.color,
-            ),
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  color: isActive
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).textTheme.bodyLarge?.color,
+                ),
           ),
         ),
       ),

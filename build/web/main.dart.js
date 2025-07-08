@@ -78215,7 +78215,7 @@ p=A.b([A.o(a).dx.ai(0.1),A.am(13,B.bV.v()>>>16&255,B.bV.v()>>>8&255,B.bV.v()&255
 o=e?64:80
 o=A.bZ(B.F5,A.o(a).dx,g,o)
 n=A.o(a).ok.b
-n=A.ai("About LiveCaptionsXR",g,g,g,n==null?g:n.d5(B.I,B.y),B.A)
+n=A.ai("About Live Captions XR",g,g,g,n==null?g:n.d5(B.I,B.y),B.A)
 m=e?1/0:700
 l=A.o(a).ok.r
 k=t.p
@@ -78225,7 +78225,7 @@ p=e?48:64
 o=A.o(a).ok.e
 o=A.ai("Our Mission",g,g,g,o==null?g:o.d5(B.I,B.y),B.A)
 n=A.o(a).ok.y
-r=A.aB(g,A.b8(A.b([o,B.aQ,A.aB(g,A.ai("LiveCaptionsXR was born from a simple belief: everyone deserves equal access to communication and information. Our mission is to break down barriers for the deaf and hard-of-hearing community by providing real-time, accurate, and contextually-aware closed captions through cutting-edge AI technology.",g,g,g,n==null?g:n.DM(B.aU,18,1.6),B.A),B.l,g,B.dN,g,g,g,g,g,g,g,g),B.eM,A.ia(B.dF,A.b([h.A7(a,B.ET,"Accessibility First","Designed by and for the deaf community"),h.A7(a,B.ee,"Open Source","Transparent, collaborative development"),h.A7(a,B.Fc,"Privacy Focused","On-device processing protects your data")],k),32,32)],k),B.v,B.o,B.r),B.l,g,g,g,g,g,g,new A.a5(r,p,r,p),g,g,1/0)
+r=A.aB(g,A.b8(A.b([o,B.aQ,A.aB(g,A.ai("Live Captions XR was born from a simple belief: everyone deserves equal access to communication and information. Our mission is to break down barriers for the deaf and hard-of-hearing community by providing real-time, accurate, and contextually-aware closed captions through cutting-edge AI technology.",g,g,g,n==null?g:n.DM(B.aU,18,1.6),B.A),B.l,g,B.dN,g,g,g,g,g,g,g,g),B.eM,A.ia(B.dF,A.b([h.A7(a,B.ET,"Accessibility First","Designed by and for the deaf community"),h.A7(a,B.ee,"Open Source","Transparent, collaborative development"),h.A7(a,B.Fc,"Privacy Focused","On-device processing protects your data")],k),32,32)],k),B.v,B.o,B.r),B.l,g,g,g,g,g,g,new A.a5(r,p,r,p),g,g,1/0)
 p=h.a01(a,e)
 o=e?24:48
 n=e?48:64

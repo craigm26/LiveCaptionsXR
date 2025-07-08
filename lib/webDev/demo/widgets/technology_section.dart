@@ -16,23 +16,23 @@ class TechnologySection extends StatelessWidget {
           Text(
             'Technology Stack',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-            ),
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Text(
             'Powered by Google Gemma 3n and cutting-edge mobile AI',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontSize: 18,
-              color: Colors.grey[600],
-            ),
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                ),
           ),
-          
+
           const SizedBox(height: 64),
-          
+
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -46,7 +46,9 @@ class TechnologySection extends StatelessWidget {
                       end: Alignment.bottomRight,
                       colors: [
                         Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withAlpha((255 * 0.7).round()),
+                        Theme.of(context)
+                            .primaryColor
+                            .withAlpha((255 * 0.7).round()),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
@@ -59,7 +61,8 @@ class TechnologySection extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha((255 * 0.2).round()),
+                              color:
+                                  Colors.white.withAlpha((255 * 0.2).round()),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -71,37 +74,41 @@ class TechnologySection extends StatelessWidget {
                           const SizedBox(width: 16),
                           Text(
                             'Gemma 3n',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       Text(
                         'Revolutionary Multimodal AI',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       const Text(
-                        'live_captions_xr is the first accessibility application to deliver real-time closed captioning using Gemma 3n\'s advanced AI. Unlike traditional systems, live_captions_xr provides instant, context-aware captions for spoken content in any environment.',
+                        'Live Captions XR is the first accessibility application to deliver real-time closed captioning using Gemma 3n\'s advanced AI. Unlike traditional systems, Live Captions XR provides instant, context-aware captions for spoken content in any environment.',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           height: 1.6,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Key Features
                       Column(
                         children: [
@@ -126,9 +133,9 @@ class TechnologySection extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(width: 32),
-                
+
                 // Right Side - Tech Stack
                 Column(
                   children: [
@@ -136,35 +143,53 @@ class TechnologySection extends StatelessWidget {
                     _TechStackCard(
                       title: 'Mobile Development',
                       technologies: [
-                        _TechItem(name: 'Flutter', description: 'Cross-platform UI framework'),
-                        _TechItem(name: 'Dart', description: 'High-performance language'),
-                        _TechItem(name: 'BLoC Pattern', description: 'State management'),
+                        _TechItem(
+                            name: 'Flutter',
+                            description: 'Cross-platform UI framework'),
+                        _TechItem(
+                            name: 'Dart',
+                            description: 'High-performance language'),
+                        _TechItem(
+                            name: 'BLoC Pattern',
+                            description: 'State management'),
                       ],
                       color: Colors.blue,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // AI & Machine Learning
                     _TechStackCard(
                       title: 'AI & Machine Learning',
                       technologies: [
-                        _TechItem(name: 'Gemma 3n', description: 'Multimodal AI model'),
-                        _TechItem(name: 'Google MediaPipe', description: 'On-device inference engine'),
-                        _TechItem(name: 'TDOA & Kalman Filter', description: 'Advanced localization'),
+                        _TechItem(
+                            name: 'Gemma 3n',
+                            description: 'Multimodal AI model'),
+                        _TechItem(
+                            name: 'Google MediaPipe',
+                            description: 'On-device inference engine'),
+                        _TechItem(
+                            name: 'TDOA & Kalman Filter',
+                            description: 'Advanced localization'),
                       ],
                       color: Colors.green,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Hardware Integration
                     _TechStackCard(
                       title: 'Hardware Integration',
                       technologies: [
-                        _TechItem(name: 'ARKit / ARCore', description: 'Augmented reality'),
-                        _TechItem(name: 'AVAudioEngine / AudioRecord', description: 'Stereo audio capture'),
-                        _TechItem(name: 'Vision Framework', description: 'Real-time face detection'),
+                        _TechItem(
+                            name: 'ARKit / ARCore',
+                            description: 'Augmented reality'),
+                        _TechItem(
+                            name: 'AVAudioEngine / AudioRecord',
+                            description: 'Stereo audio capture'),
+                        _TechItem(
+                            name: 'Vision Framework',
+                            description: 'Real-time face detection'),
                       ],
                       color: Colors.purple,
                     ),
@@ -173,9 +198,9 @@ class TechnologySection extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 64),
-          
+
           // Architecture Diagram
           Container(
             padding: const EdgeInsets.all(32),
@@ -195,12 +220,12 @@ class TechnologySection extends StatelessWidget {
                 Text(
                   'System Architecture',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Simplified Architecture
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -219,7 +244,11 @@ class TechnologySection extends StatelessWidget {
                     const Icon(Icons.arrow_forward, color: Colors.grey),
                     _ArchLayer(
                       title: 'Output Layer',
-                      components: ['AR Overlay', 'Haptic Feedback', 'Notifications'],
+                      components: [
+                        'AR Overlay',
+                        'Haptic Feedback',
+                        'Notifications'
+                      ],
                       color: Colors.orange,
                     ),
                   ],
@@ -300,49 +329,47 @@ class _TechStackCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ],
           ),
-          
           const SizedBox(height: 16),
-          
           ...technologies.map((tech) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: color.withAlpha((255 * 0.6).round()),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
                   children: [
-                    Text(
-                      tech.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: color.withAlpha((255 * 0.6).round()),
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    Text(
-                      tech.description,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tech.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          tech.description,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          )),
+              )),
         ],
       ),
     );
@@ -385,21 +412,19 @@ class _ArchLayer extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
           ),
-          
           const SizedBox(height: 12),
-          
           ...components.map((component) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(
-              component,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          )),
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  component,
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              )),
         ],
       ),
     );

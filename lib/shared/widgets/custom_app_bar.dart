@@ -6,9 +6,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(title: const Text('live_captions_xr'));
+    return AppBar(title: const Text('Live Captions XR'));
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-} 
+}

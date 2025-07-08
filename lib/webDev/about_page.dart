@@ -85,7 +85,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 24),
           Text(
-            'About LiveCaptionsXR',
+            'About Live Captions XR',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
@@ -131,7 +131,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           Container(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Text(
-              'LiveCaptionsXR was born from a simple belief: everyone deserves equal access to communication and information. Our mission is to break down barriers for the deaf and hard-of-hearing community by providing real-time, accurate, and contextually-aware closed captions through cutting-edge AI technology.',
+              'Live Captions XR was born from a simple belief: everyone deserves equal access to communication and information. Our mission is to break down barriers for the deaf and hard-of-hearing community by providing real-time, accurate, and contextually-aware closed captions through cutting-edge AI technology.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[700],
                     height: 1.6,

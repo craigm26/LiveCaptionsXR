@@ -18,10 +18,10 @@ LiveCaptionsXR is a cross-platform AR captioning system that fuses audio, vision
 
 ## Dart-Native Communication
 - **MethodChannels:**
-  - `live_captions_xr/ar_navigation`: Launch native AR view.
-  - `live_captions_xr/caption_methods`: Place captions in AR.
-  - `live_captions_xr/hybrid_localization_methods`: Hybrid localization engine API.
-  - `live_captions_xr/visual_object_methods`: Visual object detection from native.
+  - `Live Captions XR/ar_navigation`: Used to initiate and manage the transition from the Flutter UI to the native AR view.
+  - `Live Captions XR/caption_methods`: The primary channel for sending finalized text and the corresponding 3D transform to the native layer for rendering AR captions.
+  - `Live Captions XR/hybrid_localization_methods`: Facilitates communication between the Dart layer and the native Hybrid Localization Engine.
+  - `Live Captions XR/visual_object_methods`: Sends information about visually detected objects (e.g., faces) from the native AR view back to the Dart application logic.
 
 ## Extensibility
 - Modular plugin architecture for adding new sensors, models, or AR features.

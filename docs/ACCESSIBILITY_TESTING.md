@@ -1,7 +1,7 @@
-# 📋 Accessibility Testing Plan – **live_captions_xr**
+# 📋 Accessibility Testing Plan – **Live Captions XR**
 
 ## 🧭 Overview
-This plan ensures that **live_captions_xr** meets and exceeds accessibility requirements for its target audience—primarily Deaf and Hard of Hearing (D/HH) users—by verifying that:
+This plan ensures that **Live Captions XR** meets and exceeds accessibility requirements for its target audience—primarily Deaf and Hard of Hearing (D/HH) users—by verifying that:
 
 - All speech and audio information is transformed into **clear, spatial, and actionable captions** (visual overlays, haptic feedback, and directional indicators).
 - The app adheres to **WCAG 2.2 AA** principles.
@@ -74,7 +74,7 @@ This plan ensures that **live_captions_xr** meets and exceeds accessibility requ
 
 ---
 
-This testing plan ensures `live_captions_xr` delivers on its promise to provide reliable and accessible captioning for the D/HH community.
+This testing plan ensures `Live Captions XR` delivers on its promise to provide reliable and accessible captioning for the D/HH community.
 
 ## AR Caption Placement
 - Captions are now spatially anchored in AR at the estimated 3D position of the speaker using hybrid localization (audio, vision, IMU fusion).
@@ -82,8 +82,8 @@ This testing plan ensures `live_captions_xr` delivers on its promise to provide 
 - Use the AR navigation and caption placement MethodChannels to trigger and verify AR captioning from Flutter.
 
 ## MethodChannels
-- `live_captions_xr/ar_navigation`: Launch native AR view.
-- `live_captions_xr/caption_methods`: Place captions in AR.
+- `Live Captions XR/ar_navigation`: Launch native AR view.
+- `Live Captions XR/caption_methods`: Place captions in AR.
 
 ## Other Accessibility Features
 - Real-time, privacy-preserving speech transcription.

@@ -1,4 +1,4 @@
-# live_captions_xr: Technical Writeup
+# Live Captions XR: Technical Writeup
 
 **Real-time, spatially-aware closed captioning powered by on-device multimodal AI with Gemma 3n and MediaPipe.**
 
@@ -6,9 +6,9 @@
 
 ## Executive Summary
 
-`live_captions_xr` represents a pioneering application of Google's Gemma 3n multimodal AI model to solve a critical accessibility challenge: providing real-time, spatially-aware closed captioning for the Deaf and Hard of Hearing (D/HH) community. By leveraging Gemma 3n's ability to process audio, visual, and textual inputs simultaneously—all orchestrated through the high-performance Google MediaPipe framework—we've created a robust, on-device solution that transforms traditional flat captioning into an immersive, contextual communication aid.
+`Live Captions XR` represents a pioneering application of Google's Gemma 3n multimodal AI model to solve a critical accessibility challenge: providing real-time, spatially-aware closed captioning for the Deaf and Hard of Hearing (D/HH) community. By leveraging Gemma 3n's ability to process audio, visual, and textual inputs simultaneously—all orchestrated through the high-performance Google MediaPipe framework—we've created a robust, on-device solution that transforms traditional flat captioning into an immersive, contextual communication aid.
 
-**Key Innovation**: Rather than simply transcribing speech, `live_captions_xr` provides spatial captioning with contextual understanding. It fuses multimodal data streams through Gemma 3n to answer not just "what was said," but "who said it," "where are they," and "what is the context?"
+**Key Innovation**: Rather than simply transcribing speech, `Live Captions XR` provides spatial captioning with contextual understanding. It fuses multimodal data streams through Gemma 3n to answer not just "what was said," but "who said it," "where are they," and "what is the context?"
 
 ---
 
@@ -132,36 +132,37 @@ Our design process is guided by the principle of "nothing about us without us," 
 
 ---
 
-## New Features (2025 Update)
-- **Hybrid Localization Engine:** Fuses audio, vision, and IMU data using a Kalman filter for robust, real-time speaker localization.
-- **ARKit/ARCore Plugin Integration:** Native plugins for AR anchor management, visual object detection, and caption placement, with Dart wrappers and MethodChannel communication.
-- **Real-time AR Caption Placement:** Captions are anchored in AR at the fused speaker position as soon as speech is recognized.
-- **Streaming ASR & Multimodal Fusion:** On-device Gemma 3n model for low-latency, privacy-preserving speech recognition and multimodal context.
-- **Dart-Native Communication:** New MethodChannels for AR navigation, caption placement, hybrid localization, and visual object detection.
+## Speaker Localization Strategy
 
-## End-to-End Pipeline
-1. **Audio & Vision Capture:** Real-time stereo audio and camera frames.
-2. **Direction Estimation:** Audio direction (RMS, GCC-PHAT) and visual speaker identification.
-3. **Hybrid Localization Fusion:** Kalman filter fuses all modalities for 3D world position.
-4. **Streaming ASR:** Real-time speech transcription.
-5. **AR Caption Placement:** Fused transform and caption sent to native AR view for 3D anchoring.
+The core challenge is to accurately place captions in 3D space corresponding to the speaker's location. This is achieved through a **Hybrid Localization Engine**.
 
-## MethodChannels
-- `live_captions_xr/ar_navigation`: Launch native AR view.
-- `live_captions_xr/caption_methods`: Place captions in AR.
-- `live_captions_xr/hybrid_localization_methods`: Hybrid localization engine API.
-- `live_captions_xr/visual_object_methods`: Visual object detection from native.
+- **Multimodal Data Fusion:** The engine fuses data from multiple on-device sensors:
+    - **Audio:** Direction is estimated from the stereo microphone array using techniques like RMS and GCC-PHAT.
+    - **Vision:** The camera is used for visual detection of potential speakers.
+    - **Inertial:** The **IMU** provides device orientation data.
+- **Kalman Filter:** A Kalman filter is employed to merge these data streams, providing a robust and real-time estimation of the speaker's 3D position.
 
-## How Captions Are Anchored
-- The hybrid localization engine provides a fused 3D transform for the speaker.
-- When a final transcript is available, the caption and transform are sent to native AR for placement.
-- Captions appear in AR at the correct spatial location, following the speaker.
+## On-Device AI & Speech Recognition
+
+- **Speech-to-Text:** The app uses a **Gemma 3n `.task` model** for streaming, on-device Automatic Speech Recognition (ASR).
+- **Inference Engine:** The **MediaPipe LLM Inference API** is used to run the Gemma model efficiently on-device.
+- **Multimodal Context:** The system is designed for multimodal fusion, using both audio and vision to provide context for the ASR engine.
+- **Privacy:** A key design principle is **privacy**. All sensor data (camera, microphone) is processed locally on the device and is not sent to the cloud.
+
+## Key MethodChannels
+
+The following MethodChannels are critical for the app's functionality. Gemini should be aware of their purpose when analyzing code or implementing new features.
+
+- `live_captions_xr/ar_navigation`: Used to initiate and manage the transition from the Flutter UI to the native AR view.
+- `live_captions_xr/caption_methods`: The primary channel for sending finalized text and the corresponding 3D transform to the native layer for rendering AR captions.
+- `live_captions_xr/hybrid_localization_methods`: Facilitates communication between the Dart layer and the native Hybrid Localization Engine.
+- `live_captions_xr/visual_object_methods`: Sends information about visually detected objects (e.g., faces) from the native AR view back to the Dart application logic.
 
 ---
 
 ## Conclusion
 
-`live_captions_xr` demonstrates a robust, production-ready approach to deploying advanced multimodal AI models like Gemma 3n on mobile devices. By using Google's official MediaPipe framework, we achieve the performance and stability necessary for a real-time accessibility application, while our layered architecture ensures the system is maintainable and scalable.
+`Live Captions XR` demonstrates a robust, production-ready approach to deploying advanced multimodal AI models like Gemma 3n on mobile devices. By using Google's official MediaPipe framework, we achieve the performance and stability necessary for a real-time accessibility application, while our layered architecture ensures the system is maintainable and scalable.
 
 **Technical Achievement**: Successfully implementing a high-performance, on-device, multimodal AI pipeline that solves a real-world accessibility problem.
 

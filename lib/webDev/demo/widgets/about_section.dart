@@ -21,25 +21,25 @@ class AboutSection extends StatelessWidget {
         children: [
           // Section Header
           Text(
-            'About live_captions_xr',
+            'About Live Captions XR',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-            ),
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Text(
             'Transforming accessibility through multimodal AI',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontSize: 18,
-              color: Colors.grey[600],
-            ),
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                ),
           ),
-          
+
           const SizedBox(height: 64),
-          
+
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -51,62 +51,62 @@ class AboutSection extends StatelessWidget {
                   children: [
                     Text(
                       'The Vision',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     Text(
-                      'live_captions_xr represents the first practical application of Google Gemma 3n\'s revolutionary multimodal capabilities for accessibility technology. By processing audio, visual, and contextual information simultaneously, we\'re creating experiences that truly understand and adapt to user needs.',
+                      'Live Captions XR represents the first practical application of Google Gemma 3n\'s revolutionary multimodal capabilities for accessibility technology. By processing audio, visual, and contextual information simultaneously, we\'re creating experiences that truly understand and adapt to user needs.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        height: 1.6,
-                        color: Colors.grey[700],
-                      ),
+                            height: 1.6,
+                            color: Colors.grey[700],
+                          ),
                     ),
-                    
                     const SizedBox(height: 32),
-                    
                     Text(
                       'Impact Goals',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     Column(
                       children: [
                         _ImpactItem(
                           icon: Icons.people,
                           title: '466 Million People',
-                          description: 'Worldwide with disabling hearing loss who could benefit',
+                          description:
+                              'Worldwide with disabling hearing loss who could benefit',
                         ),
                         _ImpactItem(
                           icon: Icons.security,
                           title: 'Privacy-First Design',
-                          description: 'Complete on-device processing ensures data never leaves your phone',
+                          description:
+                              'Complete on-device processing ensures data never leaves your phone',
                         ),
                         _ImpactItem(
                           icon: Icons.accessibility,
                           title: 'Universal Access',
-                          description: 'Designed with and for the D/HH community from day one',
+                          description:
+                              'Designed with and for the D/HH community from day one',
                         ),
                         _ImpactItem(
                           icon: Icons.language,
                           title: 'Global Reach',
-                          description: 'Supporting 140+ languages for worldwide accessibility',
+                          description:
+                              'Supporting 140+ languages for worldwide accessibility',
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(width: 64),
-              
+
               // Right Side - Hackathon Info & Links
               Expanded(
                 flex: 1,
@@ -120,7 +120,9 @@ class AboutSection extends StatelessWidget {
                         gradient: LinearGradient(
                           colors: [
                             Theme.of(context).primaryColor,
-                            Theme.of(context).primaryColor.withAlpha((255 * 0.8).round()),
+                            Theme.of(context)
+                                .primaryColor
+                                .withAlpha((255 * 0.8).round()),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(16),
@@ -132,20 +134,19 @@ class AboutSection extends StatelessWidget {
                             color: Colors.white,
                             size: 48,
                           ),
-                          
                           const SizedBox(height: 16),
-                          
                           Text(
                             'Google Gemma 3n\nHackathon',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                          
                           const SizedBox(height: 12),
-                          
                           const Text(
                             'Showcasing the potential of multimodal AI for accessibility innovation',
                             textAlign: TextAlign.center,
@@ -157,9 +158,9 @@ class AboutSection extends StatelessWidget {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Technical Details
                     _InfoCard(
                       title: 'Technical Implementation',
@@ -171,9 +172,9 @@ class AboutSection extends StatelessWidget {
                         'Real-time audio processing (TDOA)',
                       ],
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Resources
                     _InfoCard(
                       title: 'Resources & Documentation',
@@ -185,9 +186,9 @@ class AboutSection extends StatelessWidget {
                         'Community Feedback',
                       ],
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Call to Action
                     Container(
                       width: double.infinity,
@@ -195,19 +196,21 @@ class AboutSection extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.withAlpha((255 * 0.3).round())),
+                        border: Border.all(
+                            color: Colors.grey.withAlpha((255 * 0.3).round())),
                       ),
                       child: Column(
                         children: [
                           Text(
                             'Ready to Experience the Future?',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                          
                           const SizedBox(height: 12),
-                          
                           const Text(
                             'This demo showcases production-ready accessibility technology that could transform millions of lives.',
                             textAlign: TextAlign.center,
@@ -216,9 +219,7 @@ class AboutSection extends StatelessWidget {
                               color: Colors.grey,
                             ),
                           ),
-                          
                           const SizedBox(height: 16),
-                          
                           ElevatedButton(
                             onPressed: () {
                               // Scroll back to demo section
@@ -238,22 +239,23 @@ class AboutSection extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 64),
-          
+
           // Footer
           Container(
             padding: const EdgeInsets.symmetric(vertical: 32),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.grey.withAlpha((255 * 0.3).round())),
+                top: BorderSide(
+                    color: Colors.grey.withAlpha((255 * 0.3).round())),
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '© 2025 live_captions_xr • ',
+                  '© 2025 Live Captions XR • ',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -305,7 +307,8 @@ class _ImpactItem extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
+              color:
+                  Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -314,9 +317,7 @@ class _ImpactItem extends StatelessWidget {
               size: 20,
             ),
           ),
-          
           const SizedBox(width: 16),
-          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,16 +325,16 @@ class _ImpactItem extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
                 ),
               ],
             ),
@@ -368,34 +369,32 @@ class _InfoCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
-          
           const SizedBox(height: 12),
-          
           ...items.map((item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    shape: BoxShape.circle,
-                  ),
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-          )),
+              )),
         ],
       ),
     );
