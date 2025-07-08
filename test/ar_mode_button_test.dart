@@ -126,7 +126,7 @@ void main() {
       when(mockSoundDetectionCubit.start()).thenAnswer((_) async {});
       when(mockLocalizationCubit.start()).thenAnswer((_) async {});
       when(mockVisualIdentificationCubit.start()).thenAnswer((_) async {});
-      when(mockLiveCaptionsCubit.startLiveCaptions()).thenAnswer((_) async {});
+      when(mockLiveCaptionsCubit.startCaptions()).thenAnswer((_) async {});
 
       // Create AR session cubit
       final arSessionCubit = ARSessionCubit(
@@ -176,7 +176,7 @@ void main() {
       verify(mockSoundDetectionCubit.start()).called(1);
       verify(mockLocalizationCubit.start()).called(1);
       verify(mockVisualIdentificationCubit.start()).called(1);
-      verify(mockLiveCaptionsCubit.start()).called(1);
+      verify(mockLiveCaptionsCubit.startCaptions()).called(1);
 
       // Verify AR session is ready with anchor
       expect(arSessionCubit.isReady, isTrue);

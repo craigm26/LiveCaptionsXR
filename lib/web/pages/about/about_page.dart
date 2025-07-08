@@ -47,6 +47,52 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           child: Column(
             children: [
               _buildHeroSection(context, isMobile),
+
+              // Coming Soon Section
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                child: Card(
+                  color: Colors.blue[50],
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.android, color: Colors.green[700], size: 32),
+                            SizedBox(width: 12),
+                            Icon(Icons.vrpano, color: Colors.deepPurple, size: 32),
+                            SizedBox(width: 12),
+                            Icon(Icons.phone_iphone, color: Colors.grey[800], size: 32),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Coming Soon: Android & Android XR Support!',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[900],
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'LiveCaptionsXR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases! ',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.blueGrey[800],
+                                fontSize: 16,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               _buildMissionSection(context, isMobile),
               _buildFounderSection(context, isMobile),
               _buildProjectSection(context, isMobile),
