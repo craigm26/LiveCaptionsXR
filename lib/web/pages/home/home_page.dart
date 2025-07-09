@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../config/web_performance_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,12 +20,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Use optimized animation durations from performance config
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: WebPerformanceConfig.normalAnimationDuration,
       vsync: this,
     );
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: WebPerformanceConfig.slowAnimationDuration,
       vsync: this,
     );
 
@@ -36,6 +39,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
 
+    // Start animations simultaneously for better performance
     _fadeController.forward();
     _slideController.forward();
   }
@@ -64,11 +68,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
             // Coming Soon Section
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
               child: Card(
                 color: Colors.blue[50],
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -77,11 +83,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.android, color: Colors.green[700], size: 32),
+                          Icon(Icons.android,
+                              color: Colors.green[700], size: 32),
                           SizedBox(width: 12),
-                          Icon(Icons.vrpano, color: Colors.deepPurple, size: 32),
+                          Icon(Icons.vrpano,
+                              color: Colors.deepPurple, size: 32),
                           SizedBox(width: 12),
-                          Icon(Icons.phone_iphone, color: Colors.grey[800], size: 32),
+                          Icon(Icons.phone_iphone,
+                              color: Colors.grey[800], size: 32),
                         ],
                       ),
                       SizedBox(height: 16),
@@ -95,7 +104,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       ),
                       SizedBox(height: 12),
                       Text(
-                        'LiveCaptionsXR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases!',
+                        'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases!',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: Colors.blueGrey[800],
                               fontSize: 16,
@@ -228,7 +237,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   constraints: BoxConstraints(
                       maxWidth: isMobile ? screenWidth * 0.9 : 800),
                   child: Text(
-                    'LiveCaptionsXR delivers instant, accurate closed captions for spoken content in any environment. Powered by on-device AI for privacy and performance.',
+                    'Live Captions XR delivers instant, accurate closed captions for spoken content in any environment. Powered by on-device AI for privacy and performance.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.grey[700],
                           fontSize: isMobile ? 16 : 22,
@@ -247,7 +256,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     _buildAnimatedButton(
                       context,
                       onPressed: () async {
-                        await TestFlightUtils.openTestFlight();
+                        try {
+                          await TestFlightUtils.openTestFlight();
+                        } catch (e) {
+                          // Handle error gracefully without blocking UI
+                          debugPrint('Could not open TestFlight: $e');
+                        }
                       },
                       icon: Icons.apple,
                       label: 'Download on TestFlight',
@@ -509,7 +523,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 24),
           Text(
-            'Join the accessibility revolution with LiveCaptionsXR',
+            'Join the accessibility revolution with Live Captions XR',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -523,7 +537,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               _buildAnimatedButton(
                 context,
                 onPressed: () async {
-                  await TestFlightUtils.openTestFlight();
+                  try {
+                    await TestFlightUtils.openTestFlight();
+                  } catch (e) {
+                    debugPrint('Could not open TestFlight: $e');
+                  }
                 },
                 icon: Icons.apple,
                 label: 'Download TestFlight',
@@ -599,7 +617,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
             child: Text(
-              'Join our TestFlight beta program to get early access to LiveCaptionsXR and help us improve the experience for everyone.',
+              'Join our TestFlight beta program to get early access to Live Captions XR and help us improve the experience for everyone.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,
@@ -660,7 +678,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             child: ElevatedButton.icon(
               onPressed: () async {
-                await TestFlightUtils.openTestFlight();
+                try {
+                  await TestFlightUtils.openTestFlight();
+                } catch (e) {
+                  debugPrint('Could not open TestFlight: $e');
+                }
               },
               icon: const Icon(Icons.download, color: Colors.white, size: 24),
               label: Text(

@@ -1,79 +1,95 @@
 import 'package:url_launcher/url_launcher.dart';
+import 'web_interaction_handler.dart';
 
 class TestFlightUtils {
-  // Replace with actual TestFlight link when available
+  // TestFlight link for beta testing
   static const String testFlightUrl =
-      'https://testflight.apple.com/join/YOUR_TESTFLIGHT_CODE';
+      'https://testflight.apple.com/join/pyxZEWFh';
 
   static Future<void> openTestFlight() async {
-    final Uri url = Uri.parse(testFlightUrl);
+    return WebInteractionHandler.safeAsyncExecution(
+      action: () async {
+        final Uri url = Uri.parse(testFlightUrl);
+        await _launchUrlWithTimeout(url);
+      },
+      timeout: const Duration(seconds: 5),
+    );
+  }
 
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
-      } else {
-        // Fallback to App Store if TestFlight is not available
-        await _openAppStore();
-      }
-    } catch (e) {
-      // Fallback to App Store if there's an error
+  static Future<void> _launchUrlWithTimeout(Uri url) async {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    } else {
       await _openAppStore();
     }
   }
 
   static Future<void> _openAppStore() async {
-    // Replace with actual App Store link when available
+    // Update with App Store link when published
     const String appStoreUrl =
-        'https://apps.apple.com/app/livecaptionsxr/id123456789';
+        'https://apps.apple.com/app/live-captions-xr/id123456789';
     final Uri url = Uri.parse(appStoreUrl);
 
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
-      }
+      await Future.any([
+        _launchAppStoreWithTimeout(url),
+        Future.delayed(const Duration(seconds: 5))
+      ]);
     } catch (e) {
       // Handle error - could show a snackbar or dialog
       print('Could not launch TestFlight or App Store: $e');
     }
   }
 
-  static Future<void> openWebsite() async {
-    // Link to project website or GitHub
-    const String websiteUrl = 'https://github.com/your-username/LiveCaptionsXR';
-    final Uri url = Uri.parse(websiteUrl);
+  static Future<void> _launchAppStoreWithTimeout(Uri url) async {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    }
+  }
 
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
-      }
-    } catch (e) {
-      print('Could not launch website: $e');
+  static Future<void> openWebsite() async {
+    return WebInteractionHandler.safeAsyncExecution(
+      action: () async {
+        const String websiteUrl = 'https://github.com/craigm26/livecaptionsxr';
+        final Uri url = Uri.parse(websiteUrl);
+        await _launchWebsiteWithTimeout(url);
+      },
+      timeout: const Duration(seconds: 5),
+    );
+  }
+
+  static Future<void> _launchWebsiteWithTimeout(Uri url) async {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 
   static Future<void> openGitHub() async {
-    // Link to GitHub repository
-    const String githubUrl = 'https://github.com/your-username/LiveCaptionsXR';
-    final Uri url = Uri.parse(githubUrl);
+    return WebInteractionHandler.safeAsyncExecution(
+      action: () async {
+        const String githubUrl = 'https://github.com/craigm26/livecaptionsxr';
+        final Uri url = Uri.parse(githubUrl);
+        await _launchGitHubWithTimeout(url);
+      },
+      timeout: const Duration(seconds: 5),
+    );
+  }
 
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
-      }
-    } catch (e) {
-      print('Could not launch GitHub: $e');
+  static Future<void> _launchGitHubWithTimeout(Uri url) async {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 }

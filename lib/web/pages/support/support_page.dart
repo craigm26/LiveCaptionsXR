@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/web_interaction_handler.dart';
+import '../../config/web_performance_config.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -20,12 +22,14 @@ class _SupportPageState extends State<SupportPage>
   @override
   void initState() {
     super.initState();
+
+    // Use optimized durations from performance config
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: WebPerformanceConfig.normalAnimationDuration,
       vsync: this,
     );
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: WebPerformanceConfig.slowAnimationDuration,
       vsync: this,
     );
 
@@ -37,9 +41,12 @@ class _SupportPageState extends State<SupportPage>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
 
+    // Start animations with optimized delay
     _fadeController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _slideController.forward();
+    Future.delayed(WebPerformanceConfig.fastAnimationDuration, () {
+      if (mounted) {
+        _slideController.forward();
+      }
     });
   }
 
@@ -101,7 +108,7 @@ class _SupportPageState extends State<SupportPage>
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Get help with LiveCaptionsXR and connect with our community',
+                        'Get help with Live Captions XR and connect with our community',
                         style: TextStyle(
                           fontSize: isMobile ? 16 : 20,
                           color: Colors.grey[600],
@@ -130,7 +137,9 @@ class _SupportPageState extends State<SupportPage>
                       description:
                           'Found an issue? Help us improve by reporting bugs on GitHub.',
                       actionText: 'Open GitHub Issues',
-                      onTap: () => TestFlightUtils.openGitHub(),
+                      onTap: () => WebInteractionHandler.safeButtonPress(() async {
+                        await TestFlightUtils.openGitHub();
+                      }),
                       gradient: [Colors.red.shade400, Colors.red.shade300],
                     ),
                     _buildSupportCard(
@@ -140,7 +149,18 @@ class _SupportPageState extends State<SupportPage>
                       description:
                           'Have an idea? Share your feature suggestions with our team.',
                       actionText: 'Submit Ideas',
-                      onTap: () => TestFlightUtils.openGitHub(),
+                      onTap: () async {
+                        try {
+                          await TestFlightUtils.openGitHub();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text('Could not open GitHub: $e')),
+                            );
+                          }
+                        }
+                      },
                       gradient: [Colors.amber.shade400, Colors.amber.shade300],
                     ),
                     _buildSupportCard(
@@ -150,7 +170,18 @@ class _SupportPageState extends State<SupportPage>
                       description:
                           'Help build the future of accessible AR technology.',
                       actionText: 'View Source Code',
-                      onTap: () => TestFlightUtils.openGitHub(),
+                      onTap: () async {
+                        try {
+                          await TestFlightUtils.openGitHub();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text('Could not open GitHub: $e')),
+                            );
+                          }
+                        }
+                      },
                       gradient: [Colors.green.shade400, Colors.green.shade300],
                     ),
                     _buildSupportCard(
@@ -160,7 +191,19 @@ class _SupportPageState extends State<SupportPage>
                       description:
                           'Join our TestFlight program to test new features early.',
                       actionText: 'Join TestFlight',
-                      onTap: () => TestFlightUtils.openTestFlight(),
+                      onTap: () async {
+                        try {
+                          await TestFlightUtils.openTestFlight();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Could not open TestFlight: $e')),
+                            );
+                          }
+                        }
+                      },
                       gradient: [Colors.blue.shade400, Colors.blue.shade300],
                     ),
                   ],
@@ -295,8 +338,8 @@ class _SupportPageState extends State<SupportPage>
           ),
           const SizedBox(height: 24),
           _buildFAQItem(
-            'What is LiveCaptionsXR?',
-            'LiveCaptionsXR is an AR app that provides real-time captions in 3D space, helping deaf and hard-of-hearing individuals identify who is speaking and what they\'re saying.',
+            'What is Live Captions XR?',
+            'Live Captions XR is an AR app that provides real-time captions in 3D space, helping deaf and hard-of-hearing individuals identify who is speaking and what they\'re saying.',
           ),
           _buildFAQItem(
             'How do I join the beta program?',
@@ -304,7 +347,7 @@ class _SupportPageState extends State<SupportPage>
           ),
           _buildFAQItem(
             'Is the app free?',
-            'Yes! LiveCaptionsXR is completely free and open-source. Our mission is to make accessibility technology available to everyone.',
+            'Yes! Live Captions XR is completely free and open-source. Our mission is to make accessibility technology available to everyone.',
           ),
           _buildFAQItem(
             'What devices are supported?',
@@ -390,7 +433,17 @@ class _SupportPageState extends State<SupportPage>
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => TestFlightUtils.openGitHub(),
+            onPressed: () async {
+              try {
+                await TestFlightUtils.openGitHub();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not open GitHub: $e')),
+                  );
+                }
+              }
+            },
             icon: const Icon(Icons.code, color: Colors.white),
             label: const Text(
               'View on GitHub',

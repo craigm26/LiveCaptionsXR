@@ -50,7 +50,7 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
                   ],
                 ).createShader(bounds),
                 child: const Text(
-                  'LiveCaptionsXR',
+                  'Live Captions XR',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
@@ -401,7 +401,7 @@ class NavDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'LiveCaptionsXR',
+                    'Live Captions XR',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,

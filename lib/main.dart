@@ -20,14 +20,14 @@ void main() async {
     _logger.d('🐛 Debug logger service initialized');
 
     if (kIsWeb) {
-      _logger.i('🌐 Running web version of LiveCaptionsXR');
-      runApp(const LiveCaptionsXrWebApp());
+      _logger.i('🌐 Running web version of Live Captions XR');
+      runApp(const LiveCaptionsXRWebApp());
     } else {
-      _logger.i('📱 Running native version of LiveCaptionsXR');
+      _logger.i('📱 Running native version of Live Captions XR');
       runApp(const LiveCaptionsXrApp());
     }
 
-    _logger.i('✅ LiveCaptionsXR application launched successfully');
+    _logger.i('✅ Live Captions XR application launched successfully');
   } catch (e, stackTrace) {
     _logger.e('❌ Failed to start LiveCaptionsXR application',
         error: e, stackTrace: stackTrace);

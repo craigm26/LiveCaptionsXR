@@ -50,11 +50,13 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
               // Coming Soon Section
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 24.0, horizontal: 16.0),
                 child: Card(
                   color: Colors.blue[50],
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
@@ -63,29 +65,34 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.android, color: Colors.green[700], size: 32),
+                            Icon(Icons.android,
+                                color: Colors.green[700], size: 32),
                             SizedBox(width: 12),
-                            Icon(Icons.vrpano, color: Colors.deepPurple, size: 32),
+                            Icon(Icons.vrpano,
+                                color: Colors.deepPurple, size: 32),
                             SizedBox(width: 12),
-                            Icon(Icons.phone_iphone, color: Colors.grey[800], size: 32),
+                            Icon(Icons.phone_iphone,
+                                color: Colors.grey[800], size: 32),
                           ],
                         ),
                         SizedBox(height: 16),
                         Text(
                           'Coming Soon: Android & Android XR Support!',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[900],
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[900],
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'LiveCaptionsXR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases! ',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.blueGrey[800],
-                                fontSize: 16,
-                              ),
+                          'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases! ',
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.blueGrey[800],
+                                    fontSize: 16,
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -320,7 +327,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded LiveCaptionsXR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
+                  'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded Live Captions XR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.grey[700],
                         height: 1.6,
@@ -384,7 +391,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           Container(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Text(
-              'LiveCaptionsXR is built in the open with transparency and community collaboration at its core. Every line of code, every decision, and every improvement is shared with the community.',
+              'Live Captions XR is built in the open with transparency and community collaboration at its core. Every line of code, every decision, and every improvement is shared with the community.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[700],
                     height: 1.6,

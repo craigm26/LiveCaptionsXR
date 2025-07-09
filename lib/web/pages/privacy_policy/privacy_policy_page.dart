@@ -182,12 +182,12 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                   children: [
                     _buildSection(
                       'Introduction',
-                      'LiveCaptionsXR is committed to protecting your privacy. This Privacy Policy explains how our open-source accessibility application handles your information.',
+                      'Live Captions XR is committed to protecting your privacy. This Privacy Policy explains how our open-source accessibility application handles your information.',
                       isMobile,
                     ),
                     _buildSection(
                       'Information We Don\'t Collect',
-                      'LiveCaptionsXR is designed with privacy as a core principle:\n\n'
+                      'Live Captions XR is designed with privacy as a core principle:\n\n'
                           '• We do not collect or store audio recordings\n'
                           '• We do not track your conversations\n'
                           '• We do not collect personal identification information\n'
@@ -206,7 +206,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     ),
                     _buildSection(
                       'Device Permissions',
-                      'LiveCaptionsXR requires certain permissions to function:\n\n'
+                      'Live Captions XR requires certain permissions to function:\n\n'
                           '• **Microphone Access**: Required to capture audio for real-time transcription\n'
                           '• **Camera Access**: Required for AR functionality and spatial audio mapping\n'
                           '• **Speech Recognition**: Uses Apple\'s on-device Speech Recognition framework\n\n'
@@ -224,7 +224,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     ),
                     _buildSection(
                       'Open Source Transparency',
-                      'LiveCaptionsXR is an open-source project. Our complete source code is available on GitHub, allowing anyone to:\n\n'
+                      'Live Captions XR is an open-source project. Our complete source code is available on GitHub, allowing anyone to:\n\n'
                           '• Review our privacy practices\n'
                           '• Verify that we don\'t collect data\n'
                           '• Contribute to the project\n'
@@ -243,7 +243,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     ),
                     _buildSection(
                       'Third-Party Services',
-                      'LiveCaptionsXR uses minimal third-party services:\n\n'
+                      'Live Captions XR uses minimal third-party services:\n\n'
                           '• **Apple Speech Recognition**: Processes audio locally on device\n'
                           '• **ARKit**: Provides augmented reality features locally\n'
                           '• **Core ML**: Runs machine learning models locally\n\n'
@@ -252,7 +252,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     ),
                     _buildSection(
                       'Children\'s Privacy',
-                      'LiveCaptionsXR does not knowingly collect any information from children under 13. Since we don\'t collect personal data from any users, this extends to users of all ages.',
+                      'Live Captions XR does not knowingly collect any information from children under 13. Since we don\'t collect personal data from any users, this extends to users of all ages.',
                       isMobile,
                     ),
                     _buildSection(

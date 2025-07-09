@@ -54,11 +54,13 @@ class _TechnologyPageState extends State<TechnologyPage>
 
               // Coming Soon Section
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 24.0, horizontal: 16.0),
                 child: Card(
                   color: Colors.blue[50],
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
@@ -67,29 +69,34 @@ class _TechnologyPageState extends State<TechnologyPage>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.android, color: Colors.green[700], size: 32),
+                            Icon(Icons.android,
+                                color: Colors.green[700], size: 32),
                             SizedBox(width: 12),
-                            Icon(Icons.vrpano, color: Colors.deepPurple, size: 32),
+                            Icon(Icons.vrpano,
+                                color: Colors.deepPurple, size: 32),
                             SizedBox(width: 12),
-                            Icon(Icons.phone_iphone, color: Colors.grey[800], size: 32),
+                            Icon(Icons.phone_iphone,
+                                color: Colors.grey[800], size: 32),
                           ],
                         ),
                         SizedBox(height: 16),
                         Text(
                           'Coming Soon: Android & Android XR Support!',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[900],
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[900],
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'LiveCaptionsXR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases!',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.blueGrey[800],
-                                fontSize: 16,
-                              ),
+                          'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases!',
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.blueGrey[800],
+                                    fontSize: 16,
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -137,9 +144,9 @@ class _TechnologyPageState extends State<TechnologyPage>
           Text(
             'Advanced Technology Stack',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -149,9 +156,9 @@ class _TechnologyPageState extends State<TechnologyPage>
             child: Text(
               'Powered by on-device AI, multimodal sensor fusion, and native Augmented Reality frameworks.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w400,
-              ),
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w400,
+                  ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -442,9 +449,9 @@ class _TechnologyPageState extends State<TechnologyPage>
           Text(
             'System Architecture',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -523,7 +530,11 @@ class _TechnologyPageState extends State<TechnologyPage>
       {'metric': 'Latency', 'value': '<100ms', 'icon': Icons.speed},
       {'metric': 'Accuracy', 'value': '>95%', 'icon': Icons.check_circle},
       {'metric': 'CPU Usage', 'value': 'Optimized', 'icon': Icons.memory},
-      {'metric': 'Power', 'value': 'Efficient', 'icon': Icons.battery_charging_full},
+      {
+        'metric': 'Power',
+        'value': 'Efficient',
+        'icon': Icons.battery_charging_full
+      },
     ];
 
     return Container(
@@ -538,9 +549,9 @@ class _TechnologyPageState extends State<TechnologyPage>
           Text(
             'Performance Goals',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -614,17 +625,17 @@ class _TechnologyPageState extends State<TechnologyPage>
           Text(
             'Ready to Experience the Future?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Download LiveCaptionsXR from TestFlight and experience real-time AR captions.',
+            'Download Live Captions XR from TestFlight and experience real-time AR captions.',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.grey[600],
-            ),
+                  color: Colors.grey[600],
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),

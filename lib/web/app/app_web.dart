@@ -3,8 +3,8 @@ import '../../shared/theme/app_theme.dart';
 import 'web_router.dart';
 
 /// Root widget for the Flutter web build.
-class LiveCaptionsXrWebApp extends StatelessWidget {
-  const LiveCaptionsXrWebApp({super.key});
+class LiveCaptionsXRWebApp extends StatelessWidget {
+  const LiveCaptionsXRWebApp({super.key});
 
   @override
   Widget build(BuildContext context) {

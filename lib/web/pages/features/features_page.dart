@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../config/web_performance_config.dart';
 
 class FeaturesPage extends StatefulWidget {
   const FeaturesPage({super.key});
@@ -19,17 +20,21 @@ class _FeaturesPageState extends State<FeaturesPage>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: WebPerformanceConfig.slowAnimationDuration,
       vsync: this,
     );
 
     _cardAnimations = List.generate(6, (index) {
+      // Calculate safe intervals that don't exceed 1.0
+      final double start = (index * 0.08).clamp(0.0, 0.4);
+      final double end = (start + 0.6).clamp(start + 0.1, 1.0);
+
       return Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(
           parent: _animationController,
           curve: Interval(
-            index * 0.1,
-            (index * 0.1) + 0.6,
+            start,
+            end,
             curve: Curves.easeOutBack,
           ),
         ),
@@ -185,7 +190,7 @@ class _FeaturesPageState extends State<FeaturesPage>
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
             child: Text(
-              'Discover the advanced technologies and features that make LiveCaptionsXR the most comprehensive accessibility solution available.',
+              'Discover the advanced technologies and features that make Live Captions XR the most comprehensive accessibility solution available.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,
@@ -441,7 +446,7 @@ class _FeaturesPageState extends State<FeaturesPage>
           ),
           const SizedBox(height: 16),
           Text(
-            'Download LiveCaptionsXR from TestFlight to experience these features',
+            'Download Live Captions XR from TestFlight to experience these features',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey[600],
                 ),
