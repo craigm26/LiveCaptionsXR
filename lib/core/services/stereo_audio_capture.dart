@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:math' show sqrt;
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 import 'debug_capturing_logger.dart';
@@ -45,6 +46,7 @@ class StereoAudioCapture {
   Future<void> startRecording() async {
     _logger.i('🎙️ Starting stereo audio capture');
     _logger.d('Configuring native audio capture system...');
+    _logger.d('Target format: 16kHz, 2 channels, Float32, interleaved');
 
     try {
       _logger.d('Invoking native startRecording method...');
@@ -87,16 +89,26 @@ class StereoAudioCapture {
   }
 
   StereoAudioFrame _parseFrame(dynamic event) {
-    _logger.d('🔍 Parsing audio frame: ${event.runtimeType}');
-
     if (event is Float32List) {
-      _logger.d('📊 Processing Float32List with ${event.length} samples');
+      _logger.d('📊 Processing Float32List with ${event.length} samples (${event.length / 2} per channel)');
       final left = Float32List(event.length ~/ 2);
       final right = Float32List(event.length ~/ 2);
       for (var i = 0; i < event.length; i += 2) {
         left[i ~/ 2] = event[i];
         right[i ~/ 2] = event[i + 1];
       }
+      
+      // Log audio level for monitoring
+      double leftRms = 0.0, rightRms = 0.0;
+      for (var i = 0; i < left.length; i++) {
+        leftRms += left[i] * left[i];
+        rightRms += right[i] * right[i];
+      }
+      leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
+      rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
+      
+      _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
+      
       return StereoAudioFrame(left: left, right: right);
     }
     if (event is Uint8List) {
