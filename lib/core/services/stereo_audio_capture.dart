@@ -53,7 +53,24 @@ class StereoAudioCapture {
       await _methodChannel.invokeMethod<void>('startRecording');
       
       _logger.d('Setting up audio frame stream...');
-      _frameStream = _eventChannel.receiveBroadcastStream().map(_parseFrame);
+      
+      // First, test if we can receive raw events
+      _logger.d('🔍 Testing raw EventChannel stream...');
+      final rawStream = _eventChannel.receiveBroadcastStream();
+      
+      _frameStream = rawStream.map((event) {
+        _logger.d('📡 Raw event received from native: ${event.runtimeType}');
+        try {
+          final frame = parseFrame(event);
+          _logger.d('✅ Successfully parsed audio frame');
+          return frame;
+        } catch (e, stackTrace) {
+          _logger.e('❌ Failed to parse audio frame', error: e, stackTrace: stackTrace);
+          rethrow;
+        }
+      }).handleError((error, stackTrace) {
+        _logger.e('❌ Error in audio frame stream processing', error: error, stackTrace: stackTrace);
+      });
       
       _logger.i('✅ Stereo audio capture started successfully');
       _logger.d('Audio stream ready for frame processing');
@@ -85,58 +102,133 @@ class StereoAudioCapture {
   /// Stream of captured stereo audio frames.
   Stream<StereoAudioFrame> get frames {
     _logger.d('📊 Accessing audio frames stream');
-    return _frameStream ?? const Stream<StereoAudioFrame>.empty();
+    if (_frameStream == null) {
+      _logger.w('⚠️ Audio frame stream is null, returning empty stream');
+      return const Stream<StereoAudioFrame>.empty();
+    }
+    
+    // Add error handling wrapper around the stream
+    return _frameStream!.handleError((error, stackTrace) {
+      _logger.e('❌ Error in audio frame stream', error: error, stackTrace: stackTrace);
+      // Don't rethrow to avoid breaking the stream
+    });
+  }
+  
+  /// Test method to check if events are flowing from native side
+  Future<void> testEventFlow() async {
+    _logger.i('🧪 Testing event flow from native EventChannel...');
+    
+    try {
+      final rawStream = _eventChannel.receiveBroadcastStream();
+      int eventCount = 0;
+      
+      final subscription = rawStream.listen((event) {
+        eventCount++;
+        _logger.d('🧪 Test event #$eventCount: ${event.runtimeType}');
+        
+        if (event is Uint8List) {
+          _logger.d('🧪 Uint8List length: ${event.length}');
+        }
+        
+        if (eventCount >= 5) {
+          _logger.i('🧪 Received 5 test events, stopping test');
+        }
+      }, onError: (error) {
+        _logger.e('🧪 Test event error: $error');
+      });
+      
+      // Listen for 2 seconds then cancel
+      await Future.delayed(const Duration(seconds: 2));
+      await subscription.cancel();
+      
+      _logger.i('🧪 Test completed: received $eventCount events');
+    } catch (e, stackTrace) {
+      _logger.e('🧪 Test event flow failed', error: e, stackTrace: stackTrace);
+    }
   }
 
-  StereoAudioFrame _parseFrame(dynamic event) {
-    if (event is Float32List) {
-      _logger.d('📊 Processing Float32List with ${event.length} samples (${event.length / 2} per channel)');
-      final left = Float32List(event.length ~/ 2);
-      final right = Float32List(event.length ~/ 2);
-      for (var i = 0; i < event.length; i += 2) {
-        left[i ~/ 2] = event[i];
-        right[i ~/ 2] = event[i + 1];
+  /// Parse audio frame from native side - made public for testing
+  StereoAudioFrame parseFrame(dynamic event) {
+    try {
+      _logger.d('🔍 Parsing audio frame: type=${event.runtimeType}');
+      
+      if (event is Float32List) {
+        _logger.d('📊 Processing Float32List with ${event.length} samples (${event.length / 2} per channel)');
+        final left = Float32List(event.length ~/ 2);
+        final right = Float32List(event.length ~/ 2);
+        for (var i = 0; i < event.length; i += 2) {
+          left[i ~/ 2] = event[i];
+          right[i ~/ 2] = event[i + 1];
+        }
+        
+        // Log audio level for monitoring
+        double leftRms = 0.0, rightRms = 0.0;
+        for (var i = 0; i < left.length; i++) {
+          leftRms += left[i] * left[i];
+          rightRms += right[i] * right[i];
+        }
+        leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
+        rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
+        
+        _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
+        
+        return StereoAudioFrame(left: left, right: right);
       }
-      
-      // Log audio level for monitoring
-      double leftRms = 0.0, rightRms = 0.0;
-      for (var i = 0; i < left.length; i++) {
-        leftRms += left[i] * left[i];
-        rightRms += right[i] * right[i];
+      if (event is Uint8List) {
+        _logger.d('📊 Processing Uint8List with ${event.length} bytes');
+        _logger.d('📊 First 16 bytes: ${event.take(16).toList()}');
+        
+        // Validate byte length should be multiple of 4 (Float32 size)
+        if (event.length % 4 != 0) {
+          _logger.e('❌ Invalid Uint8List length: ${event.length} bytes (not multiple of 4)');
+          throw ArgumentError('Invalid audio data length: ${event.length} bytes');
+        }
+        
+        // Convert bytes to Float32List
+        final data = Float32List.view(event.buffer);
+        _logger.d('📊 Converted to Float32List with ${data.length} samples');
+        _logger.d('📊 First 8 float values: ${data.take(8).toList()}');
+        
+        // Validate we have even number of samples for stereo
+        if (data.length % 2 != 0) {
+          _logger.e('❌ Invalid Float32List length: ${data.length} samples (not even for stereo)');
+          throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');
+        }
+        
+        final left = Float32List(data.length ~/ 2);
+        final right = Float32List(data.length ~/ 2);
+        
+        // De-interleave stereo data: [L0, R0, L1, R1, ...] -> [L0, L1, ...] and [R0, R1, ...]
+        for (var i = 0; i < data.length; i += 2) {
+          left[i ~/ 2] = data[i];
+          right[i ~/ 2] = data[i + 1];
+        }
+        
+        // Log audio level for monitoring (same as Float32List case)
+        double leftRms = 0.0, rightRms = 0.0;
+        for (var i = 0; i < left.length; i++) {
+          leftRms += left[i] * left[i];
+          rightRms += right[i] * right[i];
+        }
+        leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
+        rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
+        
+        _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
+        _logger.d('📊 Converted to ${left.length} samples per channel');
+        
+        return StereoAudioFrame(left: left, right: right);
       }
-      leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
-      rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
-      
-      _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
-      
-      return StereoAudioFrame(left: left, right: right);
-    }
-    if (event is Uint8List) {
-      _logger.d('📊 Processing Uint8List with ${event.length} bytes');
-      final data = Float32List.view(event.buffer);
-      final left = Float32List(data.length ~/ 2);
-      final right = Float32List(data.length ~/ 2);
-      for (var i = 0; i < data.length; i += 2) {
-        left[i ~/ 2] = data[i];
-        right[i ~/ 2] = data[i + 1];
-      }
-      
-      // Log audio level for monitoring (same as Float32List case)
-      double leftRms = 0.0, rightRms = 0.0;
-      for (var i = 0; i < left.length; i++) {
-        leftRms += left[i] * left[i];
-        rightRms += right[i] * right[i];
-      }
-      leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
-      rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
-      
-      _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
-      _logger.d('📊 Converted to ${left.length} samples per channel');
-      
-      return StereoAudioFrame(left: left, right: right);
-    }
 
-    _logger.e('❌ Unsupported audio frame format: ${event.runtimeType}');
-    throw ArgumentError('Unsupported audio frame format');
+      _logger.e('❌ Unsupported audio frame format: ${event.runtimeType}');
+      throw ArgumentError('Unsupported audio frame format: ${event.runtimeType}');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error parsing audio frame', error: e, stackTrace: stackTrace);
+      _logger.e('📋 Event details: type=${event.runtimeType}');
+      if (event is Uint8List) {
+        _logger.e('📋 Uint8List length: ${event.length}');
+        _logger.e('📋 First 16 bytes: ${event.take(16).toList()}');
+      }
+      rethrow;
+    }
   }
 }

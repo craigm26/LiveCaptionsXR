@@ -126,35 +126,49 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       await _audioCapture.startRecording();
       _logger.i('✅ Audio capture started successfully');
 
+      // Give a small delay to ensure the native side is ready
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      _logger.d('🔗 Setting up audio frame stream subscription...');
       _audioFrameCount = 0;
       _audioSubscription = _audioCapture.frames.listen((frame) async {
-        _audioFrameCount++;
-        final monoFrame = frame.toMono();
-        final frameSize = monoFrame.length;
-
-        // Calculate RMS level for monitoring
-        double rmsLevel = 0.0;
-        for (int i = 0; i < frameSize; i++) {
-          rmsLevel += monoFrame[i] * monoFrame[i];
-        }
-        rmsLevel = frameSize > 0 ? sqrt(rmsLevel / frameSize) : 0.0;
-
-        // Log detailed audio info more frequently for debugging
-        if (_audioFrameCount % 10 == 0) {
-          _logger.d('📊 Audio frame #$_audioFrameCount: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
-        }
-
-        // Send audio chunk to speech processor
         try {
-          await _speechProcessor.processAudioChunk(monoFrame);
-          if (_audioFrameCount % 10 == 0) {
-            _logger.d('✅ Audio chunk sent to speech processor');
+          _audioFrameCount++;
+          _logger.d('📊 Received audio frame #$_audioFrameCount from StereoAudioCapture');
+          
+          final monoFrame = frame.toMono();
+          final frameSize = monoFrame.length;
+          _logger.d('🎵 Converted stereo to mono: ${frameSize} samples');
+
+          // Calculate RMS level for monitoring
+          double rmsLevel = 0.0;
+          for (int i = 0; i < frameSize; i++) {
+            rmsLevel += monoFrame[i] * monoFrame[i];
           }
-        } catch (e) {
-          _logger.e('❌ Failed to send audio chunk to speech processor: $e');
+          rmsLevel = frameSize > 0 ? sqrt(rmsLevel / frameSize) : 0.0;
+
+          // Log detailed audio info more frequently for debugging
+          if (_audioFrameCount % 10 == 0) {
+            _logger.d('📊 Audio frame #$_audioFrameCount: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
+          }
+
+          // Send audio chunk to speech processor
+          try {
+            _logger.d('📤 Sending audio chunk to speech processor...');
+            await _speechProcessor.processAudioChunk(monoFrame);
+            if (_audioFrameCount % 10 == 0) {
+              _logger.d('✅ Audio chunk sent to speech processor');
+            }
+          } catch (e, stackTrace) {
+            _logger.e('❌ Failed to send audio chunk to speech processor',
+                error: e, stackTrace: stackTrace);
+          }
+        } catch (e, stackTrace) {
+          _logger.e('❌ Error processing audio frame #$_audioFrameCount',
+              error: e, stackTrace: stackTrace);
         }
-      }, onError: (error) {
-        _logger.e('❌ Audio frame stream error: $error');
+      }, onError: (error, stackTrace) {
+        _logger.e('❌ Audio frame stream error', error: error, stackTrace: stackTrace);
       }, onDone: () {
         _logger.i('🎧 Audio frame stream completed');
       });
