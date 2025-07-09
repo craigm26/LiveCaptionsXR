@@ -168,9 +168,16 @@ import Flutter
             return
         }
         
+        // Ensure we have an even number of samples for stereo processing
+        // Fix any odd sample count by truncating the last sample if needed
+        if interleaved.count % 2 != 0 {
+            print("⚠️ Audio buffer has odd sample count (\(interleaved.count)), truncating last sample for stereo compatibility")
+            interleaved.removeLast()
+        }
+        
         // Ensure we have exactly the expected number of samples
         let expectedSampleCount = frameLength * 2
-        guard interleaved.count == expectedSampleCount else {
+        guard interleaved.count == expectedSampleCount || interleaved.count == expectedSampleCount - 1 else {
             print("⚠️ Audio buffer size mismatch: expected \(expectedSampleCount), got \(interleaved.count)")
             return
         }
@@ -180,7 +187,7 @@ import Flutter
         let data = Data(bytes: interleaved, count: byteCount)
         
         // Validate the data size before sending
-        let expectedByteCount = expectedSampleCount * MemoryLayout<Float>.size
+        let expectedByteCount = interleaved.count * MemoryLayout<Float>.size
         guard data.count == expectedByteCount else {
             print("⚠️ Data size mismatch: expected \(expectedByteCount) bytes, got \(data.count) bytes")
             return

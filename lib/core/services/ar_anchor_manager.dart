@@ -99,26 +99,39 @@ class ARAnchorManager {
 
   /// Get the current device orientation from the AR session.
   /// This method also validates that the AR session is ready for anchor operations.
-  Future<List<double>> getDeviceOrientation() async {
+  /// Includes retry logic to handle session initialization delays.
+  Future<List<double>> getDeviceOrientation({int maxRetries = 3}) async {
     _logger.d('📱 Getting device orientation for AR session validation...');
 
-    try {
-      final result = await _methodChannel.invokeMethod<List<dynamic>>('getDeviceOrientation');
-      if (result == null) {
-        throw Exception('getDeviceOrientation returned null');
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final result = await _methodChannel.invokeMethod<List<dynamic>>('getDeviceOrientation');
+        if (result == null) {
+          throw Exception('getDeviceOrientation returned null');
+        }
+        
+        final orientation = result.cast<double>();
+        if (orientation.length != 16) {
+          throw Exception('Invalid device orientation matrix length: ${orientation.length}');
+        }
+        
+        _logger.d('✅ Device orientation retrieved successfully');
+        return orientation;
+      } catch (e) {
+        if (attempt < maxRetries && e.toString().contains('NO_SESSION')) {
+          _logger.w('⚠️ AR session not ready (attempt $attempt/$maxRetries), retrying in 500ms...');
+          await Future.delayed(const Duration(milliseconds: 500));
+          continue;
+        }
+        
+        _logger.e('❌ Failed to get device orientation (attempt $attempt/$maxRetries): $e');
+        if (attempt == maxRetries) {
+          rethrow;
+        }
       }
-      
-      final orientation = result.cast<double>();
-      if (orientation.length != 16) {
-        throw Exception('Invalid device orientation matrix length: ${orientation.length}');
-      }
-      
-      _logger.d('✅ Device orientation retrieved successfully');
-      return orientation;
-    } catch (e) {
-      _logger.e('❌ Failed to get device orientation: $e');
-      rethrow;
     }
+    
+    throw Exception('Failed to get device orientation after $maxRetries attempts');
   }
 
   // Optionally: add methods to list anchors, get anchor info, etc.
