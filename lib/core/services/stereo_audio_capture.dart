@@ -191,11 +191,10 @@ class StereoAudioCapture {
         
         // Validate we have even number of samples for stereo
         if (data.length % 2 != 0) {
-          _logger.e('❌ Invalid Float32List length: ${data.length} samples (not even for stereo)');
-          _logger.e('📊 Raw buffer length: ${event.length} bytes');
-          _logger.e('📊 Expected samples: ${event.length ~/ 4}');
+          _logger.w('⚠️ Odd number of samples received: ${data.length} samples');
+          _logger.d('📊 Raw buffer length: ${event.length} bytes');
           
-          // Try to fix by truncating the last sample if it's just one sample off
+          // Auto-fix by truncating the last sample if it's just one sample off
           if (data.length % 2 == 1 && data.length > 1) {
             _logger.w('⚠️ Truncating last sample to make even number for stereo');
             final truncatedData = Float32List(data.length - 1);
@@ -211,6 +210,7 @@ class StereoAudioCapture {
             return StereoAudioFrame(left: truncatedLeft, right: truncatedRight);
           }
           
+          _logger.e('❌ Cannot fix audio buffer with ${data.length} samples');
           throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');
         }
         

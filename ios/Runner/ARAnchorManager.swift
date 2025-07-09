@@ -128,7 +128,8 @@ import SceneKit
             result(nil)
         case "getDeviceOrientation":
             print("📱 ARAnchorManager.getDeviceOrientation called for session validation")
-            // Diagnostic: Return the current device orientation as a flat 16-element array (row-major)
+            
+            // Check if session exists
             guard let session = ARAnchorManager.arSession else {
                 print("❌ Session validation failed: ARAnchorManager.arSession is nil")
                 result(FlutterError(code: "NO_SESSION", message: "ARSession not available", details: nil))
@@ -137,13 +138,31 @@ import SceneKit
             
             print("✅ Session validation: ARAnchorManager.arSession exists")
             
-            guard let camera = session.currentFrame?.camera else {
-                print("❌ Session validation failed: no current frame or camera")
+            // Check if session is running
+            guard session.currentFrame != nil else {
+                print("❌ Session validation failed: no current frame available")
                 result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera frame", details: nil))
                 return
             }
             
             print("✅ Session validation: camera frame exists")
+            
+            // Check camera tracking state
+            guard let camera = session.currentFrame?.camera else {
+                print("❌ Session validation failed: no camera in current frame")
+                result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera", details: nil))
+                return
+            }
+            
+            // Allow limited tracking state as well since it may be temporary
+            guard case .normal = camera.trackingState else {
+                print("❌ Session validation failed: camera tracking state is not normal: \(camera.trackingState)")
+                result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - tracking not normal", details: nil))
+                return
+            }
+            
+            print("✅ Session validation: camera tracking state is normal")
+            
             let m = camera.transform
             let flat: [Float] = [
                 m[0][0], m[0][1], m[0][2], m[0][3],
