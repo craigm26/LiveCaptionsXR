@@ -94,6 +94,58 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
             }
         }
     }
+    
+    // Method to check session readiness with retry logic
+    private func checkSessionReadiness(attempt: Int, maxAttempts: Int = 3) {
+        guard let session = ARAnchorManager.arSession else {
+            print("❌ Session readiness check failed: ARAnchorManager.arSession is nil (attempt \(attempt))")
+            if attempt < maxAttempts {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.checkSessionReadiness(attempt: attempt + 1, maxAttempts: maxAttempts)
+                }
+            } else {
+                print("❌ Session readiness check failed after \(maxAttempts) attempts")
+                onSessionReady?()
+            }
+            return
+        }
+        
+        guard let camera = session.currentFrame?.camera else {
+            print("⚠️ Session exists but no current frame yet (attempt \(attempt))")
+            if attempt < maxAttempts {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.checkSessionReadiness(attempt: attempt + 1, maxAttempts: maxAttempts)
+                }
+            } else {
+                print("⚠️ Session ready check timed out, but proceeding anyway")
+                onSessionReady?()
+            }
+            return
+        }
+        
+        // Check if camera tracking is at least limited (not necessarily normal)
+        switch camera.trackingState {
+        case .normal:
+            print("✅ ARSession is ready with normal tracking")
+            onSessionReady?()
+        case .limited(_):
+            print("✅ ARSession is ready with limited tracking (proceeding anyway)")
+            onSessionReady?()
+        case .notAvailable:
+            print("⚠️ ARSession camera tracking not available (attempt \(attempt))")
+            if attempt < maxAttempts {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.checkSessionReadiness(attempt: attempt + 1, maxAttempts: maxAttempts)
+                }
+            } else {
+                print("⚠️ Camera tracking check timed out, but proceeding anyway")
+                onSessionReady?()
+            }
+        }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         
         // Add close button
         setupCloseButton()
