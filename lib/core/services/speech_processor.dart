@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:math' show sqrt;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
@@ -105,6 +106,10 @@ class SpeechProcessor {
       }
 
       _logger.i('🎤 Starting speech processing...');
+      _logger.d('🔧 Audio capture config: sampleRate=16000, channels=1, format=pcm16');
+      _logger.d('🌍 Language: $_currentLanguage');
+      _logger.d('🎯 Voice activity threshold: ${_config.voiceActivityThreshold}');
+      _logger.d('⚙️ Real-time enhancement: ${_config.enableRealTimeEnhancement}');
 
       await _channel.invokeMethod('startAudioCapture', {
         'sampleRate': 16000,
@@ -114,7 +119,7 @@ class SpeechProcessor {
       });
 
       _isProcessing = true;
-      _logger.i('✅ Speech processing started');
+      _logger.i('✅ Speech processing started - waiting for audio chunks...');
       return true;
     } catch (e, stackTrace) {
       _logger.e('❌ Error starting speech processing',
@@ -147,10 +152,28 @@ class SpeechProcessor {
   /// Process audio chunk for speech recognition
   Future<void> processAudioChunk(Float32List audioData) async {
     if (!_isInitialized || !_isProcessing) {
+      _logger.w('⚠️ Cannot process audio chunk - not initialized or not processing');
       return;
     }
 
     try {
+      _logger.d('📊 Processing audio chunk: ${audioData.length} samples');
+      
+      // Calculate RMS level for voice activity detection
+      double rmsLevel = 0.0;
+      for (int i = 0; i < audioData.length; i++) {
+        rmsLevel += audioData[i] * audioData[i];
+      }
+      rmsLevel = rmsLevel > 0 ? sqrt(rmsLevel / audioData.length) : 0.0;
+      
+      _logger.d('🔊 Audio RMS level: ${rmsLevel.toStringAsFixed(4)} (threshold: ${_config.voiceActivityThreshold})');
+      
+      if (rmsLevel > _config.voiceActivityThreshold) {
+        _logger.d('🎯 Voice activity detected, sending to ASR...');
+      } else {
+        _logger.d('🔇 Below voice activity threshold, skipping ASR');
+      }
+
       await _channel.invokeMethod('processAudioChunk', {
         'audioData': audioData,
         'sampleRate': 16000,
@@ -294,6 +317,7 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
     try {
       if (data is Map<String, dynamic>) {
         final type = data['type'] as String?;
+        _logger.d('📥 Received stream data: $type');
 
         switch (type) {
           case 'speechResult':
@@ -304,6 +328,10 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
                 data['timestamp'] as int? ??
                     DateTime.now().millisecondsSinceEpoch);
 
+            _logger.i('🎤 Speech result received: "${text.length > 50 ? text.substring(0, 50) + '...' : text}"');
+            _logger.d('📊 Confidence: ${confidence.toStringAsFixed(2)}, Final: $isFinal');
+            _logger.d('🕐 Timestamp: ${timestamp.toIso8601String()}');
+
             final result = SpeechResult(
               text: text,
               confidence: confidence,
@@ -312,6 +340,12 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
             );
 
             _speechResultController.add(result);
+            
+            if (isFinal) {
+              _logger.i('✅ Final speech result: "$text"');
+            } else {
+              _logger.d('🔄 Interim speech result: "$text"');
+            }
             break;
 
           case 'error':
@@ -322,6 +356,8 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
           default:
             _logger.d('📊 Received unknown stream data type: $type');
         }
+      } else {
+        _logger.w('⚠️ Received non-map stream data: ${data.runtimeType}');
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Error handling stream data',

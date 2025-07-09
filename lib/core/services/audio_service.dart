@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:async';
+import 'dart:math' show sqrt;
 
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
@@ -8,6 +9,7 @@ import 'hybrid_localization_engine.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
+import 'speech_processor.dart';
 import 'debug_capturing_logger.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
@@ -26,6 +28,7 @@ class AudioService {
   late final VisualIdentificationService visualService;
   late final StereoAudioCapture _audioCapture;
   late final SpeechLocalizer _speechLocalizer;
+  final SpeechProcessor? speechProcessor;
 
   bool _modelLoaded = false;
   bool _isListening = false;
@@ -35,11 +38,18 @@ class AudioService {
   AudioService({
     required this.soundDetectionCubit,
     required this.hybridLocalizationEngine,
+    this.speechProcessor,
   }) {
     _logger.i('🏗️ Initializing AudioService...');
     _audioCapture = StereoAudioCapture();
     _speechLocalizer = SpeechLocalizer();
     _logger.d('Audio capture and speech localizer initialized');
+    
+    if (speechProcessor != null) {
+      _logger.d('🎤 Speech processor connected to AudioService');
+    } else {
+      _logger.d('⚠️ No speech processor connected - speech recognition will be limited');
+    }
   }
 
   /// Initialize Gemma 3n for audio processing
@@ -101,10 +111,34 @@ class AudioService {
       
       _logger.d('Setting up audio frame processing...');
       _captureSub = _audioCapture.frames.listen((frame) async {
-        _logger.t('📊 Processing audio frame: ${frame.toMono().length} samples');
+        final monoFrame = frame.toMono();
+        final frameSize = monoFrame.length;
+        
+        // Calculate RMS level for monitoring
+        double rmsLevel = 0.0;
+        for (int i = 0; i < frameSize; i++) {
+          rmsLevel += monoFrame[i] * monoFrame[i];
+        }
+        rmsLevel = frameSize > 0 ? sqrt(rmsLevel / frameSize) : 0.0;
+        
+        _logger.d('📊 Audio frame: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
         
         final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
-        _logger.t('🧭 Estimated direction: $angle degrees');
+        _logger.d('🧭 Estimated direction: ${angle.toStringAsFixed(1)}°');
+        
+        // Send audio to speech processor if available
+        if (speechProcessor != null && speechProcessor!.isProcessing) {
+          _logger.d('🎤 Sending audio chunk to speech processor...');
+          try {
+            await speechProcessor!.processAudioChunk(monoFrame);
+            _logger.d('✅ Audio chunk sent to speech processor');
+          } catch (e, stackTrace) {
+            _logger.e('❌ Failed to send audio chunk to speech processor', 
+                error: e, stackTrace: stackTrace);
+          }
+        } else {
+          _logger.d('⚠️ Speech processor not available or not processing');
+        }
         
         // AUTOMATED: Update hybrid localization engine after every direction estimate
         try {
@@ -117,12 +151,12 @@ class AudioService {
               ..[10] = 1
               ..[15] = 1, // 4x4 identity
           );
-          _logger.t('📍 Hybrid localization updated successfully');
+          _logger.d('📍 Hybrid localization updated with audio measurement');
         } catch (e, stackTrace) {
           _logger.w('⚠️ Failed to update hybrid localization', error: e, stackTrace: stackTrace);
         }
         
-        _processAudioFrame(frame.toMono(), angle);
+        _processAudioFrame(monoFrame, angle);
       });
 
       _logger.i('🎤 Started real-time audio processing with Gemma 3n');
@@ -138,17 +172,17 @@ class AudioService {
   /// This demonstrates the key innovation: multimodal processing where
   /// audio events trigger combined audio+visual analysis through Gemma 3n
   void _processAudioFrame(Float32List audioFrame, double angle) async {
-    _logger.t('🎯 Processing audio frame with ${audioFrame.length} samples at angle $angle');
+    _logger.d('🎯 Processing audio frame with ${audioFrame.length} samples at angle ${angle.toStringAsFixed(1)}°');
     
     try {
-      _logger.t('🔍 Analyzing audio with Gemma 3n...');
+      _logger.d('🔍 Analyzing audio with Gemma 3n...');
       // Detect significant audio events using Gemma 3n
       final audioAnalysis = await _analyzeAudioWithGemma3n(audioFrame, angle);
-      _logger.t('📊 Audio analysis confidence: ${audioAnalysis.confidence}');
+      _logger.d('📊 Audio analysis result: ${audioAnalysis.type} (confidence: ${audioAnalysis.confidence.toStringAsFixed(2)})');
 
       // If significant sound detected, trigger multimodal analysis
       if (audioAnalysis.confidence > 0.7) {
-        _logger.d('🚨 Significant sound detected (confidence: ${audioAnalysis.confidence}), triggering multimodal analysis');
+        _logger.i('🚨 Significant sound detected: ${audioAnalysis.type} (confidence: ${audioAnalysis.confidence.toStringAsFixed(2)})');
         
         final multimodalResult = await _performMultimodalAnalysis(
           audioFrame: audioFrame,
@@ -159,7 +193,7 @@ class AudioService {
         // Emit comprehensive event with spatial and contextual info
         soundDetectionCubit.detectSound(multimodalResult);
       } else {
-        _logger.t('🔇 Audio below significance threshold (${audioAnalysis.confidence})');
+        _logger.d('🔇 Audio below significance threshold (${audioAnalysis.confidence.toStringAsFixed(2)})');
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Audio processing error', error: e, stackTrace: stackTrace);
