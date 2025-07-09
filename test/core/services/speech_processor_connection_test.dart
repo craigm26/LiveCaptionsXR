@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_captions_xr/core/services/speech_processor.dart';
@@ -28,7 +29,7 @@ void main() {
       for (int i = 0; i < testAudio.length; i++) {
         rmsLevel += testAudio[i] * testAudio[i];
       }
-      rmsLevel = testAudio.length > 0 ? (rmsLevel / testAudio.length).sqrt() : 0.0;
+      rmsLevel = testAudio.length > 0 ? sqrt(rmsLevel / testAudio.length) : 0.0;
       
       // Verify RMS calculation works
       expect(rmsLevel, greaterThan(0.0));
@@ -49,7 +50,7 @@ void main() {
       for (int i = 0; i < quietAudio.length; i++) {
         quietRms += quietAudio[i] * quietAudio[i];
       }
-      quietRms = quietAudio.length > 0 ? (quietRms / quietAudio.length).sqrt() : 0.0;
+      quietRms = quietAudio.length > 0 ? sqrt(quietRms / quietAudio.length) : 0.0;
       
       const config = SpeechConfig(voiceActivityThreshold: 0.01);
       expect(quietRms, lessThan(config.voiceActivityThreshold));
@@ -64,7 +65,7 @@ void main() {
       for (int i = 0; i < loudAudio.length; i++) {
         loudRms += loudAudio[i] * loudAudio[i];
       }
-      loudRms = loudAudio.length > 0 ? (loudRms / loudAudio.length).sqrt() : 0.0;
+      loudRms = loudAudio.length > 0 ? sqrt(loudRms / loudAudio.length) : 0.0;
       
       expect(loudRms, greaterThan(config.voiceActivityThreshold));
     });
@@ -76,7 +77,7 @@ void main() {
       for (int i = 0; i < emptyAudio.length; i++) {
         rmsLevel += emptyAudio[i] * emptyAudio[i];
       }
-      rmsLevel = emptyAudio.length > 0 ? (rmsLevel / emptyAudio.length).sqrt() : 0.0;
+      rmsLevel = emptyAudio.length > 0 ? sqrt(rmsLevel / emptyAudio.length) : 0.0;
       
       expect(rmsLevel, equals(0.0));
     });

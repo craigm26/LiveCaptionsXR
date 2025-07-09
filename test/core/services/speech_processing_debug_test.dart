@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_captions_xr/core/services/stereo_audio_capture.dart';
@@ -43,7 +44,7 @@ void main() {
       for (int i = 0; i < mono.length; i++) {
         rms += mono[i] * mono[i];
       }
-      rms = mono.length > 0 ? (rms / mono.length).sqrt() : 0.0;
+      rms = mono.length > 0 ? sqrt(rms / mono.length) : 0.0;
       
       expect(rms, greaterThan(0.0)); // Should have some audio activity
     });

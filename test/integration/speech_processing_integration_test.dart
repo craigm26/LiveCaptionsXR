@@ -63,9 +63,9 @@ void main() {
       expect(rms, greaterThan(0.001));
       
       // Verify first few samples are reasonable
-      expect(frame.left[0], isFinite);
-      expect(frame.right[0], isFinite);
-      expect(mono[0], isFinite);
+      expect(frame.left[0].isFinite, isTrue);
+      expect(frame.right[0].isFinite, isTrue);
+      expect(mono[0].isFinite, isTrue);
       
       print('✅ Audio frame parsing test passed');
       print('📊 Parsed ${frame.left.length} samples per channel');
