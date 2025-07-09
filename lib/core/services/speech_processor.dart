@@ -65,6 +65,7 @@ class SpeechProcessor {
         _logger.d('📁 Model loaded from: ${result['modelPath']}');
 
         // Set up the stream for real-time results with configuration
+        _logger.d('🔄 Setting up speech result stream...');
         _streamSubscription = _stream.receiveBroadcastStream({
           'type': 'transcription',
           'config': _config.toMap(),
@@ -72,10 +73,12 @@ class SpeechProcessor {
           _handleStreamData,
           onError: _handleStreamError,
         );
-
+        
+        _logger.i('📡 Speech result stream initialized and listening');
         return true;
       } else {
         _logger.e('❌ Failed to initialize SpeechProcessor');
+        _logger.e('📋 Result: $result');
         return false;
       }
     } catch (e, stackTrace) {
@@ -170,8 +173,10 @@ class SpeechProcessor {
       
       if (rmsLevel > _config.voiceActivityThreshold) {
         _logger.d('🎯 Voice activity detected, sending to ASR...');
+        _logger.d('📤 Sending ${audioData.length} samples to native plugin for speech recognition');
       } else {
         _logger.d('🔇 Below voice activity threshold, skipping ASR');
+        return; // Don't send to ASR if below threshold
       }
 
       await _channel.invokeMethod('processAudioChunk', {
@@ -179,6 +184,8 @@ class SpeechProcessor {
         'sampleRate': 16000,
         'config': _config.toMap(),
       });
+      
+      _logger.d('✅ Audio chunk sent to native plugin successfully');
     } catch (e, stackTrace) {
       _logger.e('❌ Error processing audio chunk',
           error: e, stackTrace: stackTrace);
@@ -343,6 +350,7 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
             
             if (isFinal) {
               _logger.i('✅ Final speech result: "$text"');
+              _logger.d('🎯 Speech recognition completed - sending to UI for caption placement');
             } else {
               _logger.d('🔄 Interim speech result: "$text"');
             }
@@ -353,11 +361,23 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
             _logger.e('🚨 Speech processing error: $message');
             break;
 
+          case 'modelStatus':
+            final status = data['status'] as String? ?? 'unknown';
+            _logger.i('🤖 Model status update: $status');
+            break;
+
+          case 'audioProcessingStatus':
+            final status = data['status'] as String? ?? 'unknown';
+            _logger.d('🎧 Audio processing status: $status');
+            break;
+
           default:
             _logger.d('📊 Received unknown stream data type: $type');
+            _logger.d('📋 Data: $data');
         }
       } else {
         _logger.w('⚠️ Received non-map stream data: ${data.runtimeType}');
+        _logger.d('📋 Raw data: $data');
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Error handling stream data',

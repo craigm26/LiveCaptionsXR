@@ -120,6 +120,19 @@ class StereoAudioCapture {
         left[i ~/ 2] = data[i];
         right[i ~/ 2] = data[i + 1];
       }
+      
+      // Log audio level for monitoring (same as Float32List case)
+      double leftRms = 0.0, rightRms = 0.0;
+      for (var i = 0; i < left.length; i++) {
+        leftRms += left[i] * left[i];
+        rightRms += right[i] * right[i];
+      }
+      leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
+      rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
+      
+      _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
+      _logger.d('📊 Converted to ${left.length} samples per channel');
+      
       return StereoAudioFrame(left: left, right: right);
     }
 

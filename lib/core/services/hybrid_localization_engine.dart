@@ -106,13 +106,20 @@ class HybridLocalizationEngine {
   Future<void> placeCaption(String text) async {
     try {
       _logger.i('🎯 Placing caption in AR: "$text"');
+      _logger.d('🔄 Requesting fused transform from hybrid localization...');
+      
       final transform = await getFusedTransform();
+      _logger.d('📍 Got fused transform for speaker localization');
+      
+      _logger.d('🚀 Invoking native caption placement...');
       await const MethodChannel('live_captions_xr/caption_methods')
           .invokeMethod('placeCaption', {
         'transform': transform,
         'text': text,
       });
+      
       _logger.i('✅ Caption placed successfully in AR space');
+      _logger.d('📌 Caption "$text" is now visible in AR at estimated speaker location');
     } on PlatformException catch (e, stackTrace) {
       _logger.e('❌ Platform error placing caption',
           error: e, stackTrace: stackTrace);

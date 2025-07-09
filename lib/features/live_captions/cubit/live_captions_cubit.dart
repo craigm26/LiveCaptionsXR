@@ -139,20 +139,24 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         }
         rmsLevel = frameSize > 0 ? sqrt(rmsLevel / frameSize) : 0.0;
 
-        // Log detailed audio info periodically
-        if (_audioFrameCount % 50 == 0) {
+        // Log detailed audio info more frequently for debugging
+        if (_audioFrameCount % 10 == 0) {
           _logger.d('📊 Audio frame #$_audioFrameCount: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
         }
 
         // Send audio chunk to speech processor
         try {
           await _speechProcessor.processAudioChunk(monoFrame);
-          if (_audioFrameCount % 50 == 0) {
+          if (_audioFrameCount % 10 == 0) {
             _logger.d('✅ Audio chunk sent to speech processor');
           }
         } catch (e) {
           _logger.e('❌ Failed to send audio chunk to speech processor: $e');
         }
+      }, onError: (error) {
+        _logger.e('❌ Audio frame stream error: $error');
+      }, onDone: () {
+        _logger.i('🎧 Audio frame stream completed');
       });
 
       _logger.i('🎤 Audio capture connected to speech processor');
@@ -274,14 +278,17 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     Future.microtask(() async {
       try {
         _logger.d('🔄 Requesting fused transform from hybrid localization...');
+        _logger.d('📍 Starting speaker localization process...');
         
         // Use the injected hybrid localization engine
         await _hybridLocalizationEngine.placeCaption(text);
         
         _logger.i('✅ Caption placed successfully in AR space at estimated speaker location');
+        _logger.d('🎉 Caption placement completed for: "$text"');
       } catch (e, stackTrace) {
         _logger.e('❌ Failed to place caption in AR', 
             error: e, stackTrace: stackTrace);
+        _logger.w('📱 Caption will be displayed in UI overlay instead');
         // Don't update UI state with this error as caption placement 
         // failures shouldn't break the main captions functionality
       }
