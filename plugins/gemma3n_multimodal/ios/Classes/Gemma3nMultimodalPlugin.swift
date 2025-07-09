@@ -160,8 +160,8 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
   
   /// Validates system requirements and available memory
   private func validateSystemRequirements() -> (isValid: Bool, error: String?) {
-    // Check iOS version (MediaPipe GenAI requires iOS 12.0+)
-    if #available(iOS 12.0, *) {
+    // Check iOS version (MediaPipe GenAI requires iOS 14.0+)
+    if #available(iOS 14.0, *) {
       // Check available memory (basic check)
       let processInfo = ProcessInfo.processInfo
       if processInfo.physicalMemory < 1_000_000_000 { // 1GB minimum
@@ -169,7 +169,7 @@ public class Gemma3nMultimodalPlugin: NSObject, FlutterPlugin, FlutterStreamHand
       }
       return (true, nil)
     } else {
-      return (false, "iOS 12.0 or later required for MediaPipe GenAI")
+      return (false, "iOS 14.0 or later required for MediaPipe GenAI")
     }
   }
 

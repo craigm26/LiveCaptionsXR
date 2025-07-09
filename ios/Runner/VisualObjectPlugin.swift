@@ -3,6 +3,7 @@ import Flutter
 import ARKit
 import UIKit
 
+@available(iOS 14.0, *)
 class VisualObjectPlugin: NSObject, FlutterPlugin {
     static var channel: FlutterMethodChannel?
 

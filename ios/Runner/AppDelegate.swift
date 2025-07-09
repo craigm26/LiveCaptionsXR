@@ -16,12 +16,16 @@ import Foundation
         GeneratedPluginRegistrant.register(with: self)
         
         // Register custom plugins - use registrar for proper plugin registration
-        if let registrar = self.registrar(forPlugin: "ARAnchorManager") {
-            ARAnchorManager.register(with: registrar)
+        if #available(iOS 14.0, *) {
+            if let registrar = self.registrar(forPlugin: "ARAnchorManager") {
+                ARAnchorManager.register(with: registrar)
+            }
         }
         
-        if let registrar = self.registrar(forPlugin: "VisualObjectPlugin") {
-            VisualObjectPlugin.register(with: registrar)
+        if #available(iOS 14.0, *) {
+            if let registrar = self.registrar(forPlugin: "VisualObjectPlugin") {
+                VisualObjectPlugin.register(with: registrar)
+            }
         }
         
         if let registrar = self.registrar(forPlugin: "StereoAudioCapturePlugin") {
@@ -148,6 +152,17 @@ import Foundation
     private func showARView(from controller: FlutterViewController, result: @escaping FlutterResult) {
         print("📺 AppDelegate.showARView() called")
         DispatchQueue.main.async {
+            // Check iOS version availability
+            guard #available(iOS 14.0, *) else {
+                print("❌ iOS 14.0 or later required for AR features")
+                result(FlutterError(
+                    code: "IOS_VERSION_NOT_SUPPORTED",
+                    message: "iOS 14.0 or later is required for AR features",
+                    details: nil
+                ))
+                return
+            }
+            
             // Check if ARKit is available on device
             guard ARWorldTrackingConfiguration.isSupported else {
                 print("❌ ARWorldTrackingConfiguration not supported")

@@ -3,6 +3,7 @@ import Flutter
 import ARKit
 import SceneKit
 
+@available(iOS 14.0, *)
 @objc class ARAnchorManager: NSObject, FlutterPlugin {
     static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "live_captions_xr/ar_anchor_methods", binaryMessenger: registrar.messenger())

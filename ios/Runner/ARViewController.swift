@@ -2,6 +2,7 @@ import UIKit
 import ARKit
 import Flutter
 
+@available(iOS 14.0, *)
 class ARViewController: UIViewController, ARSCNViewDelegate {
     var sceneView: ARSCNView!
     var captionChannel: FlutterMethodChannel?
