@@ -3,10 +3,10 @@ import 'dart:io';
 
 void main() {
   print('🔍 Testing iOS Configuration for TestFlight Build Issues');
-  
+
   // Check iOS deployment target consistency
   print('\n📱 Checking iOS deployment target consistency:');
-  
+
   // Check AppFrameworkInfo.plist
   final appFrameworkInfo = File('ios/Flutter/AppFrameworkInfo.plist');
   if (appFrameworkInfo.existsSync()) {
@@ -19,7 +19,7 @@ void main() {
   } else {
     print('❌ AppFrameworkInfo.plist: File not found');
   }
-  
+
   // Check Podfile
   final podfile = File('ios/Podfile');
   if (podfile.existsSync()) {
@@ -32,7 +32,7 @@ void main() {
   } else {
     print('❌ Podfile: File not found');
   }
-  
+
   // Check Package.swift
   final packageSwift = File('ios/Package.swift');
   if (packageSwift.existsSync()) {
@@ -45,27 +45,29 @@ void main() {
   } else {
     print('❌ Package.swift: File not found');
   }
-  
+
   // Check Info.plist for required capabilities
   print('\n🔐 Checking Info.plist requirements:');
   final infoPlist = File('ios/Runner/Info.plist');
   if (infoPlist.existsSync()) {
     final content = infoPlist.readAsStringSync();
-    
-    // Check ARKit capability
+
+    // Check ARKit capability (should be removed for visionOS support)
     if (content.contains('<string>arkit</string>')) {
-      print('✅ Info.plist: ARKit capability ✓');
+      print(
+          '⚠️ Info.plist: ARKit capability present (may prevent visionOS support)');
     } else {
-      print('❌ Info.plist: ARKit capability missing');
+      print(
+          '✅ Info.plist: ARKit capability properly removed for visionOS support ✓');
     }
-    
+
     // Check permissions
     final permissions = [
       'NSCameraUsageDescription',
-      'NSMicrophoneUsageDescription', 
+      'NSMicrophoneUsageDescription',
       'NSSpeechRecognitionUsageDescription'
     ];
-    
+
     for (final permission in permissions) {
       if (content.contains(permission)) {
         print('✅ Info.plist: $permission ✓');
@@ -76,7 +78,7 @@ void main() {
   } else {
     print('❌ Info.plist: File not found');
   }
-  
+
   // Check assets
   print('\n📁 Checking assets:');
   final assetsDir = Directory('assets');
@@ -87,7 +89,7 @@ void main() {
     } else {
       print('⚠️  Assets: models directory created');
     }
-    
+
     final logosDir = Directory('assets/logos');
     if (logosDir.existsSync()) {
       print('✅ Assets: logos directory exists ✓');
@@ -97,7 +99,8 @@ void main() {
   } else {
     print('❌ Assets: Directory not found');
   }
-  
+
   print('\n🎯 Configuration check complete!');
-  print('If all items show ✅, the configuration should work for TestFlight builds.');
+  print(
+      'If all items show ✅, the configuration should work for TestFlight builds.');
 }

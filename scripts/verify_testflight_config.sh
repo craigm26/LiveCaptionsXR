@@ -39,11 +39,11 @@ echo ""
 echo "🔐 Checking Info.plist requirements:"
 
 if [ -f "ios/Runner/Info.plist" ]; then
-    # Check ARKit capability
+    # Check ARKit capability (should be removed for visionOS support)
     if grep -q "<string>arkit</string>" "ios/Runner/Info.plist"; then
-        echo "✅ Info.plist: ARKit capability ✓"
+        echo "⚠️ Info.plist: ARKit capability present (may prevent visionOS support)"
     else
-        echo "❌ Info.plist: ARKit capability missing"
+        echo "✅ Info.plist: ARKit capability properly removed for visionOS support ✓"
     fi
     
     # Check required permissions

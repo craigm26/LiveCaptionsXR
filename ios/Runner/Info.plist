@@ -65,9 +65,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>arkit</string>
-	</array>
 </dict>
 </plist>
