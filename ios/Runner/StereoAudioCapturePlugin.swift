@@ -59,10 +59,31 @@ import Flutter
                         result(FlutterError(code: "NO_INPUT", message: "No audio input node", details: nil))
                         return
                     }
-                    let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: self.sampleRate, channels: 2, interleaved: true)!
+                    
+                    // Remove any existing taps before installing new ones
+                    input.removeTap(onBus: 0)
+                    
+                    // Use the input node's native format instead of forcing our own
+                    let inputFormat = input.inputFormat(forBus: 0)
+                    
+                    // Create a compatible format for our processing
+                    // Fall back to mono if stereo is not available
+                    let channelCount = min(inputFormat.channelCount, 2)
+                    guard let format = AVAudioFormat(
+                        commonFormat: .pcmFormatFloat32,
+                        sampleRate: inputFormat.sampleRate,
+                        channels: channelCount,
+                        interleaved: true
+                    ) else {
+                        result(FlutterError(code: "AUDIO_FORMAT_ERROR", message: "Cannot create compatible audio format", details: nil))
+                        return
+                    }
+                    
+                    // Install tap with proper format validation
                     input.installTap(onBus: 0, bufferSize: self.bufferSize, format: format) { buffer, _ in
                         self.handleAudioBuffer(buffer: buffer)
                     }
+                    
                     self.audioEngine?.prepare()
                     try self.audioEngine?.start()
                     self.isRecording = true
@@ -79,7 +100,12 @@ import Flutter
             result(nil)
             return
         }
-        audioEngine?.inputNode.removeTap(onBus: 0)
+        
+        // Safely remove tap
+        if let inputNode = audioEngine?.inputNode {
+            inputNode.removeTap(onBus: 0)
+        }
+        
         audioEngine?.stop()
         audioEngine = nil
         isRecording = false
@@ -88,24 +114,60 @@ import Flutter
 
     private func configureSession() throws {
         let session = AVAudioSession.sharedInstance()
+        
+        // Configure for recording with playback capability
         try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
-        try session.setPreferredSampleRate(sampleRate)
-        try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
+        
+        // Try to set preferred sample rate, but don't fail if it's not supported
+        do {
+            try session.setPreferredSampleRate(sampleRate)
+        } catch {
+            print("Warning: Could not set preferred sample rate: \(error)")
+        }
+        
+        // Try to set preferred buffer duration
+        do {
+            try session.setPreferredIOBufferDuration(Double(bufferSize) / sampleRate)
+        } catch {
+            print("Warning: Could not set preferred IO buffer duration: \(error)")
+        }
+        
+        // Activate the session
         try session.setActive(true, options: .notifyOthersOnDeactivation)
     }
 
     private func handleAudioBuffer(buffer: AVAudioPCMBuffer) {
         guard let eventSink = eventSink, isRecording else { return }
-        guard let floatChannelData = buffer.floatChannelData, buffer.format.channelCount == 2 else { return }
+        guard let floatChannelData = buffer.floatChannelData else { return }
+        
         let frameLength = Int(buffer.frameLength)
-        let left = floatChannelData[0]
-        let right = floatChannelData[1]
-        // Interleave L/R into a single Float32List
-        var interleaved = [Float](repeating: 0, count: frameLength * 2)
-        for i in 0..<frameLength {
-            interleaved[i * 2] = left[i]
-            interleaved[i * 2 + 1] = right[i]
+        let channelCount = Int(buffer.format.channelCount)
+        
+        // Handle both mono and stereo formats
+        var interleaved = [Float]()
+        
+        if channelCount == 1 {
+            // Mono: duplicate to create stereo
+            let mono = floatChannelData[0]
+            interleaved.reserveCapacity(frameLength * 2)
+            for i in 0..<frameLength {
+                interleaved.append(mono[i])
+                interleaved.append(mono[i])
+            }
+        } else if channelCount >= 2 {
+            // Stereo or multi-channel: use first two channels
+            let left = floatChannelData[0]
+            let right = floatChannelData[1]
+            interleaved.reserveCapacity(frameLength * 2)
+            for i in 0..<frameLength {
+                interleaved.append(left[i])
+                interleaved.append(right[i])
+            }
+        } else {
+            // No channels, return empty
+            return
         }
+        
         let data = Data(buffer: UnsafeBufferPointer(start: &interleaved, count: interleaved.count))
         eventSink(FlutterStandardTypedData(bytes: data))
     }
