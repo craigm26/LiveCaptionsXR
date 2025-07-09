@@ -25208,7 +25208,7 @@ $S:2}
 A.ald.prototype={
 $1(a){var s=A.ec().b
 s=s==null?null:s.canvasKitBaseUrl
-return(s==null?"https://www.gstatic.com/flutter-canvaskit/dd93de6fb1776398bf586cbd477deade1391c7e4/":s)+a},
+return(s==null?"https://www.gstatic.com/flutter-canvaskit/31c4875c7aa0079ae11a4850e2d06bd83d001960/":s)+a},
 $S:102}
 A.Wk.prototype={
 dT(a,b){var s,r=this.a
