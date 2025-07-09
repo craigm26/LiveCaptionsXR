@@ -168,7 +168,24 @@ import Flutter
             return
         }
         
-        let data = Data(buffer: UnsafeBufferPointer(start: &interleaved, count: interleaved.count))
+        // Ensure we have exactly the expected number of samples
+        let expectedSampleCount = frameLength * 2
+        guard interleaved.count == expectedSampleCount else {
+            print("⚠️ Audio buffer size mismatch: expected \(expectedSampleCount), got \(interleaved.count)")
+            return
+        }
+        
+        // Create Data buffer with proper byte size calculation
+        let byteCount = interleaved.count * MemoryLayout<Float>.size
+        let data = Data(bytes: interleaved, count: byteCount)
+        
+        // Validate the data size before sending
+        let expectedByteCount = expectedSampleCount * MemoryLayout<Float>.size
+        guard data.count == expectedByteCount else {
+            print("⚠️ Data size mismatch: expected \(expectedByteCount) bytes, got \(data.count) bytes")
+            return
+        }
+        
         eventSink(FlutterStandardTypedData(bytes: data))
     }
 } 

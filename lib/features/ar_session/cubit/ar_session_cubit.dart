@@ -357,14 +357,31 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       return;
     }
 
-    const maxRetries = 3;
-    const retryDelay = Duration(milliseconds: 500);
+    const maxRetries = 5;
+    const retryDelay = Duration(milliseconds: 1000);
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         _logger.i('🎯 Auto-placing AR anchor... (attempt $attempt/$maxRetries)');
 
         final arAnchorManager = ARAnchorManager();
+
+        // First, validate that the AR session is actually ready for anchor operations
+        _logger.d('🔍 Validating AR session readiness...');
+        try {
+          await arAnchorManager.getDeviceOrientation();
+          _logger.d('✅ AR session validation successful');
+        } catch (e) {
+          _logger.w('⚠️ AR session not ready yet: $e');
+          if (attempt < maxRetries) {
+            _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+            await Future.delayed(retryDelay);
+            continue;
+          } else {
+            _logger.e('❌ AR session validation failed after $maxRetries attempts');
+            rethrow;
+          }
+        }
 
         _logger.d('🔄 Requesting fused transform from hybrid localization...');
         final fusedTransform = await _hybridLocalizationEngine.getFusedTransform();
