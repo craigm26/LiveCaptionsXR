@@ -53,9 +53,21 @@ class StereoAudioCapture {
       await _methodChannel.invokeMethod<void>('startRecording');
       
       _logger.d('Setting up audio frame stream...');
-      _frameStream = _eventChannel.receiveBroadcastStream().map((event) {
+      
+      // First, test if we can receive raw events
+      _logger.d('🔍 Testing raw EventChannel stream...');
+      final rawStream = _eventChannel.receiveBroadcastStream();
+      
+      _frameStream = rawStream.map((event) {
         _logger.d('📡 Raw event received from native: ${event.runtimeType}');
-        return parseFrame(event);
+        try {
+          final frame = parseFrame(event);
+          _logger.d('✅ Successfully parsed audio frame');
+          return frame;
+        } catch (e, stackTrace) {
+          _logger.e('❌ Failed to parse audio frame', error: e, stackTrace: stackTrace);
+          rethrow;
+        }
       }).handleError((error, stackTrace) {
         _logger.e('❌ Error in audio frame stream processing', error: error, stackTrace: stackTrace);
       });
@@ -101,10 +113,45 @@ class StereoAudioCapture {
       // Don't rethrow to avoid breaking the stream
     });
   }
+  
+  /// Test method to check if events are flowing from native side
+  Future<void> testEventFlow() async {
+    _logger.i('🧪 Testing event flow from native EventChannel...');
+    
+    try {
+      final rawStream = _eventChannel.receiveBroadcastStream();
+      int eventCount = 0;
+      
+      final subscription = rawStream.listen((event) {
+        eventCount++;
+        _logger.d('🧪 Test event #$eventCount: ${event.runtimeType}');
+        
+        if (event is Uint8List) {
+          _logger.d('🧪 Uint8List length: ${event.length}');
+        }
+        
+        if (eventCount >= 5) {
+          _logger.i('🧪 Received 5 test events, stopping test');
+        }
+      }, onError: (error) {
+        _logger.e('🧪 Test event error: $error');
+      });
+      
+      // Listen for 2 seconds then cancel
+      await Future.delayed(const Duration(seconds: 2));
+      await subscription.cancel();
+      
+      _logger.i('🧪 Test completed: received $eventCount events');
+    } catch (e, stackTrace) {
+      _logger.e('🧪 Test event flow failed', error: e, stackTrace: stackTrace);
+    }
+  }
 
   /// Parse audio frame from native side - made public for testing
   StereoAudioFrame parseFrame(dynamic event) {
     try {
+      _logger.d('🔍 Parsing audio frame: type=${event.runtimeType}');
+      
       if (event is Float32List) {
         _logger.d('📊 Processing Float32List with ${event.length} samples (${event.length / 2} per channel)');
         final left = Float32List(event.length ~/ 2);
@@ -129,6 +176,7 @@ class StereoAudioCapture {
       }
       if (event is Uint8List) {
         _logger.d('📊 Processing Uint8List with ${event.length} bytes');
+        _logger.d('📊 First 16 bytes: ${event.take(16).toList()}');
         
         // Validate byte length should be multiple of 4 (Float32 size)
         if (event.length % 4 != 0) {
@@ -139,6 +187,7 @@ class StereoAudioCapture {
         // Convert bytes to Float32List
         final data = Float32List.view(event.buffer);
         _logger.d('📊 Converted to Float32List with ${data.length} samples');
+        _logger.d('📊 First 8 float values: ${data.take(8).toList()}');
         
         // Validate we have even number of samples for stereo
         if (data.length % 2 != 0) {
@@ -174,7 +223,11 @@ class StereoAudioCapture {
       throw ArgumentError('Unsupported audio frame format: ${event.runtimeType}');
     } catch (e, stackTrace) {
       _logger.e('❌ Error parsing audio frame', error: e, stackTrace: stackTrace);
-      _logger.e('📋 Event details: type=${event.runtimeType}, data=${event.toString().substring(0, 100)}...');
+      _logger.e('📋 Event details: type=${event.runtimeType}');
+      if (event is Uint8List) {
+        _logger.e('📋 Uint8List length: ${event.length}');
+        _logger.e('📋 First 16 bytes: ${event.take(16).toList()}');
+      }
       rethrow;
     }
   }

@@ -126,6 +126,10 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       await _audioCapture.startRecording();
       _logger.i('✅ Audio capture started successfully');
 
+      // Give a small delay to ensure the native side is ready
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      _logger.d('🔗 Setting up audio frame stream subscription...');
       _audioFrameCount = 0;
       _audioSubscription = _audioCapture.frames.listen((frame) async {
         try {
