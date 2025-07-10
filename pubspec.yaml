@@ -1,0 +1,63 @@
+publish_to: none
+
+name: live_captions_xr
+description: A Flutter app for live captions and XR accessibility features.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  flutter_bloc: ^9.1.1
+  go_router: ^6.0.0
+  equatable: ^2.0.7
+  get_it: ^8.0.3
+  scidart: ^0.0.2-dev.12
+  shared_preferences: ^2.5.3
+  logger: ^2.0.2+1
+  url_launcher: ^6.2.2
+  gemma3n_multimodal:
+    path: plugins/gemma3n_multimodal
+  flutter_launcher_icons: ^0.14.4
+  # Add your other dependencies here
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  bloc_test: ^10.0.0
+  mockito: ^5.4.4
+  build_runner: ^2.4.11
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
+    - assets/logos/
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: fonts/Roboto-Regular.ttf
+
+# add section for flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/logos/logo.png
+  web:
+    generate: true
+    image_path: assets/logos/logo.png
+    background_color: "#ffffff"
+    theme_color: "#1E40AF"
+  windows:
+    generate: true
+    image_path: assets/logos/logo.png
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: assets/logos/logo.png
+
