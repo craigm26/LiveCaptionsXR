@@ -12,8 +12,7 @@ import 'debug_capturing_logger.dart';
 
 /// Service for processing speech using Gemma 3 multimodal capabilities
 class SpeechProcessor {
-  static const _channel = MethodChannel('gemma3n_multimodal');
-  static const _stream = EventChannel('gemma3n_multimodal_stream');
+  /// TODO: Integrate with flutter_gemma for ASR and streaming when available
 
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
@@ -30,7 +29,7 @@ class SpeechProcessor {
   /// Stream of speech recognition results
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
 
-  /// Initialize the speech processor with Gemma 3 model
+  /// Mock initialize method
   Future<bool> initialize({
     String modelPath = 'assets/models/gemma-3n-E2B-it-int4.task',
     double temperature = 0.7,
@@ -39,198 +38,67 @@ class SpeechProcessor {
     int maxTokens = 512,
     SpeechConfig? config,
   }) async {
-    try {
-      _logger.i('🎤 Initializing SpeechProcessor with Gemma 3...');
-
-      // Update configuration
-      _config = config ?? const SpeechConfig();
-      _currentLanguage = _config.language;
-      
-      _logger.d('📋 Speech config: $_config');
-
-      // Load the Gemma 3 model for speech processing
-      final result = await _channel.invokeMethod('loadModel', {
-        'path': modelPath,
-        'temperature': temperature,
-        'topK': topK,
-        'topP': topP,
-        'maxTokens': maxTokens,
-        'useANE': true, // Use Apple Neural Engine for better performance
-        'useGPU': false,
-      });
-
-      if (result['success'] == true) {
-        _isInitialized = true;
-        _logger.i('✅ SpeechProcessor initialized successfully');
-        _logger.d('📁 Model loaded from: ${result['modelPath']}');
-
-        // Set up the stream for real-time results with configuration
-        _logger.d('🔄 Setting up speech result stream...');
-        _streamSubscription = _stream.receiveBroadcastStream({
-          'type': 'transcription',
-          'config': _config.toMap(),
-        }).listen(
-          _handleStreamData,
-          onError: _handleStreamError,
-        );
-        
-        _logger.i('📡 Speech result stream initialized and listening');
-        return true;
-      } else {
-        _logger.e('❌ Failed to initialize SpeechProcessor');
-        _logger.e('📋 Result: $result');
-        return false;
-      }
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error initializing SpeechProcessor',
-          error: e, stackTrace: stackTrace);
-      return false;
-    }
+    await Future.delayed(Duration(milliseconds: 100));
+    _isInitialized = true;
+    _config = config ?? const SpeechConfig();
+    _currentLanguage = _config.language;
+    _logger.i('✅ [MOCK] SpeechProcessor initialized');
+    return true;
   }
 
-  /// Start processing audio data for speech recognition
+  /// Mock startProcessing method
   Future<bool> startProcessing({SpeechConfig? config}) async {
     if (!_isInitialized) {
-      _logger.w('⚠️ SpeechProcessor not initialized');
+      _logger.w('⚠️ [MOCK] SpeechProcessor not initialized');
       return false;
     }
-
-    if (_isProcessing) {
-      _logger.w('⚠️ SpeechProcessor already processing');
-      return true;
-    }
-
-    try {
-      // Update config if provided
-      if (config != null) {
-        _config = config;
-        _currentLanguage = config.language;
-        _logger.d('📋 Updated speech config: $_config');
-      }
-
-      _logger.i('🎤 Starting speech processing...');
-      _logger.d('🔧 Audio capture config: sampleRate=16000, channels=1, format=pcm16');
-      _logger.d('🌍 Language: $_currentLanguage');
-      _logger.d('🎯 Voice activity threshold: ${_config.voiceActivityThreshold}');
-      _logger.d('⚙️ Real-time enhancement: ${_config.enableRealTimeEnhancement}');
-
-      await _channel.invokeMethod('startAudioCapture', {
-        'sampleRate': 16000,
-        'channels': 1,
-        'format': 'pcm16',
-        'config': _config.toMap(),
-      });
-
-      _isProcessing = true;
-      _logger.i('✅ Speech processing started - waiting for audio chunks...');
-      return true;
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error starting speech processing',
-          error: e, stackTrace: stackTrace);
-      return false;
-    }
+    await Future.delayed(Duration(milliseconds: 100));
+    _isProcessing = true;
+    _logger.i('✅ [MOCK] Speech processing started');
+    // Simulate streaming results
+    _streamSubscription = Stream<SpeechResult>.fromIterable([
+      SpeechResult(
+        text: 'This is a mock interim result.',
+        confidence: 0.8,
+        isFinal: false,
+        timestamp: DateTime.now(),
+      ),
+      SpeechResult(
+        text: 'This is a mock final result.',
+        confidence: 0.95,
+        isFinal: true,
+        timestamp: DateTime.now().add(Duration(seconds: 1)),
+      ),
+    ]).listen((result) {
+      _speechResultController.add(result);
+    });
+    return true;
   }
 
-  /// Stop processing audio data
+  /// Mock stopProcessing method
   Future<bool> stopProcessing() async {
-    if (!_isProcessing) {
-      return true;
-    }
-
-    try {
-      _logger.i('🛑 Stopping speech processing...');
-
-      await _channel.invokeMethod('stopAudioCapture');
-
-      _isProcessing = false;
-      _logger.i('✅ Speech processing stopped');
-      return true;
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error stopping speech processing',
-          error: e, stackTrace: stackTrace);
-      return false;
-    }
+    if (!_isProcessing) return true;
+    await Future.delayed(Duration(milliseconds: 50));
+    _isProcessing = false;
+    await _streamSubscription?.cancel();
+    _logger.i('✅ [MOCK] Speech processing stopped');
+    return true;
   }
 
-  /// Process audio chunk for speech recognition
+  /// Mock processAudioChunk method
   Future<void> processAudioChunk(Float32List audioData) async {
     if (!_isInitialized || !_isProcessing) {
-      _logger.w('⚠️ Cannot process audio chunk - not initialized or not processing');
+      _logger.w('⚠️ [MOCK] Cannot process audio chunk - not initialized or not processing');
       return;
     }
-
-    try {
-      _logger.d('📊 Processing audio chunk: ${audioData.length} samples');
-      
-      // Calculate RMS level for voice activity detection
-      double rmsLevel = 0.0;
-      for (int i = 0; i < audioData.length; i++) {
-        rmsLevel += audioData[i] * audioData[i];
-      }
-      rmsLevel = rmsLevel > 0 ? sqrt(rmsLevel / audioData.length) : 0.0;
-      
-      _logger.d('🔊 Audio RMS level: ${rmsLevel.toStringAsFixed(4)} (threshold: ${_config.voiceActivityThreshold})');
-      
-      if (rmsLevel > _config.voiceActivityThreshold) {
-        _logger.d('🎯 Voice activity detected, sending to ASR...');
-        _logger.d('📤 Sending ${audioData.length} samples to native plugin for speech recognition');
-      } else {
-        _logger.d('🔇 Below voice activity threshold, skipping ASR');
-        return; // Don't send to ASR if below threshold
-      }
-
-      await _channel.invokeMethod('processAudioChunk', {
-        'audioData': audioData,
-        'sampleRate': 16000,
-        'config': _config.toMap(),
-      });
-      
-      _logger.d('✅ Audio chunk sent to native plugin successfully');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error processing audio chunk',
-          error: e, stackTrace: stackTrace);
-    }
+    await Future.delayed(Duration(milliseconds: 50));
+    _logger.d('✅ [MOCK] Audio chunk processed');
   }
 
-  /// Detect language from audio buffer
+  /// Mock detectLanguage method
   Future<void> detectLanguage(List<double> audioBuffer) async {
-    if (!_config.enableLanguageDetection) return;
-
-    try {
-      final detection = await LanguageDetectionService.detectLanguage(
-        audioBuffer,
-        _config,
-      );
-
-      if (detection != null && detection.confidence > 0.7) {
-        final previousLanguage = _currentLanguage;
-        _currentLanguage = detection.detectedLanguage;
-        
-        if (previousLanguage != _currentLanguage) {
-          _logger.i('🌍 Language changed: $previousLanguage → $_currentLanguage');
-          
-          // Update config with new language
-          _config = _config.copyWith(language: _currentLanguage);
-          
-          // Notify about language change
-          _speechResultController.add(SpeechResult(
-            text: '[Language detected: $_currentLanguage]',
-            confidence: detection.confidence,
-            isFinal: false,
-            timestamp: DateTime.now(),
-            metadata: {
-              'type': 'languageDetection',
-              'language': _currentLanguage,
-              'previousLanguage': previousLanguage,
-              'confidence': detection.confidence,
-              'scores': detection.languageScores,
-            },
-          ));
-        }
-      }
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error detecting language', error: e, stackTrace: stackTrace);
-    }
+    await Future.delayed(Duration(milliseconds: 50));
+    _logger.d('✅ [MOCK] Language detection simulated');
   }
 
   /// Process text with Gemma 3 for enhancement and context
@@ -292,7 +160,7 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
 
       prompt += '\n\nImproved caption (same language):';
 
-      final result = await _channel.invokeMethod('generateText', {
+      final result = await MethodChannel('gemma3n_multimodal').invokeMethod('generateText', {
         'prompt': prompt,
         'maxTokens': _config.enhancementMaxTokens,
         'temperature': _config.enhancementTemperature,
@@ -423,7 +291,7 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
 
       // Send updated config to native plugin if processing
       if (_isProcessing) {
-        await _channel.invokeMethod('updateConfig', {
+        await MethodChannel('gemma3n_multimodal').invokeMethod('updateConfig', {
           'config': _config.toMap(),
         });
       }
