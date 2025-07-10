@@ -1,1 +1,0 @@
-C:\Users\CraigM\source\repos\LiveCaptionsXR\plugins\gemma3n_multimodal\android\src\main\kotlin\com\example\gemma3n_multimodal\Gemma3nMultimodalPlugin.kt
