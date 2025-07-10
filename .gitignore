@@ -73,3 +73,5 @@ windows/build/
 build/ios-debug-info/
 ios/build/
 ios/Podfile.lock.dart_tool/
+build/
+!build/web/
