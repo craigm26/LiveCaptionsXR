@@ -39,7 +39,7 @@ class _TechnologyPageState extends State<TechnologyPage>
 
   @override
   Widget build(BuildContext context) {
-    final String location = GoRouterState.of(context).location;
+    final String location = GoRouterState.of(context).uri.toString();
     final isMobile = MediaQuery.of(context).size.width < 700;
 
     return Scaffold(

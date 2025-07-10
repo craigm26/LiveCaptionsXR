@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
@@ -16,6 +18,8 @@ import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
 import '../../../core/services/debug_capturing_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
+import '../../../core/services/model_download_manager.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -28,16 +32,129 @@ class _HomeScreenState extends State<HomeScreen> {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   Timer? _demoTimer;
+  late ModelDownloadManager _modelDownloadManager;
 
   @override
   void initState() {
     super.initState();
     _logger.i('🏠 HomeScreen initialized');
+    _modelDownloadManager = ModelDownloadManager();
 
-    // Auto-start all main activities after the widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkAndPromptModelDownload();
       _autoStartServices();
     });
+  }
+
+  Future<void> _checkAndPromptModelDownload() async {
+    final exists = await _modelDownloadManager.modelExists();
+    if (!exists && mounted) {
+      _showModelDownloadDialog();
+    }
+  }
+
+  void _showModelDownloadDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return ChangeNotifierProvider<ModelDownloadManager>.value(
+          value: _modelDownloadManager,
+          child: Consumer<ModelDownloadManager>(
+            builder: (context, manager, _) {
+              // Storage check
+              final minRequiredGB = 5.0;
+              final modelSizeGB = 4.1;
+              String? storageWarning;
+              double? availableGB;
+              try {
+                final stat = FileStat.statSync('/');
+                availableGB = stat.size / (1024 * 1024 * 1024);
+                if (availableGB < minRequiredGB) {
+                  storageWarning = 'Warning: Less than ${minRequiredGB.toStringAsFixed(1)} GB free. Download may fail.';
+                }
+              } catch (_) {}
+
+              if (manager.completed) {
+                Future.delayed(Duration(milliseconds: 500), () {
+                  if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+                });
+              }
+              return AlertDialog(
+                title: const Text('Download Required Model'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'To enable speech recognition, a 4GB model file must be downloaded. This is a one-time download.'
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 18, color: Colors.blueGrey),
+                        SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => launchUrl(Uri.parse('https://huggingface.co/google/gemma-3n-E2B-it')),
+                          child: Text('Learn more about the model', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Estimated download time: ~15-30 min on a 50 Mbps connection.'),
+                    if (storageWarning != null) ...[
+                      const SizedBox(height: 8),
+                      Text(storageWarning, style: TextStyle(color: Colors.red)),
+                    ],
+                    const SizedBox(height: 16),
+                    if (manager.downloading)
+                      Column(
+                        children: [
+                          LinearProgressIndicator(value: manager.progress),
+                          const SizedBox(height: 8),
+                          Text('Downloading: ${(manager.progress * 100).toStringAsFixed(1)}%'),
+                        ],
+                      )
+                    else if (manager.error != null)
+                      Column(
+                        children: [
+                          Text('Error: ${manager.error}', style: const TextStyle(color: Colors.red)),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              manager.reset();
+                              manager.downloadModel();
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      )
+                    else if (!manager.completed)
+                      ElevatedButton(
+                        onPressed: () {
+                          manager.downloadModel();
+                        },
+                        child: const Text('Download Model'),
+                      ),
+                    if (manager.completed)
+                      const Text('Model downloaded!'),
+                  ],
+                ),
+                actions: [
+                  if (!manager.downloading && !manager.completed)
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   /// Automatically start all main app services

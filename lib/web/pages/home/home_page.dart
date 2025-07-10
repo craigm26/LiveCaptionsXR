@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final String location = GoRouterState.of(context).location;
+    final String location = GoRouterState.of(context).uri.toString();
     final isMobile = MediaQuery.of(context).size.width < 700;
     final screenWidth = MediaQuery.of(context).size.width;
 
