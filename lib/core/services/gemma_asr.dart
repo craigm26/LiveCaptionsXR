@@ -113,72 +113,44 @@ class GemmaASR {
     // Use multimodal streaming if vision context is provided
     if (visionContext != null) {
       _logger.i('👁️ Using multimodal streaming with vision context');
-      // The original code had _plugin.streamMultimodal(audio: audioBuffer, image: visionContext)
-      // This line was removed as Gemma3nMultimodal is no longer imported.
-      // The placeholder for flutter_gemma integration is kept.
-      _pluginSubscription = _pluginSubscription // This line was removed
-          .listen(
-        (event) async {
-          _logger.d('📝 Multimodal transcription event: $event');
-          final map = _parseResult(event);
-          final result = TranscriptionResult(
-              text: map['text'] ?? '', isFinal: map['isFinal'] ?? false);
-          _logger.i(
-              '📝 Transcription: "${result.text}" (final: ${result.isFinal})');
-          _resultController.add(result);
-
-          if (map['isFinal'] == true &&
-              (map['text'] as String?)?.isNotEmpty == true) {
-            _logger.i(
-                '🎯 Placing caption at fused speaker position: "${map['text']}"');
-            // Place caption at fused speaker position
-            await hybridLocalizationEngine.placeCaption(map['text']);
-          }
-        },
-        onError: (e) {
-          _logger.e('❌ Multimodal stream error: $e');
-          _resultController.addError(e);
-        },
-        onDone: () {
-          _logger.i('✅ Multimodal stream completed');
-          _resultController.close();
-          _streaming = false;
-        },
-        cancelOnError: false,
-      );
+      // Simulate multimodal streaming with mock data
+      Future(() async {
+        await Future.delayed(Duration(milliseconds: 200));
+        final partial = TranscriptionResult(text: "[Vision] This is a mock partial result.", isFinal: false);
+        _logger.i('📝 Transcription: "${partial.text}" (final: ${partial.isFinal})');
+        _resultController.add(partial);
+        await Future.delayed(Duration(milliseconds: 200));
+        final finalResult = TranscriptionResult(text: "[Vision] This is a mock final result.", isFinal: true);
+        _logger.i('📝 Transcription: "${finalResult.text}" (final: ${finalResult.isFinal})');
+        _resultController.add(finalResult);
+        if (finalResult.text.isNotEmpty) {
+          _logger.i('🎯 Placing caption at fused speaker position: "${finalResult.text}"');
+          await hybridLocalizationEngine.placeCaption(finalResult.text);
+        }
+        _logger.i('✅ Multimodal stream completed');
+        _resultController.close();
+        _streaming = false;
+      });
     } else {
       _logger.i('🎵 Using audio-only streaming');
-      // The original code had _plugin.streamTranscription(audioBuffer).listen(
-      // This line was removed as Gemma3nMultimodal is no longer imported.
-      // The placeholder for flutter_gemma integration is kept.
-      _pluginSubscription = _pluginSubscription // This line was removed
-        .listen(
-        (event) async {
-          _logger.d('📝 Audio transcription event: $event');
-          final map = _parseResult(event);
-          final result = TranscriptionResult(
-              text: map['text'] ?? '', isFinal: map['isFinal'] ?? false);
-          _logger.i('📝 Audio transcription: "${result.text}" (final: ${result.isFinal})');
-          _resultController.add(result);
-
-          if (map['isFinal'] == true &&
-              (map['text'] as String?)?.isNotEmpty == true) {
-            _logger.i('🎯 Placing caption at fused speaker position: "${map['text']}"');
-            // Place caption at fused speaker position
-            await hybridLocalizationEngine.placeCaption(map['text']);
-          }
-        },
-        onError: (e) {
-          _logger.e('❌ Audio stream error: $e');
-          _resultController.addError(e);
-        },
-        onDone: () {
-          _logger.i('✅ Audio stream completed');
-          _resultController.close();
-          _streaming = false;
-        },
-        cancelOnError: false,
-      );
+      // Simulate audio-only streaming with mock data
+      Future(() async {
+        await Future.delayed(Duration(milliseconds: 200));
+        final partial = TranscriptionResult(text: "This is a mock partial result.", isFinal: false);
+        _logger.i('📝 Audio transcription: "${partial.text}" (final: ${partial.isFinal})');
+        _resultController.add(partial);
+        await Future.delayed(Duration(milliseconds: 200));
+        final finalResult = TranscriptionResult(text: "This is a mock final result.", isFinal: true);
+        _logger.i('📝 Audio transcription: "${finalResult.text}" (final: ${finalResult.isFinal})');
+        _resultController.add(finalResult);
+        if (finalResult.text.isNotEmpty) {
+          _logger.i('🎯 Placing caption at fused speaker position: "${finalResult.text}"');
+          await hybridLocalizationEngine.placeCaption(finalResult.text);
+        }
+        _logger.i('✅ Audio stream completed');
+        _resultController.close();
+        _streaming = false;
+      });
     }
     return _resultController.stream;
   }

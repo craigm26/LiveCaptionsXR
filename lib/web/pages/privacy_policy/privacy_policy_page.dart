@@ -36,7 +36,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 700;
-    final String location = GoRouterState.of(context).location;
+    final String location = GoRouterState.of(context).uri.toString();
 
     return Scaffold(
       appBar: const NavBar(),

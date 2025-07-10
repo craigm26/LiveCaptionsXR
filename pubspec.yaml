@@ -13,15 +13,13 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   flutter_bloc: ^9.1.1
-  go_router: ^6.0.0
+  go_router: ^16.0.0
   equatable: ^2.0.7
   get_it: ^8.0.3
   scidart: ^0.0.2-dev.12
   shared_preferences: ^2.5.3
   logger: ^2.0.2+1
   url_launcher: ^6.2.2
-  gemma3n_multimodal:
-    path: plugins/gemma3n_multimodal
   flutter_launcher_icons: ^0.14.4
   flutter_gemma: any
   # Add your other dependencies here
@@ -32,12 +30,11 @@ dev_dependencies:
   bloc_test: ^10.0.0
   mockito: ^5.4.4
   build_runner: ^2.4.11
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/models/
     - assets/logos/
   # fonts:
   #   - family: Roboto

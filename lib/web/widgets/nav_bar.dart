@@ -7,81 +7,161 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String location = GoRouterState.of(context).location;
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final String location = GoRouterState.of(context).uri.toString();
+    final isMobile = MediaQuery.of(context).size.width < 1200;
 
     if (isMobile) {
-      return Material(
-        elevation: 4,
-        color: Colors.white,
-        shadowColor: Colors.grey.withOpacity(0.3),
-        child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              // Logo
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).primaryColor.withOpacity(0.1),
-                      Theme.of(context).primaryColor.withOpacity(0.05),
+      return SizedBox(
+        height: 64,
+        child: Builder(
+          builder: (context) => Scaffold(
+            backgroundColor: Colors.transparent,
+            endDrawer: Drawer(
+              child: SafeArea(
+                child: SizedBox(
+                  width: 350,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.home_rounded),
+                        title: Text('Home'),
+                        selected: location == '/',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/');
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.featured_play_list_rounded),
+                        title: Text('Features'),
+                        selected: location == '/features',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/features');
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.code_rounded),
+                        title: Text('Technology'),
+                        selected: location == '/technology',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/technology');
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.info_rounded),
+                        title: Text('About'),
+                        selected: location == '/about',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/about');
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.support_agent_rounded),
+                        title: Text('Support'),
+                        selected: location == '/support',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/support');
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: Icon(Icons.apple, color: Colors.black),
+                        title: Text('Download on TestFlight'),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await TestFlightUtils.openTestFlight();
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.privacy_tip_outlined),
+                        title: Text('Privacy'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/privacy');
+                        },
+                      ),
                     ],
                   ),
                 ),
-                child: Image.asset(
-                  'assets/logos/logo.png',
-                  height: 24,
-                  width: 24,
-                  fit: BoxFit.cover,
-                ),
               ),
-              const SizedBox(width: 12),
+            ),
+            body: Material(
+              elevation: 4,
+              color: Colors.white,
+              shadowColor: Colors.grey.withOpacity(0.3),
+              child: Container(
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // Logo
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        gradient: LinearGradient(
+                          colors: [
+                            Theme.of(context).primaryColor.withOpacity(0.1),
+                            Theme.of(context).primaryColor.withOpacity(0.05),
+                          ],
+                        ),
+                      ),
+                      child: Image.asset(
+                        'assets/logos/logo.png',
+                        height: 24,
+                        width: 24,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
 
-              // App name
-              ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: [
-                    Theme.of(context).primaryColor,
-                    Theme.of(context).primaryColor.withOpacity(0.8),
+                    // App name
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [
+                          Theme.of(context).primaryColor,
+                          Theme.of(context).primaryColor.withOpacity(0.8),
+                        ],
+                      ).createShader(bounds),
+                      child: const Text(
+                        'Live Captions XR',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          letterSpacing: 1.1,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+
+                    // Mobile menu button
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).primaryColor.withOpacity(0.2),
+                        ),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.menu_rounded,
+                          size: 24,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        onPressed: () => Scaffold.of(context).openEndDrawer(),
+                        tooltip: 'Open navigation menu',
+                      ),
+                    ),
                   ],
-                ).createShader(bounds),
-                child: const Text(
-                  'Live Captions XR',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    letterSpacing: 1.1,
-                    color: Colors.white,
-                  ),
                 ),
               ),
-              const Spacer(),
-
-              // Mobile menu button
-              Builder(
-                builder: (context) => Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(context).primaryColor.withOpacity(0.2),
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.menu_rounded,
-                      size: 24,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                    onPressed: () => Scaffold.of(context).openEndDrawer(),
-                    tooltip: 'Open navigation menu',
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -145,94 +225,96 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-            const Spacer(),
-
+            const SizedBox(width: 32),
             // Navigation links
-            Row(
-              children: [
-                _NavLink(
-                  label: 'Home',
-                  route: '/',
-                  selected: location == '/',
-                  icon: Icons.home_rounded,
-                ),
-                const SizedBox(width: 8),
-                _NavLink(
-                  label: 'Features',
-                  route: '/features',
-                  selected: location == '/features',
-                  icon: Icons.featured_play_list_rounded,
-                ),
-                const SizedBox(width: 8),
-                _NavLink(
-                  label: 'Technology',
-                  route: '/technology',
-                  selected: location == '/technology',
-                  icon: Icons.code_rounded,
-                ),
-                const SizedBox(width: 8),
-                _NavLink(
-                  label: 'About',
-                  route: '/about',
-                  selected: location == '/about',
-                  icon: Icons.info_rounded,
-                ),
-                const SizedBox(width: 8),
-                _NavLink(
-                  label: 'Support',
-                  route: '/support',
-                  selected: location == '/support',
-                  icon: Icons.support_agent_rounded,
-                ),
-                const SizedBox(width: 16),
-                // TestFlight Button
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _NavLink(
+                    label: 'Home',
+                    route: '/',
+                    selected: location == '/',
+                    icon: Icons.home_rounded,
                   ),
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await TestFlightUtils.openTestFlight();
-                    },
-                    icon: const Icon(Icons.apple, color: Colors.white),
-                    label: const Text(
-                      'TestFlight',
+                  const SizedBox(width: 8),
+                  _NavLink(
+                    label: 'Features',
+                    route: '/features',
+                    selected: location == '/features',
+                    icon: Icons.featured_play_list_rounded,
+                  ),
+                  const SizedBox(width: 8),
+                  _NavLink(
+                    label: 'Technology',
+                    route: '/technology',
+                    selected: location == '/technology',
+                    icon: Icons.code_rounded,
+                  ),
+                  const SizedBox(width: 8),
+                  _NavLink(
+                    label: 'About',
+                    route: '/about',
+                    selected: location == '/about',
+                    icon: Icons.info_rounded,
+                  ),
+                  const SizedBox(width: 8),
+                  _NavLink(
+                    label: 'Support',
+                    route: '/support',
+                    selected: location == '/support',
+                    icon: Icons.support_agent_rounded,
+                  ),
+                  const SizedBox(width: 16),
+                  // TestFlight Button
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).primaryColor,
+                          Theme.of(context).primaryColor.withOpacity(0.8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await TestFlightUtils.openTestFlight();
+                      },
+                      icon: const Icon(Icons.apple, color: Colors.white),
+                      label: const Text(
+                        'TestFlight',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Privacy link
+                  TextButton(
+                    onPressed: () => context.go('/privacy'),
+                    child: Text(
+                      'Privacy',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                // Privacy link
-                TextButton(
-                  onPressed: () => context.go('/privacy'),
-                  child: Text(
-                    'Privacy',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
