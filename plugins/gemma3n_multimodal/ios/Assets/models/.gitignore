@@ -1,4 +1,0 @@
-# Keep this directory in git but ignore model files
-*.task
-*.tflite
-*.bin

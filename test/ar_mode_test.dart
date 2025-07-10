@@ -45,6 +45,7 @@ void main() {
         }
       });
 
+      // TODO: Replace gemma3n_multimodal references with flutter_gemma when available
       const MethodChannel('gemma3n_multimodal')
           .setMockMethodCallHandler((MethodCall methodCall) async {
         if (methodCall.method == 'loadModel') {

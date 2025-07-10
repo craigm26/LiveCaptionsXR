@@ -17,7 +17,7 @@ void main() {
       // Mock the method channel
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('gemma3n_multimodal'),
+        const MethodChannel('flutter_gemma'),
         (MethodCall methodCall) async {
           methodCalls.add(methodCall);
           
@@ -38,7 +38,7 @@ void main() {
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('gemma3n_multimodal'),
+        const MethodChannel('flutter_gemma'),
         null,
       );
     });

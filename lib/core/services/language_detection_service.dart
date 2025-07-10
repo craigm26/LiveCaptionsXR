@@ -23,7 +23,7 @@ class LanguageDetectionResult {
 
 /// Service for detecting language from speech audio using Gemma 3
 class LanguageDetectionService {
-  static const _channel = MethodChannel('gemma3n_multimodal');
+  // static const _channel = MethodChannel('gemma3n_multimodal');
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   /// Detect language from audio buffer
@@ -66,16 +66,17 @@ Please respond with ONLY a JSON object in this exact format:
 Use ISO 639-1 language codes.
 ''';
 
-      final result = await _channel.invokeMethod('generateText', {
-        'prompt': prompt,
-        'maxTokens': 200,
-        'temperature': 0.1, // Low temperature for consistent format
-      });
+      // TODO: Integrate with flutter_gemma for language detection when available
+      // final result = await _channel.invokeMethod('generateText', {
+      //   'prompt': prompt,
+      //   'maxTokens': 200,
+      //   'temperature': 0.1, // Low temperature for consistent format
+      // });
 
-      if (result['success'] == true && result['text'] != null) {
-        final response = result['text'] as String;
-        return _parseLanguageDetectionResponse(response, config);
-      }
+      // if (result['success'] == true && result['text'] != null) {
+      //   final response = result['text'] as String;
+      //   return _parseLanguageDetectionResponse(response, config);
+      // }
     } catch (e, stackTrace) {
       _logger.e('❌ Error detecting language', error: e, stackTrace: stackTrace);
     }
@@ -129,16 +130,17 @@ Use ISO 639-1 language codes. Base your analysis on:
 4. Language-specific features
 ''';
 
-      final result = await _channel.invokeMethod('generateText', {
-        'prompt': prompt,
-        'maxTokens': 200,
-        'temperature': 0.1,
-      });
+      // TODO: Integrate with flutter_gemma for language detection when available
+      // final result = await _channel.invokeMethod('generateText', {
+      //   'prompt': prompt,
+      //   'maxTokens': 200,
+      //   'temperature': 0.1,
+      // });
 
-      if (result['success'] == true && result['text'] != null) {
-        final response = result['text'] as String;
-        return _parseLanguageDetectionResponse(response, config);
-      }
+      // if (result['success'] == true && result['text'] != null) {
+      //   final response = result['text'] as String;
+      //   return _parseLanguageDetectionResponse(response, config);
+      // }
     } catch (e, stackTrace) {
       _logger.e('❌ Error detecting language from text', error: e, stackTrace: stackTrace);
     }
