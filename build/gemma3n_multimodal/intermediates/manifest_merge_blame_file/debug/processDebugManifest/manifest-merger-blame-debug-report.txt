@@ -1,0 +1,11 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.gemma3n_multimodal" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+6
+7    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+7-->C:\Users\CraigM\source\repos\LiveCaptionsXR\plugins\gemma3n_multimodal\android\src\main\AndroidManifest.xml:3:3-69
+7-->C:\Users\CraigM\source\repos\LiveCaptionsXR\plugins\gemma3n_multimodal\android\src\main\AndroidManifest.xml:3:20-66
+8
+9</manifest>
