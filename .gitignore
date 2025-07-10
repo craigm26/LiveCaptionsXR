@@ -72,4 +72,4 @@ windows/build/
 # iOS build artifacts and debug info
 build/ios-debug-info/
 ios/build/
-ios/Podfile.lock
+ios/Podfile.lock.dart_tool/
