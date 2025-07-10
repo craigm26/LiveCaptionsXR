@@ -1,0 +1,75 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+
+class ModelDownloadManager extends ChangeNotifier {
+  static const String modelFileName = 'gemma-3n-E4B-it-int4.task';
+  static const String modelUrl = 'https://huggingface.co/google/gemma-3n-E2B-it/resolve/main/gemma-3n-E4B-it-int4.task';
+
+  double _progress = 0.0;
+  String? _error;
+  bool _downloading = false;
+  bool _completed = false;
+
+  double get progress => _progress;
+  String? get error => _error;
+  bool get downloading => _downloading;
+  bool get completed => _completed;
+
+  Future<String> getModelPath() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return '${dir.path}/$modelFileName';
+  }
+
+  Future<bool> modelExists() async {
+    final path = await getModelPath();
+    return File(path).existsSync();
+  }
+
+  Future<void> downloadModel() async {
+    _downloading = true;
+    _completed = false;
+    _error = null;
+    _progress = 0.0;
+    notifyListeners();
+    try {
+      final path = await getModelPath();
+      final file = File(path);
+      final request = http.Request('GET', Uri.parse(modelUrl));
+      final response = await request.send();
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download model: ${response.statusCode}');
+      }
+      final contentLength = response.contentLength ?? 0;
+      int bytesReceived = 0;
+      final sink = file.openWrite();
+      await for (final chunk in response.stream) {
+        sink.add(chunk);
+        bytesReceived += chunk.length;
+        if (contentLength > 0) {
+          _progress = bytesReceived / contentLength;
+          notifyListeners();
+        }
+      }
+      await sink.close();
+      _progress = 1.0;
+      _completed = true;
+      _downloading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _downloading = false;
+      _completed = false;
+      notifyListeners();
+    }
+  }
+
+  void reset() {
+    _progress = 0.0;
+    _error = null;
+    _downloading = false;
+    _completed = false;
+    notifyListeners();
+  }
+} 
