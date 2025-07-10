@@ -9,6 +9,7 @@ import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
 import '../../visual_identification/cubit/visual_identification_cubit.dart';
 import '../../live_captions/cubit/live_captions_cubit.dart';
+import '../../live_captions/cubit/live_captions_state.dart';
 import '../../live_captions/widgets/live_captions_widget.dart';
 import '../../settings/cubit/settings_cubit.dart';
 import '../../ar_session/cubit/ar_session_cubit.dart';
@@ -22,7 +23,7 @@ import '../../../core/services/model_download_manager.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -31,7 +32,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
-  Timer? _demoTimer;
   late ModelDownloadManager _modelDownloadManager;
 
   @override
@@ -42,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptModelDownload();
-      _autoStartServices();
     });
   }
 
@@ -155,51 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-
-  /// Automatically start all main app services
-  void _autoStartServices() async {
-    if (!mounted) return;
-
-    try {
-      _logger.i('🚀 Auto-starting all main services...');
-
-      // Initialize sound detection (it's already listening via method channel)
-      _logger.i('🔊 Sound detection initialized and ready');
-
-      // Initialize localization (it's already ready to receive data)
-      _logger.i('🧭 Localization initialized and ready');
-
-      // Initialize visual identification (it's already listening via method channel)
-      _logger.i('👁️ Visual identification initialized and ready');
-
-      // Show notification that services are running
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                '🚀 Basic services initialized! Enter AR Mode for full experience.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-
-      _logger.i('🎉 All main services initialized successfully');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error auto-starting services',
-          error: e, stackTrace: stackTrace);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('⚠️ Some services failed to start: $e'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    }
   }
 
   /// Start all services needed for AR mode using the ARSessionCubit
@@ -368,25 +322,42 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   // Live Captions overlay (bottom center)
-                  Positioned(
-                    bottom: 120,
-                    left: 16,
-                    right: 16,
-                    child: LiveCaptionsWidget(
-                      onToggle: () {
-                        final cubit = context.read<LiveCaptionsCubit>();
-                        if (cubit.isActive) {
-                          cubit.stopCaptions();
-                        } else {
-                          cubit.startCaptions();
-                        }
-                      },
-                      onClear: () {
-                        context.read<LiveCaptionsCubit>().clearCaptions();
-                      },
-                      maxWidth: 600,
-                      showHistory: false,
-                    ),
+                  BlocBuilder<ARSessionCubit, ARSessionState>(
+                    builder: (context, arSessionState) {
+                      final inARMode = arSessionState is ARSessionReady;
+                      return BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+                        builder: (context, captionsState) {
+                          bool showOverlay = false;
+                          if (!inARMode) {
+                            showOverlay = true;
+                          } else if (captionsState is LiveCaptionsActive && captionsState.showOverlayFallback) {
+                            showOverlay = true;
+                          }
+                          return showOverlay
+                              ? Positioned(
+                                  bottom: 120,
+                                  left: 16,
+                                  right: 16,
+                                  child: LiveCaptionsWidget(
+                                    onToggle: () {
+                                      final cubit = context.read<LiveCaptionsCubit>();
+                                      if (cubit.isActive) {
+                                        cubit.stopCaptions();
+                                      } else {
+                                        cubit.startCaptions();
+                                      }
+                                    },
+                                    onClear: () {
+                                      context.read<LiveCaptionsCubit>().clearCaptions();
+                                    },
+                                    maxWidth: 600,
+                                    showHistory: false,
+                                  ),
+                                )
+                              : const SizedBox.shrink();
+                        },
+                      );
+                    },
                   ),
                   // Sound event overlay (top left)
                   Positioned(

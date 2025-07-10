@@ -25,28 +25,32 @@ class LiveCaptionsActive extends LiveCaptionsState {
   final SpeechResult? currentCaption;
   final bool isListening;
   final String? error;
+  final bool showOverlayFallback;
 
   const LiveCaptionsActive({
     required this.captions,
     this.currentCaption,
     required this.isListening,
     this.error,
+    this.showOverlayFallback = false,
   });
 
   @override
-  List<Object?> get props => [captions, currentCaption, isListening, error];
+  List<Object?> get props => [captions, currentCaption, isListening, error, showOverlayFallback];
 
   LiveCaptionsActive copyWith({
     List<SpeechResult>? captions,
     SpeechResult? currentCaption,
     bool? isListening,
     String? error,
+    bool? showOverlayFallback,
   }) {
     return LiveCaptionsActive(
       captions: captions ?? this.captions,
       currentCaption: currentCaption ?? this.currentCaption,
       isListening: isListening ?? this.isListening,
       error: error ?? this.error,
+      showOverlayFallback: showOverlayFallback ?? this.showOverlayFallback,
     );
   }
 }
