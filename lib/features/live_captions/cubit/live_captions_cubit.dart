@@ -205,6 +205,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         isListening: false,
         currentCaption: null,
         error: null,
+        showOverlayFallback: false,
       ));
 
       _logger.i('✅ Live captions stopped - processed $_audioFrameCount audio frames');
@@ -223,6 +224,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         captions: [],
         currentCaption: null,
         error: null,
+        showOverlayFallback: false,
       ));
       _logger.d('🗑️ Caption history cleared');
     }
@@ -286,7 +288,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     }
     
     _logger.i('🎯 Attempting to place caption in AR space...');
-    _logger.d('Caption text: "$text" (${text.length} characters)');
+    _logger.d('Caption text: "$text" ( [36m${text.length} [0m characters)');
     
     // Run caption placement asynchronously so it doesn't block UI updates
     Future.microtask(() async {
@@ -299,12 +301,18 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         
         _logger.i('✅ Caption placed successfully in AR space at estimated speaker location');
         _logger.d('🎉 Caption placement completed for: "$text"');
+        // Reset fallback if successful
+        if (state is LiveCaptionsActive && (state as LiveCaptionsActive).showOverlayFallback) {
+          emit((state as LiveCaptionsActive).copyWith(showOverlayFallback: false));
+        }
       } catch (e, stackTrace) {
         _logger.e('❌ Failed to place caption in AR', 
             error: e, stackTrace: stackTrace);
         _logger.w('📱 Caption will be displayed in UI overlay instead');
-        // Don't update UI state with this error as caption placement 
-        // failures shouldn't break the main captions functionality
+        // Set fallback flag
+        if (state is LiveCaptionsActive) {
+          emit((state as LiveCaptionsActive).copyWith(showOverlayFallback: true));
+        }
       }
     });
   }
