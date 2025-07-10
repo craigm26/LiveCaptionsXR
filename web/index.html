@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="LiveCaptionsXR - Real-time AI closed captioning platform for deaf and hard of hearing accessibility. Experience the future of inclusive technology.">
+  <meta name="keywords" content="accessibility, closed captions, AI, real-time, deaf, hard of hearing, speech recognition, spatial audio">
+  <meta name="author" content="LiveCaptionsXR Team">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="LiveCaptionsXR - AI Accessibility Platform">
+  <meta property="og:description" content="Real-time AI closed captioning with spatial awareness for the deaf and hard of hearing community.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="icons/Icon-512.png">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LiveCaptionsXR - AI Accessibility Platform">
+  <meta name="twitter:description" content="Real-time AI closed captioning with spatial awareness for the deaf and hard of hearing community.">
+  <meta name="twitter:image" content="icons/Icon-512.png">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LiveCaptionsXR">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#2563EB">
+  <meta name="msapplication-navbutton-color" content="#2563EB">
+  <meta name="apple-mobile-web-app-status-bar-style" content="#2563EB">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="shortcut icon" type="image/png" href="favicon.png"/>
+
+  <title>LiveCaptionsXR - AI Accessibility Platform</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Preconnect to optimize performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HYLHMMC8FV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HYLHMMC8FV');
+  </script>
+  
+  <!-- Loading Styles -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    .loading-container {
+      text-align: center;
+      color: white;
+    }
+    
+    .loading-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: white;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .loading-text {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      opacity: 0.9;
+    }
+    
+    .loading-subtitle {
+      font-size: 16px;
+      opacity: 0.7;
+      margin-bottom: 32px;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Hide loading screen when Flutter loads */
+    .flutter-loaded .loading-container {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading-container" id="loading">
+    <div class="loading-logo">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#2563EB"/>
+      </svg>
+    </div>
+    <div class="loading-text">LiveCaptionsXR</div>
+    <div class="loading-subtitle">Loading AI Accessibility Platform...</div>
+    <div class="loading-spinner"></div>
+  </div>
+
+  <script src="flutter_bootstrap.js" async></script>
+  
+  <script>
+    // Hide loading screen when Flutter is ready
+    window.addEventListener('flutter-first-frame', function() {
+      document.body.classList.add('flutter-loaded');
+    });
+    
+    // Fallback to hide loading screen after timeout
+    setTimeout(function() {
+      document.body.classList.add('flutter-loaded');
+    }, 8000);
+  </script>
+</body>
+</html>
