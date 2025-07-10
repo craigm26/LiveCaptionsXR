@@ -133,7 +133,7 @@ class _AppShellState extends State<AppShell> {
     String? subtitle,
     required String route,
   }) {
-    final currentLocation = GoRouterState.of(context).location;
+    final currentLocation = GoRouterState.of(context).uri.toString();
     final isSelected = currentLocation == route;
 
     return ListTile(
