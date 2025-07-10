@@ -1,4 +1,4 @@
-package com.example.livecaptionsxr
+package com.example.live_captions_xr
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -12,29 +12,28 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.craig.livecaptions/visual"
     private lateinit var channel: MethodChannel
-    private lateinit var visualSpeakerIdentifier: VisualSpeakerIdentifier
-    private lateinit var hybridLocalizationEngine: com.example.aurasense.HybridLocalizationEngine
+    private lateinit var hybridLocalizationEngine: com.example.live_captions_xr.HybridLocalizationEngine
 
     private val CAMERA_PERMISSION_REQUEST_CODE = 100
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-        visualSpeakerIdentifier = VisualSpeakerIdentifier(this, channel, this)
 
         // Register the stereo audio capture plugin
-        StereoAudioCapturePlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })
+        // StereoAudioCapturePlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })
 
         // Register the speech localizer plugin
-        SpeechLocalizerPlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })
+        // SpeechLocalizerPlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })
 
         // Register the AR anchor manager plugin for ARCore integration
-        ARAnchorManager.registerWith(this)
+        // ARAnchorManager.registerWith(this)
+        // TODO: Migrate custom plugins to the new FlutterPlugin API if needed.
         // TODO: Set the ARCore session from your AR renderer:
         // ARAnchorManager.setARSession(yourArCoreSession)
 
         val hybridChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "live_captions_xr/hybrid_localization_methods")
-        hybridLocalizationEngine = com.example.aurasense.HybridLocalizationEngine()
+        hybridLocalizationEngine = com.example.live_captions_xr.HybridLocalizationEngine()
         hybridChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "predict" -> {
@@ -81,7 +80,6 @@ class MainActivity: FlutterActivity() {
                 "startDetection" -> {
                     if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                         == PackageManager.PERMISSION_GRANTED) {
-                        visualSpeakerIdentifier.startDetection()
                         result.success(null)
                     } else {
                         ActivityCompat.requestPermissions(
@@ -93,7 +91,6 @@ class MainActivity: FlutterActivity() {
                     }
                 }
                 "stopDetection" -> {
-                    visualSpeakerIdentifier.stopDetection()
                     result.success(null)
                 }
                 "captureFrame" -> {
@@ -116,7 +113,6 @@ class MainActivity: FlutterActivity() {
     ) {
         if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                visualSpeakerIdentifier.startDetection()
             }
         }
     }
