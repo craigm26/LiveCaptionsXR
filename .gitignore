@@ -1,0 +1,75 @@
+# Ignore models directory and its contents
+assets/models/ 
+
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/ios/
+build/android/
+build/linux/
+build/macos/
+build/windows/
+build/ios-debug-info/
+build/native_assets/
+build/.last_build_id
+# Include web build folder
+!build/web/
+flutter_*.png
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Flutter/Flutter.framework/
+macos/Flutter/Flutter.podspec
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/ephemeral/
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/Generated.xcconfig
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# Web
+web/.dart_tool/
+web/build/
+
+# Linux
+linux/flutter/ephemeral/
+linux/build/
+
+# Windows
+windows/flutter/ephemeral/
+windows/build/
+
+# Other
+*.log
+*.lock
+
+# Generated test mocks
+*.mocks.dart
+*.lock
+
+# Large model files (should not be committed to reduce app size)
+**/*.task
+**/*.tflite
+**/models/*.bin
+**/models/*.pb
+
+# iOS build artifacts and debug info
+build/ios-debug-info/
+ios/build/
+ios/Podfile.lock
