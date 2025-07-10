@@ -23,6 +23,7 @@ dependencies:
   gemma3n_multimodal:
     path: plugins/gemma3n_multimodal
   flutter_launcher_icons: ^0.14.4
+  flutter_gemma: any
   # Add your other dependencies here
 
 dev_dependencies:
