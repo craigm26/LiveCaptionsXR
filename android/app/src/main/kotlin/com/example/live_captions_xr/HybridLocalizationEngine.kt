@@ -1,4 +1,4 @@
-package com.example.aurasense
+package com.example.live_captions_xr
 
 import android.os.SystemClock
 import kotlin.math.max
