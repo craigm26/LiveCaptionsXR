@@ -28,6 +28,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Add externalNativeBuild arguments for 16 KB page size
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DANDROID_PAGE_SIZE=16384")
+            }
+        }
     }
 
     buildTypes {
@@ -51,6 +58,15 @@ dependencies {
 
     // JTransforms for FFT
     implementation("com.github.wendykierp:JTransforms:3.1")
+
+    // ARCore
+    implementation("com.google.ar:core:1.41.0")
+
+    // Guava (for ListenableFuture, etc.)
+    implementation("com.google.guava:guava:31.1-android")
+
+    // Sceneform (optional, if used)
+    // implementation("com.gorisse.thomas.sceneform:sceneform:1.21.0")
 }
 
 flutter {
