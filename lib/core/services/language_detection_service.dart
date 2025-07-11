@@ -23,7 +23,7 @@ class LanguageDetectionResult {
 
 /// Service for detecting language from speech audio using Gemma 3
 class LanguageDetectionService {
-  // static const _channel = MethodChannel('gemma3n_multimodal');
+  
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   /// Detect language from audio buffer

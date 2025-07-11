@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'core/router/app_router.dart';
 import 'core/services/speech_processor.dart';
 import 'core/services/debug_logger_service.dart';
+import 'core/services/visual_context_service.dart';
 import 'core/di/service_locator.dart';
 import 'shared/theme/app_theme.dart';
 import 'features/settings/cubit/settings_cubit.dart';
@@ -63,8 +64,9 @@ class LiveCaptionsXrApp extends StatelessWidget {
         ),
         BlocProvider<LiveCaptionsCubit>(
           create: (context) => LiveCaptionsCubit(
-            speechProcessor: SpeechProcessor(),
+            speechProcessor: sl<SpeechProcessor>(),
             hybridLocalizationEngine: sl(),
+            visualContextService: sl<VisualContextService>(),
           )..initialize(),
         ),
         BlocProvider<ARSessionCubit>(

@@ -126,35 +126,7 @@ class AudioService {
         final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
         _logger.d('🧭 Estimated direction: ${angle.toStringAsFixed(1)}°');
         
-        // Send audio to speech processor if available
-        if (speechProcessor != null && speechProcessor!.isProcessing) {
-          _logger.d('🎤 Sending audio chunk to speech processor...');
-          try {
-            await speechProcessor!.processAudioChunk(monoFrame);
-            _logger.d('✅ Audio chunk sent to speech processor');
-          } catch (e, stackTrace) {
-            _logger.e('❌ Failed to send audio chunk to speech processor', 
-                error: e, stackTrace: stackTrace);
-          }
-        } else {
-          _logger.d('⚠️ Speech processor not available or not processing');
-        }
-        
-        // AUTOMATED: Update hybrid localization engine after every direction estimate
-        try {
-          await hybridLocalizationEngine.updateWithAudioMeasurement(
-            angle: angle,
-            confidence: 1.0, // TODO: Use real confidence if available
-            deviceTransform: List<double>.filled(16, 0)
-              ..[0] = 1
-              ..[5] = 1
-              ..[10] = 1
-              ..[15] = 1, // 4x4 identity
-          );
-          _logger.d('📍 Hybrid localization updated with audio measurement');
-        } catch (e, stackTrace) {
-          _logger.w('⚠️ Failed to update hybrid localization', error: e, stackTrace: stackTrace);
-        }
+        _logger.d('⚠️ Speech processor not available or not processing');
         
         _processAudioFrame(monoFrame, angle);
       });

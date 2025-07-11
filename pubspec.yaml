@@ -25,6 +25,7 @@ dependencies:
   device_info_plus: ^11.5.0
   camera: ^0.10.5+9
   permission_handler: ^11.3.1
+  speech_to_text: ^6.6.2
   # Add your other dependencies here
 
 dev_dependencies:
@@ -39,6 +40,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logos/
+    - assets/models/
   # fonts:
   #   - family: Roboto
   #     fonts:

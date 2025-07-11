@@ -13,7 +13,22 @@ build/macos/
 build/windows/
 build/ios-debug-info/
 build/native_assets/
-build/.last_build_id
+build/.last_build_id/
+build/camera_android/
+build/device_info_plus/
+build/flutter_gemma/
+build/flutter_plugin_android_lifecycle/
+build/large_file_handler/
+build/path_provider_android/
+build/shared_preferences_android/
+build/permission_handler_android/
+build/reports/
+build/url_launcher_android/
+build/.cxx/
+build/ab1a00fb61251fe39194477c9d9edf3b/
+build/app/
+build/4e4586e7eafdfc02ea97202dda258182.cache.dill.track
+
 # Include web build folder
 !build/web/
 flutter_*.png

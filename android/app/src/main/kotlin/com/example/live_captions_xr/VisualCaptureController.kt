@@ -26,8 +26,12 @@ class VisualCaptureController(private val context: Context) {
             return
         }
         try {
-            val cameraId = cameraManager.cameraIdList.firstOrNull() ?: "No camera found"
-            if (cameraId.isEmpty()) {
+            val cameraId = cameraManager.cameraIdList.firstOrNull {
+                val characteristics = cameraManager.getCameraCharacteristics(it)
+                characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+            } ?: cameraManager.cameraIdList.firstOrNull()
+
+            if (cameraId == null) {
                 callback(false, "No camera available.")
                 return
             }
@@ -88,7 +92,7 @@ class VisualCaptureController(private val context: Context) {
             imageReader?.setOnImageAvailableListener(readerListener, cameraHandler)
 
             val captureBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
-            captureBuilder.addTarget(imageReader!!.surface)
+            imageReader?.surface?.let { captureBuilder.addTarget(it) }
 
             captureSession?.capture(captureBuilder.build(), null, cameraHandler)
         } catch (e: CameraAccessException) {
@@ -98,7 +102,11 @@ class VisualCaptureController(private val context: Context) {
 
     private fun createCaptureSession(callback: (Boolean, String?) -> Unit) {
         try {
-            val surfaces = listOf(imageReader?.surface)
+            val surfaces = listOf(imageReader?.surface).filterNotNull()
+            if (surfaces.isEmpty()) {
+                callback(false, "No valid surface to create a capture session.")
+                return
+            }
             cameraDevice?.createCaptureSession(surfaces, object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     captureSession = session

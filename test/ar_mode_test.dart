@@ -45,23 +45,13 @@ void main() {
         }
       });
 
-      // TODO: Replace gemma3n_multimodal references with flutter_gemma when available
-      const MethodChannel('gemma3n_multimodal')
-          .setMockMethodCallHandler((MethodCall methodCall) async {
-        if (methodCall.method == 'loadModel') {
-          return true;
-        }
-        if (methodCall.method == 'startStream') {
-          return Stream.value('');
-        }
-      });
+      
     });
 
     tearDown(() {
       const MethodChannel('live_captions_xr/ar_navigation')
           .setMockMethodCallHandler(null);
-      const MethodChannel('gemma3n_multimodal')
-          .setMockMethodCallHandler(null);
+      
     });
 
     testWidgets('Entering AR Mode logs all actions and simulates service calls',

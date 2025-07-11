@@ -6,8 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 
 import '../../../core/services/speech_processor.dart';
-import '../../../core/services/stereo_audio_capture.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
+import '../../../core/services/visual_context_service.dart';
 import '../../../core/models/speech_result.dart';
 import 'live_captions_state.dart';
 
@@ -15,7 +15,7 @@ import 'live_captions_state.dart';
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final SpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
-  final StereoAudioCapture _audioCapture = StereoAudioCapture();
+  final VisualContextService _visualContextService;
 
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
@@ -29,16 +29,16 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   );
 
   StreamSubscription<SpeechResult>? _speechSubscription;
-  StreamSubscription? _audioSubscription;
   final List<SpeechResult> _captionHistory = [];
   static const int _maxCaptionHistory = 50; // Keep last 50 captions
-  int _audioFrameCount = 0;
 
   LiveCaptionsCubit({
     required SpeechProcessor speechProcessor,
     required HybridLocalizationEngine hybridLocalizationEngine,
+    required VisualContextService visualContextService,
   })  : _speechProcessor = speechProcessor,
         _hybridLocalizationEngine = hybridLocalizationEngine,
+        _visualContextService = visualContextService,
         super(const LiveCaptionsInitial());
 
   /// Initialize the speech processor and prepare for live captions
@@ -98,12 +98,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
           onError: _handleSpeechError,
         );
 
-        // Start audio capture and connect it to speech processor
-        _logger.i('🎧 Starting audio capture for speech processing...');
-        await _startAudioCapture();
-
         emit(currentState.copyWith(isListening: true, error: null));
-        _logger.i('✅ Live captions started with audio capture');
+        _logger.i('✅ Live captions started');
       } else {
         _logger.e('❌ Failed to start speech processing');
         emit(currentState.copyWith(
@@ -119,67 +115,6 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     }
   }
 
-  /// Start audio capture and connect it to speech processor
-  Future<void> _startAudioCapture() async {
-    try {
-      _logger.i('🎧 Starting stereo audio capture...');
-      await _audioCapture.startRecording();
-      _logger.i('✅ Audio capture started successfully');
-
-      // Give a small delay to ensure the native side is ready
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      _logger.d('🔗 Setting up audio frame stream subscription...');
-      _audioFrameCount = 0;
-      _audioSubscription = _audioCapture.frames.listen((frame) async {
-        try {
-          _audioFrameCount++;
-          _logger.d('📊 Received audio frame #$_audioFrameCount from StereoAudioCapture');
-          
-          final monoFrame = frame.toMono();
-          final frameSize = monoFrame.length;
-          _logger.d('🎵 Converted stereo to mono: ${frameSize} samples');
-
-          // Calculate RMS level for monitoring
-          double rmsLevel = 0.0;
-          for (int i = 0; i < frameSize; i++) {
-            rmsLevel += monoFrame[i] * monoFrame[i];
-          }
-          rmsLevel = frameSize > 0 ? sqrt(rmsLevel / frameSize) : 0.0;
-
-          // Log detailed audio info more frequently for debugging
-          if (_audioFrameCount % 10 == 0) {
-            _logger.d('📊 Audio frame #$_audioFrameCount: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
-          }
-
-          // Send audio chunk to speech processor
-          try {
-            _logger.d('📤 Sending audio chunk to speech processor...');
-            await _speechProcessor.processAudioChunk(monoFrame);
-            if (_audioFrameCount % 10 == 0) {
-              _logger.d('✅ Audio chunk sent to speech processor');
-            }
-          } catch (e, stackTrace) {
-            _logger.e('❌ Failed to send audio chunk to speech processor',
-                error: e, stackTrace: stackTrace);
-          }
-        } catch (e, stackTrace) {
-          _logger.e('❌ Error processing audio frame #$_audioFrameCount',
-              error: e, stackTrace: stackTrace);
-        }
-      }, onError: (error, stackTrace) {
-        _logger.e('❌ Audio frame stream error', error: error, stackTrace: stackTrace);
-      }, onDone: () {
-        _logger.i('🎧 Audio frame stream completed');
-      });
-
-      _logger.i('🎤 Audio capture connected to speech processor');
-    } catch (e, stackTrace) {
-      _logger.e('❌ Failed to start audio capture', error: e, stackTrace: stackTrace);
-      rethrow;
-    }
-  }
-
   /// Stop live caption processing
   Future<void> stopCaptions() async {
     final currentState = state;
@@ -189,12 +124,6 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
     try {
       _logger.i('🛑 Stopping live captions...');
-
-      // Stop audio capture first
-      await _audioSubscription?.cancel();
-      _audioSubscription = null;
-      await _audioCapture.stopRecording();
-      _logger.i('✅ Audio capture stopped');
 
       // Stop speech processing
       await _speechSubscription?.cancel();
@@ -208,7 +137,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         showOverlayFallback: false,
       ));
 
-      _logger.i('✅ Live captions stopped - processed $_audioFrameCount audio frames');
+      _logger.i('✅ Live captions stopped');
     } catch (e, stackTrace) {
       _logger.e('❌ Error stopping live captions',
           error: e, stackTrace: stackTrace);
@@ -297,7 +226,9 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         _logger.d('📍 Starting speaker localization process...');
         
         // Use the injected hybrid localization engine
-        await _hybridLocalizationEngine.placeCaption(text);
+        final visualContext = await _visualContextService.getVisualContext();
+        final enhancedText = await _speechProcessor.enhanceText(text, context: visualContext);
+        await _hybridLocalizationEngine.placeCaption(enhancedText);
         
         _logger.i('✅ Caption placed successfully in AR space at estimated speaker location');
         _logger.d('🎉 Caption placement completed for: "$text"');
