@@ -21,6 +21,9 @@ import '../../../core/services/debug_capturing_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
 import '../../../core/services/model_download_manager.dart';
 import 'package:provider/provider.dart';
+import '../../../core/services/debug_logger_service.dart';
+import 'package:live_captions_xr/core/di/service_locator.dart';
+import 'package:live_captions_xr/core/services/camera_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,24 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
           value: _modelDownloadManager,
           child: Consumer<ModelDownloadManager>(
             builder: (context, manager, _) {
-              // Storage check
-              final minRequiredGB = 5.0;
-              final modelSizeGB = 4.1;
-              String? storageWarning;
-              double? availableGB;
-              try {
-                final stat = FileStat.statSync('/');
-                availableGB = stat.size / (1024 * 1024 * 1024);
-                if (availableGB < minRequiredGB) {
-                  storageWarning = 'Warning: Less than ${minRequiredGB.toStringAsFixed(1)} GB free. Download may fail.';
-                }
-              } catch (_) {}
-
-              if (manager.completed) {
-                Future.delayed(Duration(milliseconds: 500), () {
-                  if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-                });
-              }
+              // Remove disk space check and warning
               return AlertDialog(
                 title: const Text('Download Required Model'),
                 content: Column(
@@ -101,23 +87,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text('Estimated download time: ~15-30 min on a 50 Mbps connection.'),
-                    if (storageWarning != null) ...[
-                      const SizedBox(height: 8),
-                      Text(storageWarning, style: TextStyle(color: Colors.red)),
-                    ],
                     const SizedBox(height: 16),
                     if (manager.downloading)
                       Column(
                         children: [
                           LinearProgressIndicator(value: manager.progress),
                           const SizedBox(height: 8),
-                          Text('Downloading: ${(manager.progress * 100).toStringAsFixed(1)}%'),
+                          Text('Downloading:  ${(manager.progress * 100).toStringAsFixed(1)}%'),
                         ],
                       )
                     else if (manager.error != null)
                       Column(
                         children: [
-                          Text('Error: ${manager.error}', style: const TextStyle(color: Colors.red)),
+                          Text('Error:  ${manager.error}', style: const TextStyle(color: Colors.red)),
                           const SizedBox(height: 8),
                           ElevatedButton(
                             onPressed: () {
@@ -214,6 +196,91 @@ class _HomeScreenState extends State<HomeScreen> {
     _logger.d('✅ HomeScreen disposed successfully');
   }
 
+  Widget _buildCameraOrFallback() {
+    return FutureBuilder<bool>(
+      future: isAndroidEmulator(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.data == true) {
+          _logger.w('🧪 Emulator detected: showing AR/camera fallback.');
+          final cameraService = sl<CameraService>();
+          return FutureBuilder<void>(
+            future: cameraService.initialize().then((_) => cameraService.startCamera()),
+            builder: (context, camSnapshot) {
+              if (camSnapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final preview = cameraService.getCameraPreviewWidget();
+              if (preview != null) {
+                return Stack(
+                  children: [
+                    Positioned.fill(child: preview),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        color: Colors.black54,
+                        padding: const EdgeInsets.all(16),
+                        child: const Text(
+                          'Emulator Camera Preview (Fallback AR Mode)',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.videocam_off, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Camera not available in emulator.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          );
+        } else {
+          // Real device: show actual camera/AR widget (replace with your AR widget)
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.view_in_ar, color: Colors.white24, size: 120),
+                SizedBox(height: 16),
+                Text(
+                  'AR Experience Ready',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Tap "Enter AR Mode" to begin',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _logger.d('🏗️ Building HomeScreen UI');
@@ -230,98 +297,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Camera preview background with instruction overlay
                   Container(
                     color: Colors.black,
-                    child: Stack(
-                      children: [
-                        const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.view_in_ar,
-                                  color: Colors.white24, size: 120),
-                              SizedBox(height: 16),
-                              Text(
-                                'AR Experience Ready',
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Tap "Enter AR Mode" to begin',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: _buildCameraOrFallback(),
                   ),
-                  // Welcome message overlay
-                  Positioned(
-                    top: 80,
-                    left: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withAlpha((255 * 0.9).round()),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha((255 * 0.3).round()),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info, color: Colors.white, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Welcome to Live Captions XR',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Your integrated AR accessibility experience:',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            '• Live Captions for real-time speech\n'
-                            '• Sound detection and monitoring\n'
-                            '• Directional audio tracking\n'
-                            '• Visual object identification\n'
-                            '• AR anchors for spatial context',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Live Captions overlay (bottom center)
+                  
                   BlocBuilder<ARSessionCubit, ARSessionState>(
                     builder: (context, arSessionState) {
                       final inARMode = arSessionState is ARSessionReady;
