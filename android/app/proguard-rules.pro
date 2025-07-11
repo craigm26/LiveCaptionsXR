@@ -38,9 +38,9 @@
 -keep class com.github.wendykierp.JTransforms.** { *; }
 -dontwarn com.github.wendykierp.JTransforms.**
 
-# Play Core rules
--keep class com.google.android.play.core.** { *; }
--dontwarn com.google.android.play.core.**
+# Google Android rules
+-keep class com.google.android.** { *; }
+-dontwarn com.google.android.**
 
 # Javax Lang Model rules
 -keep class javax.lang.model.** { *; }
