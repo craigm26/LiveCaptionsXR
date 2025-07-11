@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.craig.livecaptions/visual"
@@ -21,7 +22,7 @@ class MainActivity: FlutterActivity() {
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
 
         // Register the stereo audio capture plugin
-        // StereoAudioCapturePlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })
+        flutterEngine.plugins.add(StereoAudioCapturePlugin())
 
         // Register the speech localizer plugin
         // SpeechLocalizerPlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })

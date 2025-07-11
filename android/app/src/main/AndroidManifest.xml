@@ -30,6 +30,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+    <!-- flutter_gemma GPU support: OpenCL libraries (optional, safe to add) -->
+    <uses-native-library android:name="libOpenCL.so" android:required="false"/>
+    <uses-native-library android:name="libOpenCL-car.so" android:required="false"/>
+    <uses-native-library android:name="libOpenCL-pixel.so" android:required="false"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

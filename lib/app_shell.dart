@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
+import 'core/services/debug_logger_service.dart';
 
 final Logger _shellLogger = Logger(
   printer: PrettyPrinter(
@@ -27,6 +28,12 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Emulator diagnostic logging
+    isAndroidEmulator().then((isEmu) {
+      if (isEmu) {
+        _shellLogger.w('⚠️ Running on Android emulator: some features may be limited.');
+      }
+    });
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -120,6 +127,12 @@ class _AppShellState extends State<AppShell> {
             icon: Icons.info_outline,
             title: 'About',
             route: '/about',
+          ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.storage,
+            title: 'Model Status',
+            route: '/model-status',
           ),
         ],
       ),
