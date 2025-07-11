@@ -153,6 +153,13 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
         print("⏸️ ARSession paused")
         
+        // Notify Dart that the AR view is closing
+        if let appDelegate = UIApplication.shared.delegate as? FlutterAppDelegate,
+           let controller = appDelegate.window?.rootViewController as? FlutterViewController {
+            let arNavigationChannel = FlutterMethodChannel(name: "live_captions_xr/ar_navigation", binaryMessenger: controller.binaryMessenger)
+            arNavigationChannel.invokeMethod("arViewWillClose", arguments: nil)
+        }
+
         // Clear the session reference in ARAnchorManager
         ARAnchorManager.arSession = nil
         ARAnchorManager.anchorMap.removeAll()

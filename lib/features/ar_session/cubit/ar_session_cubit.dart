@@ -29,7 +29,18 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     ARSessionPersistenceService? persistenceService,
   })  : _hybridLocalizationEngine = hybridLocalizationEngine,
         _persistenceService = persistenceService ?? ARSessionPersistenceService(),
-        super(const ARSessionInitial());
+        super(const ARSessionInitial()) {
+    _initMethodChannelListener();
+  }
+
+  void _initMethodChannelListener() {
+    const MethodChannel('live_captions_xr/ar_navigation').setMethodCallHandler((call) async {
+      if (call.method == 'arViewWillClose') {
+        _logger.i('🚪 AR view is closing, stopping all services...');
+        await stopARSession();
+      }
+    });
+  }
 
   /// Initialize AR session with optional restoration from previous session
   Future<void> initializeARSession({bool restoreFromPersistence = true}) async {

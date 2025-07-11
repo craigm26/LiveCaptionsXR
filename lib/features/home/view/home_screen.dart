@@ -487,6 +487,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                       
+                      // Start all services if AR session is ready
+                      _logger.i('🚀 Starting all services for AR mode...');
+                      await _startAllServicesForARMode();
+
                       // Initialize AR session using the cubit (start fresh, don't restore from backup)
                       await arSessionCubit.initializeARSession(restoreFromPersistence: false);
                       
@@ -501,14 +505,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                         return;
                       }
-                      
-                      // Give additional time for AR view to be fully presented
-                      _logger.i('⏳ Waiting for AR view to be fully presented...');
-                      await Future.delayed(const Duration(milliseconds: 1500));
-                      
-                      // Start all services if AR session is ready
-                      _logger.i('🚀 Starting all services for AR mode...');
-                      await _startAllServicesForARMode();
                       
                       _logger.i('🎉 Successfully entered AR mode with all services');
                       

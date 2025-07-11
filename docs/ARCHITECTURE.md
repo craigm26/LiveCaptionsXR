@@ -23,7 +23,7 @@ LiveCaptionsXR is a cross-platform AR captioning system that fuses audio, vision
 - **Streaming ASR (Gemma 3n):** On-device, low-latency speech recognition with support for multimodal (audio+vision) context, running via the `gemma3n_multimodal` plugin.
 
 ## End-to-End Pipeline
-1. **Audio & Vision Capture:** Stereo audio and camera frames are captured in real time by the native layer and exposed to Dart.
+1. **Audio & Vision Capture:** Stereo audio is captured in real-time. When needed, a visual snapshot is captured from the camera.
 2. **Direction Estimation:** Audio direction is estimated using RMS and GCC-PHAT; visual speaker identification is optionally used.
 3. **Hybrid Localization Fusion:** The HybridLocalizationEngine fuses all modalities to estimate the 3D world position of the speaker.
 4. **Streaming ASR:** Speech is transcribed in real time using the Gemma 3n model.
@@ -40,7 +40,7 @@ Communication between the Dart and native layers is handled via MethodChannels.
 - `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
 - `live_captions_xr/visual_speaker_methods`: Manages the visual identification of speakers.
 - `gemma3n_multimodal`: Handles communication with the Gemma 3n ASR model.
-- `com.craig.livecaptions/visual`: Provides visual data from the camera.
+- `com.craig.livecaptions/visual`: Captures a single visual snapshot from the camera for multimodal context.
 
 
 ## Extensibility
