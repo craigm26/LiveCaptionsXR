@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 
 class ModelDownloadManager extends ChangeNotifier {
   static const String modelFileName = 'gemma-3n-E4B-it-int4.task';
-  // TODO: Replace with your R2 public URL for the .task file
-  static const String modelUrl = 'https://pub-fdd38fc88d79463bb05e10b5ce7b5f2e.r2.dev/gemma-3n-E4B-it-int4.task';
+  // old development url: static const String modelUrl = 'https://pub-fdd38fc88d79463bb05e10b5ce7b5f2e.r2.dev/gemma-3n-E4B-it-int4.task';
+  static const String modelUrl = 'https://livecaptionsxrbucket.com/gemma-3n-E4B-it-int4.task';
 
   double _progress = 0.0;
   String? _error;
