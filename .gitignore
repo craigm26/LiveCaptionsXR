@@ -45,7 +45,6 @@ android/local.properties
 
 # Web
 web/.dart_tool/
-web/build/
 
 # Linux
 linux/flutter/ephemeral/
@@ -73,5 +72,3 @@ windows/build/
 build/ios-debug-info/
 ios/build/
 ios/Podfile.lock.dart_tool/
-build/
-!build/web/
