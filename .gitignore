@@ -87,3 +87,9 @@ windows/build/
 build/ios-debug-info/
 ios/build/
 ios/Podfile.lock.dart_tool/
+
+# Ignore large model zip file
+build/web/assets/assets/models/gemma-3n-E4B-it-int4.zip
+
+# Ignore all .dill files
+*.dill
