@@ -11,7 +11,7 @@
 ## 1. Overview & Background
 
 *   **What is this feature?**
-    *   This feature implements an advanced localization engine that intelligently fuses data from multiple sources – audio direction (TDOA), visual speaker identification (face tracking), and device orientation (IMU) – into a single, highly accurate, and robust estimation of the speaker's position. A Kalman filter will be used to smooth the data and predict the speaker's position, reducing jitter and improving stability.
+    *   This feature implements an advanced localization engine that intelligently fuses data from multiple sources – audio direction (TDOA), a visual speaker identification snapshot (face tracking), and device orientation (IMU) – into a single, highly accurate, and robust estimation of the speaker's position. A Kalman filter will be used to smooth the data and predict the speaker's position, reducing jitter and improving stability.
 *   **Why are we building this?**
     *   Each individual localization method has weaknesses. Audio is imprecise and struggles with noise. Vision can be blocked or fail in low light. IMU data can drift. By fusing these inputs, we create a system that is more robust and accurate than the sum of its parts. The Kalman filter will provide smooth, stable anchor positioning, which is critical for a high-quality, professional-feeling AR experience.
 *   **Business Objectives & Key Results (OKRs):**
@@ -43,7 +43,7 @@
 *   **In-Scope Features (Must-Haves):**
     *   Implementation of a linear Kalman filter.
     *   A state model that includes position and velocity to allow for prediction.
-    *   A measurement model that can incorporate data from audio (angle), vision (3D position), and IMU (device transform).
+    *   A measurement model that can incorporate data from audio (angle), a visual snapshot (3D position), and IMU (device transform).
     *   Logic to adjust the filter's confidence in each measurement based on its reliability (e.g., lower confidence in audio when it's noisy).
 *   **Out-of-Scope Features (Won't Be Included in this Version):**
     *   More complex non-linear filters (e.g., Extended Kalman Filter or Particle Filter), unless a linear model proves insufficient.

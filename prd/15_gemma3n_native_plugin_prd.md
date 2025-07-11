@@ -19,7 +19,7 @@
 ## Dart API Design
 - Model loading: `Future<void> loadModel(String path, {bool useGPU})`
 - Inference: `Future<String> transcribeAudio(Uint8List audioBytes)`
-- Multimodal: `Future<String> runMultimodal({Uint8List audio, Uint8List image, String text})`
+- Multimodal: `Future<String> runMultimodal({Uint8List audio, Uint8List? visual_snapshot, String text})`
 - Streaming: `Stream<String> streamTranscription(Uint8List audioBytes)`
 
 ## Model Loading & Inference Flow
