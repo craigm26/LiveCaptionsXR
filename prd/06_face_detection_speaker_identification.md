@@ -41,7 +41,7 @@
 ## 4. Scope & Features
 
 *   **In-Scope Features (Must-Haves):**
-    *   Real-time face detection using Apple's Vision framework on iOS and ML Kit on Android.
+    *   On-demand face detection from a single camera frame using Apple's Vision framework on iOS and ML Kit on Android.
     *   Extraction of facial landmarks (specifically the lips) for each detected face.
     *   A simple algorithm to quantify mouth movement (e.g., the distance between the upper and lower lip landmarks).
     *   Correlation of mouth movement with the presence of speech (detected by the audio system).
@@ -67,7 +67,7 @@
 *   **Platform(s):** iOS 14.0+, Android 21+
 *   **Technology Stack:** Swift, Vision framework, ARKit (for 3D coordinates) on iOS. Kotlin, CameraX, ML Kit on Android.
 *   **Performance Requirements:**
-    *   The vision pipeline must process frames at a rate that feels real-time (e.g., >= 15 FPS) to avoid noticeable lag in caption placement.
+    *   The vision pipeline must process a single frame quickly to avoid delaying the ASR response.
     *   The processing must be efficient to avoid significant battery drain or overheating.
 *   **Input/Output:**
     *   **Input:** Camera frames, and a signal indicating that speech is currently being detected.

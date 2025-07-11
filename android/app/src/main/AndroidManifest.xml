@@ -1,4 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.live_captions_xr">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
     <application
         android:label="live_captions_xr"
         android:name="${applicationName}"
@@ -30,11 +32,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-    <!-- flutter_gemma GPU support: OpenCL libraries (optional, safe to add) -->
-    <uses-native-library android:name="libOpenCL.so" android:required="false"/>
-    <uses-native-library android:name="libOpenCL-car.so" android:required="false"/>
-    <uses-native-library android:name="libOpenCL-pixel.so" android:required="false"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+        <!-- flutter_gemma GPU support: OpenCL libraries (optional, safe to add) -->
+        <uses-native-library android:name="libOpenCL.so" android:required="false"/>
+        <uses-native-library android:name="libOpenCL-car.so" android:required="false"/>
+        <uses-native-library android:name="libOpenCL-pixel.so" android:required="false"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
