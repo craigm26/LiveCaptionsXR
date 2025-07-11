@@ -1,4 +1,7 @@
 import 'debug_capturing_logger.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 /// Camera service for visual processing and capture
 /// 
@@ -9,32 +12,38 @@ class CameraService {
   
   bool _isCameraStarted = false;
   bool _isInitialized = false;
+
+  CameraController? _cameraController;
+  List<CameraDescription>? _cameras;
   
-  /// Initialize the camera service
+  /// Initialize the camera service (for emulator fallback only)
   Future<void> initialize() async {
     _logger.i('🏗️ Initializing CameraService...');
-    
     try {
       _logger.d('Setting up camera configuration...');
-      // Camera initialization logic would go here
-      // This includes permission checks, camera selection, etc.
-      
-      _logger.d('Checking camera permissions...');
-      // TODO: Add actual permission check logic
-      
-      _logger.d('Configuring camera settings...');
-      // TODO: Add camera configuration logic
-      
-      _isInitialized = true;
-      _logger.i('✅ CameraService initialized successfully');
-      
+      // Only initialize camera for Android emulator fallback
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        _logger.d('Checking available cameras...');
+        _cameras = await availableCameras();
+        final frontCamera = _cameras!.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+          orElse: () => _cameras!.first,
+        );
+        _cameraController = CameraController(frontCamera, ResolutionPreset.medium);
+        await _cameraController!.initialize();
+        _isInitialized = true;
+        _logger.i('✅ CameraService initialized successfully');
+      } else {
+        _logger.i('ℹ️ CameraService skipped (not Android emulator)');
+        _isInitialized = false;
+      }
     } catch (e, stackTrace) {
       _logger.e('❌ Camera initialization failed', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
   
-  /// Start camera capture
+  /// Start camera capture (for emulator fallback only)
   void startCamera() {
     _logger.i('📸 Starting camera...');
     _logger.d('Current state - Initialized: $_isInitialized, Started: $_isCameraStarted');
@@ -49,17 +58,8 @@ class CameraService {
       return;
     }
     
-    try {
-      _logger.d('Configuring camera for capture...');
-      // TODO: Add actual camera start logic
-      
-      _isCameraStarted = true;
-      _logger.i('✅ Camera started successfully');
-      
-    } catch (e, stackTrace) {
-      _logger.e('❌ Failed to start camera', error: e, stackTrace: stackTrace);
-      rethrow;
-    }
+    _isCameraStarted = true;
+    _logger.i('✅ Camera started successfully');
   }
   
   /// Stop camera capture
@@ -72,17 +72,16 @@ class CameraService {
       return;
     }
     
-    try {
-      _logger.d('Stopping camera capture...');
-      // TODO: Add actual camera stop logic
-      
-      _isCameraStarted = false;
-      _logger.i('✅ Camera stopped successfully');
-      
-    } catch (e, stackTrace) {
-      _logger.e('❌ Failed to stop camera', error: e, stackTrace: stackTrace);
-      rethrow;
+    _isCameraStarted = false;
+    _logger.i('✅ Camera stopped successfully');
+  }
+
+  /// Get the camera preview widget (for emulator fallback only)
+  Widget? getCameraPreviewWidget() {
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      return CameraPreview(_cameraController!);
     }
+    return null;
   }
   
   /// Capture a single frame from the camera
@@ -116,14 +115,9 @@ class CameraService {
   void dispose() {
     _logger.i('🧹 Disposing CameraService...');
     _logger.d('Current state - Initialized: $_isInitialized, Started: $_isCameraStarted');
-    
-    if (_isCameraStarted) {
-      _logger.d('Stopping camera before disposal...');
-      stopCamera();
-    }
-    
-    _logger.d('Cleaning up camera resources...');
+    _cameraController?.dispose();
     _isInitialized = false;
+    _isCameraStarted = false;
     _logger.i('✅ CameraService disposed successfully');
   }
 } 

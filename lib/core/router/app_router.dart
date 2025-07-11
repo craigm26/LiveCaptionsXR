@@ -4,6 +4,7 @@ import 'package:live_captions_xr/app_shell.dart';
 import 'package:live_captions_xr/features/home/view/home_screen.dart';
 import 'package:live_captions_xr/features/settings/view/settings_screen.dart';
 import 'package:live_captions_xr/app.dart';
+import 'package:live_captions_xr/features/model_status/view/model_status_page.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/',
@@ -38,6 +39,12 @@ final GoRouter router = GoRouter(
           path: '/about',
           builder: (BuildContext context, GoRouterState state) {
             return const AboutScreen();
+          },
+        ),
+        GoRoute(
+          path: '/model-status',
+          builder: (BuildContext context, GoRouterState state) {
+            return const ModelStatusPage();
           },
         ),
       ],
