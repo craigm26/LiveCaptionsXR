@@ -39,7 +39,7 @@ The following MethodChannels are critical for the app's functionality. Gemini sh
 - `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
 - `live_captions_xr/visual_speaker_methods`: Manages the visual identification of speakers.
 - `gemma3n_multimodal`: Handles communication with the Gemma 3n ASR model.
-- `com.craig.livecaptions/visual`: Provides visual data from the camera.
+- `com.craig.livecaptions/visual`: Captures a single visual snapshot from the camera for multimodal context.
 
 ## 5. Project Structure & Conventions
 

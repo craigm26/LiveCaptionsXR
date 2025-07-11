@@ -41,8 +41,8 @@
 ## 4. Scope & Features
 
 *   **In-Scope Features (Must-Haves):**
-    *   An API to provide an image (e.g., a camera frame) to the Gemma 3n inference session.
-    *   Management of the multimodal (audio + visual) inference session.
+    *   An API to provide a single image frame to the Gemma 3n inference session.
+    *   Management of the multimodal (audio + visual snapshot) inference session.
     *   Conversion of the image from a Flutter-friendly format to the format required by the native MediaPipe API.
 *   **Out-of-Scope Features (Won't Be Included in this Version):**
     *   Continuous video stream processing (the initial version will work with single image frames as context).
@@ -53,8 +53,7 @@
 ## 5. Design & User Experience (UX)
 
 *   **API Design:**
-    *   The `GemmaASR` class will be updated. The `startStream()` method will be overloaded or updated to accept an optional `visionContext` parameter, e.g., `startStream({Uint8List? visionContext})`.
-    *   A method like `setVisionContext(Uint8List image)` will allow updating the visual context during a session.
+    *   The `GemmaASR` class will be updated. The `enhanceText` method will be updated to accept an optional `visual_snapshot` parameter, e.g., `enhanceText(rawText, {Uint8List? visual_snapshot})`.
 
 ---
 

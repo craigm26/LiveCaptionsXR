@@ -2,40 +2,53 @@ package com.example.live_captions_xr
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Bundle
+import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.craig.livecaptions/visual"
-    private lateinit var channel: MethodChannel
-    private lateinit var hybridLocalizationEngine: com.example.live_captions_xr.HybridLocalizationEngine
+    private val VISUAL_CHANNEL = "com.craig.livecaptions/visual"
+    private val HYBRID_CHANNEL = "live_captions_xr/hybrid_localization_methods"
+
+    private lateinit var visualCaptureController: VisualCaptureController
+    private lateinit var hybridLocalizationEngine: HybridLocalizationEngine
 
     private val CAMERA_PERMISSION_REQUEST_CODE = 100
+    private var cameraInitialized = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        visualCaptureController = VisualCaptureController(applicationContext)
+        hybridLocalizationEngine = HybridLocalizationEngine()
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
 
         // Register the stereo audio capture plugin
         flutterEngine.plugins.add(StereoAudioCapturePlugin())
 
-        // Register the speech localizer plugin
-        // SpeechLocalizerPlugin.registerWith(io.flutter.plugin.common.PluginRegistry.PluginRegistrar { this })
+        // Visual Capture Method Channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VISUAL_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "captureVisualSnapshot" -> {
+                    if (cameraInitialized) {
+                        visualCaptureController.captureSnapshot(result)
+                    } else {
+                        result.error("CAMERA_NOT_READY", "Camera not initialized or permission denied.", null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
 
-        // Register the AR anchor manager plugin for ARCore integration
-        // ARAnchorManager.registerWith(this)
-        // TODO: Migrate custom plugins to the new FlutterPlugin API if needed.
-        // TODO: Set the ARCore session from your AR renderer:
-        // ARAnchorManager.setARSession(yourArCoreSession)
-
-        val hybridChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "live_captions_xr/hybrid_localization_methods")
-        hybridLocalizationEngine = com.example.live_captions_xr.HybridLocalizationEngine()
-        hybridChannel.setMethodCallHandler { call, result ->
+        // Hybrid Localization Method Channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, HYBRID_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "predict" -> {
                     hybridLocalizationEngine.predict()
@@ -75,45 +88,47 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+    }
 
-        channel.setMethodCallHandler { call, result ->
-            when (call.method) {
-                "startDetection" -> {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                        == PackageManager.PERMISSION_GRANTED) {
-                        result.success(null)
-                    } else {
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.CAMERA),
-                            CAMERA_PERMISSION_REQUEST_CODE
-                        )
-                        result.error("CAMERA_PERMISSION_DENIED", "Camera permission is required.", null)
-                    }
-                }
-                "stopDetection" -> {
-                    result.success(null)
-                }
-                "captureFrame" -> {
-                    // The captureFrame method is not implemented in the new VisualSpeakerIdentifier
-                    // as the analysis is now done in a stream.
-                    // This will need to be re-implemented if still required.
-                    result.success(null)
-                }
-                else -> {
-                    result.notImplemented()
+    private fun initializeCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            visualCaptureController.initialize { success, message ->
+                if (success) {
+                    cameraInitialized = true
+                    Log.d("MainActivity", "Camera initialized successfully.")
+                } else {
+                    cameraInitialized = false
+                    Log.e("MainActivity", "Camera initialization failed: $message")
                 }
             }
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_REQUEST_CODE)
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onResume() {
+        super.onResume()
+        initializeCamera()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        visualCaptureController.release()
+        cameraInitialized = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        visualCaptureController.close()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                initializeCamera()
+            } else {
+                Log.e("MainActivity", "Camera permission was denied.")
             }
         }
     }

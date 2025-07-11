@@ -9,6 +9,7 @@ import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import 'language_detection_service.dart';
 import 'debug_capturing_logger.dart';
+import 'visual_service.dart';
 
 /// Service for processing speech using Gemma 3 multimodal capabilities
 class SpeechProcessor {
@@ -20,6 +21,7 @@ class SpeechProcessor {
   final StreamController<SpeechResult> _speechResultController =
       StreamController<SpeechResult>.broadcast();
 
+  final VisualService _visualService = VisualService();
   bool _isInitialized = false;
   bool _isProcessing = false;
   SpeechConfig _config = const SpeechConfig();
@@ -160,10 +162,14 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
 
       prompt += '\n\nImproved caption (same language):';
 
+      // Capture a visual snapshot for multimodal context
+      final Uint8List? visualSnapshot = await _visualService.captureVisualSnapshot();
+
       final result = await MethodChannel('gemma3n_multimodal').invokeMethod('generateText', {
         'prompt': prompt,
         'maxTokens': _config.enhancementMaxTokens,
         'temperature': _config.enhancementTemperature,
+        'visual_snapshot': visualSnapshot,
       });
 
       if (result['success'] == true && result['text'] != null) {
@@ -265,6 +271,7 @@ Language: ${_currentLanguage ?? _config.language}$recentContext
     await stopProcessing();
     await _streamSubscription?.cancel();
     await _speechResultController.close();
+    _visualService.dispose();
 
     _isInitialized = false;
     _logger.d('✅ SpeechProcessor disposed');

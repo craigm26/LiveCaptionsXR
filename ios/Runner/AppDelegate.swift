@@ -23,8 +23,10 @@ import Foundation
         }
         
         if #available(iOS 14.0, *) {
-            if let registrar = self.registrar(forPlugin: "VisualObjectPlugin") {
-                VisualObjectPlugin.register(with: registrar)
+            if let registrar = self.registrar(forPlugin: "VisualCaptureController") {
+                let visualChannel = FlutterMethodChannel(name: "com.craig.livecaptions/visual", binaryMessenger: registrar.messenger())
+                let visualController = VisualCaptureController(channel: visualChannel)
+                registrar.addMethodCallDelegate(visualController, channel: visualChannel)
             }
         }
         
@@ -50,6 +52,10 @@ import Foundation
                 case "showARView":
                     print("🎯 Handling showARView method call")
                     self?.showARView(from: controller, result: result)
+                case "arViewWillClose":
+                    print("🎯 Handling arViewWillClose method call")
+                    // No action needed here, just acknowledging the call
+                    result(nil)
                 default:
                     print("❓ Unknown AR navigation method: \(call.method)")
                     result(FlutterMethodNotImplemented)
