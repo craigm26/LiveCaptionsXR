@@ -5,6 +5,8 @@ import '../services/audio_service.dart';
 import '../services/visual_identification_service.dart';
 import '../services/localization_service.dart';
 import '../services/camera_service.dart';
+import '../services/speech_processor.dart';
+import '../services/visual_context_service.dart';
 import '../services/ar_session_persistence_service.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
@@ -33,6 +35,16 @@ void setupServiceLocator() {
   sl.registerLazySingleton<ARSessionPersistenceService>(
     () => ARSessionPersistenceService(),
   );
+
+  sl.registerLazySingleton<SpeechProcessor>(
+    () => SpeechProcessor(),
+  );
+
+  sl.registerLazySingleton<VisualContextService>(
+    () => VisualContextService(),
+  );
+
+  
 
   // Services that depend on cubits need to be registered as factories
   // since cubits are created fresh for each screen

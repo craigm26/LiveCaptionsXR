@@ -1,15 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
-// import 'package:gemma3n_multimodal/gemma3n_multimodal.dart';
+
 import 'package:flutter/services.dart';
 
 void main() {
   group('ASR Implementation Tests', () {
-    // late Gemma3nMultimodal plugin;
     late MethodChannel channel;
 
     setUp(() {
-      // plugin = Gemma3nMultimodal();
-      channel = const MethodChannel('gemma3n_multimodal');
+      channel = const MethodChannel('com.example.asr/test');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
         switch (methodCall.method) {

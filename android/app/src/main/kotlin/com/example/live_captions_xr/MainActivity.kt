@@ -108,6 +108,13 @@ class MainActivity: FlutterActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (flutterEngine != null) {
+            initializeCamera()
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
         initializeCamera()
     }
 

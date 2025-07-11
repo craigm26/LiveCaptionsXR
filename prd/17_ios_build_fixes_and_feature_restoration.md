@@ -40,7 +40,7 @@ The iOS build was failing due to multiple compilation errors:
 
 ### Files Modified in Phase 1
 
-#### 1. MediaPipe Plugin (`plugins/gemma3n_multimodal/ios/Classes/Gemma3nMultimodalPlugin.swift`)
+#### 1. MediaPipe Plugin (`plugins/mediapipe_genai/ios/Classes/MediaPipeGenAIPlugin.swift`)
 **Status**: ✅ Fixed
 **Changes**:
 - Simplified plugin to basic functionality
