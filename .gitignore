@@ -29,8 +29,7 @@ build/ab1a00fb61251fe39194477c9d9edf3b/
 build/app/
 build/4e4586e7eafdfc02ea97202dda258182.cache.dill.track
 
-# Include web build folder
-!build/web/
+build/web/
 flutter_*.png
 
 # IDEs
