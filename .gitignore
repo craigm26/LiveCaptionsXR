@@ -1,3 +1,17 @@
+# --- Flutter build output ---
+# Ignore all build output except for build/web (for web deployment)
+build/*
+!build/web/
+!build/web/**
+
+# Ignore large model files in all locations (including web build output)
+**/*.task
+**/*.tflite
+**/models/*.bin
+**/models/*.pb
+build/web/assets/assets/models/*.zip
+build/web/assets/assets/models/*.task
+
 # Ignore models directory and its contents
 assets/models/ 
 
@@ -27,9 +41,10 @@ build/url_launcher_android/
 build/.cxx/
 build/ab1a00fb61251fe39194477c9d9edf3b/
 build/app/
+build/web/assets/assets/models/
 build/4e4586e7eafdfc02ea97202dda258182.cache.dill.track
 
-build/web/
+!build/web/
 flutter_*.png
 
 # IDEs
@@ -76,12 +91,6 @@ windows/build/
 *.mocks.dart
 *.lock
 
-# Large model files (should not be committed to reduce app size)
-**/*.task
-**/*.tflite
-**/models/*.bin
-**/models/*.pb
-
 # iOS build artifacts and debug info
 build/ios-debug-info/
 ios/build/
@@ -89,6 +98,7 @@ ios/Podfile.lock.dart_tool/
 
 # Ignore large model zip file
 build/web/assets/assets/models/gemma-3n-E4B-it-int4.zip
+build/web/assets/assets/models/gemma-3n-E4B-it-int4.task
 
 # Ignore all .dill files
 *.dill
