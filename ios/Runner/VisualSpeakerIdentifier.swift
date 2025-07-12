@@ -4,13 +4,19 @@ import Combine
 import Flutter
 
 @available(iOS 14.0, *)
-class VisualSpeakerIdentifier: NSObject {
+class VisualSpeakerIdentifier: NSObject, FlutterPlugin {
+    // Required by FlutterPlugin protocol
+    static func register(with registrar: FlutterPluginRegistrar) {
+        let channel = FlutterMethodChannel(name: "com.craig.livecaptions/visual", binaryMessenger: registrar.messenger())
+        let instance = VisualSpeakerIdentifier(channel: channel)
+        registrar.addMethodCallDelegate(instance, channel: channel)
+    }
     private let captureSession = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "com.craig.livecaptions.sessionQueue")
 
     private var latestPixelBuffer: CVPixelBuffer?
-    private var captureContinuation: CheckedContinuation<CVPixelBuffer?, Never>?
+    private var captureContinuation: CheckedContinuation<FlutterStandardTypedData?, Never>?
 
     init(channel: FlutterMethodChannel) {
         super.init()
@@ -66,7 +72,9 @@ class VisualSpeakerIdentifier: NSObject {
 @available(iOS 14.0, *)
 extension VisualSpeakerIdentifier: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer), self.captureContinuation != nil else { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer), self.captureContinuation != nil else {
+            return
+        }
 
         // Convert CVPixelBuffer to a UIImage
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
@@ -78,15 +86,15 @@ extension VisualSpeakerIdentifier: AVCaptureVideoDataOutputSampleBufferDelegate 
             return
         }
         let uiImage = UIImage(cgImage: cgImage)
-        
+
         // Convert UIImage to JPEG data
-        guard let jpegData = uiImage.jpegData(compressionQuality: 0.8) {
+        guard let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
             self.captureContinuation?.resume(returning: nil)
             self.captureContinuation = nil
             self.captureSession.stopRunning()
             return
         }
-        
+
         let flutterData = FlutterStandardTypedData(bytes: jpegData)
         self.captureContinuation?.resume(returning: flutterData)
         self.captureContinuation = nil
