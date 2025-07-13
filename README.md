@@ -101,4 +101,4 @@ The project uses `flutter_test` for unit and widget tests, and `integration_test
 
 ## 🤝 Contributing
 
-This project was developed for the Google Gemma Hackathon. For information on the development process and contributions, please see the [Hackathon Submission](docs/HACKATHON_SUBMISSION.md) file.
+We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for more information on how to get started.
