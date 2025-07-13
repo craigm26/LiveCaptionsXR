@@ -86,7 +86,7 @@ class VisualIdentificationService {
 
     try {
       // Use Gemma 3n's MobileNet-V5 vision encoder
-      final visionFeatures = gemma3nService.runImageInference(frame);
+      final visionFeatures = await gemma3nService.runImageInference(frame);
 
       // Extract object detections from Gemma 3n output
       return _parseVisionFeatures(visionFeatures);

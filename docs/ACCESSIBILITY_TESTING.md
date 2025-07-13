@@ -82,8 +82,14 @@ This testing plan ensures `Live Captions XR` delivers on its promise to provide 
 - Use the AR navigation and caption placement MethodChannels to trigger and verify AR captioning from Flutter.
 
 ## MethodChannels
-- `Live Captions XR/ar_navigation`: Launch native AR view.
-- `Live Captions XR/caption_methods`: Place captions in AR.
+- `live_captions_xr/ar_navigation`: Launch the native AR view from Flutter.
+- `live_captions_xr/caption_methods`: Place captions in the AR view.
+- `live_captions_xr/hybrid_localization_methods`: API for the hybrid localization engine.
+- `live_captions_xr/visual_object_methods`: Send visual object detection data from the native layer to Dart.
+- `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
+- `live_captions_xr/audio_capture_events`: An event channel that streams audio data from the native layer to the Dart layer.
+- `live_captions_xr/speech_localizer`: Handles the communication with the speech localization plugin.
+- `live_captions_xr/visual_context_methods`: Used to send visual context information from the native layer to the Dart layer.
 
 ## Other Accessibility Features
 - Real-time, privacy-preserving speech transcription.

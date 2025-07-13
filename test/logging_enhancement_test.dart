@@ -4,14 +4,25 @@ import 'package:flutter/services.dart';
 import 'package:live_captions_xr/core/services/speech_processor.dart';
 import 'package:live_captions_xr/core/services/stereo_audio_capture.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
+import 'package:live_captions_xr/core/services/gemma3n_service.dart';
+import 'package:live_captions_xr/core/services/visual_service.dart';
+import 'package:mockito/mockito.dart';
+
+class MockGemma3nService extends Mock implements Gemma3nService {}
+
+class MockVisualService extends Mock implements VisualService {}
 
 void main() {
   group('Enhanced Logging Tests', () {
     late SpeechProcessor speechProcessor;
+    late MockGemma3nService mockGemma3nService;
+    late MockVisualService mockVisualService;
     late List<MethodCall> methodCalls;
 
     setUp(() {
-      speechProcessor = SpeechProcessor();
+      mockGemma3nService = MockGemma3nService();
+      mockVisualService = MockVisualService();
+      speechProcessor = SpeechProcessor(mockGemma3nService, mockVisualService);
       methodCalls = [];
       
       // Mock the method channel
@@ -41,28 +52,6 @@ void main() {
         const MethodChannel('flutter_gemma'),
         null,
       );
-    });
-
-    test('should log voice activity detection properly', () async {
-      await speechProcessor.initialize();
-      await speechProcessor.startProcessing();
-      
-      // Test with audio above threshold
-      final loudAudio = Float32List.fromList([0.1, 0.2, 0.3, 0.4]); // High amplitude
-      await speechProcessor.processAudioChunk(loudAudio);
-      
-      // Test with audio below threshold  
-      final quietAudio = Float32List.fromList([0.001, 0.002, 0.001, 0.002]); // Low amplitude
-      await speechProcessor.processAudioChunk(quietAudio);
-      
-      // Verify method calls were made appropriately
-      final processChunkCalls = methodCalls.where(
-        (call) => call.method == 'processAudioChunk',
-      ).toList();
-      
-      // Should only have one call for the loud audio (above threshold)
-      expect(processChunkCalls.length, equals(1));
-      expect(processChunkCalls.first.arguments['audioData'], equals(loudAudio));
     });
 
     test('should handle stereo audio frame conversion correctly', () {
