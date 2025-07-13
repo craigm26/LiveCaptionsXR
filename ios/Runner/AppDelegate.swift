@@ -23,9 +23,9 @@ import Foundation
         }
         
         if #available(iOS 14.0, *) {
-            if let registrar = self.registrar(forPlugin: "VisualCaptureController") {
+            if let registrar = self.registrar(forPlugin: "VisualSpeakerIdentifier") {
                 let visualChannel = FlutterMethodChannel(name: "com.craig.livecaptions/visual", binaryMessenger: registrar.messenger())
-                let visualController = VisualCaptureController(channel: visualChannel)
+                let visualController = VisualSpeakerIdentifier(channel: visualChannel)
                 registrar.addMethodCallDelegate(visualController, channel: visualChannel)
             }
         }
