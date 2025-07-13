@@ -1,7 +1,7 @@
 # Speech Processing Flow - LiveCaptionsXR
 
 ## Overview
-This document explains how speech is captured and processed in the LiveCaptionsXR application, addressing the issue where the user couldn't understand what was being captured for speech recognition.
+This document explains how speech is captured and processed in the LiveCaptionsXR application.
 
 ## Architecture Overview
 
@@ -9,8 +9,7 @@ This document explains how speech is captured and processed in the LiveCaptionsX
 1. **StereoAudioCapturePlugin** (iOS Native) - Captures stereo audio from microphones
 2. **StereoAudioCapture** (Dart) - Dart wrapper for native audio capture
 3. **LiveCaptionsCubit** - Manages the connection between audio capture and speech processing
-4. **SpeechProcessor** - Processes audio for speech recognition using Gemma 3n
-5. **Gemma3nMultimodalPlugin** (iOS Native) - Native implementation of Gemma 3n ASR
+4. **SpeechProcessor** - Processes audio for speech recognition using the `speech_to_text` package.
 
 ## Complete Audio Flow
 
@@ -38,27 +37,21 @@ StereoAudioFrame → LiveCaptionsCubit → processAudioChunk() → SpeechProcess
 
 **LiveCaptionsCubit:**
 - Subscribes to audio frames from `StereoAudioCapture`
-- Converts stereo to mono using `toMono()` method
-- Calculates RMS levels for voice activity detection
-- Sends mono audio chunks to `SpeechProcessor.processAudioChunk()`
+- Sends audio chunks to `SpeechProcessor.startProcessing()`
 
 **SpeechProcessor:**
-- Receives Float32List audio chunks
-- Calculates voice activity using RMS threshold
-- Sends audio to native plugin via MethodChannel
-- Receives speech results via EventChannel
+- Initializes the `speech_to_text` plugin.
+- Starts listening for speech.
+- Receives speech results from the `speech_to_text` plugin.
 
 ### 3. Speech Recognition
 ```
-Audio chunk → Gemma3nMultimodalPlugin → iOS Speech Recognition / Gemma 3n ASR → Speech results
+Audio stream → speech_to_text plugin → Native Speech Recognition Engine → Speech results
 ```
 
-**Gemma3nMultimodalPlugin (iOS):**
-- Accumulates audio chunks in internal buffer
-- Performs voice activity detection
-- Uses iOS Speech Recognition for transcription
-- Enhances results with Gemma 3n if available
-- Sends both interim and final results back to Dart
+**`speech_to_text` Plugin:**
+- Handles the interaction with the native speech recognition engine (Siri on iOS, Google on Android).
+- Provides a simple API for starting, stopping, and listening for speech recognition results.
 
 ### 4. Caption Placement
 ```
@@ -79,28 +72,16 @@ Final speech result → LiveCaptionsCubit → HybridLocalizationEngine → AR sp
 [INFO] 🎧 Starting stereo audio capture
 [DEBUG] Target format: 16kHz, 2 channels, Float32, interleaved
 [INFO] ✅ Stereo audio capture started successfully
-[DEBUG] 📊 Audio frame #50: 1024 samples (512 per channel)
-[DEBUG] 🎧 Audio levels - Left: 0.0124, Right: 0.0098
 ```
 
 #### Speech Processing Phase:
 ```
 [INFO] 🎤 Starting speech processing...
-[DEBUG] 🔧 Audio capture config: sampleRate=16000, channels=1, format=pcm16
-[DEBUG] 🌍 Language: en
-[DEBUG] 🎯 Voice activity threshold: 0.01
-[DEBUG] 📊 Processing audio chunk: 512 samples
-[DEBUG] 🔊 Audio RMS level: 0.0156 (threshold: 0.01)
-[DEBUG] 🎯 Voice activity detected, sending to ASR...
 ```
 
 #### Speech Recognition Results:
 ```
-[INFO] 📥 Received stream data: speechResult
 [INFO] 🎤 Speech result received: "Hello world"
-[DEBUG] 📊 Confidence: 0.87, Final: false
-[DEBUG] 🔄 Interim speech result: "Hello world"
-[INFO] ✅ Final speech result: "Hello world"
 ```
 
 #### AR Caption Placement:
@@ -125,20 +106,10 @@ If you see this log pattern:
 ### Audio Capture Working But No Speech Results
 If you see:
 ```
-[DEBUG] 📊 Audio frame #50: 1024 samples, RMS: 0.0156
-[DEBUG] 🔇 Below voice activity threshold, skipping ASR
+[INFO] 🎤 Starting speech processing...
 ```
-**Cause:** Audio levels too low or voice activity threshold too high
-**Solution:** Adjust `voiceActivityThreshold` in speech configuration
-
-### Speech Recognition Not Working
-If you see:
-```
-[DEBUG] 🎯 Voice activity detected, sending to ASR...
-[ERROR] ❌ Error processing audio chunk
-```
-**Cause:** Gemma 3n model not loaded or native plugin issues
-**Solution:** Check model loading and native plugin initialization
+but no "🎤 Speech result received" logs, the cause is likely with the `speech_to_text` plugin.
+**Solution:** Check the device's speech recognition service and the plugin's initialization.
 
 ### No AR Caption Placement
 If you see:
@@ -149,31 +120,12 @@ If you see:
 **Cause:** AR session not active or hybrid localization engine not initialized
 **Solution:** Ensure AR mode is properly initialized before starting captions
 
-## Configuration Options
-
-### Audio Configuration
-- **Sample Rate:** 16kHz (optimal for speech recognition)
-- **Channels:** 2 (stereo) → 1 (mono for speech processing)
-- **Format:** Float32 (±1.0 range)
-- **Buffer Size:** 1024 frames (~64ms at 16kHz)
-
-### Speech Recognition Configuration
-- **Voice Activity Threshold:** 0.01 (adjustable)
-- **Language:** "en" (configurable)
-- **Real-time Enhancement:** true (uses Gemma 3n)
-- **Native Speech Recognition:** true (uses iOS Speech Recognition)
-
-### Performance Monitoring
-- **Audio Frame Rate:** ~15.6 fps (1024 samples / 16kHz)
-- **Speech Result Latency:** <100ms for interim results
-- **Caption Placement Latency:** <50ms after final result
-
 ## Testing
 
-Use the provided `test_speech_flow.dart` script to verify the complete pipeline:
+Use the provided `test/features/live_captions/speech_processor_test.dart` script to verify the speech processing pipeline:
 
 ```bash
-dart test_speech_flow.dart
+flutter test test/features/live_captions/speech_processor_test.dart
 ```
 
 This will test each component in isolation and verify the complete flow from audio capture to speech recognition.

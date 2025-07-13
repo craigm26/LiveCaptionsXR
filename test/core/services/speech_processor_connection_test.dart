@@ -1,15 +1,20 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:live_captions_xr/core/services/speech_processor.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
+import 'package:live_captions_xr/core/services/gemma3n_service.dart';
+import 'package:live_captions_xr/core/services/speech_processor.dart';
+import 'package:live_captions_xr/core/services/visual_service.dart';
+import 'package:mockito/mockito.dart';
+
+class MockGemma3nService extends Mock implements Gemma3nService {}
+
+class MockVisualService extends Mock implements VisualService {}
 
 void main() {
   group('Speech Processor Connection Test', () {
-    late SpeechProcessor speechProcessor;
-    
     setUp(() {
-      speechProcessor = SpeechProcessor();
+      // No setup needed for these tests
     });
 
     test('should handle audio chunks correctly', () async {

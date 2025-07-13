@@ -1,3 +1,5 @@
+import '../services/gemma3n_service.dart';
+import '../services/visual_service.dart';
 import 'package:get_it/get_it.dart';
 import '../services/hybrid_localization_engine.dart';
 import '../services/ar_anchor_manager.dart';
@@ -36,8 +38,16 @@ void setupServiceLocator() {
     () => ARSessionPersistenceService(),
   );
 
+  sl.registerLazySingleton<Gemma3nService>(
+    () => Gemma3nService(),
+  );
+
+  sl.registerLazySingleton<VisualService>(
+    () => VisualService(),
+  );
+
   sl.registerLazySingleton<SpeechProcessor>(
-    () => SpeechProcessor(),
+    () => SpeechProcessor(sl<Gemma3nService>(), sl<VisualService>()),
   );
 
   sl.registerLazySingleton<VisualContextService>(

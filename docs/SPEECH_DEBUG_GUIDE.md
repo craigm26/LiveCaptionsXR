@@ -7,7 +7,6 @@ Look for these logs after entering AR mode:
 ```
 [INFO] 🎧 Starting stereo audio capture
 [INFO] ✅ Stereo audio capture started successfully
-[DEBUG] 📊 Audio frame #50: 1024 samples, RMS: 0.0156
 ```
 
 **If missing:** Audio permissions or hardware issue
@@ -16,31 +15,19 @@ Look for these logs after entering AR mode:
 Look for these logs:
 ```
 [INFO] 🎤 Starting speech processing...
-[DEBUG] 📊 Processing audio chunk: 512 samples
-[DEBUG] 🔊 Audio RMS level: 0.0156 (threshold: 0.01)
 ```
 
 **If missing:** Audio not reaching speech processor
 
-### 3. Check Voice Activity Detection
+### 3. Check Speech Recognition Results
 Look for:
 ```
-[DEBUG] 🎯 Voice activity detected, sending to ASR...
-```
-
-**If seeing:** `🔇 Below voice activity threshold, skipping ASR`
-**Solution:** Speak louder or adjust threshold
-
-### 4. Check Speech Recognition Results
-Look for:
-```
-[INFO] 📥 Received stream data: speechResult
 [INFO] 🎤 Speech result received: "Hello world"
 ```
 
-**If missing:** Native plugin or model issue
+**If missing:** `speech_to_text` plugin or engine issue
 
-### 5. Check AR Caption Placement
+### 4. Check AR Caption Placement
 Look for:
 ```
 [INFO] 🎯 Attempting to place caption in AR space...
@@ -59,16 +46,16 @@ Enable debug logging in your app settings:
 ## Common Issues and Solutions
 
 ### Issue: No audio frames captured
-**Symptoms:** No "📊 Audio frame" logs
+**Symptoms:** No "🎧 Starting stereo audio capture" logs
 **Solution:** Check microphone permissions
 
 ### Issue: Audio captured but no speech processing
-**Symptoms:** "📊 Audio frame" logs but no "🎤 Processing audio chunk"
+**Symptoms:** "🎧 Starting stereo audio capture" logs but no "🎤 Starting speech processing..."
 **Solution:** Check if LiveCaptionsCubit properly connects audio to speech processor
 
 ### Issue: Speech processing but no recognition results
-**Symptoms:** "🎤 Processing audio chunk" but no "📥 Received stream data"
-**Solution:** Check Gemma 3n model loading and native plugin
+**Symptoms:** "🎤 Starting speech processing..." but no "🎤 Speech result received"
+**Solution:** Check the `speech_to_text` plugin initialization and device's speech recognition service.
 
 ### Issue: Recognition results but no AR captions
 **Symptoms:** "🎤 Speech result received" but no "🎯 Attempting to place caption"
@@ -78,7 +65,7 @@ Enable debug logging in your app settings:
 
 Run the speech flow test:
 ```bash
-dart test_speech_flow.dart
+flutter test test/features/live_captions/speech_processor_test.dart
 ```
 
 Check debug logs in real-time:

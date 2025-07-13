@@ -37,7 +37,7 @@ This guide will help you test the AR Mode and audio caption generation features 
   - Mock or simulate audio input in your code to trigger caption generation logic.
   - You can manually invoke the Flutter MethodChannel (`placeCaption`) from Dart to test AR caption placement.
 - **For Full Audio-to-Caption Testing:**
-  - Use a real iOS device to test live audio input and caption generation.
+  - Use a real iOS device to test live audio input and caption generation with the `speech_to_text` package.
 
 ---
 

@@ -1,4 +1,4 @@
-# Google Gemma 3n Hackathon Submission: Live Captions XR
+# Google Gemma Hackathon Submission: Live Captions XR
 
 **Comprehensive Project Overview for Judges**
 
@@ -6,13 +6,11 @@
 
 ## 🏆 Project Overview & Impact
 
-**Live Captions XR** is an innovative accessibility application that demonstrates the transformative potential of Google's Gemma 3n multimodal AI model for real-world closed captioning. Our solution addresses critical accessibility challenges for the 466 million people worldwide with hearing loss by creating a spatially-aware captioning system for both standard mobile devices (iOS/Android) and XR environments.
+**Live Captions XR** is an innovative accessibility application that demonstrates the transformative potential of on-device AI for real-world closed captioning. Our solution addresses critical accessibility challenges for the 466 million people worldwide with hearing loss by creating a spatially-aware captioning system for both standard mobile devices (iOS/Android) and XR environments.
 
-**Core Innovation**: Rather than processing speech as isolated audio streams, Live Captions XR leverages Gemma 3n's unified multimodal architecture to understand conversational context holistically, providing spatial captions like "Person at your left said: 'The meeting starts in 5 minutes'" instead of simply displaying flat text transcriptions. This is all achieved on-device for maximum privacy and performance.
+**Core Innovation**: Rather than processing speech as isolated audio streams, Live Captions XR leverages a hybrid approach to understand conversational context holistically, providing spatial captions like "Person at your left said: 'The meeting starts in 5 minutes'" instead of simply displaying flat text transcriptions. This is all achieved on-device for maximum privacy and performance.
 
-Our system features a **Hybrid Localization Engine** that fuses audio, vision, and IMU data using a Kalman filter for robust, real-time speaker localization. This enables **Real-time AR Caption Placement**, anchoring captions in 3D space at the speaker's location. The **Streaming ASR & Multimodal Fusion** is powered by an on-device Gemma 3n model, ensuring low-latency, privacy-preserving speech recognition. Communication between the Dart frontend and native Swift/Kotlin/Java backend is facilitated by **Flutter Plugins** using **MethodChannels** and **EventChannels**, including `live_captions_xr/ar_navigation`, `live_captions_xr/caption_methods`, `live_captions_xr/hybrid_localization_methods`, and `live_captions_xr/visual_object_methods`.
-
-
+Our system features a **Hybrid Localization Engine** that fuses audio, vision, and IMU data using a Kalman filter for robust, real-time speaker localization. This enables **Real-time AR Caption Placement**, anchoring captions in 3D space at the speaker's location. The **Streaming ASR** is powered by the on-device `speech_to_text` package, ensuring low-latency, privacy-preserving speech recognition. Communication between the Dart frontend and native Swift/Kotlin/Java backend is facilitated by **Flutter Plugins** using **MethodChannels** and **EventChannels**.
 
 ---
 
@@ -20,11 +18,11 @@ Our system features a **Hybrid Localization Engine** that fuses audio, vision, a
 
 ### Revolutionary Multimodal Application
 - **Real-world Impact**: Addresses genuine user needs for 466 million people with hearing loss, transforming communication accessibility.
-- **Mobile Deployment**: Proves the feasibility of sophisticated multimodal AI on mobile devices using MediaPipe, pushing the boundaries of on-device ML.
-- **Privacy-First**: Complete on-device processing ensures user privacy, demonstrating Gemma 3n's capabilities without compromising sensitive data.
+- **Mobile Deployment**: Proves the feasibility of sophisticated AI on mobile devices, pushing the boundaries of on-device ML.
+- **Privacy-First**: Complete on-device processing ensures user privacy, demonstrating the capabilities of on-device AI without compromising sensitive data.
 
 ### Technical Innovation Highlights
-- **Unified Multimodal Processing**: Audio + Visual + Context processed simultaneously through Gemma 3n and MediaPipe, enabling a deeper understanding of conversational dynamics.
+- **Hybrid Localization**: Audio + Visual + IMU data processed simultaneously, enabling a deeper understanding of conversational dynamics.
 - **Spatial Understanding**: Sound localization combined with visual scene understanding allows for precise placement of captions in 3D space.
 - **Real-time Performance**: Optimized for mobile deployment with sub-second response times, crucial for natural and fluid conversations.
 
@@ -34,7 +32,7 @@ Our system features a **Hybrid Localization Engine** that fuses audio, vision, a
 
 ### ✅ Technical Writeup (Proof of Work)
 - **📄 [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md)** - Primary submission document.
-- Comprehensive architecture explanation and Gemma 3n integration details using **MediaPipe**.
+- Comprehensive architecture explanation and `speech_to_text` integration details.
 - Technical challenges overcome and solution strategies.
 
 ### ✅ Public Code Repository (Source of Truth)
@@ -51,7 +49,7 @@ Our system features a **Hybrid Localization Engine** that fuses audio, vision, a
 
 ## 🚀 Video Pitch & Storytelling (30 points)
 
-Our video demonstration is the primary artifact for evaluating the project's impact and functionality. It showcases the real-time, spatially-aware captioning in action, highlighting the user experience and the seamless integration of Gemma 3n.
+Our video demonstration is the primary artifact for evaluating the project's impact and functionality. It showcases the real-time, spatially-aware captioning in action, highlighting the user experience and the seamless integration of the hybrid localization engine.
 
 - **Video Link**: [Insert Video Link Here] (Will be added upon video completion)
 - **Key Highlights**:
@@ -67,12 +65,12 @@ Our video demonstration is the primary artifact for evaluating the project's imp
 ### 1. Robust Multimodal Architecture
 ```
 [Microphone Array] ──┐
-                    ├──► [MediaPipe Inference Engine] ──► [Gemma 3n Core] ──► [Spatial Caption]
+                    ├──► [Hybrid Localization Engine] ──► [3D Position] ──► [Spatial Caption]
 [Camera Feed] ───────┤
                     │
-[User Context] ─────┘
+[IMU] ──────────────┘
 ```
-Our architecture is designed for high-performance, on-device multimodal AI. It integrates audio, visual, and inertial data streams, processed efficiently through the MediaPipe Inference Engine and Gemma 3n Core to generate spatially accurate captions.
+Our architecture is designed for high-performance, on-device AI. It integrates audio, visual, and inertial data streams, processed efficiently through the Hybrid Localization Engine to generate spatially accurate captions.
 
 ### 2. Production-Ready Implementation
 - **Flutter Application**: Complete mobile app with a clean, layered architecture, ensuring cross-platform compatibility (iOS/Android).
@@ -90,7 +88,7 @@ Our architecture is designed for high-performance, on-device multimodal AI. It i
 
 ### Primary Documents (Start Here)
 1.  **🎬 Video Pitch & Storytelling**: Our primary submission artifact, showcasing the project in action.
-2.  **📄 [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md)** - Main hackathon submission, detailing technical architecture and Gemma 3n integration.
+2.  **📄 [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md)** - Main hackathon submission, detailing technical architecture and `speech_to_text` integration.
 3.  **🏗️ [ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed system design and architectural patterns.
 
 ### Supporting Documentation
@@ -103,6 +101,6 @@ Our architecture is designed for high-performance, on-device multimodal AI. It i
 
 ## 🏅 Conclusion
 
-Live Captions XR represents the future of accessibility technology, demonstrating how Gemma 3n's revolutionary multimodal capabilities can transform real-world challenges into elegant, inclusive solutions. Our comprehensive implementation proves not just technical competence, but deep understanding of both AI capabilities and human needs.
+Live Captions XR represents the future of accessibility technology, demonstrating how on-device AI can transform real-world challenges into elegant, inclusive solutions. Our comprehensive implementation proves not just technical competence, but deep understanding of both AI capabilities and human needs.
 
 **Impact Goal**: Empowering independence and communication accessibility for the 466 million people worldwide with hearing loss.
