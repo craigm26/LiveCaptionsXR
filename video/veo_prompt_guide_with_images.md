@@ -17,7 +17,6 @@ This file outlines a cinematic prompt structure for Google Flow / Veo 3, includi
 | `caption_ui_mockup`    | UI overlay for caption bubbles           | `caption_ui.png`                  |
 | `gemma_logo`           | Gemma 3n logo PNG                        | `gemma3n_logo.png`                |
 | `android_xr_logo`      | Android XR branding                      | `androidxr_logo.png`              |
-| `rooftop_scene`        | Rooftop photo with golden hour light     | `rooftop_goldenhour.jpg`          |
 | `friend_photo`         | Companion or family member image         | `friend_smile.jpg`                |
 
 ---
@@ -89,18 +88,18 @@ Logos for Gemma and Android XR fade in as subtle watermarks.
 
 ---
 
-## ✅ Scene 6 – Hero Scene with Rooftop Closure
+## ✅ Scene 6 – Hero Scene with Outdoor Closure
 
-**Image Anchors:** `rooftop_scene`, `friend_photo`, `caption_ui_mockup`
+**Image Anchors:** `drone_cityshot`, `friend_photo`, `caption_ui_mockup`
 
 **Prompt:**  
-Golden hour rooftop arc shot. The city skyline is visible.
-Craig and his friend are laughing together.  
+Golden hour shot on the patio of the coffee shop. The city ambiance is present but softer.
+Craig and his friend are laughing together at their table.  
 A final caption appears:  
 > “You always find a way.”  
 The scene fades out with the tagline:  
 > “LiveCaptionsXR. Nothing unheard.”  
-**Mood:** Empowerment, resolve.
+**Mood:** Empowerment, resolve, connection.
 
 ---
 
@@ -118,7 +117,6 @@ LiveCaptionsXR_VeoPrompts/
 ├── scenes/
 │   ├── city_drone.jpg
 │   ├── barista.jpg
-│   ├── rooftop_goldenhour.jpg
 │   ├── friend_smile.jpg
 ├── logos/
 │   ├── gemma3n_logo.png
