@@ -22,28 +22,28 @@ This file outlines a cinematic prompt structure for Google Flow / Veo 3, includi
 
 ---
 
-## ✅ Scene 1 – Establishing Identity
+## ✅ Scene 1 – Establishing the Scene
 
-**Image Anchors:** `hero_craig`, `sunglasses_standalone`, `drone_cityshot`
+**Image Anchors:** `hero_craig`, `sunglasses_standalone`, `barista_scene`
 
 **Prompt:**  
-Wide drone shot of an urban café or outdoor working area during golden hour.  
-Craig is seated, glancing around, wearing modern sunglasses (stand-in XR).  
-Slow push-in. City bustle in background.  
-**Mood:** Hopeful, modern, observational.
+Wide shot of a busy, bustling coffee shop. People are talking, and the sound of an espresso machine is audible.
+The camera finds Craig, wearing modern sunglasses (a stand-in for XR glasses), at a small table. He is not ordering, but observing the environment.
+Slow push-in on Craig.
+**Mood:** Modern, observational, slightly chaotic.
 
 ---
 
-## ✅ Scene 2 – First Use of AR Captions
+## ✅ Scene 2 – Conversation in a Busy Café
 
-**Image Anchors:** `craig_ots`, `barista_scene`, `caption_ui_mockup`
+**Image Anchors:** `hero_craig`, `friend_photo`, `caption_ui_mockup`
 
-**Prompt:**  
-Over-the-shoulder of Craig facing a barista.  
-Floating AR text appears:  
-> “Your iced coffee is ready.”  
-Text aligns to barista head position.  
-**Mood:** Delight, revelation.
+**Prompt:**
+Medium shot of Craig sitting at the table. A friend (`friend_photo`) sits opposite him, leaning in to speak. The ambient noise is high, with clattering dishes and overlapping conversations.
+The AR caption bubble appears, anchored to the friend's position:
+> "It's so loud in here, can you even hear me?"
+Craig smiles and nods, looking at the caption, demonstrating clear comprehension despite the noise.
+**Mood:** Connection, clarity in chaos.
 
 ---
 
@@ -53,10 +53,10 @@ Text aligns to barista head position.
 
 **Prompt:**  
 Split-screen:  
-Left — Craig without XR glasses, appearing confused.  
-Right — With XR glasses, AR caption reads:  
+Left — Craig without XR glasses, appearing confused and struggling to hear in the noisy cafe.  
+Right — With XR glasses, an AR caption clearly reads:  
 > “You dropped this.”  
-Tracking speaker off-screen.  
+The caption tracks a person walking by, off-screen.  
 **Mood:** Empowered, intuitive.
 
 ---
@@ -66,10 +66,10 @@ Tracking speaker off-screen.
 **Image Anchors:** `closeup_indoor`, `caption_ui_mockup`
 
 **Prompt:**  
-Indoor close-up of Craig.  
-Caption bubble fades in:  
+Indoor close-up of Craig, the soft lighting of the cafe highlighting his expression.  
+A caption bubble fades in, capturing a quiet, heartfelt comment from his friend:  
 > “I’m proud of you.”  
-No voiceover. Ambient piano.  
+No voiceover. The gentle hum of the cafe and a soft piano score in the background.  
 **Mood:** Quiet intimacy, connection.
 
 ---
@@ -79,12 +79,12 @@ No voiceover. Ambient piano.
 **Image Anchors:** `sunglasses_standalone`, `gemma_logo`, `android_xr_logo`, `caption_ui_mockup`
 
 **Prompt:**  
-Rotating sunglasses on white backdrop.  
-Floating tags appear around frame:  
+Rotating sunglasses on a clean, white backdrop.  
+Floating tags appear around the frame, highlighting key features:  
 - “Gemma 3n On-Device AI”  
 - “Privacy Preserved”  
 - “Multilingual Real-Time Captions”  
-Fade in logos as subtle watermarks.  
+Logos for Gemma and Android XR fade in as subtle watermarks.  
 **Mood:** Clean, tech-forward.
 
 ---
@@ -94,11 +94,11 @@ Fade in logos as subtle watermarks.
 **Image Anchors:** `rooftop_scene`, `friend_photo`, `caption_ui_mockup`
 
 **Prompt:**  
-Golden hour rooftop arc shot.  
-Craig and friend laughing.  
-Caption appears:  
+Golden hour rooftop arc shot. The city skyline is visible.
+Craig and his friend are laughing together.  
+A final caption appears:  
 > “You always find a way.”  
-Final fade out:  
+The scene fades out with the tagline:  
 > “LiveCaptionsXR. Nothing unheard.”  
 **Mood:** Empowerment, resolve.
 
@@ -133,4 +133,3 @@ Ensure all image files follow the naming convention above. Store this .md file i
 ## 🧭 Notes
 - If replacing a photo, update the filename to match the structure.
 - You may optionally embed each prompt directly into Veo along with its referenced images.
-
