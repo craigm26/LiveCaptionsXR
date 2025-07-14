@@ -42,7 +42,7 @@ We welcome pull requests! If you'd like to contribute code, please follow these 
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/LiveCaptionsXR.git
+    git clone https://github.com/craigm26/LiveCaptionsXR.git
     cd LiveCaptionsXR
     ```
 2.  **Install dependencies:**
