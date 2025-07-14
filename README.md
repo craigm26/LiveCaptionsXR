@@ -1,6 +1,6 @@
 # LiveCaptionsXR
 
-**Real-time, spatially-aware closed captioning powered by on-device multimodal AI with Google's Gemma and the `speech_to_text` package.**
+**Real-time, spatially-aware closed captioning powered by on-device multimodal AI with Google's Gemma 3n.**
 
 ---
 
@@ -24,7 +24,7 @@
 | **Component** | **Technology Choice** | **Rationale** |
 | --- | --- | --- |
 | **Frontend Framework** | Flutter 3.x with Dart 3 | Single codebase for iOS/Android, native performance, excellent accessibility support. |
-| **AI Model** | Google Gemma | State-of-the-art on-device multimodal model. |
+| **AI Model** | Google Gemma 3n | State-of-the-art on-device multimodal model. |
 | **Speech Recognition**| `speech_to_text` | High-quality, real-time, on-device speech recognition. |
 | **State Management** | flutter_bloc (Cubit pattern) | Predictable state management for complex AI workflows. |
 | **Service Architecture** | Dependency Injection (get_it) | Clean separation of concerns and a testable service layer. |
@@ -58,13 +58,12 @@
 - `ios/Runner/`: iOS-specific Swift code.
 - `android/app/src/`: Android-specific code.
 - `lib/`: Main Dart application logic.
-- `plugins/`: Custom-built plugins.
 
 ## 🚀 Getting Started
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/LiveCaptionsXR.git
+    git clone https://github.com/craigm26/LiveCaptionsXR.git
     cd LiveCaptionsXR
     ```
 2.  **Install dependencies:**

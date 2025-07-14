@@ -7,7 +7,6 @@ import 'package:logger/logger.dart';
 
 import '../../../core/services/speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
-import '../../../core/services/visual_context_service.dart';
 import '../../../core/models/speech_result.dart';
 import 'live_captions_state.dart';
 
@@ -15,7 +14,6 @@ import 'live_captions_state.dart';
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final SpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
-  final VisualContextService _visualContextService;
 
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
@@ -35,10 +33,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   LiveCaptionsCubit({
     required SpeechProcessor speechProcessor,
     required HybridLocalizationEngine hybridLocalizationEngine,
-    required VisualContextService visualContextService,
   })  : _speechProcessor = speechProcessor,
         _hybridLocalizationEngine = hybridLocalizationEngine,
-        _visualContextService = visualContextService,
         super(const LiveCaptionsInitial());
 
   /// Initialize the speech processor and prepare for live captions
@@ -226,8 +222,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         _logger.d('📍 Starting speaker localization process...');
         
         // Use the injected hybrid localization engine
-        final visualContext = await _visualContextService.getVisualContext();
-        final enhancedText = await _speechProcessor.enhanceText(text, context: visualContext);
+        final enhancedText = await _speechProcessor.enhanceText(text);
         await _hybridLocalizationEngine.placeCaption(enhancedText);
         
         _logger.i('✅ Caption placed successfully in AR space at estimated speaker location');

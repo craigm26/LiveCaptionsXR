@@ -11,7 +11,7 @@ LiveCaptionsXR is a cross-platform AR captioning system that fuses audio, vision
   - `HybridLocalizationEngine`: Manages the fusion of sensor data to determine speaker location.
   - `SpeechProcessor`: Processes the audio stream and sends it to the ASR engine.
   - `StereoAudioCapture`: Captures stereo audio from the device's microphones.
-  - `VisualService`: Provides visual data from the camera.
+  
 - **UI:** The user interface of the application, built with Flutter.
 - **State Management:** Cubit is used for state management.
 
@@ -37,8 +37,6 @@ Communication between the Dart and native layers is handled via MethodChannels.
 - `live_captions_xr/visual_object_methods`: Sends information about visually detected objects (e.g., faces) from the native AR view back to the Dart application logic.
 - `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
 - `live_captions_xr/audio_capture_events`: An event channel that streams audio data from the native layer to the Dart layer.
-- `live_captions_xr/speech_localizer`: Handles the communication with the speech localization plugin.
-- `live_captions_xr/visual_context_methods`: Used to send visual context information from the native layer to the Dart layer.
 
 ## Extensibility
 - Modular plugin architecture for adding new sensors, models, or AR features.

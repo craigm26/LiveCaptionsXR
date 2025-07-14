@@ -140,6 +140,8 @@ The following MethodChannels are critical for the app's functionality.
 - `live_captions_xr/caption_methods`: The primary channel for sending finalized text and the corresponding 3D transform to the native layer for rendering AR captions.
 - `live_captions_xr/hybrid_localization_methods`: Facilitates communication between the Dart layer and the native Hybrid Localization Engine.
 - `live_captions_xr/visual_object_methods`: Sends information about visually detected objects (e.g., faces) from the native AR view back to the Dart application logic.
+- `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
+- `live_captions_xr/audio_capture_events`: An event channel that streams audio data from the native layer to the Dart layer.
 
 ---
 
