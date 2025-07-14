@@ -6,27 +6,23 @@ import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubi
 import 'package:live_captions_xr/core/services/speech_processor.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/models/speech_result.dart';
-import 'package:live_captions_xr/core/services/visual_context_service.dart';
 
 import 'live_captions_cubit_test.mocks.dart';
 
-@GenerateMocks([SpeechProcessor, HybridLocalizationEngine, VisualContextService])
+@GenerateMocks([SpeechProcessor, HybridLocalizationEngine])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockSpeechProcessor mockSpeechProcessor;
   late MockHybridLocalizationEngine mockHybridLocalizationEngine;
-  late MockVisualContextService mockVisualContextService;
   late LiveCaptionsCubit cubit;
 
   setUp(() {
     mockSpeechProcessor = MockSpeechProcessor();
     mockHybridLocalizationEngine = MockHybridLocalizationEngine();
-    mockVisualContextService = MockVisualContextService();
     cubit = LiveCaptionsCubit(
       speechProcessor: mockSpeechProcessor,
       hybridLocalizationEngine: mockHybridLocalizationEngine,
-      visualContextService: mockVisualContextService,
     );
     
     // Set up mock method channels for hybrid localization

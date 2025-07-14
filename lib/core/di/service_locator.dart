@@ -8,7 +8,6 @@ import '../services/visual_identification_service.dart';
 import '../services/localization_service.dart';
 import '../services/camera_service.dart';
 import '../services/speech_processor.dart';
-import '../services/visual_context_service.dart';
 import '../services/ar_session_persistence_service.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
@@ -48,10 +47,6 @@ void setupServiceLocator() {
 
   sl.registerLazySingleton<SpeechProcessor>(
     () => SpeechProcessor(sl<Gemma3nService>(), sl<VisualService>()),
-  );
-
-  sl.registerLazySingleton<VisualContextService>(
-    () => VisualContextService(),
   );
 
   

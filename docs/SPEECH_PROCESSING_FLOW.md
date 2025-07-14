@@ -117,8 +117,15 @@ If you see:
 [INFO] ✅ Final speech result: "Hello world"
 [ERROR] ❌ Failed to place caption in AR
 ```
-**Cause:** AR session not active or hybrid localization engine not initialized
-**Solution:** Ensure AR mode is properly initialized before starting captions
+**Cause:** This indicates a failure in the final stage of the pipeline. The issue could be:
+*   **AR Session Inactive:** The ARKit/ARCore session is not running or has been interrupted.
+*   **Hybrid Localization Failure:** The `HybridLocalizationEngine` is not providing a valid 3D position for the speaker, possibly due to a lack of sensor data.
+*   **AR Anchor Creation Failed:** The `ARAnchorManager` could be failing to create an anchor at the position provided by the localization engine.
+
+**Solution:**
+1.  Verify the AR session is active and world-tracking is stable.
+2.  Check logs from the `HybridLocalizationEngine` to ensure it's receiving sensor data and outputting a fused transform.
+3.  Inspect the `ARAnchorManager` logs to see if it's receiving the transform and attempting to place an anchor.
 
 ## Testing
 

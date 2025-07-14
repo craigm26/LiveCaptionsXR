@@ -51,27 +51,7 @@ class SpeechLocalizer {
   //   return result;
   // }
 
-  // /// Advanced GCC-PHAT direction estimation (native).
-  // static Future<double> estimateDirectionAdvancedNative({
-  //   required Float32List left,
-  //   required Float32List right,
-  //   double sampleRate = 16000.0,
-  //   double micDistance = 0.08,
-  //   double soundSpeed = 343.0,
-  // }) async {
-  //   final result = await _channel.invokeMethod<double>(
-  //     'estimateDirectionAdvanced',
-  //     {
-  //       'left': left,
-  //       'right': right,
-  //       'sampleRate': sampleRate,
-  //       'micDistance': micDistance,
-  //       'soundSpeed': soundSpeed,
-  //     },
-  //   );
-  //   if (result == null) throw Exception('No result from native code');
-  //   return result;
-  // }
+  
 
   /// Estimate horizontal angle from a stereo audio frame.
   ///

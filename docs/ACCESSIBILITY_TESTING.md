@@ -88,8 +88,6 @@ This testing plan ensures `Live Captions XR` delivers on its promise to provide 
 - `live_captions_xr/visual_object_methods`: Send visual object detection data from the native layer to Dart.
 - `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
 - `live_captions_xr/audio_capture_events`: An event channel that streams audio data from the native layer to the Dart layer.
-- `live_captions_xr/speech_localizer`: Handles the communication with the speech localization plugin.
-- `live_captions_xr/visual_context_methods`: Used to send visual context information from the native layer to the Dart layer.
 
 ## Other Accessibility Features
 - Real-time, privacy-preserving speech transcription.
