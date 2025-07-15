@@ -446,15 +446,19 @@ class _HomeScreenState extends State<HomeScreen> {
               floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
                 listener: (context, state) {
                   if (state is ARSessionReady) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                            '🥽 AR Mode activated! All services started automatically.'),
+                            '🥽 AR Mode activated! Starting services...'),
                         backgroundColor: Colors.green,
                         duration: Duration(seconds: 3),
                       ),
                     );
+                    _logger.i('🚀 Starting all services for AR mode...');
+                    _startAllServicesForARMode();
                   } else if (state is ARSessionError) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('⚠️ ${state.message}'),
@@ -468,58 +472,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   heroTag: "ar_view_fab",
                   onPressed: () async {
                     _logger.i('🥽 Enter AR Mode button pressed...');
-                    
                     final arSessionCubit = context.read<ARSessionCubit>();
-                    
+
                     try {
                       // Show loading indicator to user
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                        const SnackBar(
                           content: Row(
                             children: [
-                              CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                               SizedBox(width: 16),
                               Text('🥽 Entering AR Mode...'),
                             ],
                           ),
                           backgroundColor: Colors.blue,
-                          duration: Duration(seconds: 3),
+                          duration: Duration(seconds: 10), // Increased duration
                         ),
                       );
-                      
-                      // Start all services if AR session is ready
-                      _logger.i('🚀 Starting all services for AR mode...');
-                      await _startAllServicesForARMode();
 
-                      // Initialize AR session using the cubit (start fresh, don't restore from backup)
-                      await arSessionCubit.initializeARSession(restoreFromPersistence: false);
-                      
-                      // Check if AR session initialization succeeded
-                      if (!arSessionCubit.isReady) {
-                        _logger.w('⚠️ AR session not ready after initialization');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('❌ Failed to enter AR mode. Please try again.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-                      
-                      _logger.i('🎉 Successfully entered AR mode with all services');
-                      
-                      // Hide the loading snackbar
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      
+                      // Initialize AR session. The BlocListener will handle state changes.
+                      await arSessionCubit.initializeARSession(
+                          restoreFromPersistence: false);
                     } catch (e, stackTrace) {
-                      _logger.e('❌ Failed to enter AR mode', error: e, stackTrace: stackTrace);
-                      
+                      _logger.e('�� Failed to enter AR mode',
+                          error: e, stackTrace: stackTrace);
+
                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('❌ Failed to enter AR mode: ${e.toString()}'),
+                          content:
+                              Text('❌ Failed to enter AR mode: ${e.toString()}'),
                           backgroundColor: Colors.red,
-                          duration: Duration(seconds: 5),
+                          duration: const Duration(seconds: 5),
                         ),
                       );
                     }

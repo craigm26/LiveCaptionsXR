@@ -102,63 +102,47 @@ class HybridLocalizationEngine {
     }
   }
 
-  /// Place a caption at the current fused transform in AR (native).
-  Future<void> placeCaption(String text) async {
+  /// Place a real-time caption at the current fused transform in AR.
+  Future<void> placeRealtimeCaption(String text) async {
     try {
-      _logger.i('🎯 Placing caption in AR: "$text"');
-      _logger.d('🔄 Requesting fused transform from hybrid localization...');
-      
+      _logger.i('🎯 Placing real-time caption in AR: "$text"');
       final transform = await getFusedTransform();
-      _logger.d('📍 Got fused transform for speaker localization');
       
-      _logger.d('🚀 Invoking native caption placement...');
       await const MethodChannel('live_captions_xr/caption_methods')
           .invokeMethod('placeCaption', {
         'transform': transform,
         'text': text,
+        'isSummary': false,
       });
       
-      _logger.i('✅ Caption placed successfully in AR space');
-      _logger.d('📌 Caption "$text" is now visible in AR at estimated speaker location');
-    } on PlatformException catch (e, stackTrace) {
-      _logger.e('❌ Platform error placing caption',
-          error: e, stackTrace: stackTrace);
-      
-      // If AR caption placement fails, try fallback approaches
-      await _tryFallbackCaptionPlacement(text, e);
-    } catch (e, stackTrace) {
-      _logger.e('❌ Unexpected error placing caption',
-          error: e, stackTrace: stackTrace);
-      
-      // If AR caption placement fails, try fallback approaches  
-      await _tryFallbackCaptionPlacement(text, e);
+      _logger.i('✅ Real-time caption placed successfully.');
+    } on PlatformException catch (e) {
+      _logger.e('❌ Platform error placing real-time caption: ${e.message}');
+      throw Exception('Failed to place real-time caption: ${e.message}');
     }
   }
 
-  /// Try fallback caption placement methods when AR placement fails
-  Future<void> _tryFallbackCaptionPlacement(String text, dynamic originalError) async {
+  /// Place a contextual summary at a stable, centered position.
+  Future<void> placeContextualSummary(String text) async {
     try {
-      _logger.w('⚠️ Attempting fallback caption placement for: "$text"');
+      _logger.i('✨ Placing contextual summary in AR: "$text"');
       
-      // Try placing caption with a default/identity transform as fallback
-      final defaultTransform = List.generate(16, (index) => 
-        index % 5 == 0 ? (index == 15 ? 1.0 : (index < 12 ? 1.0 : 0.0)) : 0.0);
-      
-      // Attempt placement with default transform
+      // For summaries, we might use a default, stable transform 
+      // (e.g., 2 meters in front of the user) instead of the dynamic fused transform.
+      final stableTransform = List.generate(16, (i) => (i % 5 == 0) ? 1.0 : 0.0);
+      stableTransform[14] = -2.0; // 2 meters in front
+
       await const MethodChannel('live_captions_xr/caption_methods')
           .invokeMethod('placeCaption', {
-        'transform': defaultTransform,
+        'transform': stableTransform,
         'text': text,
+        'isSummary': true,
       });
       
-      _logger.i('✅ Caption placed using fallback method');
-    } catch (fallbackError) {
-      _logger.e('❌ Fallback caption placement also failed', 
-          error: fallbackError);
-      
-      // As a last resort, we could emit this caption to a UI overlay
-      _logger.w('💬 Caption will be displayed in UI overlay: "$text"');
-      // The UI layer should handle displaying captions even if AR placement fails
+      _logger.i('✅ Contextual summary placed successfully.');
+    } on PlatformException catch (e) {
+      _logger.e('❌ Platform error placing contextual summary: ${e.message}');
+      throw Exception('Failed to place contextual summary: ${e.message}');
     }
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -8,16 +7,12 @@ import 'package:speech_to_text/speech_recognition_result.dart';
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import 'debug_capturing_logger.dart';
-import 'gemma3n_service.dart';
-import 'visual_service.dart';
 
 /// Service for processing speech using a hybrid approach.
 class SpeechProcessor {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   final SpeechToText _speechToText = SpeechToText();
-  final Gemma3nService _gemma3nService;
-  final VisualService _visualService;
 
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -29,7 +24,7 @@ class SpeechProcessor {
       StreamController<SpeechResult>.broadcast();
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
 
-  SpeechProcessor(this._gemma3nService, this._visualService);
+  SpeechProcessor();
 
   Future<bool> initialize({
     SpeechConfig? config,
@@ -90,44 +85,13 @@ class SpeechProcessor {
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) async {
-    if (result.finalResult) {
-      final enhancedText = await enhanceText(result.recognizedWords);
-      final speechResult = SpeechResult(
-        text: enhancedText,
-        confidence: result.confidence,
-        isFinal: result.finalResult,
-        timestamp: DateTime.now(),
-      );
-      _speechResultController.add(speechResult);
-    } else {
-      final speechResult = SpeechResult(
-        text: result.recognizedWords,
-        confidence: result.confidence,
-        isFinal: result.finalResult,
-        timestamp: DateTime.now(),
-      );
-      _speechResultController.add(speechResult);
-    }
-  }
-
-  Future<String> enhanceText(
-    String rawText, {
-    String? context,
-  }) async {
-    try {
-      final imageBytes = await _visualService.captureVisualSnapshot();
-      if (imageBytes != null) {
-        final enhancedText = await _gemma3nService.runMultimodalInference(
-          audioInput: Float32List(0),
-          imageInput: Float32List.fromList(imageBytes.map((b) => b.toDouble()).toList()),
-          textContext: rawText,
-        );
-        return enhancedText;
-      }
-    } catch (e, stackTrace) {
-      _logger.e('Error enhancing text', error: e, stackTrace: stackTrace);
-    }
-    return rawText;
+    final speechResult = SpeechResult(
+      text: result.recognizedWords,
+      confidence: result.confidence,
+      isFinal: result.finalResult,
+      timestamp: DateTime.now(),
+    );
+    _speechResultController.add(speechResult);
   }
 
   Future<void> dispose() async {

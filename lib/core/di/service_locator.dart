@@ -9,6 +9,8 @@ import '../services/localization_service.dart';
 import '../services/camera_service.dart';
 import '../services/speech_processor.dart';
 import '../services/ar_session_persistence_service.dart';
+import '../services/native_stt_service.dart';
+import '../services/contextual_enhancer.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
 
@@ -45,8 +47,16 @@ void setupServiceLocator() {
     () => VisualService(),
   );
 
+  sl.registerLazySingleton<NativeSttService>(
+    () => NativeSttService(),
+  );
+
+  sl.registerLazySingleton<ContextualEnhancer>(
+    () => ContextualEnhancer(sl<Gemma3nService>(), sl<VisualService>()),
+  );
+
   sl.registerLazySingleton<SpeechProcessor>(
-    () => SpeechProcessor(sl<Gemma3nService>(), sl<VisualService>()),
+    () => SpeechProcessor(sl<NativeSttService>(), sl<ContextualEnhancer>()),
   );
 
   
