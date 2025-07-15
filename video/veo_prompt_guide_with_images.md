@@ -80,6 +80,7 @@ No voiceover. The gentle hum of the cafe and a soft piano score in the backgroun
 **Prompt:**  
 Rotating sunglasses on a clean, white backdrop.  
 Floating tags appear around the frame, highlighting key features:  
+
 - “Gemma 3n On-Device AI”  
 - “Privacy Preserved”  
 - “Multilingual Real-Time Captions”  
@@ -129,5 +130,6 @@ Ensure all image files follow the naming convention above. Store this .md file i
 ---
 
 ## 🧭 Notes
+
 - If replacing a photo, update the filename to match the structure.
 - You may optionally embed each prompt directly into Veo along with its referenced images.

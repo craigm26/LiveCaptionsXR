@@ -63,16 +63,21 @@
 
 ## 🚀 Getting Started
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
+
     ```bash
     git clone https://github.com/craigm26/LiveCaptionsXR.git
     cd LiveCaptionsXR
     ```
-2.  **Install dependencies:**
+
+2. **Install dependencies:**
+
     ```bash
     flutter pub get
     ```
-3.  **Run the app:**
+
+3. **Run the app:**
+
     ```bash
     flutter run
     ```
@@ -87,15 +92,20 @@ For detailed information on the project's architecture, technical implementation
 
 The project uses `flutter_test` for unit and widget tests, and `integration_test` for integration tests. We use `mockito` for mocking dependencies and `build_runner` to generate the necessary mock files.
 
--   **Run all tests:**
+- **Run all tests:**
+
     ```bash
     flutter test
     ```
--   **Run tests in a specific file:**
+
+- **Run tests in a specific file:**
+
     ```bash
     flutter test test/path/to/your_test.dart
     ```
--   **Generate mocks:**
+
+- **Generate mocks:**
+
     ```bash
     flutter pub run build_runner build
     ```

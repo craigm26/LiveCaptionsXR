@@ -571,8 +571,24 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       // Clear persisted session data when stopping
       await _persistenceService.clearAllSessionData();
 
-      // TODO: Add AR session cleanup logic here
       // This would typically involve stopping the AR view and cleaning up resources
+      try {
+        await const MethodChannel('live_captions_xr/ar_navigation')
+            .invokeMethod('exitARMode');
+        _logger.i('✅ Successfully called exitARMode on the native side');
+      } on PlatformException catch (e) {
+        _logger.w(
+            '⚠️ Could not call exitARMode on native side, but continuing cleanup: ${e.message}');
+      }
+
+      // Clear persisted session data when stopping
+      try {
+        await _persistenceService.clearAllSessionData();
+        _logger.i('✅ Cleared all session data from persistence');
+      } catch (e, stackTrace) {
+        _logger.w('⚠️ Failed to clear session data, but continuing cleanup',
+            error: e, stackTrace: stackTrace);
+      }
 
       emit(const ARSessionInitial());
       _logger.i('✅ AR session stopped and persistence cleared');
