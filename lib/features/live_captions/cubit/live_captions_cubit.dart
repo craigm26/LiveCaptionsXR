@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
+import 'package:meta/meta.dart';
 
 import '../../../core/services/speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
@@ -29,14 +30,38 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         super(const LiveCaptionsInitial());
 
   Future<void> startCaptions() async {
-    if (state is! LiveCaptionsActive) return;
-    final currentState = state as LiveCaptionsActive;
-    if (currentState.isListening) return;
+    // Don't start if already listening
+    if (state is LiveCaptionsActive && (state as LiveCaptionsActive).isListening) {
+      _logger.i('🎤 Live captions already listening, skipping start');
+      return;
+    }
 
-    await _speechProcessor.startProcessing();
-    _speechSubscription = _speechProcessor.speechResults.listen(_handleSpeechResult);
-    _startEnhancementTimer();
-    emit(currentState.copyWith(isListening: true));
+    try {
+      _logger.i('🎤 Starting live captions...');
+      
+      // Emit loading state
+      emit(const LiveCaptionsLoading());
+      
+      // Start speech processing
+      await _speechProcessor.startProcessing();
+      _speechSubscription = _speechProcessor.speechResults.listen(_handleSpeechResult);
+      _startEnhancementTimer();
+      
+      // Emit active state with listening = true
+      emit(const LiveCaptionsActive(
+        captions: [],
+        isListening: true,
+      ));
+      
+      _logger.i('✅ Live captions started successfully');
+    } catch (e) {
+      _logger.e('❌ Failed to start live captions: $e');
+      emit(LiveCaptionsError(
+        message: 'Failed to start live captions',
+        details: e.toString(),
+      ));
+      rethrow;
+    }
   }
 
   void _startEnhancementTimer() {
@@ -90,4 +115,11 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     _speechProcessor.dispose();
     return super.close();
   }
+
+  // Protected getters for child classes
+  @protected
+  HybridLocalizationEngine get hybridLocalizationEngine => _hybridLocalizationEngine;
+  
+  @protected
+  ContextualEnhancer get contextualEnhancer => _contextualEnhancer;
 }

@@ -26,6 +26,7 @@ class LiveCaptionsActive extends LiveCaptionsState {
   final bool isListening;
   final String? error;
   final bool showOverlayFallback;
+  final bool hasEnhancement;
 
   const LiveCaptionsActive({
     required this.captions,
@@ -33,10 +34,11 @@ class LiveCaptionsActive extends LiveCaptionsState {
     required this.isListening,
     this.error,
     this.showOverlayFallback = false,
+    this.hasEnhancement = false,
   });
 
   @override
-  List<Object?> get props => [captions, currentCaption, isListening, error, showOverlayFallback];
+  List<Object?> get props => [captions, currentCaption, isListening, error, showOverlayFallback, hasEnhancement];
 
   LiveCaptionsActive copyWith({
     List<SpeechResult>? captions,
@@ -44,6 +46,7 @@ class LiveCaptionsActive extends LiveCaptionsState {
     bool? isListening,
     String? error,
     bool? showOverlayFallback,
+    bool? hasEnhancement,
   }) {
     return LiveCaptionsActive(
       captions: captions ?? this.captions,
@@ -51,6 +54,7 @@ class LiveCaptionsActive extends LiveCaptionsState {
       isListening: isListening ?? this.isListening,
       error: error ?? this.error,
       showOverlayFallback: showOverlayFallback ?? this.showOverlayFallback,
+      hasEnhancement: hasEnhancement ?? this.hasEnhancement,
     );
   }
 }
