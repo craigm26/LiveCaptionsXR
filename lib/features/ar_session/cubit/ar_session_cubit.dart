@@ -13,6 +13,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final ARSessionPersistenceService _persistenceService;
   
+  // Store callbacks to stop AR services
+  Future<void> Function()? _stopLiveCaptions;
+  Future<void> Function()? _stopSoundDetection;
+  Future<void> Function()? _stopLocalization;
+  Future<void> Function()? _stopVisualIdentification;
+  
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
       methodCount: 2,
@@ -175,13 +181,14 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         if (restoredState.anchorPlaced && restoredState.anchorId != null) {
           final anchorData = await _persistenceService.restoreAnchorData();
           if (anchorData != null) {
-            emit(restoredState);
-            _logger.i('✅ AR session restored successfully with anchor');
+            // Don't restore servicesStarted flag - services should be explicitly started
+            emit(restoredState.copyWith(servicesStarted: false));
+            _logger.i('✅ AR session restored successfully with anchor (services not auto-started)');
             return;
           }
         }
-        emit(const ARSessionReady());
-        _logger.i('✅ AR session restored without anchor');
+        emit(const ARSessionReady(servicesStarted: false));
+        _logger.i('✅ AR session restored without anchor (services not auto-started)');
       } else if (restoredState is ARSessionPaused) {
         emit(const ARSessionResuming());
         await Future.delayed(const Duration(milliseconds: 1000));
@@ -190,11 +197,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           emit(ARSessionReady(
             anchorPlaced: restoredState.previousAnchorPlaced,
             anchorId: restoredState.previousAnchorId,
+            servicesStarted: false,
           ));
         } else {
-          emit(const ARSessionReady());
+          emit(const ARSessionReady(servicesStarted: false));
         }
-        _logger.i('✅ AR session resumed from paused state');
+        _logger.i('✅ AR session resumed from paused state (services not auto-started)');
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to restore AR session', error: e, stackTrace: stackTrace);
@@ -482,6 +490,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     required Future<void> Function() startSoundDetection,
     required Future<void> Function() startLocalization,
     required Future<void> Function() startVisualIdentification,
+    Future<void> Function()? stopLiveCaptions,
+    Future<void> Function()? stopSoundDetection,
+    Future<void> Function()? stopLocalization,
+    Future<void> Function()? stopVisualIdentification,
   }) async {
     final currentState = state;
     if (currentState is! ARSessionReady) {
@@ -489,8 +501,20 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       return;
     }
 
+    // Check if services are already started
+    if (currentState.servicesStarted) {
+      _logger.i('🔄 AR services already started, skipping');
+      return;
+    }
+
     try {
       _logger.i('🚀 Starting all services for AR mode...');
+
+      // Store stop callbacks for later cleanup
+      _stopLiveCaptions = stopLiveCaptions;
+      _stopSoundDetection = stopSoundDetection;
+      _stopLocalization = stopLocalization;
+      _stopVisualIdentification = stopVisualIdentification;
 
       // Start session health monitoring
       _startSessionHealthMonitoring();
@@ -505,6 +529,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       // Place anchor after services are started and ready
       await placeAutoAnchor();
+
+      // Update state to indicate services have been started
+      emit(currentState.copyWith(servicesStarted: true));
 
       _logger.i('🎉 All AR mode services started successfully');
     } catch (e, stackTrace) {
@@ -567,6 +594,46 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       _sessionHealthTimer?.cancel();
       _sessionHealthTimer = null;
       _logger.d('🏥 AR session health monitoring stopped');
+
+      // Stop all AR services
+      _logger.i('🛑 Stopping all AR services...');
+      final stopFutures = <Future<void>>[];
+      
+      if (_stopLiveCaptions != null) {
+        stopFutures.add(_stopLiveCaptions!().catchError((e) {
+          _logger.w('⚠️ Error stopping live captions: $e');
+        }));
+      }
+      
+      if (_stopSoundDetection != null) {
+        stopFutures.add(_stopSoundDetection!().catchError((e) {
+          _logger.w('⚠️ Error stopping sound detection: $e');
+        }));
+      }
+      
+      if (_stopLocalization != null) {
+        stopFutures.add(_stopLocalization!().catchError((e) {
+          _logger.w('⚠️ Error stopping localization: $e');
+        }));
+      }
+      
+      if (_stopVisualIdentification != null) {
+        stopFutures.add(_stopVisualIdentification!().catchError((e) {
+          _logger.w('⚠️ Error stopping visual identification: $e');
+        }));
+      }
+      
+      // Wait for all services to stop
+      if (stopFutures.isNotEmpty) {
+        await Future.wait(stopFutures);
+        _logger.i('✅ All AR services stopped');
+      }
+      
+      // Clear stop callbacks
+      _stopLiveCaptions = null;
+      _stopSoundDetection = null;
+      _stopLocalization = null;
+      _stopVisualIdentification = null;
 
       // Clear persisted session data when stopping
       await _persistenceService.clearAllSessionData();
