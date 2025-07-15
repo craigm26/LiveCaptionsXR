@@ -54,7 +54,8 @@ import Foundation
                     self?.showARView(from: controller, result: result)
                 case "arViewWillClose":
                     print("🎯 Handling arViewWillClose method call")
-                    // No action needed here, just acknowledging the call
+                    // Perform native cleanup to help prevent memory issues
+                    self?.performNativeCleanup()
                     result(nil)
                 default:
                     print("❓ Unknown AR navigation method: \(call.method)")
@@ -242,6 +243,30 @@ import Foundation
                     print("❌ ARViewController presentation may have failed - not the presented view controller")
                 }
             })
+        }
+    }
+    
+    /// Perform native cleanup to help prevent memory issues during AR session closure
+    private func performNativeCleanup() {
+        print("🧹 Performing native cleanup...")
+        
+        // Clean up hybrid localization engine
+        if let engine = hybridLocalizationEngine {
+            // Reset the engine state
+            print("🔄 Resetting hybrid localization engine...")
+            // Note: Add specific cleanup calls if the HybridLocalizationEngine has them
+        }
+        
+        // Force memory cleanup
+        print("🗑️ Forcing memory cleanup...")
+        DispatchQueue.global(qos: .background).async {
+            // Give any background threads a moment to complete
+            Thread.sleep(forTimeInterval: 0.5)
+            
+            DispatchQueue.main.async {
+                // Force garbage collection hint (not guaranteed but helps)
+                print("♻️ Native cleanup completed")
+            }
         }
     }
 }

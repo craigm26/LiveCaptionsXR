@@ -187,10 +187,32 @@ Enhanced caption:''';
     _logger.i('🧹 Disposing GemmaEnhancer...');
     _isInitialized = false;
     _enhancementCache.clear();
+    
     if (_inferenceModel != null) {
-      await _inferenceModel!.close();
-      _inferenceModel = null;
+      try {
+        _logger.i('🛑 Closing Gemma inference model...');
+        
+        // Add timeout to prevent hanging during model shutdown
+        await _inferenceModel!.close().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _logger.w('⏰ Gemma model close timed out, forcing cleanup');
+          },
+        );
+        
+        _inferenceModel = null;
+        _logger.i('✅ Gemma inference model closed');
+        
+        // Add a small delay to ensure all background threads are done
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+      } catch (e, stackTrace) {
+        _logger.e('❌ Error closing Gemma inference model', error: e, stackTrace: stackTrace);
+        // Force null the reference even on error to prevent further access
+        _inferenceModel = null;
+      }
     }
+    
     _logger.i('✅ GemmaEnhancer disposed');
   }
 

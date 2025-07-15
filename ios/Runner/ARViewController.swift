@@ -150,23 +150,43 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
     
     @objc private func closeButtonTapped() {
         print("🚪 ARViewController close button tapped")
-        sceneView.session.pause()
-        print("⏸️ ARSession paused")
         
-        // Notify Dart that the AR view is closing
+        // First notify Dart that the AR view is closing so it can stop all services
         if let appDelegate = UIApplication.shared.delegate as? FlutterAppDelegate,
            let controller = appDelegate.window?.rootViewController as? FlutterViewController {
             let arNavigationChannel = FlutterMethodChannel(name: "live_captions_xr/ar_navigation", binaryMessenger: controller.binaryMessenger)
-            arNavigationChannel.invokeMethod("arViewWillClose", arguments: nil)
+            
+            // Use invokeMethod with completion handler to wait for Dart cleanup
+            arNavigationChannel.invokeMethod("arViewWillClose", arguments: nil) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.performARCleanup()
+                }
+            }
+        } else {
+            // Fallback if channel is not available
+            performARCleanup()
         }
-
-        // Clear the session reference in ARAnchorManager
-        ARAnchorManager.arSession = nil
-        ARAnchorManager.anchorMap.removeAll()
-        print("🧹 ARAnchorManager session and anchors cleared")
+    }
+    
+    private func performARCleanup() {
+        print("🧹 Starting AR cleanup after service shutdown...")
         
-        dismiss(animated: true, completion: nil)
-        print("✅ ARViewController dismissed")
+        // Wait a brief moment to ensure all background threads have stopped
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            
+            print("⏸️ Pausing ARSession...")
+            self.sceneView.session.pause()
+            print("✅ ARSession paused")
+            
+            // Clear the session reference in ARAnchorManager after ensuring services are stopped
+            ARAnchorManager.arSession = nil
+            ARAnchorManager.anchorMap.removeAll()
+            print("🧹 ARAnchorManager session and anchors cleared")
+            
+            self.dismiss(animated: true, completion: nil)
+            print("✅ ARViewController dismissed")
+        }
     }
 
     private func showARNotSupportedMessage() {
