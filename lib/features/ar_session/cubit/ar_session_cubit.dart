@@ -652,6 +652,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           const Duration(seconds: 10),
           onTimeout: () {
             _logger.w('⏰ Service shutdown timed out, proceeding with cleanup anyway');
+            return <void>[];
           },
         );
         _logger.i('✅ All AR services stopped (or timed out)');
