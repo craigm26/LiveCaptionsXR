@@ -44,6 +44,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       if (call.method == 'arViewWillClose') {
         _logger.i('🚪 AR view is closing, stopping all services...');
         await stopARSession();
+        _logger.i('✅ All services stopped, AR view can proceed with cleanup');
+        // Return success to indicate cleanup is complete
+        return 'cleanup_complete';
       }
     });
   }
@@ -587,47 +590,76 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   /// Stop AR session and clean up
   Future<void> stopARSession() async {
     try {
-      _logger.i('🛑 Stopping AR session...');
+      _logger.i('🛑 Stopping AR session and all services...');
       emit(const ARSessionStopping());
 
-      // Stop session health monitoring
+      // Stop session health monitoring first
       _sessionHealthTimer?.cancel();
       _sessionHealthTimer = null;
       _logger.d('🏥 AR session health monitoring stopped');
 
-      // Stop all AR services
-      _logger.i('🛑 Stopping all AR services...');
+      // Stop all AR services with proper error handling and timeouts
+      _logger.i('🛑 Stopping all AR services with timeouts...');
       final stopFutures = <Future<void>>[];
       
       if (_stopLiveCaptions != null) {
-        stopFutures.add(_stopLiveCaptions!().catchError((e) {
+        stopFutures.add(_stopLiveCaptions!().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _logger.w('⏰ Live captions stop timed out');
+          },
+        ).catchError((e) {
           _logger.w('⚠️ Error stopping live captions: $e');
         }));
       }
       
       if (_stopSoundDetection != null) {
-        stopFutures.add(_stopSoundDetection!().catchError((e) {
+        stopFutures.add(_stopSoundDetection!().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _logger.w('⏰ Sound detection stop timed out');
+          },
+        ).catchError((e) {
           _logger.w('⚠️ Error stopping sound detection: $e');
         }));
       }
       
       if (_stopLocalization != null) {
-        stopFutures.add(_stopLocalization!().catchError((e) {
+        stopFutures.add(_stopLocalization!().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _logger.w('⏰ Localization stop timed out');
+          },
+        ).catchError((e) {
           _logger.w('⚠️ Error stopping localization: $e');
         }));
       }
       
       if (_stopVisualIdentification != null) {
-        stopFutures.add(_stopVisualIdentification!().catchError((e) {
+        stopFutures.add(_stopVisualIdentification!().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _logger.w('⏰ Visual identification stop timed out');
+          },
+        ).catchError((e) {
           _logger.w('⚠️ Error stopping visual identification: $e');
         }));
       }
       
-      // Wait for all services to stop
+      // Wait for all services to stop with a maximum timeout
       if (stopFutures.isNotEmpty) {
-        await Future.wait(stopFutures);
-        _logger.i('✅ All AR services stopped');
+        await Future.wait(stopFutures).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            _logger.w('⏰ Service shutdown timed out, proceeding with cleanup anyway');
+          },
+        );
+        _logger.i('✅ All AR services stopped (or timed out)');
       }
+      
+      // Add extra delay to ensure all MediaPipe/LLM background threads complete
+      _logger.i('⏳ Waiting for background inference threads to complete...');
+      await Future.delayed(const Duration(milliseconds: 1000));
       
       // Clear stop callbacks
       _stopLiveCaptions = null;

@@ -306,12 +306,54 @@ class EnhancedSpeechProcessor {
   /// Clean up resources
   Future<void> dispose() async {
     _logger.i('🗑️ Disposing EnhancedSpeechProcessor...');
-    await stopProcessing();
-    await _speechResultController.close();
-    await _enhancedCaptionController.close();
     
+    // Stop processing first with timeout
+    try {
+      await stopProcessing().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          _logger.w('⏰ Stop processing timed out during dispose');
+        },
+      );
+    } catch (e) {
+      _logger.e('❌ Error stopping processing during dispose', error: e);
+    }
+    
+    // Close stream controllers with timeout protection
+    try {
+      await _speechResultController.close().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          _logger.w('⏰ Speech result controller close timed out');
+        },
+      );
+    } catch (e) {
+      _logger.e('❌ Error closing speech result controller', error: e);
+    }
+    
+    try {
+      await _enhancedCaptionController.close().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          _logger.w('⏰ Enhanced caption controller close timed out');
+        },
+      );
+    } catch (e) {
+      _logger.e('❌ Error closing enhanced caption controller', error: e);
+    }
+    
+    // Dispose Gemma enhancer with timeout
     if (_gemmaEnhancer != null) {
-      await _gemmaEnhancer!.dispose();
+      try {
+        await _gemmaEnhancer!.dispose().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            _logger.w('⏰ Gemma enhancer dispose timed out');
+          },
+        );
+      } catch (e) {
+        _logger.e('❌ Error disposing Gemma enhancer', error: e);
+      }
     }
     
     _isInitialized = false;

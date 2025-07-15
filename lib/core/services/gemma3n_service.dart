@@ -94,4 +94,29 @@ class Gemma3nService {
       return 'Error: $e';
     }
   }
+
+  /// Dispose and clean up the Gemma 3n service
+  Future<void> dispose() async {
+    if (_isModelLoaded) {
+      _logger.i('🗑️ Disposing Gemma3nService...');
+      try {
+        // Attempt to unload model if there's a method for it
+        await _channel.invokeMethod('unloadModel').timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _logger.w('⏰ Model unload timed out');
+          },
+        );
+      } on PlatformException catch (e) {
+        if (e.code != 'NO_METHOD') {
+          _logger.w('⚠️ Could not unload model: ${e.message}');
+        }
+      } catch (e) {
+        _logger.e('❌ Error unloading model', error: e);
+      }
+      
+      _isModelLoaded = false;
+      _logger.i('✅ Gemma3nService disposed');
+    }
+  }
 } 
