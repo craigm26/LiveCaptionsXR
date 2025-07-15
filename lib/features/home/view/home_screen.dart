@@ -184,6 +184,39 @@ class _HomeScreenState extends State<HomeScreen> {
           _logger.i('👁️ Visual identification already active');
         }
       },
+      // Provide stop callbacks for proper cleanup
+      stopLiveCaptions: () async {
+        final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+        if (liveCaptionsCubit.state is LiveCaptionsActive && (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+          _logger.i('🎤 Stopping live captions...');
+          await liveCaptionsCubit.stopCaptions();
+          _logger.i('✅ Live captions stopped');
+        }
+      },
+      stopSoundDetection: () async {
+        final soundDetectionCubit = context.read<SoundDetectionCubit>();
+        if (soundDetectionCubit.isActive) {
+          _logger.i('🔊 Stopping sound detection...');
+          await soundDetectionCubit.stop();
+          _logger.i('✅ Sound detection stopped');
+        }
+      },
+      stopLocalization: () async {
+        final localizationCubit = context.read<LocalizationCubit>();
+        if (localizationCubit.isActive) {
+          _logger.i('🧭 Stopping localization...');
+          await localizationCubit.stop();
+          _logger.i('✅ Localization stopped');
+        }
+      },
+      stopVisualIdentification: () async {
+        final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+        if (visualIdentificationCubit.isActive) {
+          _logger.i('👁️ Stopping visual identification...');
+          await visualIdentificationCubit.stop();
+          _logger.i('✅ Visual identification stopped');
+        }
+      },
     );
   }
 
@@ -444,17 +477,22 @@ class _HomeScreenState extends State<HomeScreen> {
               floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
                 listener: (context, state) {
                   if (state is ARSessionReady) {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            '🥽 AR Mode activated! Starting services...'),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                    _logger.i('🚀 Starting all services for AR mode...');
-                    _startAllServicesForARMode();
+                    // Only start services if they haven't been started yet
+                    if (!state.servicesStarted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              '🥽 AR Mode activated! Starting services...'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                      _logger.i('🚀 Starting all services for AR mode...');
+                      _startAllServicesForARMode();
+                    } else {
+                      _logger.i('🔄 AR session ready but services already started');
+                    }
                   } else if (state is ARSessionError) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -464,6 +502,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         duration: const Duration(seconds: 4),
                       ),
                     );
+                  } else if (state is ARSessionInitial) {
+                    // AR mode was closed
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('🛑 AR Mode closed and services stopped'),
+                        backgroundColor: Colors.blueGrey,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    _logger.i('✅ AR mode closed and all services stopped');
                   }
                 },
                 child: FloatingActionButton(
