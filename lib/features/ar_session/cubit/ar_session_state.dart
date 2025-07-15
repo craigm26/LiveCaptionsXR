@@ -46,26 +46,30 @@ class ARSessionCalibrating extends ARSessionState {
   List<Object?> get props => [progress, calibrationType];
 }
 
-/// AR session is ready and operational
+/// AR session is ready and fully initialized
 class ARSessionReady extends ARSessionState {
   final bool anchorPlaced;
   final String? anchorId;
+  final bool servicesStarted;
 
   const ARSessionReady({
     this.anchorPlaced = false,
     this.anchorId,
+    this.servicesStarted = false,
   });
 
   @override
-  List<Object?> get props => [anchorPlaced, anchorId];
+  List<Object?> get props => [anchorPlaced, anchorId, servicesStarted];
 
   ARSessionReady copyWith({
     bool? anchorPlaced,
     String? anchorId,
+    bool? servicesStarted,
   }) {
     return ARSessionReady(
       anchorPlaced: anchorPlaced ?? this.anchorPlaced,
       anchorId: anchorId ?? this.anchorId,
+      servicesStarted: servicesStarted ?? this.servicesStarted,
     );
   }
 }

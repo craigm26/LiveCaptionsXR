@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 
 import 'core/router/app_router.dart';
 import 'core/services/speech_processor.dart';
+import 'core/services/enhanced_speech_processor.dart';
 import 'core/services/debug_logger_service.dart';
 import 'core/di/service_locator.dart';
 import 'shared/theme/app_theme.dart';
@@ -15,6 +16,7 @@ import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/localization/cubit/localization_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'features/live_captions/cubit/live_captions_cubit.dart';
+import 'features/live_captions/cubit/enhanced_live_captions_cubit.dart';
 import 'features/ar_session/cubit/ar_session_cubit.dart';
 import 'features/onboarding/view/onboarding_screen.dart';
 import 'app_shell.dart';
@@ -30,18 +32,29 @@ final Logger _appLogger = Logger(
   ),
 );
 
+// Configuration flag for enhanced speech processing
+// This can be controlled via feature flags, remote config, or user settings
+const bool _useEnhancedSpeechProcessing = true;
+const bool _enableGemmaEnhancement = true;
+
 class LiveCaptionsXrApp extends StatelessWidget {
   const LiveCaptionsXrApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp');
+    _appLogger.i('📱 Speech Processing Mode: ${_useEnhancedSpeechProcessing ? "Enhanced with Gemma" : "Standard"}');
 
     // Initialize debug logger service
     DebugLoggerService().initialize();
 
-    // Set up dependency injection
-    setupServiceLocator();
+    // Set up dependency injection with enhanced configuration
+    setupServiceLocator(
+      speechProcessorType: _useEnhancedSpeechProcessing 
+        ? SpeechProcessorType.enhanced 
+        : SpeechProcessorType.standard,
+      enableGemmaEnhancement: _enableGemmaEnhancement,
+    );
 
     return MultiBlocProvider(
       providers: [
@@ -62,13 +75,25 @@ class LiveCaptionsXrApp extends StatelessWidget {
         BlocProvider<VisualIdentificationCubit>(
           create: (context) => sl<VisualIdentificationCubit>(),
         ),
-        BlocProvider<LiveCaptionsCubit>(
-          create: (context) => LiveCaptionsCubit(
-            speechProcessor: sl<SpeechProcessor>(),
-            hybridLocalizationEngine: sl(),
-            contextualEnhancer: sl<ContextualEnhancer>(),
+        // Conditionally create enhanced or standard LiveCaptionsCubit
+        if (_useEnhancedSpeechProcessing && sl.isRegistered<EnhancedSpeechProcessor>())
+          BlocProvider<LiveCaptionsCubit>(
+            create: (context) => EnhancedLiveCaptionsCubit(
+              speechProcessor: sl<EnhancedSpeechProcessor>(),
+              hybridLocalizationEngine: sl(),
+              contextualEnhancer: sl<ContextualEnhancer>(),
+              useGemmaEnhancement: _enableGemmaEnhancement,
+              showEnhancementIndicator: true,
+            ),
+          )
+        else
+          BlocProvider<LiveCaptionsCubit>(
+            create: (context) => LiveCaptionsCubit(
+              speechProcessor: sl<SpeechProcessor>(),
+              hybridLocalizationEngine: sl(),
+              contextualEnhancer: sl<ContextualEnhancer>(),
+            ),
           ),
-        ),
         BlocProvider<ARSessionCubit>(
           create: (context) => ARSessionCubit(
             hybridLocalizationEngine: sl(),

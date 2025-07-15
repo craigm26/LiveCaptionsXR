@@ -7,23 +7,23 @@ import 'dart:async' as _i11;
 
 import 'package:flutter_bloc/flutter_bloc.dart' as _i12;
 import 'package:live_captions_xr/core/models/sound_event.dart' as _i13;
-import 'package:live_captions_xr/core/models/speech_result.dart' as _i10;
 import 'package:live_captions_xr/core/models/visual_object.dart' as _i14;
+import 'package:live_captions_xr/core/services/contextual_enhancer.dart' as _i3;
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart'
-    as _i5;
-import 'package:live_captions_xr/features/home/cubit/home_cubit.dart' as _i8;
-import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart'
-    as _i9;
-import 'package:live_captions_xr/features/live_captions/cubit/live_captions_state.dart'
     as _i2;
-import 'package:live_captions_xr/features/localization/cubit/localization_cubit.dart'
+import 'package:live_captions_xr/features/home/cubit/home_cubit.dart' as _i9;
+import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart'
+    as _i10;
+import 'package:live_captions_xr/features/live_captions/cubit/live_captions_state.dart'
     as _i4;
-import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart'
-    as _i7;
-import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_cubit.dart'
-    as _i3;
-import 'package:live_captions_xr/features/visual_identification/cubit/visual_identification_cubit.dart'
+import 'package:live_captions_xr/features/localization/cubit/localization_cubit.dart'
     as _i6;
+import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart'
+    as _i8;
+import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_cubit.dart'
+    as _i5;
+import 'package:live_captions_xr/features/visual_identification/cubit/visual_identification_cubit.dart'
+    as _i7;
 import 'package:mockito/mockito.dart' as _i1;
 
 // ignore_for_file: type=lint
@@ -40,9 +40,9 @@ import 'package:mockito/mockito.dart' as _i1;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeLiveCaptionsState_0 extends _i1.SmartFake
-    implements _i2.LiveCaptionsState {
-  _FakeLiveCaptionsState_0(
+class _FakeHybridLocalizationEngine_0 extends _i1.SmartFake
+    implements _i2.HybridLocalizationEngine {
+  _FakeHybridLocalizationEngine_0(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -51,9 +51,9 @@ class _FakeLiveCaptionsState_0 extends _i1.SmartFake
         );
 }
 
-class _FakeSoundDetectionState_1 extends _i1.SmartFake
-    implements _i3.SoundDetectionState {
-  _FakeSoundDetectionState_1(
+class _FakeContextualEnhancer_1 extends _i1.SmartFake
+    implements _i3.ContextualEnhancer {
+  _FakeContextualEnhancer_1(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -62,9 +62,9 @@ class _FakeSoundDetectionState_1 extends _i1.SmartFake
         );
 }
 
-class _FakeLocalizationState_2 extends _i1.SmartFake
-    implements _i4.LocalizationState {
-  _FakeLocalizationState_2(
+class _FakeLiveCaptionsState_2 extends _i1.SmartFake
+    implements _i4.LiveCaptionsState {
+  _FakeLiveCaptionsState_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -73,9 +73,9 @@ class _FakeLocalizationState_2 extends _i1.SmartFake
         );
 }
 
-class _FakeHybridLocalizationEngine_3 extends _i1.SmartFake
-    implements _i5.HybridLocalizationEngine {
-  _FakeHybridLocalizationEngine_3(
+class _FakeSoundDetectionState_3 extends _i1.SmartFake
+    implements _i5.SoundDetectionState {
+  _FakeSoundDetectionState_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -84,9 +84,9 @@ class _FakeHybridLocalizationEngine_3 extends _i1.SmartFake
         );
 }
 
-class _FakeVisualIdentificationState_4 extends _i1.SmartFake
-    implements _i6.VisualIdentificationState {
-  _FakeVisualIdentificationState_4(
+class _FakeLocalizationState_4 extends _i1.SmartFake
+    implements _i6.LocalizationState {
+  _FakeLocalizationState_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -95,8 +95,9 @@ class _FakeVisualIdentificationState_4 extends _i1.SmartFake
         );
 }
 
-class _FakeSettingsState_5 extends _i1.SmartFake implements _i7.SettingsState {
-  _FakeSettingsState_5(
+class _FakeVisualIdentificationState_5 extends _i1.SmartFake
+    implements _i7.VisualIdentificationState {
+  _FakeVisualIdentificationState_5(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -105,8 +106,18 @@ class _FakeSettingsState_5 extends _i1.SmartFake implements _i7.SettingsState {
         );
 }
 
-class _FakeHomeState_6 extends _i1.SmartFake implements _i8.HomeState {
-  _FakeHomeState_6(
+class _FakeSettingsState_6 extends _i1.SmartFake implements _i8.SettingsState {
+  _FakeSettingsState_6(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeHomeState_7 extends _i1.SmartFake implements _i9.HomeState {
+  _FakeHomeState_7(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -118,40 +129,53 @@ class _FakeHomeState_6 extends _i1.SmartFake implements _i8.HomeState {
 /// A class which mocks [LiveCaptionsCubit].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
+class MockLiveCaptionsCubit extends _i1.Mock implements _i10.LiveCaptionsCubit {
   @override
-  List<_i10.SpeechResult> get captionHistory => (super.noSuchMethod(
-        Invocation.getter(#captionHistory),
-        returnValue: <_i10.SpeechResult>[],
-        returnValueForMissingStub: <_i10.SpeechResult>[],
-      ) as List<_i10.SpeechResult>);
+  _i2.HybridLocalizationEngine get hybridLocalizationEngine =>
+      (super.noSuchMethod(
+        Invocation.getter(#hybridLocalizationEngine),
+        returnValue: _FakeHybridLocalizationEngine_0(
+          this,
+          Invocation.getter(#hybridLocalizationEngine),
+        ),
+        returnValueForMissingStub: _FakeHybridLocalizationEngine_0(
+          this,
+          Invocation.getter(#hybridLocalizationEngine),
+        ),
+      ) as _i2.HybridLocalizationEngine);
 
   @override
-  bool get isActive => (super.noSuchMethod(
-        Invocation.getter(#isActive),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  _i3.ContextualEnhancer get contextualEnhancer => (super.noSuchMethod(
+        Invocation.getter(#contextualEnhancer),
+        returnValue: _FakeContextualEnhancer_1(
+          this,
+          Invocation.getter(#contextualEnhancer),
+        ),
+        returnValueForMissingStub: _FakeContextualEnhancer_1(
+          this,
+          Invocation.getter(#contextualEnhancer),
+        ),
+      ) as _i3.ContextualEnhancer);
 
   @override
-  _i2.LiveCaptionsState get state => (super.noSuchMethod(
+  _i4.LiveCaptionsState get state => (super.noSuchMethod(
         Invocation.getter(#state),
-        returnValue: _FakeLiveCaptionsState_0(
+        returnValue: _FakeLiveCaptionsState_2(
           this,
           Invocation.getter(#state),
         ),
-        returnValueForMissingStub: _FakeLiveCaptionsState_0(
+        returnValueForMissingStub: _FakeLiveCaptionsState_2(
           this,
           Invocation.getter(#state),
         ),
-      ) as _i2.LiveCaptionsState);
+      ) as _i4.LiveCaptionsState);
 
   @override
-  _i11.Stream<_i2.LiveCaptionsState> get stream => (super.noSuchMethod(
+  _i11.Stream<_i4.LiveCaptionsState> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i11.Stream<_i2.LiveCaptionsState>.empty(),
-        returnValueForMissingStub: _i11.Stream<_i2.LiveCaptionsState>.empty(),
-      ) as _i11.Stream<_i2.LiveCaptionsState>);
+        returnValue: _i11.Stream<_i4.LiveCaptionsState>.empty(),
+        returnValueForMissingStub: _i11.Stream<_i4.LiveCaptionsState>.empty(),
+      ) as _i11.Stream<_i4.LiveCaptionsState>);
 
   @override
   bool get isClosed => (super.noSuchMethod(
@@ -160,15 +184,7 @@ class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
         returnValueForMissingStub: false,
       ) as bool);
 
-  @override
-  _i11.Future<void> initialize() => (super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+  get isActive => null;
 
   @override
   _i11.Future<void> startCaptions() => (super.noSuchMethod(
@@ -191,24 +207,6 @@ class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
       ) as _i11.Future<void>);
 
   @override
-  void clearCaptions() => super.noSuchMethod(
-        Invocation.method(
-          #clearCaptions,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void handleSpeechResult(_i10.SpeechResult? result) => super.noSuchMethod(
-        Invocation.method(
-          #handleSpeechResult,
-          [result],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
   _i11.Future<void> close() => (super.noSuchMethod(
         Invocation.method(
           #close,
@@ -219,7 +217,7 @@ class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
       ) as _i11.Future<void>);
 
   @override
-  void emit(_i2.LiveCaptionsState? state) => super.noSuchMethod(
+  void emit(_i4.LiveCaptionsState? state) => super.noSuchMethod(
         Invocation.method(
           #emit,
           [state],
@@ -228,7 +226,7 @@ class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
       );
 
   @override
-  void onChange(_i12.Change<_i2.LiveCaptionsState>? change) =>
+  void onChange(_i12.Change<_i4.LiveCaptionsState>? change) =>
       super.noSuchMethod(
         Invocation.method(
           #onChange,
@@ -274,7 +272,7 @@ class MockLiveCaptionsCubit extends _i1.Mock implements _i9.LiveCaptionsCubit {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSoundDetectionCubit extends _i1.Mock
-    implements _i3.SoundDetectionCubit {
+    implements _i5.SoundDetectionCubit {
   @override
   bool get isActive => (super.noSuchMethod(
         Invocation.getter(#isActive),
@@ -283,24 +281,24 @@ class MockSoundDetectionCubit extends _i1.Mock
       ) as bool);
 
   @override
-  _i3.SoundDetectionState get state => (super.noSuchMethod(
+  _i5.SoundDetectionState get state => (super.noSuchMethod(
         Invocation.getter(#state),
-        returnValue: _FakeSoundDetectionState_1(
+        returnValue: _FakeSoundDetectionState_3(
           this,
           Invocation.getter(#state),
         ),
-        returnValueForMissingStub: _FakeSoundDetectionState_1(
+        returnValueForMissingStub: _FakeSoundDetectionState_3(
           this,
           Invocation.getter(#state),
         ),
-      ) as _i3.SoundDetectionState);
+      ) as _i5.SoundDetectionState);
 
   @override
-  _i11.Stream<_i3.SoundDetectionState> get stream => (super.noSuchMethod(
+  _i11.Stream<_i5.SoundDetectionState> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i11.Stream<_i3.SoundDetectionState>.empty(),
-        returnValueForMissingStub: _i11.Stream<_i3.SoundDetectionState>.empty(),
-      ) as _i11.Stream<_i3.SoundDetectionState>);
+        returnValue: _i11.Stream<_i5.SoundDetectionState>.empty(),
+        returnValueForMissingStub: _i11.Stream<_i5.SoundDetectionState>.empty(),
+      ) as _i11.Stream<_i5.SoundDetectionState>);
 
   @override
   bool get isClosed => (super.noSuchMethod(
@@ -339,7 +337,7 @@ class MockSoundDetectionCubit extends _i1.Mock
       );
 
   @override
-  void emit(_i3.SoundDetectionState? state) => super.noSuchMethod(
+  void emit(_i5.SoundDetectionState? state) => super.noSuchMethod(
         Invocation.method(
           #emit,
           [state],
@@ -348,7 +346,7 @@ class MockSoundDetectionCubit extends _i1.Mock
       );
 
   @override
-  void onChange(_i12.Change<_i3.SoundDetectionState>? change) =>
+  void onChange(_i12.Change<_i5.SoundDetectionState>? change) =>
       super.noSuchMethod(
         Invocation.method(
           #onChange,
@@ -403,7 +401,7 @@ class MockSoundDetectionCubit extends _i1.Mock
 /// A class which mocks [LocalizationCubit].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLocalizationCubit extends _i1.Mock implements _i4.LocalizationCubit {
+class MockLocalizationCubit extends _i1.Mock implements _i6.LocalizationCubit {
   @override
   bool get isActive => (super.noSuchMethod(
         Invocation.getter(#isActive),
@@ -412,24 +410,24 @@ class MockLocalizationCubit extends _i1.Mock implements _i4.LocalizationCubit {
       ) as bool);
 
   @override
-  _i4.LocalizationState get state => (super.noSuchMethod(
+  _i6.LocalizationState get state => (super.noSuchMethod(
         Invocation.getter(#state),
-        returnValue: _FakeLocalizationState_2(
+        returnValue: _FakeLocalizationState_4(
           this,
           Invocation.getter(#state),
         ),
-        returnValueForMissingStub: _FakeLocalizationState_2(
+        returnValueForMissingStub: _FakeLocalizationState_4(
           this,
           Invocation.getter(#state),
         ),
-      ) as _i4.LocalizationState);
+      ) as _i6.LocalizationState);
 
   @override
-  _i11.Stream<_i4.LocalizationState> get stream => (super.noSuchMethod(
+  _i11.Stream<_i6.LocalizationState> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i11.Stream<_i4.LocalizationState>.empty(),
-        returnValueForMissingStub: _i11.Stream<_i4.LocalizationState>.empty(),
-      ) as _i11.Stream<_i4.LocalizationState>);
+        returnValue: _i11.Stream<_i6.LocalizationState>.empty(),
+        returnValueForMissingStub: _i11.Stream<_i6.LocalizationState>.empty(),
+      ) as _i11.Stream<_i6.LocalizationState>);
 
   @override
   bool get isClosed => (super.noSuchMethod(
@@ -475,7 +473,7 @@ class MockLocalizationCubit extends _i1.Mock implements _i4.LocalizationCubit {
       );
 
   @override
-  void emit(_i4.LocalizationState? state) => super.noSuchMethod(
+  void emit(_i6.LocalizationState? state) => super.noSuchMethod(
         Invocation.method(
           #emit,
           [state],
@@ -484,7 +482,7 @@ class MockLocalizationCubit extends _i1.Mock implements _i4.LocalizationCubit {
       );
 
   @override
-  void onChange(_i12.Change<_i4.LocalizationState>? change) =>
+  void onChange(_i12.Change<_i6.LocalizationState>? change) =>
       super.noSuchMethod(
         Invocation.method(
           #onChange,
@@ -540,20 +538,20 @@ class MockLocalizationCubit extends _i1.Mock implements _i4.LocalizationCubit {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockVisualIdentificationCubit extends _i1.Mock
-    implements _i6.VisualIdentificationCubit {
+    implements _i7.VisualIdentificationCubit {
   @override
-  _i5.HybridLocalizationEngine get hybridLocalizationEngine =>
+  _i2.HybridLocalizationEngine get hybridLocalizationEngine =>
       (super.noSuchMethod(
         Invocation.getter(#hybridLocalizationEngine),
-        returnValue: _FakeHybridLocalizationEngine_3(
+        returnValue: _FakeHybridLocalizationEngine_0(
           this,
           Invocation.getter(#hybridLocalizationEngine),
         ),
-        returnValueForMissingStub: _FakeHybridLocalizationEngine_3(
+        returnValueForMissingStub: _FakeHybridLocalizationEngine_0(
           this,
           Invocation.getter(#hybridLocalizationEngine),
         ),
-      ) as _i5.HybridLocalizationEngine);
+      ) as _i2.HybridLocalizationEngine);
 
   @override
   bool get isActive => (super.noSuchMethod(
@@ -563,25 +561,25 @@ class MockVisualIdentificationCubit extends _i1.Mock
       ) as bool);
 
   @override
-  _i6.VisualIdentificationState get state => (super.noSuchMethod(
+  _i7.VisualIdentificationState get state => (super.noSuchMethod(
         Invocation.getter(#state),
-        returnValue: _FakeVisualIdentificationState_4(
+        returnValue: _FakeVisualIdentificationState_5(
           this,
           Invocation.getter(#state),
         ),
-        returnValueForMissingStub: _FakeVisualIdentificationState_4(
+        returnValueForMissingStub: _FakeVisualIdentificationState_5(
           this,
           Invocation.getter(#state),
         ),
-      ) as _i6.VisualIdentificationState);
+      ) as _i7.VisualIdentificationState);
 
   @override
-  _i11.Stream<_i6.VisualIdentificationState> get stream => (super.noSuchMethod(
+  _i11.Stream<_i7.VisualIdentificationState> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i11.Stream<_i6.VisualIdentificationState>.empty(),
+        returnValue: _i11.Stream<_i7.VisualIdentificationState>.empty(),
         returnValueForMissingStub:
-            _i11.Stream<_i6.VisualIdentificationState>.empty(),
-      ) as _i11.Stream<_i6.VisualIdentificationState>);
+            _i11.Stream<_i7.VisualIdentificationState>.empty(),
+      ) as _i11.Stream<_i7.VisualIdentificationState>);
 
   @override
   bool get isClosed => (super.noSuchMethod(
@@ -620,7 +618,7 @@ class MockVisualIdentificationCubit extends _i1.Mock
       );
 
   @override
-  void emit(_i6.VisualIdentificationState? state) => super.noSuchMethod(
+  void emit(_i7.VisualIdentificationState? state) => super.noSuchMethod(
         Invocation.method(
           #emit,
           [state],
@@ -629,7 +627,7 @@ class MockVisualIdentificationCubit extends _i1.Mock
       );
 
   @override
-  void onChange(_i12.Change<_i6.VisualIdentificationState>? change) =>
+  void onChange(_i12.Change<_i7.VisualIdentificationState>? change) =>
       super.noSuchMethod(
         Invocation.method(
           #onChange,
@@ -684,26 +682,26 @@ class MockVisualIdentificationCubit extends _i1.Mock
 /// A class which mocks [SettingsCubit].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSettingsCubit extends _i1.Mock implements _i7.SettingsCubit {
+class MockSettingsCubit extends _i1.Mock implements _i8.SettingsCubit {
   @override
-  _i7.SettingsState get state => (super.noSuchMethod(
+  _i8.SettingsState get state => (super.noSuchMethod(
         Invocation.getter(#state),
-        returnValue: _FakeSettingsState_5(
+        returnValue: _FakeSettingsState_6(
           this,
           Invocation.getter(#state),
         ),
-        returnValueForMissingStub: _FakeSettingsState_5(
+        returnValueForMissingStub: _FakeSettingsState_6(
           this,
           Invocation.getter(#state),
         ),
-      ) as _i7.SettingsState);
+      ) as _i8.SettingsState);
 
   @override
-  _i11.Stream<_i7.SettingsState> get stream => (super.noSuchMethod(
+  _i11.Stream<_i8.SettingsState> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i11.Stream<_i7.SettingsState>.empty(),
-        returnValueForMissingStub: _i11.Stream<_i7.SettingsState>.empty(),
-      ) as _i11.Stream<_i7.SettingsState>);
+        returnValue: _i11.Stream<_i8.SettingsState>.empty(),
+        returnValueForMissingStub: _i11.Stream<_i8.SettingsState>.empty(),
+      ) as _i11.Stream<_i8.SettingsState>);
 
   @override
   bool get isClosed => (super.noSuchMethod(
@@ -773,7 +771,7 @@ class MockSettingsCubit extends _i1.Mock implements _i7.SettingsCubit {
       ) as _i11.Future<void>);
 
   @override
-  void emit(_i7.SettingsState? state) => super.noSuchMethod(
+  void emit(_i8.SettingsState? state) => super.noSuchMethod(
         Invocation.method(
           #emit,
           [state],
@@ -782,7 +780,7 @@ class MockSettingsCubit extends _i1.Mock implements _i7.SettingsCubit {
       );
 
   @override
-  void onChange(_i12.Change<_i7.SettingsState>? change) => super.noSuchMethod(
+  void onChange(_i12.Change<_i8.SettingsState>? change) => super.noSuchMethod(
         Invocation.method(
           #onChange,
           [change],
@@ -836,26 +834,26 @@ class MockSettingsCubit extends _i1.Mock implements _i7.SettingsCubit {
 /// A class which mocks [HomeCubit].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockHomeCubit extends _i1.Mock implements _i8.HomeCubit {
+class MockHomeCubit extends _i1.Mock implements _i9.HomeCubit {
   @override
-  _i8.HomeState get state => (super.noSuchMethod(
+  _i9.HomeState get state => (super.noSuchMethod(
         Invocation.getter(#state),
-        returnValue: _FakeHomeState_6(
+        returnValue: _FakeHomeState_7(
           this,
           Invocation.getter(#state),
         ),
-        returnValueForMissingStub: _FakeHomeState_6(
+        returnValueForMissingStub: _FakeHomeState_7(
           this,
           Invocation.getter(#state),
         ),
-      ) as _i8.HomeState);
+      ) as _i9.HomeState);
 
   @override
-  _i11.Stream<_i8.HomeState> get stream => (super.noSuchMethod(
+  _i11.Stream<_i9.HomeState> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i11.Stream<_i8.HomeState>.empty(),
-        returnValueForMissingStub: _i11.Stream<_i8.HomeState>.empty(),
-      ) as _i11.Stream<_i8.HomeState>);
+        returnValue: _i11.Stream<_i9.HomeState>.empty(),
+        returnValueForMissingStub: _i11.Stream<_i9.HomeState>.empty(),
+      ) as _i11.Stream<_i9.HomeState>);
 
   @override
   bool get isClosed => (super.noSuchMethod(
@@ -922,7 +920,7 @@ class MockHomeCubit extends _i1.Mock implements _i8.HomeCubit {
       ) as _i11.Future<List<double>>);
 
   @override
-  void emit(_i8.HomeState? state) => super.noSuchMethod(
+  void emit(_i9.HomeState? state) => super.noSuchMethod(
         Invocation.method(
           #emit,
           [state],
@@ -931,7 +929,7 @@ class MockHomeCubit extends _i1.Mock implements _i8.HomeCubit {
       );
 
   @override
-  void onChange(_i12.Change<_i8.HomeState>? change) => super.noSuchMethod(
+  void onChange(_i12.Change<_i9.HomeState>? change) => super.noSuchMethod(
         Invocation.method(
           #onChange,
           [change],
