@@ -240,8 +240,33 @@ class EnhancedLiveCaptionsCubit extends LiveCaptionsCubit {
 
   @override
   Future<void> close() async {
-    await stopCaptions();
-    await _enhancedSpeechProcessor.dispose();
+    _enhancedLogger.i('🔒 Closing EnhancedLiveCaptionsCubit...');
+    
+    try {
+      // Stop captions first with timeout
+      await stopCaptions().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          _enhancedLogger.w('⏰ Stop captions timed out during close');
+        },
+      );
+    } catch (e) {
+      _enhancedLogger.e('❌ Error stopping captions during close', error: e);
+    }
+    
+    try {
+      // Dispose enhanced speech processor with timeout
+      await _enhancedSpeechProcessor.dispose().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          _enhancedLogger.w('⏰ Enhanced speech processor dispose timed out');
+        },
+      );
+    } catch (e) {
+      _enhancedLogger.e('❌ Error disposing enhanced speech processor', error: e);
+    }
+    
+    _enhancedLogger.i('✅ EnhancedLiveCaptionsCubit closed');
     return super.close();
   }
 } 
