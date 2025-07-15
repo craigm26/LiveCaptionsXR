@@ -1,8 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
-import 'dart:math' show sqrt;
 import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
 import 'debug_capturing_logger.dart';
 
 /// Represents a chunk of stereo audio sampled from the microphone.

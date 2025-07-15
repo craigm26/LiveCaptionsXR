@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
 import 'debug_capturing_logger.dart';
 
 /// Model for AR anchor info.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:live_captions_xr/core/services/gemma3n_service.dart';
 import 'package:live_captions_xr/core/services/visual_service.dart';
 
@@ -14,6 +15,7 @@ class ContextualEnhancer {
     return await _gemma3nService.runMultimodalInference(
       textContext: text,
       imageInput: imageBytes,
+      audioInput: Float32List(0),
     );
   }
 }

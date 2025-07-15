@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
 
 class ModelDownloadManager extends ChangeNotifier {
   static const String modelFileName = 'gemma-3n-E4B-it-int4.task';
@@ -71,10 +70,6 @@ class ModelDownloadManager extends ChangeNotifier {
       _completed = true;
       _downloading = false;
       notifyListeners();
-      // Set the model path in flutter_gemma after successful download
-      final gemma = FlutterGemmaPlugin.instance;
-      final modelManager = gemma.modelManager;
-      await modelManager.setModelPath(path);
     } catch (e) {
       _error = e.toString();
       _downloading = false;

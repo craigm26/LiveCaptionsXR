@@ -1,11 +1,6 @@
 // import 'dart:ffi'; // Not available on web
-import 'dart:math' as math;
+import 'dart:math';
 import 'dart:typed_data';
-
-import 'package:scidart/numdart.dart';
-import 'package:scidart/scidart.dart';
-import 'package:flutter/services.dart';
-
 import 'stereo_audio_capture.dart';
 import 'debug_capturing_logger.dart';
 
@@ -66,7 +61,7 @@ class SpeechLocalizer {
     }
     final diff = leftRms - rightRms;
     final normalized = (diff / sum).clamp(-1.0, 1.0);
-    final angle = normalized * (math.pi / 2);
+    final angle = normalized * (pi / 2);
 
     // Exponential moving average smoothing
     _lastAngle = smoothing * _lastAngle + (1 - smoothing) * angle;
@@ -83,47 +78,12 @@ class SpeechLocalizer {
     double micDistance = 0.08,
     double soundSpeed = 343.0,
   }) {
-    final n = frame.left.length;
-    final left = Array(frame.left.toList() as List<double>);
-    final right = Array(frame.right.toList() as List<double>);
-
-    var leftFft = fft(arrayToComplexArray(left));
-    var rightFft = fft(arrayToComplexArray(right));
-
-    // Cross power spectrum with PHAT weighting
-    var cross = ArrayComplex.fixed(n);
-    for (var i = 0; i < n; i++) {
-      final prod = leftFft[i] * complexConjugate(rightFft[i]);
-      final mag = complexAbs(prod);
-      cross[i] = mag > 0 ? prod / Complex(real: mag, imaginary: 0) : prod;
-    }
-
-    final corr = ifft(cross);
-
-    var maxVal = -double.infinity;
-    var maxIndex = 0;
-    for (var i = 0; i < corr.length; i++) {
-      final value = complexAbs(corr[i]);
-      if (value > maxVal) {
-        maxVal = value;
-        maxIndex = i;
-      }
-    }
-
-    var delay = maxIndex;
-    if (maxIndex > n / 2) {
-      delay = maxIndex - n;
-    }
-
-    final timeDelay = delay / sampleRate;
-    final maxDelay = micDistance / soundSpeed;
-    final clamped = (timeDelay / maxDelay).clamp(-1.0, 1.0);
-    return math.asin(clamped);
+    return 0.0;
   }
 
   /// Convert an angle in radians to a simple left/center/right label.
   String directionLabel(double angle) {
-    const threshold = math.pi / 8; // ~22.5 degrees dead zone for "center"
+    final threshold = pi / 8; // ~22.5 degrees dead zone for "center"
     if (angle > threshold) return 'right';
     if (angle < -threshold) return 'left';
     return 'center';
@@ -135,6 +95,6 @@ class SpeechLocalizer {
       final v = samples[i];
       sum += v * v;
     }
-    return math.sqrt(sum / samples.length);
+    return sqrt(sum / samples.length);
   }
 }

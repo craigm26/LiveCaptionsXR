@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:logger/logger.dart';
 
 import '../cubit/live_captions_cubit.dart';
 import '../cubit/live_captions_state.dart';
@@ -29,16 +28,7 @@ class LiveCaptionsWidget extends StatefulWidget {
 
 class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     with TickerProviderStateMixin {
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  
 
   late AnimationController _fadeController;
   late AnimationController _pulseController;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:live_captions_xr/core/services/contextual_enhancer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 
@@ -65,7 +66,8 @@ class LiveCaptionsXrApp extends StatelessWidget {
           create: (context) => LiveCaptionsCubit(
             speechProcessor: sl<SpeechProcessor>(),
             hybridLocalizationEngine: sl(),
-          )..initialize(),
+            contextualEnhancer: sl<ContextualEnhancer>(),
+          ),
         ),
         BlocProvider<ARSessionCubit>(
           create: (context) => ARSessionCubit(

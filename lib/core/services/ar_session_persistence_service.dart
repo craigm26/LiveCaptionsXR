@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:logger/logger.dart';
-import '../../features/ar_session/cubit/ar_session_state.dart';
+import 'package:live_captions_xr/features/ar_session/cubit/ar_session_state.dart';
 import 'debug_capturing_logger.dart';
 
 /// Service for persisting AR session state across app restarts

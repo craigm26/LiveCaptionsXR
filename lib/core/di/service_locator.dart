@@ -56,7 +56,7 @@ void setupServiceLocator() {
   );
 
   sl.registerLazySingleton<SpeechProcessor>(
-    () => SpeechProcessor(sl<NativeSttService>(), sl<ContextualEnhancer>()),
+    () => SpeechProcessor(),
   );
 
   
