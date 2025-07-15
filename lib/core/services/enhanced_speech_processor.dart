@@ -313,6 +313,7 @@ class EnhancedSpeechProcessor {
         const Duration(seconds: 5),
         onTimeout: () {
           _logger.w('⏰ Stop processing timed out during dispose');
+          return false;
         },
       );
     } catch (e) {
