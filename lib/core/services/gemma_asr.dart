@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 // import 'package:gemma3n_multimodal/gemma3n_multimodal.dart';
 import 'package:flutter/foundation.dart';
@@ -125,7 +124,7 @@ class GemmaASR {
         _resultController.add(finalResult);
         if (finalResult.text.isNotEmpty) {
           _logger.i('🎯 Placing caption at fused speaker position: "${finalResult.text}"');
-          await hybridLocalizationEngine.placeCaption(finalResult.text);
+          await hybridLocalizationEngine.placeRealtimeCaption(finalResult.text);
         }
         _logger.i('✅ Multimodal stream completed');
         _resultController.close();
@@ -145,7 +144,7 @@ class GemmaASR {
         _resultController.add(finalResult);
         if (finalResult.text.isNotEmpty) {
           _logger.i('🎯 Placing caption at fused speaker position: "${finalResult.text}"');
-          await hybridLocalizationEngine.placeCaption(finalResult.text);
+          await hybridLocalizationEngine.placeRealtimeCaption(finalResult.text);
         }
         _logger.i('✅ Audio stream completed');
         _resultController.close();
@@ -175,24 +174,5 @@ class GemmaASR {
     _resultController.close();
     _streaming = false;
     _logger.i('✅ GemmaASR stream stopped successfully');
-  }
-
-  /// Parses the plugin result (JSON or Map) into a Map<String, dynamic>.
-  Map<String, dynamic> _parseResult(dynamic event) {
-    _logger.d('🔍 Parsing result: ${event.runtimeType} - $event');
-
-    if (event is Map<String, dynamic>) return event;
-    if (event is String) {
-      try {
-        final parsed = jsonDecode(event) as Map<String, dynamic>;
-        _logger.d('📊 Parsed JSON result: $parsed');
-        return parsed;
-      } catch (e) {
-        _logger.w('⚠️ Failed to parse JSON, treating as plain text: $e');
-        return {'text': event, 'isFinal': false};
-      }
-    }
-    _logger.d('📝 Converting to string: ${event.toString()}');
-    return {'text': event.toString(), 'isFinal': false};
   }
 }

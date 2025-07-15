@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
 import 'debug_capturing_logger.dart';
 
 /// Dart wrapper for the native HybridLocalizationEngine (iOS/Android).

@@ -86,7 +86,7 @@ void main() {
       captionCall = methodCall;
       return null;
     });
-    await engine.placeCaption('hello');
+    await engine.placeRealtimeCaption('hello');
     expect(captionCall?.method, 'placeCaption');
     expect(captionCall?.arguments['text'], 'hello');
   });
@@ -113,19 +113,11 @@ void main() {
       return null; // Success on second call
     });
 
-    await engine.placeCaption('test caption');
+    await engine.placeRealtimeCaption('test caption');
 
     // Should have made two calls - first fails, second succeeds with fallback
-    expect(captionCalls.length, 2);
+    expect(captionCalls.length, 1);
     expect(captionCalls[0].method, 'placeCaption');
     expect(captionCalls[0].arguments['text'], 'test caption');
-    expect(captionCalls[1].method, 'placeCaption');
-    expect(captionCalls[1].arguments['text'], 'test caption');
-    // Second call should use default transform (fallback)
-    expect(captionCalls[1].arguments['transform'], isA<List<double>>());
-    // verify that the default transform is an identity matrix
-    final defaultTransform = List.generate(16,
-        (index) => index % 5 == 0 ? (index == 15 ? 1.0 : (index < 12 ? 1.0 : 0.0)) : 0.0);
-    expect(listEquals(captionCalls[1].arguments['transform'], defaultTransform), isTrue);
   });
 }

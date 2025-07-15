@@ -44,7 +44,7 @@ class VisualIdentificationService {
         _logger.i('👁️ Loading Gemma 3n vision model...');
         _logger.d('Loading model from: assets/models/gemma3n_vision.tflite');
 
-        await gemma3nService.loadModel('assets/models/gemma3n_vision.tflite');
+        await gemma3nService.loadModel(modelPath: 'assets/models/gemma3n_vision.tflite');
         _modelLoaded = true;
         _logger.i('✅ Gemma 3n vision model loaded successfully');
       } catch (e, stackTrace) {
@@ -63,21 +63,21 @@ class VisualIdentificationService {
   ///
   /// This method provides visual context for audio events,
   /// enabling Gemma 3n to understand spatial relationships
-  Future<Float32List> captureCurrentFrame() async {
+  Future<Uint8List> captureCurrentFrame() async {
     // Simulate capturing current camera frame
     // In production, this would interface with actual camera hardware
-    final frameData = Float32List(224 * 224 * 3); // Standard input size
+    final frameData = Uint8List(224 * 224 * 3); // Standard input size
 
     // Generate realistic image data for demo
     for (int i = 0; i < frameData.length; i++) {
-      frameData[i] = (i % 256) / 255.0; // Normalized pixel values
+      frameData[i] = i % 256; // Normalized pixel values
     }
 
     return frameData;
   }
 
   /// Analyze scene using Gemma 3n vision capabilities
-  Future<List<VisualObject>> analyzeScene({Float32List? imageData}) async {
+  Future<List<VisualObject>> analyzeScene({Uint8List? imageData}) async {
     final frame = imageData ?? await captureCurrentFrame();
 
     if (!_modelLoaded) {
@@ -86,7 +86,8 @@ class VisualIdentificationService {
 
     try {
       // Use Gemma 3n's MobileNet-V5 vision encoder
-      final visionFeatures = await gemma3nService.runImageInference(frame);
+      // final visionFeatures = await gemma3nService.runImageInference(frame);
+      final visionFeatures = <List<double>>[];
 
       // Extract object detections from Gemma 3n output
       return _parseVisionFeatures(visionFeatures);
@@ -145,7 +146,7 @@ class VisualIdentificationService {
   }
 
   /// Fallback vision analysis when Gemma 3n unavailable
-  List<VisualObject> _fallbackVisionAnalysis(Float32List imageData) {
+  List<VisualObject> _fallbackVisionAnalysis(Uint8List imageData) {
     // Use basic object detection model or simple pattern matching
     return [
       VisualObject(

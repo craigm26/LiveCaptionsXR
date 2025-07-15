@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/services.dart';
 
 import '../models/speech_config.dart';
 import 'debug_capturing_logger.dart';
@@ -105,6 +104,7 @@ Use ISO 639-1 language codes.
     try {
       _logger.d('🔤 Detecting language from text: "${text.substring(0, text.length.clamp(0, 50))}..."');
 
+      // Create a prompt for language detection using Gemma 3
       final prompt = '''
 You are a language detection AI. Analyze the following text and determine which language it is written in.
 
@@ -145,8 +145,12 @@ Use ISO 639-1 language codes. Base your analysis on:
       _logger.e('❌ Error detecting language from text', error: e, stackTrace: stackTrace);
     }
 
-    // Fallback to pattern-based detection
-    return _fallbackLanguageDetection(text, config);
+    // Fallback to default language
+    return LanguageDetectionResult(
+      detectedLanguage: config.language,
+      confidence: 0.5,
+      languageScores: {config.language: 0.5},
+    );
   }
 
   /// Extract basic audio features for language detection
@@ -156,7 +160,7 @@ Use ISO 639-1 language codes. Base your analysis on:
     // Calculate basic audio statistics
     final mean = audioBuffer.reduce((a, b) => a + b) / audioBuffer.length;
     final variance = audioBuffer.map((x) => (x - mean) * (x - mean)).reduce((a, b) => a + b) / audioBuffer.length;
-    final stdDev = variance > 0 ? variance.sqrt() : 0.0;
+    final stdDev = variance > 0 ? math.sqrt(variance) : 0.0;
     
     // Find peak amplitude
     final maxAmplitude = audioBuffer.map((x) => x.abs()).reduce((a, b) => a > b ? a : b);
@@ -173,166 +177,7 @@ Use ISO 639-1 language codes. Base your analysis on:
     return 'mean: ${mean.toStringAsFixed(4)}, stdDev: ${stdDev.toStringAsFixed(4)}, '
            'maxAmp: ${maxAmplitude.toStringAsFixed(4)}, zcr: ${zcr.toStringAsFixed(4)}';
   }
-
-  /// Parse the language detection response from Gemma 3
-  static LanguageDetectionResult? _parseLanguageDetectionResponse(
-    String response,
-    SpeechConfig config,
-  ) {
-    try {
-      // Extract JSON from response
-      final jsonStart = response.indexOf('{');
-      final jsonEnd = response.lastIndexOf('}');
-      
-      if (jsonStart == -1 || jsonEnd == -1) {
-        _logger.w('⚠️ No JSON found in language detection response');
-        return null;
-      }
-
-      final jsonStr = response.substring(jsonStart, jsonEnd + 1);
-      
-      // Parse JSON manually to avoid import dependencies
-      final parsed = _parseSimpleJson(jsonStr);
-      
-      if (parsed == null) {
-        _logger.w('⚠️ Failed to parse language detection JSON');
-        return null;
-      }
-
-      final language = parsed['language'] as String?;
-      final confidence = (parsed['confidence'] as num?)?.toDouble();
-      final scores = parsed['scores'] as Map<String, dynamic>?;
-
-      if (language == null || confidence == null) {
-        _logger.w('⚠️ Missing required fields in language detection response');
-        return null;
-      }
-
-      // Validate language is supported
-      if (!config.supportedLanguages.contains(language)) {
-        _logger.w('⚠️ Detected language "$language" not in supported list');
-        return LanguageDetectionResult(
-          detectedLanguage: config.language,
-          confidence: 0.5,
-          languageScores: {config.language: 0.5},
-        );
-      }
-
-      final languageScores = <String, double>{};
-      if (scores != null) {
-        for (final entry in scores.entries) {
-          final score = (entry.value as num?)?.toDouble();
-          if (score != null) {
-            languageScores[entry.key] = score;
-          }
-        }
-      }
-
-      _logger.d('✅ Detected language: $language (confidence: $confidence)');
-      
-      return LanguageDetectionResult(
-        detectedLanguage: language,
-        confidence: confidence,
-        languageScores: languageScores,
-      );
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error parsing language detection response', error: e, stackTrace: stackTrace);
-      return null;
-    }
-  }
-
-  /// Simple JSON parser for basic objects
-  static Map<String, dynamic>? _parseSimpleJson(String jsonStr) {
-    try {
-      // This is a very basic JSON parser - in production, use dart:convert
-      final result = <String, dynamic>{};
-      
-      // Remove braces and split by commas
-      final content = jsonStr.substring(1, jsonStr.length - 1);
-      final pairs = content.split(',');
-      
-      for (final pair in pairs) {
-        final colonIndex = pair.indexOf(':');
-        if (colonIndex == -1) continue;
-        
-        final key = pair.substring(0, colonIndex).trim().replaceAll('"', '');
-        final valueStr = pair.substring(colonIndex + 1).trim();
-        
-        // Parse value
-        dynamic value;
-        if (valueStr.startsWith('"') && valueStr.endsWith('"')) {
-          value = valueStr.substring(1, valueStr.length - 1);
-        } else if (valueStr.startsWith('{')) {
-          // Nested object - just return the raw string for now
-          value = <String, dynamic>{};
-        } else {
-          value = double.tryParse(valueStr) ?? valueStr;
-        }
-        
-        result[key] = value;
-      }
-      
-      return result;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Fallback language detection using simple pattern matching
-  static LanguageDetectionResult _fallbackLanguageDetection(
-    String text,
-    SpeechConfig config,
-  ) {
-    final lower = text.toLowerCase();
-    
-    // Simple pattern-based detection
-    final patterns = {
-      'en': ['the', 'and', 'is', 'it', 'you', 'that', 'he', 'was', 'for', 'on'],
-      'es': ['el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'es', 'se'],
-      'fr': ['le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir'],
-      'de': ['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich'],
-      'it': ['il', 'di', 'che', 'è', 'per', 'un', 'in', 'del', 'la', 'da'],
-      'pt': ['o', 'de', 'e', 'do', 'da', 'em', 'um', 'para', 'é', 'com'],
-      'zh': ['的', '一', '是', '在', '不', '了', '有', '和', '人', '这'],
-    };
-
-    final scores = <String, double>{};
-    
-    for (final lang in config.supportedLanguages) {
-      final langPatterns = patterns[lang] ?? [];
-      int matches = 0;
-      
-      for (final pattern in langPatterns) {
-        if (lower.contains(pattern)) {
-          matches++;
-        }
-      }
-      
-      scores[lang] = matches / langPatterns.length;
-    }
-
-    // Find best match
-    String bestLang = config.language;
-    double bestScore = scores[bestLang] ?? 0.0;
-    
-    for (final entry in scores.entries) {
-      if (entry.value > bestScore) {
-        bestLang = entry.key;
-        bestScore = entry.value;
-      }
-    }
-
-    _logger.d('🔍 Fallback language detection: $bestLang (score: $bestScore)');
-    
-    return LanguageDetectionResult(
-      detectedLanguage: bestLang,
-      confidence: bestScore.clamp(0.1, 0.8), // Conservative confidence
-      languageScores: scores,
-    );
-  }
 }
 
-extension on double {
-  double sqrt() => this >= 0 ? math.sqrt(this) : 0.0;
-}
+
 

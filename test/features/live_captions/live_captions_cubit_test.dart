@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -5,24 +6,28 @@ import 'package:mockito/mockito.dart';
 import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/speech_processor.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
+import 'package:live_captions_xr/core/services/contextual_enhancer.dart';
 import 'package:live_captions_xr/core/models/speech_result.dart';
 
 import 'live_captions_cubit_test.mocks.dart';
 
-@GenerateMocks([SpeechProcessor, HybridLocalizationEngine])
+@GenerateMocks([SpeechProcessor, HybridLocalizationEngine, ContextualEnhancer])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockSpeechProcessor mockSpeechProcessor;
   late MockHybridLocalizationEngine mockHybridLocalizationEngine;
+  late MockContextualEnhancer mockContextualEnhancer;
   late LiveCaptionsCubit cubit;
 
   setUp(() {
     mockSpeechProcessor = MockSpeechProcessor();
     mockHybridLocalizationEngine = MockHybridLocalizationEngine();
+    mockContextualEnhancer = MockContextualEnhancer();
     cubit = LiveCaptionsCubit(
       speechProcessor: mockSpeechProcessor,
       hybridLocalizationEngine: mockHybridLocalizationEngine,
+      contextualEnhancer: mockContextualEnhancer,
     );
     
     // Set up mock method channels for hybrid localization
@@ -58,115 +63,49 @@ void main() {
 
   group('LiveCaptionsCubit Caption Placement', () {
     test('should place caption in AR when final speech result is received', () async {
-      List<MethodCall> captionCalls = [];
-      
-      // Mock the caption method channel to capture calls
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-              const MethodChannel('live_captions_xr/caption_methods'),
-              (MethodCall methodCall) async {
-        captionCalls.add(methodCall);
-        return null;
-      });
-
-      // Initialize the cubit (mocking successful initialization)
-      when(mockSpeechProcessor.initialize()).thenAnswer((_) async => true);
+      // Arrange
+      final speechResultController = StreamController<SpeechResult>();
+      when(mockSpeechProcessor.speechResults).thenAnswer((_) => speechResultController.stream);
       when(mockSpeechProcessor.startProcessing()).thenAnswer((_) async => true);
-      when(mockSpeechProcessor.speechResults).thenAnswer((_) => const Stream.empty());
-      
-      await cubit.initialize();
-      
-      // Simulate receiving a final speech result
-      final finalResult = SpeechResult(
-        text: 'Hello world',
-        confidence: 0.9,
-        isFinal: true,
-        timestamp: DateTime.now(),
-      );
+      when(mockHybridLocalizationEngine.placeRealtimeCaption(any)).thenAnswer((_) async => Future.value());
 
-      // Access the private method through reflection or create a public test method
-      // For now, we'll test the behavior indirectly by checking if the cubit handles the result
-      cubit.handleSpeechResult(finalResult);
+      // Act
+      await cubit.startCaptions();
+      speechResultController.add(SpeechResult(text: 'Hello world', confidence: 0.9, isFinal: true, timestamp: DateTime.now()));
+      await cubit.close(); // to trigger the stream to close
 
-      // Allow async operations to complete
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Verify that placeCaption was called
-      expect(captionCalls.isNotEmpty, true);
-      expect(captionCalls.first.method, 'placeCaption');
-      expect(captionCalls.first.arguments['text'], 'Hello world');
+      // Assert
+      verify(mockHybridLocalizationEngine.placeRealtimeCaption('Hello world')).called(1);
     });
 
     test('should not place caption for interim speech results', () async {
-      List<MethodCall> captionCalls = [];
-      
-      // Mock the caption method channel to capture calls
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-              const MethodChannel('live_captions_xr/caption_methods'),
-              (MethodCall methodCall) async {
-        captionCalls.add(methodCall);
-        return null;
-      });
-
-      // Initialize the cubit
-      when(mockSpeechProcessor.initialize()).thenAnswer((_) async => true);
+      // Arrange
+      final speechResultController = StreamController<SpeechResult>();
+      when(mockSpeechProcessor.speechResults).thenAnswer((_) => speechResultController.stream);
       when(mockSpeechProcessor.startProcessing()).thenAnswer((_) async => true);
-      when(mockSpeechProcessor.speechResults).thenAnswer((_) => const Stream.empty());
-      
-      await cubit.initialize();
-      
-      // Simulate receiving an interim speech result
-      final interimResult = SpeechResult(
-        text: 'Hello...',
-        confidence: 0.7,
-        isFinal: false,
-        timestamp: DateTime.now(),
-      );
 
-      cubit.handleSpeechResult(interimResult);
+      // Act
+      await cubit.startCaptions();
+      speechResultController.add(SpeechResult(text: 'Hello...', confidence: 0.7, isFinal: false, timestamp: DateTime.now()));
+      await cubit.close();
 
-      // Allow async operations to complete
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Verify that placeCaption was NOT called for interim results
-      expect(captionCalls.isEmpty, true);
+      // Assert
+      verifyNever(mockHybridLocalizationEngine.placeRealtimeCaption(any));
     });
 
     test('should not place caption for empty text', () async {
-      List<MethodCall> captionCalls = [];
-      
-      // Mock the caption method channel to capture calls
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-              const MethodChannel('live_captions_xr/caption_methods'),
-              (MethodCall methodCall) async {
-        captionCalls.add(methodCall);
-        return null;
-      });
-
-      // Initialize the cubit
-      when(mockSpeechProcessor.initialize()).thenAnswer((_) async => true);
+      // Arrange
+      final speechResultController = StreamController<SpeechResult>();
+      when(mockSpeechProcessor.speechResults).thenAnswer((_) => speechResultController.stream);
       when(mockSpeechProcessor.startProcessing()).thenAnswer((_) async => true);
-      when(mockSpeechProcessor.speechResults).thenAnswer((_) => const Stream.empty());
-      
-      await cubit.initialize();
-      
-      // Simulate receiving a final speech result with empty text
-      final emptyResult = SpeechResult(
-        text: '   ',  // Empty/whitespace text
-        confidence: 0.9,
-        isFinal: true,
-        timestamp: DateTime.now(),
-      );
 
-      cubit.handleSpeechResult(emptyResult);
+      // Act
+      await cubit.startCaptions();
+      speechResultController.add(SpeechResult(text: '   ', confidence: 0.9, isFinal: true, timestamp: DateTime.now()));
+      await cubit.close();
 
-      // Allow async operations to complete
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Verify that placeCaption was NOT called for empty text
-      expect(captionCalls.isEmpty, true);
+      // Assert
+      verifyNever(mockHybridLocalizationEngine.placeRealtimeCaption(any));
     });
   });
 }

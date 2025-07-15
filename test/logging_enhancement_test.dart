@@ -15,14 +15,10 @@ class MockVisualService extends Mock implements VisualService {}
 void main() {
   group('Enhanced Logging Tests', () {
     late SpeechProcessor speechProcessor;
-    late MockGemma3nService mockGemma3nService;
-    late MockVisualService mockVisualService;
     late List<MethodCall> methodCalls;
 
     setUp(() {
-      mockGemma3nService = MockGemma3nService();
-      mockVisualService = MockVisualService();
-      speechProcessor = SpeechProcessor(mockGemma3nService, mockVisualService);
+      speechProcessor = SpeechProcessor();
       methodCalls = [];
       
       // Mock the method channel

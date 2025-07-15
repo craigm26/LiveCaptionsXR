@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
-import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
@@ -148,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await arSessionCubit.startAllARServices(
       startLiveCaptions: () async {
         final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-        if (!liveCaptionsCubit.isActive) {
+        if (liveCaptionsCubit.state is! LiveCaptionsActive || !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
           _logger.i('🎤 Starting live captions for AR mode...');
           await liveCaptionsCubit.startCaptions();
           _logger.i('✅ Live captions started for AR mode');
@@ -319,14 +317,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: LiveCaptionsWidget(
                                     onToggle: () {
                                       final cubit = context.read<LiveCaptionsCubit>();
-                                      if (cubit.isActive) {
+                                      if (cubit.state is LiveCaptionsActive && (cubit.state as LiveCaptionsActive).isListening) {
                                         cubit.stopCaptions();
                                       } else {
                                         cubit.startCaptions();
                                       }
                                     },
                                     onClear: () {
-                                      context.read<LiveCaptionsCubit>().clearCaptions();
+                                      // TODO: Implement clear captions functionality
                                     },
                                     maxWidth: 600,
                                     showHistory: false,
