@@ -30,6 +30,7 @@ dependencies:
   path_provider: ^2.0.11
   http: ^1.4.0
   dart_openai: ^5.1.0
+  flutter_dotenv: ^5.1.0
   # Add your other dependencies here
 
 dev_dependencies:
