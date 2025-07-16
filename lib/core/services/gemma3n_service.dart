@@ -121,5 +121,15 @@ class Gemma3nService {
     }
   }
 
-  Future<SoundEvent> analyzeAudioFrame(Float32List audioFrame, double angle) async {}
-} 
+  Future<SoundEvent> analyzeAudioFrame(Float32List audioFrame, double angle) async {
+    if (!_isModelLoaded) {
+      throw StateError('Gemma 3n model not loaded. Call loadModel() first.');
+    }
+
+    final result = await _channel.invokeMethod('analyzeAudioFrame', {
+      'audioFrame': audioFrame,
+      'angle': angle,
+    });
+    return SoundEvent.fromJson(result);
+  }
+}

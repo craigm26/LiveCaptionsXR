@@ -4,10 +4,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/core/model.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:flutter_gemma/core/flutter_gemma_part.dart';
-import 'package:flutter_gemma/core/flutter_gemma_part.dart';
-
 import '../models/enhanced_caption.dart';
 import '../models/speech_result.dart';
 import 'model_download_manager.dart';
