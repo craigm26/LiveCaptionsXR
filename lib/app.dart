@@ -5,12 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/di/service_locator.dart';
 import 'core/router/app_router.dart';
-import 'core/services/debug_logger_service.dart';
 import 'features/ar_session/cubit/ar_session_cubit.dart';
 import 'features/home/cubit/home_cubit.dart';
 import 'features/live_captions/cubit/live_captions_cubit.dart';
 import 'features/localization/cubit/localization_cubit.dart';
-import 'features/onboarding/view/onboarding_screen.dart';
 import 'features/settings/cubit/settings_cubit.dart';
 import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
@@ -73,16 +71,20 @@ class _AppBootstrapState extends State<AppBootstrap> {
       final isComplete = prefs.getBool('onboarding_complete') ?? false;
       _appLogger.d('📊 Onboarding status check result: $isComplete');
 
-      setState(() {
-        _onboardingComplete = isComplete;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _onboardingComplete = isComplete;
+          _isLoading = false;
+        });
+      }
     } catch (e, stackTrace) {
       _appLogger.e('❌ Error checking onboarding status', error: e, stackTrace: stackTrace);
-      setState(() {
-        _onboardingComplete = false;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _onboardingComplete = false;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -95,8 +97,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
       );
     }
 
-    // The AppShell is now part of the router, so we don't need to return it here.
-    // The router will handle showing the OnboardingScreen or the AppShell.
-    return const SizedBox.shrink(); 
+    // The router now handles whether to show the onboarding screen or the main app
+    return const LiveCaptionsXrApp();
   }
 }

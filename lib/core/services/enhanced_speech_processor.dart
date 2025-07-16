@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_speech/generated/google/cloud/speech/v2/cloud_speech.pbgrpc.dart' as google_speech;
 import 'package:path_provider/path_provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart' as stt;
 import 'package:dart_openai/dart_openai.dart';
-import 'package:google_speech/google_speech.dart' as google_speech hide SpeechToText;
+import 'package:google_speech/google_speech.dart' as google_speech;
+import 'package:live_captions_xr/core/di/service_locator.dart';
+import 'package:live_captions_xr/core/services/google_auth_service.dart';
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
@@ -118,13 +119,14 @@ class EnhancedSpeechProcessor {
   }
 
   Future<void> _initializeGoogleCloudSpeech() async {
-    final authHeaders = await sl<GoogleAuthService>().getAuthHeaders();
-    if (authHeaders == null) {
-      _logger.e('❌ Google Sign-In failed. Cannot initialize Google Cloud Speech.');
-      throw Exception('Google Sign-In failed.');
+    final serviceAccountJson = dotenv.env['GOOGLE_APPLICATION_CREDENTIALS_JSON'];
+    if (serviceAccountJson == null || serviceAccountJson.isEmpty) {
+      _logger.e('❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found in .env file.');
+      throw Exception('Google Cloud credentials not found.');
     }
-    _googleSpeechV2 = google_speech.SpeechToTextV2.viaOAuth2(authHeaders);
-    _logger.i('✅ Google Cloud Speech V2 initialized with user credentials.');
+    final credentials = google_speech.GoogleSpeechV2Credentials.fromJson(serviceAccountJson);
+    _googleSpeechV2 = google_speech.SpeechToTextV2(credentials);
+    _logger.i('✅ Google Cloud Speech V2 initialized');
   }
 
   Future<bool> startProcessing({SpeechConfig? config}) async {
@@ -198,8 +200,9 @@ class EnhancedSpeechProcessor {
       ));
     });
   }
+
   Future<void> _transcribeAudioChunk(Uint8List audioData) async {
-    if (OpenAI.instance.apiKey.isEmpty) {
+    if (OpenAI.apiKey.isEmpty) {
       _logger.e('❌ OpenAI API key is not set. Cannot transcribe.');
       return;
     }

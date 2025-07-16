@@ -84,7 +84,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         hasEnhancement: caption.isEnhanced,
       ));
     } else {
-      emit(currentState.copyWith(currentCaption: caption));
+      emit(currentState.copyWith(currentCaption: caption.speechResult));
     }
   }
 
