@@ -116,10 +116,33 @@ class Gemma3nService {
     required String text,
     Uint8List? image,
   }) async {
-    if (!_isInitialized) throw StateError('Service not initialized');
-    // Placeholder for multimodal inference logic
-    _logger.i("Multimodal inference is not yet implemented in the merged service.");
-    return 'Multimodal result for "$text"';
+    if (!_isInitialized || _inferenceModel == null) {
+      _logger.w('⚠️ Gemma3nService not initialized, cannot perform multimodal inference.');
+      return 'Error: Service not initialized.';
+    }
+
+    try {
+      _logger.d('🧠 Performing multimodal inference for text: "$text"');
+      final session = await _inferenceModel!.createSession();
+      
+      final message = Message(
+        parts: [
+          if (image != null) Part.image(image),
+          Part.text('Context: $text. Describe the scene.'),
+        ],
+        isUser: true,
+      );
+
+      await session.addQueryChunk(message);
+      final response = await session.getResponse();
+      await session.close();
+
+      _logger.d('✅ Multimodal inference successful.');
+      return response;
+    } catch (e) {
+      _logger.e('❌ Failed to perform multimodal inference', error: e);
+      return 'Error performing multimodal inference.';
+    }
   }
 
   String _buildEnhancementPrompt(String rawText) {
