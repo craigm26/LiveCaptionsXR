@@ -21,12 +21,7 @@ enum SpeechEngine {
 class EnhancedSpeechProcessor {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
-  // Speech engines
-  final SpeechToText _speechToText = SpeechToText();
-  static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
-  
-  // Gemma enhancer
-  final GemmaEnhancer? _gemmaEnhancer;
+  final Gemma3nService gemma3nService;
   
   // State management
   bool _isInitialized = false;
@@ -47,10 +42,9 @@ class EnhancedSpeechProcessor {
   Stream<EnhancedCaption> get enhancedCaptions => _enhancedCaptionController.stream;
 
   EnhancedSpeechProcessor({
-    ModelDownloadManager? modelManager,
+    required this.gemma3nService,
     SpeechEngine? defaultEngine,
-  }) : _activeEngine = defaultEngine ?? SpeechEngine.speechToText,
-       _gemmaEnhancer = modelManager != null ? GemmaEnhancer(modelManager: modelManager) : null;
+  }) : _activeEngine = defaultEngine ?? SpeechEngine.speechToText;
 
   /// Initialize the speech processor with optional configuration
   Future<bool> initialize({
@@ -79,13 +73,10 @@ class EnhancedSpeechProcessor {
       }
       
       // Initialize Gemma enhancer if available and enabled
-      if (enableGemmaEnhancement && _gemmaEnhancer != null) {
-        try {
-          await _gemmaEnhancer!.initialize();
-          _logger.i('✅ Gemma enhancement enabled');
-        } catch (e) {
-          _logger.w('⚠️ Failed to initialize Gemma enhancer, continuing without enhancement', error: e);
-        }
+      if (enableGemmaEnhancement && gemma3nService.isReady) {
+        _logger.i('✅ Gemma enhancement enabled');
+      } else if (enableGemmaEnhancement) {
+        _logger.w('⚠️ Gemma3nService not ready, enhancement will be disabled.');
       }
       
       _isInitialized = true;
@@ -224,12 +215,17 @@ class EnhancedSpeechProcessor {
     }
     
     // Process enhancement if available and enabled
-    if (_gemmaEnhancer != null && _gemmaEnhancer!.isReady) {
+    if (gemma3nService.isReady) {
       try {
         if (result.isFinal) {
           // Only enhance final results to avoid too many API calls
-          final enhanced = await _gemmaEnhancer!.enhance(result.text);
-          _enhancedCaptionController.add(enhanced);
+          final enhancedText = await gemma3nService.enhanceText(result.text);
+          _enhancedCaptionController.add(EnhancedCaption(
+            raw: result.text,
+            enhanced: enhancedText,
+            isFinal: true,
+            isEnhanced: enhancedText != result.text,
+          ));
         } else {
           // For partial results, emit without enhancement
           _enhancedCaptionController.add(EnhancedCaption.partial(result.text));
@@ -343,19 +339,7 @@ class EnhancedSpeechProcessor {
       _logger.e('❌ Error closing enhanced caption controller', error: e);
     }
     
-    // Dispose Gemma enhancer with timeout
-    if (_gemmaEnhancer != null) {
-      try {
-        await _gemmaEnhancer!.dispose().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            _logger.w('⏰ Gemma enhancer dispose timed out');
-          },
-        );
-      } catch (e) {
-        _logger.e('❌ Error disposing Gemma enhancer', error: e);
-      }
-    }
+    // The gemma3nService is injected and its lifecycle managed elsewhere.
     
     _isInitialized = false;
     _logger.d('✅ EnhancedSpeechProcessor disposed');
@@ -367,7 +351,7 @@ class EnhancedSpeechProcessor {
   SpeechConfig get config => _config;
   String? get currentLanguage => _currentLanguage;
   SpeechEngine get activeEngine => _activeEngine;
-  bool get hasGemmaEnhancement => _gemmaEnhancer?.isReady ?? false;
+  bool get hasGemmaEnhancement => gemma3nService.isReady;
 
   /// Get statistics
   Map<String, dynamic> getStatistics() {
@@ -379,7 +363,6 @@ class EnhancedSpeechProcessor {
       'recentTextsCount': _recentTexts.length,
       'hasGemmaEnhancement': hasGemmaEnhancement,
       'config': _config.toMap(),
-      if (_gemmaEnhancer != null) 'gemmaStats': _gemmaEnhancer!.getCacheStats(),
     };
   }
 } 

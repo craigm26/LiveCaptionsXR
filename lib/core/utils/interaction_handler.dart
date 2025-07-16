@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 /// Utility class to handle web-specific interactions and prevent UI freezing
-class WebInteractionHandler {
+class InteractionHandler {
   static Timer? _debounceTimer;
 
   /// Debounced function execution to prevent rapid-fire calls that can freeze the UI

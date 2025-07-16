@@ -1,0 +1,159 @@
+
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_gemma/core/model.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
+
+import '../models/enhanced_caption.dart';
+import '../models/speech_result.dart';
+import 'model_download_manager.dart';
+import 'debug_capturing_logger.dart';
+
+/// A centralized service for all Gemma 3n model interactions.
+///
+/// This service is the single entry point for text, audio, image,
+/// and multimodal inference, as outlined in the refactoring plan in
+/// `prd/19_livecaptionsxr_multistage_captioning_pipeline.md`.
+class Gemma3nService {
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+
+  final ModelDownloadManager _modelManager;
+  InferenceModel? _inferenceModel;
+  bool _isInitialized = false;
+
+  // Cache for common phrase enhancements
+  final Map<String, String> _enhancementCache = {};
+  static const int _maxCacheSize = 100;
+
+  Gemma3nService({required ModelDownloadManager modelManager})
+      : _modelManager = modelManager;
+
+  /// Initializes the Gemma 3n model.
+  Future<void> initialize() async {
+    if (_isInitialized && _inferenceModel != null) {
+      _logger.i('✅ Gemma3nService already initialized');
+      return;
+    }
+
+    try {
+      _logger.i('🚀 Initializing Gemma3nService...');
+      
+      if (!await _modelManager.modelIsComplete()) {
+        throw Exception('Gemma 3n model not downloaded or incomplete');
+      }
+      
+      final modelPath = await _modelManager.getModelPath();
+      _logger.i('📁 Loading Gemma model from: $modelPath');
+      
+      final gemmaPlugin = FlutterGemmaPlugin.instance;
+      await gemmaPlugin.modelManager.setModelPath(modelPath);
+      
+      _inferenceModel = await gemmaPlugin.createModel(
+        modelType: ModelType.gemmaIt,
+        maxTokens: 2048,
+      );
+      
+      _isInitialized = true;
+      _logger.i('✅ Gemma3nService initialized successfully');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to initialize Gemma3nService', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Enhances a raw text string using the Gemma model.
+  Future<String> enhanceText(String rawText) async {
+    if (!_isInitialized || _inferenceModel == null) {
+      _logger.w('⚠️ Gemma3nService not initialized, returning raw text');
+      return rawText;
+    }
+
+    final cachedResult = _enhancementCache[rawText];
+    if (cachedResult != null) {
+      _logger.d('💾 Using cached enhancement for: "$rawText"');
+      return cachedResult;
+    }
+
+    try {
+      _logger.d('🔮 Enhancing text: "$rawText"');
+      final prompt = _buildEnhancementPrompt(rawText);
+      final session = await _inferenceModel!.createSession();
+      await session.addQueryChunk(Message.text(text: prompt, isUser: true));
+      final response = await session.getResponse();
+      await session.close();
+      
+      final enhancedText = _cleanEnhancedText(response);
+      
+      if (enhancedText != rawText && enhancedText.isNotEmpty) {
+        _addToCache(rawText, enhancedText);
+      }
+      
+      _logger.d('✨ Enhanced text: "$enhancedText"');
+      return enhancedText;
+    } catch (e) {
+      _logger.e('❌ Failed to enhance text', error: e);
+      return rawText;
+    }
+  }
+
+  /// Performs streaming audio-to-text transcription.
+  Stream<SpeechResult> streamTranscription(Stream<Uint8List> audioStream) async* {
+    if (!_isInitialized) throw StateError('Service not initialized');
+    // Placeholder for streaming ASR logic
+    _logger.i("Streaming transcription is not yet implemented in the merged service.");
+    yield SpeechResult(
+      text: 'Mock transcription',
+      confidence: 0.9,
+      isFinal: true,
+      timestamp: DateTime.now(),
+    );
+  }
+
+  /// Performs multimodal inference with image and text context.
+  Future<String> multimodalInference({
+    required String text,
+    Uint8List? image,
+  }) async {
+    if (!_isInitialized) throw StateError('Service not initialized');
+    // Placeholder for multimodal inference logic
+    _logger.i("Multimodal inference is not yet implemented in the merged service.");
+    return 'Multimodal result for "$text"';
+  }
+
+  String _buildEnhancementPrompt(String rawText) {
+    return '''Improve the following transcription by adding punctuation, correcting errors, and ensuring proper capitalization.
+Raw: "$rawText"
+Enhanced:''';
+  }
+
+  String _cleanEnhancedText(String text) {
+    var cleaned = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+    return cleaned;
+  }
+
+  void _addToCache(String raw, String enhanced) {
+    if (_enhancementCache.length >= _maxCacheSize) {
+      _enhancementCache.remove(_enhancementCache.keys.first);
+    }
+    _enhancementCache[raw] = enhanced;
+  }
+
+  Future<void> dispose() async {
+    _logger.i('🧹 Disposing Gemma3nService...');
+    _isInitialized = false;
+    _enhancementCache.clear();
+    if (_inferenceModel != null) {
+      await _inferenceModel!.close();
+      _inferenceModel = null;
+    }
+    _logger.i('✅ Gemma3nService disposed');
+  }
+
+  bool get isReady => _isInitialized && _inferenceModel != null;
+}

@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 // Uncomment when flutter_gemma is available:
 // import 'package:flutter_gemma/flutter_gemma.dart';
 
-import '../models/transcription_result.dart';
+import '../models/speech_result.dart';
 import 'hybrid_localization_engine.dart';
 import 'debug_capturing_logger.dart';
 
@@ -51,7 +51,7 @@ class GemmaASR {
 
   bool _initialized = false;
   bool _streaming = false;
-  late StreamController<TranscriptionResult> _resultController;
+  late StreamController<SpeechResult> _resultController;
   StreamSubscription? _pluginSubscription;
 
   GemmaASR({required this.hybridLocalizationEngine});
@@ -92,7 +92,7 @@ class GemmaASR {
   /// [audioBuffer] is the initial PCM16 mono audio buffer to transcribe.
   /// [visionContext] is an optional image (Uint8List) to provide visual context.
   /// Returns a broadcast stream of TranscriptionResult.
-  Stream<TranscriptionResult> startStream(Uint8List audioBuffer,
+  Stream<SpeechResult> startStream(Uint8List audioBuffer,
       {Uint8List? visionContext}) {
     if (!_initialized) {
       _logger.e('❌ GemmaASR not initialized, cannot start stream');
@@ -107,7 +107,7 @@ class GemmaASR {
         '🎙️ Starting GemmaASR stream - Audio: ${audioBuffer.length} bytes, Vision: ${visionContext != null ? '${visionContext.length} bytes' : 'none'}');
 
     _streaming = true;
-    _resultController = StreamController<TranscriptionResult>.broadcast();
+    _resultController = StreamController<SpeechResult>.broadcast();
 
     // Use multimodal streaming if vision context is provided
     if (visionContext != null) {
@@ -115,11 +115,11 @@ class GemmaASR {
       // Simulate multimodal streaming with mock data
       Future(() async {
         await Future.delayed(Duration(milliseconds: 200));
-        final partial = TranscriptionResult(text: "[Vision] This is a mock partial result.", isFinal: false);
+        final partial = SpeechResult(text: "[Vision] This is a mock partial result.", isFinal: false, confidence: 0.8, timestamp: DateTime.now());
         _logger.i('📝 Transcription: "${partial.text}" (final: ${partial.isFinal})');
         _resultController.add(partial);
         await Future.delayed(Duration(milliseconds: 200));
-        final finalResult = TranscriptionResult(text: "[Vision] This is a mock final result.", isFinal: true);
+        final finalResult = SpeechResult(text: "[Vision] This is a mock final result.", isFinal: true, confidence: 0.9, timestamp: DateTime.now());
         _logger.i('📝 Transcription: "${finalResult.text}" (final: ${finalResult.isFinal})');
         _resultController.add(finalResult);
         if (finalResult.text.isNotEmpty) {
@@ -135,11 +135,11 @@ class GemmaASR {
       // Simulate audio-only streaming with mock data
       Future(() async {
         await Future.delayed(Duration(milliseconds: 200));
-        final partial = TranscriptionResult(text: "This is a mock partial result.", isFinal: false);
+        final partial = SpeechResult(text: "This is a mock partial result.", isFinal: false, confidence: 0.8, timestamp: DateTime.now());
         _logger.i('📝 Audio transcription: "${partial.text}" (final: ${partial.isFinal})');
         _resultController.add(partial);
         await Future.delayed(Duration(milliseconds: 200));
-        final finalResult = TranscriptionResult(text: "This is a mock final result.", isFinal: true);
+        final finalResult = SpeechResult(text: "This is a mock final result.", isFinal: true, confidence: 0.9, timestamp: DateTime.now());
         _logger.i('📝 Audio transcription: "${finalResult.text}" (final: ${finalResult.isFinal})');
         _resultController.add(finalResult);
         if (finalResult.text.isNotEmpty) {
