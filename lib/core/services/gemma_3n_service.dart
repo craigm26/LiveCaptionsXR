@@ -100,15 +100,49 @@ class Gemma3nService {
 
   /// Performs streaming audio-to-text transcription.
   Stream<SpeechResult> streamTranscription(Stream<Uint8List> audioStream) async* {
-    if (!_isInitialized) throw StateError('Service not initialized');
-    // Placeholder for streaming ASR logic
-    _logger.i("Streaming transcription is not yet implemented in the merged service.");
-    yield SpeechResult(
-      text: 'Mock transcription',
-      confidence: 0.9,
-      isFinal: true,
-      timestamp: DateTime.now(),
-    );
+    if (!_isInitialized || _inferenceModel == null) {
+      _logger.e('Gemma3nService not initialized, cannot perform transcription.');
+      throw StateError('Service not initialized');
+    }
+
+    _logger.i('🎙️ Starting Gemma streaming transcription...');
+    final session = await _inferenceModel!.createSession();
+    bool isFinal = false;
+
+    await for (final audioChunk in audioStream) {
+      if (isFinal) break; // Stop processing if we've already sent a final result
+
+      try {
+        await session.addQueryChunk(Message(parts: [Part.audio(audioChunk)]));
+        final response = await session.getResponse();
+
+        // The flutter_gemma package does not explicitly provide a confidence score
+        // or an isFinal flag in the same way that STT packages do. We will have
+        // to make some assumptions here. We'll treat every response as a partial
+        // result until the stream is closed.
+        yield SpeechResult(
+          text: response,
+          confidence: 0.9, // Placeholder confidence
+          isFinal: false, // Assume not final until stream closure
+          timestamp: DateTime.now(),
+        );
+      } catch (e) {
+        _logger.e('❌ Error during Gemma streaming transcription', error: e);
+        yield SpeechResult(
+          text: 'Error during transcription',
+          confidence: 0.0,
+          isFinal: true,
+          timestamp: DateTime.now(),
+        );
+        isFinal = true;
+      }
+    }
+
+    // When the audio stream closes, we can consider the last result final.
+    // This part of the logic would need to be handled by the caller, which
+    // would manage the lifecycle of the audio stream.
+    await session.close();
+    _logger.i('✅ Gemma streaming transcription finished.');
   }
 
   /// Performs multimodal inference with image and text context.
