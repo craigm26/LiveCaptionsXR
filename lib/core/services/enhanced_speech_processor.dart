@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_speech/generated/google/cloud/speech/v2/cloud_speech.pb.dart' as google_speech;
 import 'package:path_provider/path_provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart' as stt;
@@ -9,6 +10,7 @@ import 'package:dart_openai/dart_openai.dart';
 import 'package:google_speech/google_speech.dart' as google_speech;
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/google_auth_service.dart';
+import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
@@ -34,6 +36,8 @@ class EnhancedSpeechProcessor {
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
 
   // Google Cloud Speech specific
+  // Google Cloud Speech specific
+  // Google Cloud Speech specific
   google_speech.SpeechToTextV2? _googleSpeechV2;
   StreamSubscription<google_speech.StreamingRecognizeResponse>? _googleSpeechSubscription;
 
@@ -50,10 +54,14 @@ class EnhancedSpeechProcessor {
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
   Stream<EnhancedCaption> get enhancedCaptions => _enhancedCaptionController.stream;
 
+  final AudioCaptureService _audioCaptureService;
+
   EnhancedSpeechProcessor({
     required this.gemma3nService,
+    required AudioCaptureService audioCaptureService,
     SpeechEngine? defaultEngine,
-  }) : _activeEngine = defaultEngine ?? SpeechEngine.speechToText;
+  }) : _activeEngine = defaultEngine ?? SpeechEngine.speechToText,
+       _audioCaptureService = audioCaptureService;
 
   Future<bool> initialize({
     SpeechConfig? config,
@@ -124,8 +132,8 @@ class EnhancedSpeechProcessor {
       _logger.e('❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found in .env file.');
       throw Exception('Google Cloud credentials not found.');
     }
-    final credentials = google_speech.GoogleSpeechV2Credentials.fromJson(serviceAccountJson);
-    _googleSpeechV2 = google_speech.SpeechToTextV2(credentials);
+    final credentials = google_speech.ServiceAccount.fromString(serviceAccountJson);
+    _googleSpeechV2 = google_speech.SpeechToTextV2.viaServiceAccount(credentials, projectId: 'live-captions-xr');
     _logger.i('✅ Google Cloud Speech V2 initialized');
   }
 
@@ -135,6 +143,8 @@ class EnhancedSpeechProcessor {
 
     try {
       if (config != null) await updateConfig(config);
+
+      await _audioCaptureService.start();
 
       switch (_activeEngine) {
         case SpeechEngine.speechToText:
@@ -177,20 +187,22 @@ class EnhancedSpeechProcessor {
 
   void _startOpenAIProcessing() {
     _logger.w('OpenAI processing needs to be adapted to a file-based workflow.');
-    _transcribeAudioChunk(Uint8List(0));
+    _audioCaptureService.audioStream?.listen((data) {
+      _transcribeAudioChunk(Uint8List.fromList(data));
+    });
   }
 
   void _startGoogleCloudSpeechProcessing() {
     final config = google_speech.RecognitionConfigV2(
       autoDecodingConfig: google_speech.AutoDetectDecodingConfig(),
-      model: 'chirp',
+      model: google_speech.RecognitionModelV2.chirp,
       languageCodes: [_currentLanguage ?? 'en-US'],
       features: google_speech.RecognitionFeatures(enableAutomaticPunctuation: true),
     );
     
     final audioStream = Stream<List<int>>.empty();
 
-    _googleSpeechSubscription = _googleSpeechV2?.streamingRecognize(config, audioStream).listen((response) {
+    _googleSpeechSubscription = _googleSpeechV2?.streamingRecognize(config as google_speech.StreamingRecognitionConfigV2, audioStream).listen((response) {
       final result = response.results.first;
       _processSpeechResult(SpeechResult(
         text: result.alternatives.first.transcript,
@@ -202,10 +214,7 @@ class EnhancedSpeechProcessor {
   }
 
   Future<void> _transcribeAudioChunk(Uint8List audioData) async {
-    if (OpenAI.apiKey.isEmpty) {
-      _logger.e('❌ OpenAI API key is not set. Cannot transcribe.');
-      return;
-    }
+
 
     final tempDir = await getTemporaryDirectory();
     final tempFile = File('${tempDir.path}/temp_audio.wav');

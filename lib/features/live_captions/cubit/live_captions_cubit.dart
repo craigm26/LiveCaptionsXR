@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
-import 'package:meta/meta.dart';
 
 import '../../../core/models/enhanced_caption.dart';
 import '../../../core/models/speech_result.dart';
@@ -84,7 +83,12 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         hasEnhancement: caption.isEnhanced,
       ));
     } else {
-      emit(currentState.copyWith(currentCaption: caption.speechResult));
+      emit(currentState.copyWith(currentCaption: SpeechResult(
+        text: caption.displayText,
+        confidence: caption.confidence,
+        isFinal: caption.isFinal,
+        timestamp: caption.timestamp,
+      )));
     }
   }
 

@@ -33,6 +33,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   google_speech: ^5.3.0
   google_sign_in: ^6.2.1
+  mic_stream: ^0.7.2
   # Add your other dependencies here
 
 dev_dependencies:
