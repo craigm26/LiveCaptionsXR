@@ -39,6 +39,32 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     _initMethodChannelListener();
   }
 
+  Future<void> updateWithAudioMeasurement({
+    required double angle,
+    required double confidence,
+    required List<double> deviceTransform,
+  }) async {
+    await _hybridLocalizationEngine.updateWithAudioMeasurement(
+      angle: angle,
+      confidence: confidence,
+      deviceTransform: deviceTransform,
+    );
+  }
+
+  Future<void> updateWithVisualMeasurement({
+    required List<double> transform,
+    required double confidence,
+  }) async {
+    await _hybridLocalizationEngine.updateWithVisualMeasurement(
+      transform: transform,
+      confidence: confidence,
+    );
+  }
+
+  Future<List<double>?> getFusedTransform() async {
+    return await _hybridLocalizationEngine.getFusedTransform();
+  }
+
   void _initMethodChannelListener() {
     const MethodChannel('live_captions_xr/ar_navigation').setMethodCallHandler((call) async {
       if (call.method == 'arViewWillClose') {
