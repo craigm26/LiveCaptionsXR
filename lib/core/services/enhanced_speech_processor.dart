@@ -16,6 +16,7 @@ enum SpeechEngine {
   speechToText,
   gemma3n,
   openAI,
+  googleCloud,
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
@@ -25,6 +26,10 @@ class EnhancedSpeechProcessor {
   final Gemma3nService gemma3nService;
   final SpeechToText _speechToText = SpeechToText();
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
+
+  // Google Cloud Speech specific
+  SpeechToGoogle? _googleSpeech;
+  StreamSubscription<StreamingRecognizeResponse>? _googleSpeechSubscription;
 
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -63,6 +68,9 @@ class EnhancedSpeechProcessor {
           break;
         case SpeechEngine.openAI:
           _initializeOpenAI();
+          break;
+        case SpeechEngine.googleCloud:
+          await _initializeGoogleCloudSpeech();
           break;
         case SpeechEngine.gemma3n:
           _logger.w('Gemma 3n ASR not yet implemented, falling back to speech_to_text');
@@ -106,6 +114,17 @@ class EnhancedSpeechProcessor {
     _logger.i('✅ OpenAI (Whisper) engine initialized');
   }
 
+  Future<void> _initializeGoogleCloudSpeech() async {
+    final serviceAccountJson = dotenv.env['GOOGLE_APPLICATION_CREDENTIALS_JSON'];
+    if (serviceAccountJson == null || serviceAccountJson.isEmpty) {
+      _logger.e('❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found in .env file.');
+      throw Exception('Google Cloud credentials not found.');
+    }
+    final serviceAccount = ServiceAccount.fromString(serviceAccountJson);
+    _googleSpeech = SpeechToGoogle(serviceAccount);
+    _logger.i('✅ Google Cloud Speech initialized');
+  }
+
   Future<bool> startProcessing({SpeechConfig? config}) async {
     if (!_isInitialized) return false;
     if (_isProcessing) return true;
@@ -122,6 +141,9 @@ class EnhancedSpeechProcessor {
           break;
         case SpeechEngine.openAI:
           _startOpenAIProcessing();
+          break;
+        case SpeechEngine.googleCloud:
+          _startGoogleCloudSpeechProcessing();
           break;
         case SpeechEngine.gemma3n:
           await _startSpeechToTextProcessing();
@@ -166,12 +188,35 @@ import 'gemma3n_service.dart';
 // ... (enum and class definition are the same)
 
   void _startOpenAIProcessing() {
-    // This workflow is not ideal for live captions due to latency.
-    // It's implemented here to fulfill the PRD requirement.
-    _logger.i('🎙️ Starting OpenAI file-based processing...');
-    // This would need to be connected to an audio stream from the microphone.
-    // For now, we'll simulate receiving a chunk of audio data.
-    _transcribeAudioChunk(Uint8List(0)); // Simulate with empty data
+    // This requires a file path to an audio file. The dart_openai package
+    // does not support streaming transcription directly. This would need to be
+    // adapted to a record -> save -> transcribe workflow.
+    _logger.w('OpenAI processing needs to be adapted to a file-based workflow.');
+  }
+
+  void _startGoogleCloudSpeechProcessing() {
+    final recognitionConfig = RecognitionConfig(
+      encoding: AudioEncoding.LINEAR16,
+      model: RecognitionModel.android_studio, // Or another suitable model
+      enableAutomaticPunctuation: true,
+      sampleRateHertz: 16000,
+      languageCode: _currentLanguage ?? 'en-US',
+    );
+    final streamingConfig = StreamingRecognitionConfig(config: recognitionConfig, interimResults: true);
+
+    // This requires a stream of audio bytes from the microphone.
+    // This part needs to be connected to an actual audio source.
+    final audioStream = Stream<List<int>>.empty(); 
+
+    _googleSpeechSubscription = _googleSpeech?.streamingRecognize(streamingConfig, audioStream).listen((data) {
+      final result = SpeechResult(
+        text: data.results.first.alternatives.first.transcript,
+        confidence: data.results.first.alternatives.first.confidence,
+        isFinal: data.results.first.isFinal,
+        timestamp: DateTime.now(),
+      );
+      _processSpeechResult(result);
+    });
   }
 
   Future<void> _transcribeAudioChunk(Uint8List audioData) async {
@@ -238,6 +283,9 @@ import 'gemma3n_service.dart';
           break;
         case SpeechEngine.openAI:
           // No streaming to stop
+          break;
+        case SpeechEngine.googleCloud:
+          await _googleSpeechSubscription?.cancel();
           break;
         case SpeechEngine.gemma3n:
           await _speechToText.stop();
