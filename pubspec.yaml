@@ -28,8 +28,8 @@ dependencies:
   permission_handler: ^11.3.1
   speech_to_text: ^6.6.2
   path_provider: ^2.0.11
-  http: ^0.13.3
-  google_speech: ^2.2.0
+  http: ^1.4.0
+  dart_openai: ^5.1.0
   # Add your other dependencies here
 
 dev_dependencies:
