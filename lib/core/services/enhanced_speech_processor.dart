@@ -28,7 +28,7 @@ class EnhancedSpeechProcessor {
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
 
   // Google Cloud Speech specific
-  SpeechToGoogle? _googleSpeech;
+  SpeechToTextV2? _googleSpeechV2;
   StreamSubscription<StreamingRecognizeResponse>? _googleSpeechSubscription;
 
   bool _isInitialized = false;
@@ -120,9 +120,9 @@ class EnhancedSpeechProcessor {
       _logger.e('❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found in .env file.');
       throw Exception('Google Cloud credentials not found.');
     }
-    final serviceAccount = ServiceAccount.fromString(serviceAccountJson);
-    _googleSpeech = SpeechToGoogle(serviceAccount);
-    _logger.i('✅ Google Cloud Speech initialized');
+    final credentials = GoogleSpeechV2Credentials.fromJson(serviceAccountJson);
+    _googleSpeechV2 = SpeechToTextV2(credentials);
+    _logger.i('✅ Google Cloud Speech V2 initialized');
   }
 
   Future<bool> startProcessing({SpeechConfig? config}) async {
@@ -195,27 +195,26 @@ import 'gemma3n_service.dart';
   }
 
   void _startGoogleCloudSpeechProcessing() {
-    final recognitionConfig = RecognitionConfig(
-      encoding: AudioEncoding.LINEAR16,
-      model: RecognitionModel.android_studio, // Or another suitable model
-      enableAutomaticPunctuation: true,
-      sampleRateHertz: 16000,
-      languageCode: _currentLanguage ?? 'en-US',
+    final config = RecognitionConfigV2(
+      autoDecodingConfig: AutoDetectDecodingConfig(),
+      model: 'chirp', // Using the newer Chirp model
+      languageCodes: [_currentLanguage ?? 'en-US'],
+      features: RecognitionFeatures(
+        enableAutomaticPunctuation: true,
+      ),
     );
-    final streamingConfig = StreamingRecognitionConfig(config: recognitionConfig, interimResults: true);
-
+    
     // This requires a stream of audio bytes from the microphone.
-    // This part needs to be connected to an actual audio source.
-    final audioStream = Stream<List<int>>.empty(); 
+    final audioStream = Stream<List<int>>.empty();
 
-    _googleSpeechSubscription = _googleSpeech?.streamingRecognize(streamingConfig, audioStream).listen((data) {
-      final result = SpeechResult(
-        text: data.results.first.alternatives.first.transcript,
-        confidence: data.results.first.alternatives.first.confidence,
-        isFinal: data.results.first.isFinal,
+    _googleSpeechSubscription = _googleSpeechV2?.streamingRecognize(config, audioStream).listen((response) {
+      final result = response.results.first;
+      _processSpeechResult(SpeechResult(
+        text: result.alternatives.first.transcript,
+        confidence: result.alternatives.first.confidence,
+        isFinal: result.isFinal,
         timestamp: DateTime.now(),
-      );
-      _processSpeechResult(result);
+      ));
     });
   }
 
