@@ -46,8 +46,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         await _speechProcessor.initialize(enableGemmaEnhancement: _useEnhancement);
       }
 
-      await _speechProcessor.startProcessing();
-
+      // The UI will remain in the "loading" state until the first caption is received.
       if (_useEnhancement && _speechProcessor.hasGemmaEnhancement) {
         _captionSubscription = _speechProcessor.enhancedCaptions.listen(_handleEnhancedCaption);
         _logger.i('✨ Subscribed to enhanced captions stream.');
@@ -56,12 +55,11 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         _logger.i('📝 Subscribed to raw speech results stream.');
       }
 
-      emit(LiveCaptionsActive(
-        captions: const [],
-        isListening: true,
-        hasEnhancement: _useEnhancement && _speechProcessor.hasGemmaEnhancement,
-      ));
-      _logger.i('✅ Live captions started successfully');
+      await _speechProcessor.startProcessing();
+      
+      // We no longer emit an "Active" state here immediately. The first
+      // received caption will transition the state from Loading to Active.
+      _logger.i('✅ Live captions started successfully, waiting for first result...');
     } catch (e) {
       _logger.e('❌ Failed to start live captions: $e');
       emit(LiveCaptionsError(message: 'Failed to start live captions', details: e.toString()));
@@ -70,8 +68,9 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   }
 
   void _handleEnhancedCaption(EnhancedCaption caption) {
-    if (state is! LiveCaptionsActive) return;
-    final currentState = state as LiveCaptionsActive;
+    final currentState = state is LiveCaptionsActive
+        ? (state as LiveCaptionsActive)
+        : LiveCaptionsActive(isListening: true, hasEnhancement: _useEnhancement && _speechProcessor.hasGemmaEnhancement);
 
     if (caption.isFinal) {
       _captionHistory.add(caption);
