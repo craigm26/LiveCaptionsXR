@@ -82,7 +82,7 @@
 ## 6. Technical Requirements & Constraints
 
 * **Platform(s):** iOS, Android, (optionally macOS, Windows for dev/testing)
-* **Technology Stack:** Flutter, flutter_gemma, cloud STT API, Whisper (or similar), camera plugin
+* **Technology Stack:** Flutter, flutter_gemma, dart_openai, google_speech, camera, flutter_dotenv
 * **Performance Requirements:**
   * Caption latency < 1s (cloud), < 5s (offline)
   * Enhancement latency < 2s
@@ -91,7 +91,11 @@
   * Cloud STT only used with explicit user consent
   * GDPR/CCPA compliance
 * **Dependencies & Integrations:**
-  * flutter_gemma, cloud STT API, Whisper, camera plugin
+  - **flutter_gemma:** For on-device text enhancement and experimental on-device STT.
+  - **dart_openai:** For cloud-based STT using the Whisper API. Requires a file-based workflow (record, save, transcribe).
+  - **google_speech:** For cloud-based STT using Google's Speech-to-Text V2 API (Chirp model). Supports streaming.
+  - **camera:** For capturing visual context for multimodal features.
+  - **flutter_dotenv:** For managing API keys for cloud services.
 
 ---
 
