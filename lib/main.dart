@@ -21,13 +21,7 @@ void main() async {
     await dotenv.load(fileName: ".env");
     _logger.d('🔑 Environment variables loaded');
 
-    // Set OpenAI API key
-    OpenAI.apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-    if (OpenAI.apiKey.isEmpty) {
-      _logger.w('⚠️ OPENAI_API_KEY not found in .env file.');
-    } else {
-      _logger.i('🔑 OpenAI API key set.');
-    }
+
 
     // Initialize debug logger service
     DebugLoggerService().initialize();

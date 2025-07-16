@@ -80,6 +80,20 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              _buildSectionHeader('Cloud Services'),
+              _buildSettingTile(
+                context,
+                icon: Icons.login,
+                title: 'Google Cloud',
+                subtitle: 'Sign in to use Google Cloud STT',
+                trailing: ElevatedButton(
+                  onPressed: () {
+                    context.read<GoogleAuthService>().signIn();
+                  },
+                  child: const Text('Sign In'),
+                ),
+              ),
+              const SizedBox(height: 24),
               _buildSectionHeader('Feedback'),
               _buildSettingTile(
                 context,

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:live_captions_xr/core/models/speech_result.dart';
 
 /// Model representing a caption that has been enhanced by Gemma 3n
 class EnhancedCaption extends Equatable {

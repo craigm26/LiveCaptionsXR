@@ -45,9 +45,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       if (!_speechProcessor.isReady) {
         await _speechProcessor.initialize(enableGemmaEnhancement: _useEnhancement);
       }
-
       // The UI will remain in the "loading" state until the first caption is received.
-      if (_useEnhancement && _speechProcessor.hasGemmaEnhancement) {
+      if (_useEnhancement && _speechProcessor.isReady) {
         _captionSubscription = _speechProcessor.enhancedCaptions.listen(_handleEnhancedCaption);
         _logger.i('✨ Subscribed to enhanced captions stream.');
       } else {
@@ -70,7 +69,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   void _handleEnhancedCaption(EnhancedCaption caption) {
     final currentState = state is LiveCaptionsActive
         ? (state as LiveCaptionsActive)
-        : LiveCaptionsActive(isListening: true, hasEnhancement: _useEnhancement && _speechProcessor.hasGemmaEnhancement);
+        : LiveCaptionsActive(isListening: true, hasEnhancement: _useEnhancement, captions: []);
 
     if (caption.isFinal) {
       _captionHistory.add(caption);
