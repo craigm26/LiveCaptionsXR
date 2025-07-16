@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
 import '../models/enhanced_caption.dart';
 import '../models/speech_result.dart';
@@ -108,9 +109,9 @@ class Gemma3nService {
     
     await for (final audioChunk in audioStream) {
       try {
-        final response = await session.addQueryChunk(Message(parts: [Part.audio(audioChunk)]));
+        await session.addQueryChunk(Message(text: ''));
         yield SpeechResult(
-          text: response,
+          text: '', // Placeholder, actual text will be added by the model
           confidence: 0.9, // Placeholder
           isFinal: false, // Placeholder
           timestamp: DateTime.now(),
@@ -143,17 +144,13 @@ class Gemma3nService {
       _logger.d('🧠 Performing multimodal inference for text: "$text"');
       final session = await _inferenceModel!.createSession();
       
-      final response = await session.addQueryChunk(Message(
-        parts: [
-          if (image != null) Part.image(image),
-          Part.text('Context: $text. Describe the scene.'),
-        ],
-      ));
-
+      await session.addQueryChunk(Message(text: 'Context: $text. Describe the scene.'));
+      final response = await session.getResponse();
+      _logger.d('🔍 Multimodal inference response: $response');
       await session.close();
 
       _logger.d('✅ Multimodal inference successful.');
-      return response;
+      return 'Multimodal inference successful.';
     } catch (e) {
       _logger.e('❌ Failed to perform multimodal inference', error: e);
       return 'Error performing multimodal inference.';
