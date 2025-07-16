@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart' as stt;
-import 'package:google_speech/google_speech.dart';
+import 'package:dart_openai/dart_openai.dart';
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
@@ -15,7 +15,7 @@ enum SpeechEngine {
   native,
   speechToText,
   gemma3n,
-  googleCloud,
+  openAI,
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
@@ -25,10 +25,6 @@ class EnhancedSpeechProcessor {
   final Gemma3nService gemma3nService;
   final SpeechToText _speechToText = SpeechToText();
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
-  
-  // Google Cloud Speech specific
-  StreamSubscription<List<int>>? _audioSubscription;
-  SpeechToGoogle? _googleSpeech;
 
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -65,8 +61,8 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.native:
           await _initializeNativeEngine();
           break;
-        case SpeechEngine.googleCloud:
-          await _initializeGoogleCloudSpeech();
+        case SpeechEngine.openAI:
+          _initializeOpenAI();
           break;
         case SpeechEngine.gemma3n:
           _logger.w('Gemma 3n ASR not yet implemented, falling back to speech_to_text');
@@ -104,11 +100,10 @@ class EnhancedSpeechProcessor {
     _logger.i('✅ Native speech engine initialized');
   }
 
-  Future<void> _initializeGoogleCloudSpeech() async {
-    // TODO: Securely provide service account credentials
-    final serviceAccount = ServiceAccount.fromString('{}');
-    _googleSpeech = SpeechToGoogle(serviceAccount);
-    _logger.i('✅ Google Cloud Speech initialized');
+  void _initializeOpenAI() {
+    // This should be done at app startup, not here.
+    // OpenAI.apiKey = 'YOUR_API_KEY';
+    _logger.i('✅ OpenAI (Whisper) engine initialized');
   }
 
   Future<bool> startProcessing({SpeechConfig? config}) async {
@@ -125,8 +120,8 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.native:
           await _startNativeProcessing();
           break;
-        case SpeechEngine.googleCloud:
-          await _startGoogleCloudSpeechProcessing();
+        case SpeechEngine.openAI:
+          _startOpenAIProcessing();
           break;
         case SpeechEngine.gemma3n:
           await _startSpeechToTextProcessing();
@@ -154,28 +149,11 @@ class EnhancedSpeechProcessor {
     await _nativeChannel.invokeMethod('startListening', {'language': _currentLanguage});
   }
 
-  Future<void> _startGoogleCloudSpeechProcessing() async {
-    final recognitionConfig = RecognitionConfig(
-      encoding: AudioEncoding.LINEAR16,
-      model: RecognitionModel.android_studio,
-      enableAutomaticPunctuation: true,
-      sampleRateHertz: 16000,
-      languageCode: _currentLanguage ?? 'en-US',
-    );
-    final streamingConfig = StreamingRecognitionConfig(config: recognitionConfig, interimResults: true);
-
-    // This requires a stream of audio bytes. This part needs to be connected
-    // to an actual audio source, which is outside the scope of this refactoring.
-    // final audioStream = Stream<List<int>>.empty();
-    // _audioSubscription = _googleSpeech?.streamingRecognize(streamingConfig, audioStream).listen((data) {
-    //   final result = SpeechResult(
-    //     text: data.results.first.alternatives.first.transcript,
-    //     confidence: data.results.first.alternatives.first.confidence,
-    //     isFinal: data.results.first.isFinal,
-    //     timestamp: DateTime.now(),
-    //   );
-    //   _processSpeechResult(result);
-    // });
+  void _startOpenAIProcessing() {
+    // This requires a file path to an audio file. The dart_openai package
+    // does not support streaming transcription directly. This would need to be
+    // adapted to a record -> save -> transcribe workflow.
+    _logger.w('OpenAI processing needs to be adapted to a file-based workflow.');
   }
 
   void _onSpeechToTextResult(stt.SpeechRecognitionResult result) {
@@ -206,8 +184,8 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.native:
           await _nativeChannel.invokeMethod('stopListening');
           break;
-        case SpeechEngine.googleCloud:
-          await _audioSubscription?.cancel();
+        case SpeechEngine.openAI:
+          // No streaming to stop
           break;
         case SpeechEngine.gemma3n:
           await _speechToText.stop();
