@@ -145,6 +145,8 @@
 
 ## 11. Service Refactor & Consolidation Plan
 
+**Status: Completed** - The refactoring described in this section has been implemented.
+
 To support the new multistage captioning pipeline and improve maintainability, the following service refactor and consolidation plan is recommended:
 
 ### A. Multimodal AI Services
@@ -204,6 +206,8 @@ To support the new multistage captioning pipeline and improve maintainability, t
 
 ## 12. Model Refactor & Consolidation Plan
 
+**Status: Completed** - The refactoring described in this section has been implemented.
+
 To improve maintainability, reusability, and support the multistage captioning pipeline, the following model refactor and consolidation plan is recommended:
 
 ### A. Speech & Caption Models
@@ -247,6 +251,8 @@ To improve maintainability, reusability, and support the multistage captioning p
 ---
 
 ## 13. Feature Refactor & Consolidation Plan
+
+**Status: Completed** - The refactoring described in this section has been implemented.
 
 To improve maintainability, reusability, and support the multistage captioning pipeline, the following feature refactor and consolidation plan is recommended:
 
@@ -296,6 +302,8 @@ To improve maintainability, reusability, and support the multistage captioning p
 ---
 
 ## 14. App Structure & Utility Refactor Plan
+
+**Status: Completed** - The refactoring described in this section has been implemented.
 
 To further improve maintainability, reduce duplication, and support cross-platform development, the following app structure and utility refactor plan is recommended:
 
