@@ -41,6 +41,18 @@ class EnhancedCaption extends Equatable {
     );
   }
 
+  /// Create an EnhancedCaption from a standard SpeechResult
+  factory EnhancedCaption.fromSpeechResult(SpeechResult result) {
+    return EnhancedCaption(
+      raw: result.text,
+      enhanced: result.text,
+      confidence: result.confidence,
+      isFinal: result.isFinal,
+      isEnhanced: false,
+      timestamp: result.timestamp,
+    );
+  }
+
   /// Get the best available text (enhanced if available, otherwise raw)
   String get displayText => enhanced ?? raw;
 
