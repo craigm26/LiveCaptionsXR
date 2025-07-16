@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_speech/generated/google/cloud/speech/v2/cloud_speech.pbgrpc.dart' as google_speech;
+import 'package:path_provider/path_provider.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart' as stt;
 import 'package:dart_openai/dart_openai.dart';
+import 'package:google_speech/google_speech.dart' as google_speech hide SpeechToText;
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
 import 'debug_capturing_logger.dart';
-import 'gemma3n_service.dart';
+import 'gemma_3n_service.dart';
 
 /// Speech processing engine types
 enum SpeechEngine {
@@ -28,8 +33,8 @@ class EnhancedSpeechProcessor {
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
 
   // Google Cloud Speech specific
-  SpeechToTextV2? _googleSpeechV2;
-  StreamSubscription<StreamingRecognizeResponse>? _googleSpeechSubscription;
+  google_speech.SpeechToTextV2? _googleSpeechV2;
+  StreamSubscription<google_speech.StreamingRecognizeResponse>? _googleSpeechSubscription;
 
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -109,20 +114,17 @@ class EnhancedSpeechProcessor {
   }
 
   void _initializeOpenAI() {
-    // This should be done at app startup, not here.
-    // OpenAI.apiKey = 'YOUR_API_KEY';
     _logger.i('✅ OpenAI (Whisper) engine initialized');
   }
 
   Future<void> _initializeGoogleCloudSpeech() async {
-    final serviceAccountJson = dotenv.env['GOOGLE_APPLICATION_CREDENTIALS_JSON'];
-    if (serviceAccountJson == null || serviceAccountJson.isEmpty) {
-      _logger.e('❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found in .env file.');
-      throw Exception('Google Cloud credentials not found.');
+    final authHeaders = await sl<GoogleAuthService>().getAuthHeaders();
+    if (authHeaders == null) {
+      _logger.e('❌ Google Sign-In failed. Cannot initialize Google Cloud Speech.');
+      throw Exception('Google Sign-In failed.');
     }
-    final credentials = GoogleSpeechV2Credentials.fromJson(serviceAccountJson);
-    _googleSpeechV2 = SpeechToTextV2(credentials);
-    _logger.i('✅ Google Cloud Speech V2 initialized');
+    _googleSpeechV2 = google_speech.SpeechToTextV2.viaOAuth2(authHeaders);
+    _logger.i('✅ Google Cloud Speech V2 initialized with user credentials.');
   }
 
   Future<bool> startProcessing({SpeechConfig? config}) async {
@@ -171,40 +173,19 @@ class EnhancedSpeechProcessor {
     await _nativeChannel.invokeMethod('startListening', {'language': _currentLanguage});
   }
 
-  import 'dart:async';
-import 'dart:io';
-import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart' as stt;
-import 'package:dart_openai/dart_openai.dart';
-
-import '../models/speech_result.dart';
-import '../models/speech_config.dart';
-import '../models/enhanced_caption.dart';
-import 'debug_capturing_logger.dart';
-import 'gemma3n_service.dart';
-
-// ... (enum and class definition are the same)
-
   void _startOpenAIProcessing() {
-    // This requires a file path to an audio file. The dart_openai package
-    // does not support streaming transcription directly. This would need to be
-    // adapted to a record -> save -> transcribe workflow.
     _logger.w('OpenAI processing needs to be adapted to a file-based workflow.');
+    _transcribeAudioChunk(Uint8List(0));
   }
 
   void _startGoogleCloudSpeechProcessing() {
-    final config = RecognitionConfigV2(
-      autoDecodingConfig: AutoDetectDecodingConfig(),
-      model: 'chirp', // Using the newer Chirp model
+    final config = google_speech.RecognitionConfigV2(
+      autoDecodingConfig: google_speech.AutoDetectDecodingConfig(),
+      model: 'chirp',
       languageCodes: [_currentLanguage ?? 'en-US'],
-      features: RecognitionFeatures(
-        enableAutomaticPunctuation: true,
-      ),
+      features: google_speech.RecognitionFeatures(enableAutomaticPunctuation: true),
     );
     
-    // This requires a stream of audio bytes from the microphone.
     final audioStream = Stream<List<int>>.empty();
 
     _googleSpeechSubscription = _googleSpeechV2?.streamingRecognize(config, audioStream).listen((response) {
@@ -217,9 +198,8 @@ import 'gemma3n_service.dart';
       ));
     });
   }
-
   Future<void> _transcribeAudioChunk(Uint8List audioData) async {
-    if (OpenAI.apiKey.isEmpty) {
+    if (OpenAI.instance.apiKey.isEmpty) {
       _logger.e('❌ OpenAI API key is not set. Cannot transcribe.');
       return;
     }
@@ -236,7 +216,7 @@ import 'gemma3n_service.dart';
 
       final result = SpeechResult(
         text: transcription.text,
-        confidence: 1.0, // Whisper API doesn't provide confidence score
+        confidence: 1.0,
         isFinal: true,
         timestamp: DateTime.now(),
       );
@@ -250,8 +230,6 @@ import 'gemma3n_service.dart';
     }
   }
 
-// ... (rest of the class is the same)
-
   void _onSpeechToTextResult(stt.SpeechRecognitionResult result) {
     _processSpeechResult(SpeechResult(
       text: result.recognizedWords,
@@ -262,11 +240,56 @@ import 'gemma3n_service.dart';
   }
 
   Future<dynamic> _handleNativeMethodCall(MethodCall call) async {
-    // ... (implementation unchanged)
+    switch (call.method) {
+      case 'onSpeechResult':
+        final text = call.arguments['text'] as String;
+        final confidence = call.arguments['confidence'] as double;
+        final isFinal = call.arguments['isFinal'] as bool;
+        
+        _processSpeechResult(SpeechResult(
+          text: text,
+          confidence: confidence,
+          isFinal: isFinal,
+          timestamp: DateTime.now(),
+        ));
+        break;
+    }
   }
 
   void _processSpeechResult(SpeechResult result) async {
-    // ... (implementation unchanged)
+    _speechResultController.add(result);
+    
+    if (result.isFinal) {
+      _recentTexts.add(result.text);
+      if (_recentTexts.length > 10) {
+        _recentTexts.removeAt(0);
+      }
+    }
+    
+    if (gemma3nService.isReady) {
+      try {
+        if (result.isFinal) {
+          final enhancedText = await gemma3nService.enhanceText(result.text);
+          _enhancedCaptionController.add(EnhancedCaption(
+            raw: result.text,
+            enhanced: enhancedText,
+            isFinal: true,
+            isEnhanced: enhancedText != result.text,
+          ));
+        } else {
+          _enhancedCaptionController.add(EnhancedCaption.partial(result.text));
+        }
+      } catch (e) {
+        _logger.e('Failed to enhance caption', error: e);
+        _enhancedCaptionController.add(EnhancedCaption.fallback(result.text));
+      }
+    } else {
+      _enhancedCaptionController.add(
+        result.isFinal 
+          ? EnhancedCaption(raw: result.text, enhanced: result.text, isFinal: true, isEnhanced: false)
+          : EnhancedCaption.partial(result.text)
+      );
+    }
   }
 
   Future<bool> stopProcessing() async {
@@ -281,7 +304,6 @@ import 'gemma3n_service.dart';
           await _nativeChannel.invokeMethod('stopListening');
           break;
         case SpeechEngine.openAI:
-          // No streaming to stop
           break;
         case SpeechEngine.googleCloud:
           await _googleSpeechSubscription?.cancel();
@@ -300,5 +322,31 @@ import 'gemma3n_service.dart';
     }
   }
   
-  // ... (rest of the class is unchanged)
-} 
+  Future<bool> switchEngine(SpeechEngine engine) async {
+    if (_isProcessing) {
+      await stopProcessing();
+    }
+    
+    _activeEngine = engine;
+    _logger.i('🔄 Switched to speech engine: $engine');
+    
+    _isInitialized = false;
+    return await initialize(config: _config);
+  }
+
+  Future<void> updateConfig(SpeechConfig newConfig) async {
+    _config = newConfig;
+    _currentLanguage = newConfig.language;
+  }
+
+  void dispose() {
+    stopProcessing();
+    _speechResultController.close();
+    _enhancedCaptionController.close();
+  }
+
+  bool get isReady => _isInitialized;
+  bool get isProcessing => _isProcessing;
+  SpeechEngine get activeEngine => _activeEngine;
+  bool get hasGemmaEnhancement => gemma3nService.isReady;
+}

@@ -1,7 +1,9 @@
 import 'dart:typed_data';
+import 'package:live_captions_xr/core/services/visual_service.dart';
+
 import '../models/visual_object.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
-import 'gemma3n_service.dart';
+import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
 import 'hybrid_localization_engine.dart';
 import 'dart:ui';
 import 'debug_capturing_logger.dart';
@@ -39,9 +41,6 @@ class VisualIdentificationService {
     } else {
       _logger.i('✅ Gemma3nService is ready.');
     }
-
-    // Start continuous camera processing for multimodal integration
-    _simulateImageInput();
   }
 
   /// Capture current camera frame for multimodal analysis

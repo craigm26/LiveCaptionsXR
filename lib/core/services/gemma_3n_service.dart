@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma/core/flutter_gemma_part.dart';
+import 'package:flutter_gemma/core/flutter_gemma_part.dart';
 
 import '../models/enhanced_caption.dart';
 import '../models/speech_result.dart';
@@ -107,23 +109,14 @@ class Gemma3nService {
 
     _logger.i('🎙️ Starting Gemma streaming transcription...');
     final session = await _inferenceModel!.createSession();
-    bool isFinal = false;
-
+    
     await for (final audioChunk in audioStream) {
-      if (isFinal) break; // Stop processing if we've already sent a final result
-
       try {
-        await session.addQueryChunk(Message(parts: [Part.audio(audioChunk)]));
-        final response = await session.getResponse();
-
-        // The flutter_gemma package does not explicitly provide a confidence score
-        // or an isFinal flag in the same way that STT packages do. We will have
-        // to make some assumptions here. We'll treat every response as a partial
-        // result until the stream is closed.
+        final response = await session.addQueryChunk(Message(parts: [Part.audio(audioChunk)]));
         yield SpeechResult(
           text: response,
-          confidence: 0.9, // Placeholder confidence
-          isFinal: false, // Assume not final until stream closure
+          confidence: 0.9, // Placeholder
+          isFinal: false, // Placeholder
           timestamp: DateTime.now(),
         );
       } catch (e) {
@@ -134,19 +127,14 @@ class Gemma3nService {
           isFinal: true,
           timestamp: DateTime.now(),
         );
-        isFinal = true;
       }
     }
-
-    // When the audio stream closes, we can consider the last result final.
-    // This part of the logic would need to be handled by the caller, which
-    // would manage the lifecycle of the audio stream.
     await session.close();
     _logger.i('✅ Gemma streaming transcription finished.');
   }
 
   /// Performs multimodal inference with image and text context.
-  Future<String> multimodalInference({
+  Future<String?> multimodalInference({
     required String text,
     Uint8List? image,
   }) async {
@@ -159,16 +147,13 @@ class Gemma3nService {
       _logger.d('🧠 Performing multimodal inference for text: "$text"');
       final session = await _inferenceModel!.createSession();
       
-      final message = Message(
+      final response = await session.addQueryChunk(Message(
         parts: [
           if (image != null) Part.image(image),
           Part.text('Context: $text. Describe the scene.'),
         ],
-        isUser: true,
-      );
+      ));
 
-      await session.addQueryChunk(message);
-      final response = await session.getResponse();
       await session.close();
 
       _logger.d('✅ Multimodal inference successful.');
@@ -213,4 +198,6 @@ Enhanced:''';
   }
 
   bool get isReady => _isInitialized && _inferenceModel != null;
+
+  Future transcribeAudio(Uint8List audioData) async {}
 }

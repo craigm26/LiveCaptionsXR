@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
-import '../../utils/web_interaction_handler.dart';
 import '../../config/web_performance_config.dart';
 
 class SupportPage extends StatefulWidget {
@@ -137,9 +136,12 @@ class _SupportPageState extends State<SupportPage>
                       description:
                           'Found an issue? Help us improve by reporting bugs on GitHub.',
                       actionText: 'Open GitHub Issues',
-                      onTap: () => WebInteractionHandler.safeButtonPress(() async {
-                        await TestFlightUtils.openGitHub();
-                      }),
+                      onTap: () => WebInteractionHandler.safeButtonPress(
+                        () async {
+                          await TestFlightUtils.openGitHub();
+                        },
+                        context,
+                      ),
                       gradient: [Colors.red.shade400, Colors.red.shade300],
                     ),
                     _buildSupportCard(
@@ -575,5 +577,19 @@ class _SupportPageState extends State<SupportPage>
         ],
       ),
     );
+  }
+}
+
+class WebInteractionHandler {
+  static void safeButtonPress(Future<void> Function() action, dynamic context) async {
+    try {
+      await action();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open GitHub: $e')),
+        );
+      }
+    }
   }
 }

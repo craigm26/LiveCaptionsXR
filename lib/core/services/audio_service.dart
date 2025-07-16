@@ -4,7 +4,7 @@ import 'dart:math' show sqrt;
 
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
-import 'gemma3n_service.dart';
+import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
 import 'hybrid_localization_engine.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
@@ -32,10 +32,7 @@ class AudioService {
   bool _isListening = false;
   StreamSubscription<StereoAudioFrame>? _captureSub;
   StreamController<SoundEvent>? _soundEventController;
-
   AudioService({
-    required this.soundDetectionCubit,
-    required this.hybridLocalizationEngine,
     required this.gemma3nService,
     this.speechProcessor,
   }) {
@@ -48,7 +45,7 @@ class AudioService {
       _logger.d('🎤 Speech processor connected to AudioService');
     } else {
       _logger.d('⚠️ No speech processor connected - speech recognition will be limited');
-    }
+    }   
   }
 
   /// Initialize Gemma 3n for audio processing
@@ -59,11 +56,9 @@ class AudioService {
   /// 3. Set up multimodal integration pipeline
   Future<void> start() async {
     _logger.i('🚀 Starting AudioService...');
-    
+
     if (!gemma3nService.isReady) {
       _logger.w('⚠️ Gemma3nService is not ready. Audio analysis will be limited.');
-      // Decide on behavior: throw error, or proceed with limited functionality?
-      // For now, we proceed but log a warning.
     } else {
       _logger.i('✅ Gemma3nService is ready.');
     }

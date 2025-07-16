@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:live_captions_xr/features/settings/cubit/settings_state.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -316,10 +317,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     _logger.d('🏗️ Building HomeScreen UI');
 
-    return BlocBuilder<SettingsCubit, SettingsState>(
-      builder: (context, settingsState) {
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (context, homeState) {
         return DebugLoggingOverlay(
-          isEnabled: settingsState.debugLoggingEnabled,
+          isEnabled: true, // Default to enabled, or read from a different source
           child: BlocListener<HomeCubit, HomeState>(
             listener: (context, state) {},
             child: Scaffold(
