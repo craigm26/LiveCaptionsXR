@@ -39,6 +39,7 @@ class UserSettings {
 
   /// High contrast mode for captions.
   final bool highContrastEnabled;
+  final bool debugLoggingOverlayEnabled;
 
   const UserSettings({
     this.sttMode = SttMode.online,
@@ -48,6 +49,7 @@ class UserSettings {
     this.ledAlertsEnabled = true,
     this.captionFontSize = 1.0,
     this.highContrastEnabled = false,
+    this.debugLoggingOverlayEnabled = false,
   });
 
   /// Create a copy of the settings with modified properties.
@@ -59,6 +61,7 @@ class UserSettings {
     bool? ledAlertsEnabled,
     double? captionFontSize,
     bool? highContrastEnabled,
+    bool? debugLoggingOverlayEnabled,
   }) {
     return UserSettings(
       sttMode: sttMode ?? this.sttMode,
@@ -68,6 +71,8 @@ class UserSettings {
       ledAlertsEnabled: ledAlertsEnabled ?? this.ledAlertsEnabled,
       captionFontSize: captionFontSize ?? this.captionFontSize,
       highContrastEnabled: highContrastEnabled ?? this.highContrastEnabled,
+      debugLoggingOverlayEnabled:
+          debugLoggingOverlayEnabled ?? this.debugLoggingOverlayEnabled,
     );
   }
 
@@ -81,6 +86,7 @@ class UserSettings {
       'ledAlertsEnabled': ledAlertsEnabled,
       'captionFontSize': captionFontSize,
       'highContrastEnabled': highContrastEnabled,
+      'debugLoggingOverlayEnabled': debugLoggingOverlayEnabled,
     };
   }
 
@@ -95,6 +101,8 @@ class UserSettings {
       ledAlertsEnabled: json['ledAlertsEnabled'] as bool? ?? true,
       captionFontSize: (json['captionFontSize'] as num?)?.toDouble() ?? 1.0,
       highContrastEnabled: json['highContrastEnabled'] as bool? ?? false,
+      debugLoggingOverlayEnabled:
+          json['debugLoggingOverlayEnabled'] as bool? ?? false,
     );
   }
 }

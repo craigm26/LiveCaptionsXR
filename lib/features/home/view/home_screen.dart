@@ -71,34 +71,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'To enable speech recognition, a 4GB model file must be downloaded. This is a one-time download.'
-                    ),
+                        'To enable speech recognition, a 4GB model file must be downloaded. This is a one-time download.'),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.info_outline, size: 18, color: Colors.blueGrey),
+                        Icon(Icons.info_outline,
+                            size: 18, color: Colors.blueGrey),
                         SizedBox(width: 4),
                         GestureDetector(
-                          onTap: () => launchUrl(Uri.parse('https://huggingface.co/google/gemma-3n-E2B-it')),
-                          child: Text('Learn more about the model', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)),
+                          onTap: () => launchUrl(Uri.parse(
+                              'https://huggingface.co/google/gemma-3n-E2B-it')),
+                          child: Text('Learn more about the model',
+                              style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text('Estimated download time: ~15-30 min on a 50 Mbps connection.'),
+                    Text(
+                        'Estimated download time: ~15-30 min on a 50 Mbps connection.'),
                     const SizedBox(height: 16),
                     if (manager.downloading)
                       Column(
                         children: [
                           LinearProgressIndicator(value: manager.progress),
                           const SizedBox(height: 8),
-                          Text('Downloading:  ${(manager.progress * 100).toStringAsFixed(1)}%'),
+                          Text(
+                              'Downloading:  ${(manager.progress * 100).toStringAsFixed(1)}%'),
                         ],
                       )
                     else if (manager.error != null)
                       Column(
                         children: [
-                          Text('Error:  ${manager.error}', style: const TextStyle(color: Colors.red)),
+                          Text('Error:  ${manager.error}',
+                              style: const TextStyle(color: Colors.red)),
                           const SizedBox(height: 8),
                           ElevatedButton(
                             onPressed: () {
@@ -116,8 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                         child: const Text('Download Model'),
                       ),
-                    if (manager.completed)
-                      const Text('Model downloaded!'),
+                    if (manager.completed) const Text('Model downloaded!'),
                   ],
                 ),
                 actions: [
@@ -142,12 +148,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     final arSessionCubit = context.read<ARSessionCubit>();
-    
+
     // Use the ARSessionCubit to manage starting all services
     await arSessionCubit.startAllARServices(
       startLiveCaptions: () async {
         final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-        if (liveCaptionsCubit.state is! LiveCaptionsActive || !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+        if (liveCaptionsCubit.state is! LiveCaptionsActive ||
+            !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
           _logger.i('🎤 Starting live captions for AR mode...');
           await liveCaptionsCubit.startCaptions();
           _logger.i('✅ Live captions started for AR mode');
@@ -176,7 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       startVisualIdentification: () async {
-        final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+        final visualIdentificationCubit =
+            context.read<VisualIdentificationCubit>();
         if (!visualIdentificationCubit.isActive) {
           _logger.i('👁️ Starting visual identification for AR mode...');
           await visualIdentificationCubit.start();
@@ -188,7 +196,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // Provide stop callbacks for proper cleanup
       stopLiveCaptions: () async {
         final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-        if (liveCaptionsCubit.state is LiveCaptionsActive && (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+        if (liveCaptionsCubit.state is LiveCaptionsActive &&
+            (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
           _logger.i('🎤 Stopping live captions...');
           await liveCaptionsCubit.stopCaptions();
           _logger.i('✅ Live captions stopped');
@@ -211,7 +220,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       stopVisualIdentification: () async {
-        final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+        final visualIdentificationCubit =
+            context.read<VisualIdentificationCubit>();
         if (visualIdentificationCubit.isActive) {
           _logger.i('👁️ Stopping visual identification...');
           await visualIdentificationCubit.stop();
@@ -239,7 +249,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _logger.w('🧪 Emulator detected: showing AR/camera fallback.');
           final cameraService = sl<CameraService>();
           return FutureBuilder<void>(
-            future: cameraService.initialize().then((_) => cameraService.startCamera()),
+            future: cameraService
+                .initialize()
+                .then((_) => cameraService.startCamera()),
             builder: (context, camSnapshot) {
               if (camSnapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
@@ -317,254 +329,275 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     _logger.d('🏗️ Building HomeScreen UI');
 
-    return BlocBuilder<HomeCubit, HomeState>(
-      builder: (context, homeState) {
-        return DebugLoggingOverlay(
-          isEnabled: true, // Default to enabled, or read from a different source
-          child: BlocListener<HomeCubit, HomeState>(
-            listener: (context, state) {},
-            child: Scaffold(
-              body: Stack(
-                children: [
-                  // Camera preview background with instruction overlay
-                  Container(
-                    color: Colors.black,
-                    child: _buildCameraOrFallback(),
-                  ),
-                  
-                  BlocBuilder<ARSessionCubit, ARSessionState>(
-                    builder: (context, arSessionState) {
-                      final inARMode = arSessionState is ARSessionReady;
-                      return BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
-                        builder: (context, captionsState) {
-                          bool showOverlay = false;
-                          if (!inARMode) {
-                            showOverlay = true;
-                          } else if (captionsState is LiveCaptionsActive && captionsState.showOverlayFallback) {
-                            showOverlay = true;
-                          }
-                          return showOverlay
-                              ? Positioned(
-                                  bottom: 120,
-                                  left: 16,
-                                  right: 16,
-                                  child: LiveCaptionsWidget(
-                                    onToggle: () {
-                                      final cubit = context.read<LiveCaptionsCubit>();
-                                      if (cubit.state is LiveCaptionsActive && (cubit.state as LiveCaptionsActive).isListening) {
-                                        cubit.stopCaptions();
-                                      } else {
-                                        cubit.startCaptions();
-                                      }
-                                    },
-                                    onClear: () {
-                                      context.read<LiveCaptionsCubit>().clearCaptions();
-                                    },
-                                    maxWidth: 600,
-                                    showHistory: false,
-                                  ),
-                                )
-                              : const SizedBox.shrink();
-                        },
-                      );
-                    },
-                  ),
-                  // Sound event overlay (top left)
-                  Positioned(
-                    top: 32,
-                    left: 16,
-                    child:
-                        BlocBuilder<SoundDetectionCubit, SoundDetectionState>(
-                      builder: (context, state) {
-                        if (state is SoundDetectionLoaded &&
-                            state.events.isNotEmpty) {
-                          final SoundEvent event = state.events.last;
-                          return Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withAlpha((255 * 0.8).round()),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.hearing, color: Colors.white),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
+    return BlocBuilder<SettingsCubit, dynamic>(
+        builder: (context, settingsState) {
+      final debugOverlayEnabled = (settingsState != null &&
+              settingsState.debugLoggingOverlayEnabled != null)
+          ? settingsState.debugLoggingOverlayEnabled
+          : false;
+      return BlocBuilder<HomeCubit, HomeState>(
+        builder: (context, homeState) {
+          return DebugLoggingOverlay(
+            isEnabled: debugOverlayEnabled,
+            child: BlocListener<HomeCubit, HomeState>(
+              listener: (context, state) {},
+              child: Scaffold(
+                body: Stack(
+                  children: [
+                    // Camera preview background with instruction overlay
+                    Container(
+                      color: Colors.black,
+                      child: _buildCameraOrFallback(),
                     ),
-                  ),
-                  // Directional cue overlay (center)
-                  Center(
-                    child: BlocBuilder<LocalizationCubit, LocalizationState>(
-                      builder: (context, state) {
-                        if (state is LocalizationLoaded) {
-                          IconData arrowIcon;
-                          switch (state.direction) {
-                            case 'left':
-                              arrowIcon = Icons.arrow_back;
-                              break;
-                            case 'right':
-                              arrowIcon = Icons.arrow_forward;
-                              break;
-                            case 'center':
-                              arrowIcon = Icons.arrow_upward;
-                              break;
-                            default:
-                              arrowIcon = Icons.navigation;
-                          }
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(arrowIcon, color: Colors.orange, size: 64),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Sound from ${state.direction} (${(state.confidence * 100).toStringAsFixed(0)}%)',
-                                style: const TextStyle(
-                                    color: Colors.orange, fontSize: 18),
-                              ),
-                            ],
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  // Visual object highlight overlay (bottom right)
-                  BlocBuilder<VisualIdentificationCubit,
-                      VisualIdentificationState>(
-                    builder: (context, state) {
-                      if (state is VisualIdentificationLoaded &&
-                          state.objects.isNotEmpty) {
-                        final VisualObject obj = state.objects.first;
-                        return Positioned(
-                          bottom: 48,
-                          right: 24,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                  color: Colors.greenAccent, width: 3),
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.black.withAlpha((255 * 0.3).round()),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.visibility,
-                                    color: Colors.greenAccent),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
-                                  style: const TextStyle(
-                                      color: Colors.greenAccent),
-                                ),
-                              ],
-                            ),
-                          ),
+
+                    BlocBuilder<ARSessionCubit, ARSessionState>(
+                      builder: (context, arSessionState) {
+                        final inARMode = arSessionState is ARSessionReady;
+                        return BlocBuilder<LiveCaptionsCubit,
+                            LiveCaptionsState>(
+                          builder: (context, captionsState) {
+                            bool showOverlay = false;
+                            if (!inARMode) {
+                              showOverlay = true;
+                            } else if (captionsState is LiveCaptionsActive &&
+                                captionsState.showOverlayFallback) {
+                              showOverlay = true;
+                            }
+                            return showOverlay
+                                ? Positioned(
+                                    bottom: 120,
+                                    left: 16,
+                                    right: 16,
+                                    child: LiveCaptionsWidget(
+                                      onToggle: () {
+                                        final cubit =
+                                            context.read<LiveCaptionsCubit>();
+                                        if (cubit.state is LiveCaptionsActive &&
+                                            (cubit.state as LiveCaptionsActive)
+                                                .isListening) {
+                                          cubit.stopCaptions();
+                                        } else {
+                                          cubit.startCaptions();
+                                        }
+                                      },
+                                      onClear: () {
+                                        context
+                                            .read<LiveCaptionsCubit>()
+                                            .clearCaptions();
+                                      },
+                                      maxWidth: 600,
+                                      showHistory: false,
+                                    ),
+                                  )
+                                : const SizedBox.shrink();
+                          },
                         );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ],
-              ),
-              floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
-                listener: (context, state) {
-                  if (state is ARSessionReady) {
-                    // Only start services if they haven't been started yet
-                    if (!state.servicesStarted) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              '🥽 AR Mode activated! Starting services...'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                      _logger.i('🚀 Starting all services for AR mode...');
-                      _startAllServicesForARMode();
-                    } else {
-                      _logger.i('🔄 AR session ready but services already started');
-                    }
-                  } else if (state is ARSessionError) {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('⚠️ ${state.message}'),
-                        backgroundColor: Colors.orange,
-                        duration: const Duration(seconds: 4),
+                      },
+                    ),
+                    // Sound event overlay (top left)
+                    Positioned(
+                      top: 32,
+                      left: 16,
+                      child:
+                          BlocBuilder<SoundDetectionCubit, SoundDetectionState>(
+                        builder: (context, state) {
+                          if (state is SoundDetectionLoaded &&
+                              state.events.isNotEmpty) {
+                            final SoundEvent event = state.events.last;
+                            return Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    Colors.blue.withAlpha((255 * 0.8).round()),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.hearing,
+                                      color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
-                    );
-                  } else if (state is ARSessionInitial) {
-                    // AR mode was closed
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('🛑 AR Mode closed and services stopped'),
-                        backgroundColor: Colors.blueGrey,
-                        duration: Duration(seconds: 2),
+                    ),
+                    // Directional cue overlay (center)
+                    Center(
+                      child: BlocBuilder<LocalizationCubit, LocalizationState>(
+                        builder: (context, state) {
+                          if (state is LocalizationLoaded) {
+                            IconData arrowIcon;
+                            switch (state.direction) {
+                              case 'left':
+                                arrowIcon = Icons.arrow_back;
+                                break;
+                              case 'right':
+                                arrowIcon = Icons.arrow_forward;
+                                break;
+                              case 'center':
+                                arrowIcon = Icons.arrow_upward;
+                                break;
+                              default:
+                                arrowIcon = Icons.navigation;
+                            }
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(arrowIcon, color: Colors.orange, size: 64),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Sound from ${state.direction} (${(state.confidence * 100).toStringAsFixed(0)}%)',
+                                  style: const TextStyle(
+                                      color: Colors.orange, fontSize: 18),
+                                ),
+                              ],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
-                    );
-                    _logger.i('✅ AR mode closed and all services stopped');
-                  }
-                },
-                child: FloatingActionButton(
-                  heroTag: "ar_view_fab",
-                  onPressed: () async {
-                    _logger.i('🥽 Enter AR Mode button pressed...');
-                    final arSessionCubit = context.read<ARSessionCubit>();
-
-                    try {
-                      // Show loading indicator to user
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Row(
-                            children: [
-                              CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                              SizedBox(width: 16),
-                              Text('🥽 Entering AR Mode...'),
-                            ],
-                          ),
-                          backgroundColor: Colors.blue,
-                          duration: Duration(seconds: 10), // Increased duration
-                        ),
-                      );
-
-                      // Initialize AR session. The BlocListener will handle state changes.
-                      await arSessionCubit.initializeARSession(
-                          restoreFromPersistence: false);
-                    } catch (e, stackTrace) {
-                      _logger.e('�� Failed to enter AR mode',
-                          error: e, stackTrace: stackTrace);
-
+                    ),
+                    // Visual object highlight overlay (bottom right)
+                    BlocBuilder<VisualIdentificationCubit,
+                        VisualIdentificationState>(
+                      builder: (context, state) {
+                        if (state is VisualIdentificationLoaded &&
+                            state.objects.isNotEmpty) {
+                          final VisualObject obj = state.objects.first;
+                          return Positioned(
+                            bottom: 48,
+                            right: 24,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: Colors.greenAccent, width: 3),
+                                borderRadius: BorderRadius.circular(12),
+                                color:
+                                    Colors.black.withAlpha((255 * 0.3).round()),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.visibility,
+                                      color: Colors.greenAccent),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
+                                    style: const TextStyle(
+                                        color: Colors.greenAccent),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
+                ),
+                floatingActionButton:
+                    BlocListener<ARSessionCubit, ARSessionState>(
+                  listener: (context, state) {
+                    if (state is ARSessionReady) {
+                      // AR session is ready. No need to start services here anymore.
+                      _logger.i(
+                          '🔄 AR session ready. Services should already be started.');
+                    } else if (state is ARSessionError) {
                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content:
-                              Text('❌ Failed to enter AR mode: ${e.toString()}'),
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 5),
+                          content: Text('⚠️ ${state.message}'),
+                          backgroundColor: Colors.orange,
+                          duration: const Duration(seconds: 4),
                         ),
                       );
+                    } else if (state is ARSessionInitial) {
+                      // AR mode was closed
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('🛑 AR Mode closed and services stopped'),
+                          backgroundColor: Colors.blueGrey,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                      _logger.i('✅ AR mode closed and all services stopped');
                     }
                   },
-                  tooltip: 'Enter AR Mode',
-                  child: const Icon(Icons.view_in_ar),
+                  child: FloatingActionButton(
+                    heroTag: "ar_view_fab",
+                    onPressed: () async {
+                      _logger.i('🥽 Enter AR Mode button pressed...');
+                      final arSessionCubit = context.read<ARSessionCubit>();
+
+                      try {
+                        // Show loading indicator to user
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                                SizedBox(width: 16),
+                                Text('🥽 Entering AR Mode...'),
+                              ],
+                            ),
+                            backgroundColor: Colors.blue,
+                            duration:
+                                Duration(seconds: 10), // Increased duration
+                          ),
+                        );
+
+                        // Initialize AR session
+                        await arSessionCubit.initializeARSession(
+                            restoreFromPersistence: false);
+
+                        // Start all AR services immediately after initialization
+                        await _startAllServicesForARMode();
+
+                        // Show confirmation to user
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('🥽 AR Mode activated! Services started.'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      } catch (e, stackTrace) {
+                        _logger.e('�� Failed to enter AR mode',
+                            error: e, stackTrace: stackTrace);
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '❌ Failed to enter AR mode: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    },
+                    tooltip: 'Enter AR Mode',
+                    child: const Icon(Icons.view_in_ar),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    });
   }
 }
