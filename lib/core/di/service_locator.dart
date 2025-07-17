@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/core/services/audio_capture_service.dart';
+import 'package:live_captions_xr/core/services/ar_anchor_manager.dart';
+import 'package:live_captions_xr/core/services/camera_service.dart';
 import 'package:live_captions_xr/core/services/google_auth_service.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
@@ -51,6 +53,12 @@ void setupServiceLocator() {
   }
   if (!sl.isRegistered<AudioCaptureService>()) {
     sl.registerLazySingleton<AudioCaptureService>(() => AudioCaptureService());
+  }
+  if (!sl.isRegistered<CameraService>()) {
+    sl.registerLazySingleton<CameraService>(() => CameraService());
+  }
+  if (!sl.isRegistered<ARAnchorManager>()) {
+    sl.registerLazySingleton<ARAnchorManager>(() => ARAnchorManager());
   }
   if (!sl.isRegistered<HybridLocalizationEngine>()) {
     sl.registerLazySingleton<HybridLocalizationEngine>(() => HybridLocalizationEngine());

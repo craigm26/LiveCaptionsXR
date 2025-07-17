@@ -49,7 +49,7 @@ class UserSettings {
     this.ledAlertsEnabled = true,
     this.captionFontSize = 1.0,
     this.highContrastEnabled = false,
-    this.debugLoggingOverlayEnabled = false,
+    this.debugLoggingOverlayEnabled = true,
   });
 
   /// Create a copy of the settings with modified properties.

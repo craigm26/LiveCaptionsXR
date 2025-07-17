@@ -97,7 +97,7 @@ void main() {
       // Arrange - Don't call setupServiceLocator
 
       // Act & Assert
-      expect(() => sl<HybridLocalizationEngine>(), throwsA(isA<AssertionError>()));
+      expect(() => sl<HybridLocalizationEngine>(), throwsA(isA<StateError>()));
     });
   });
 }
