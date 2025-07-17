@@ -1,9 +1,10 @@
+         
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/user_settings.dart';
 import '../../../core/services/enhanced_speech_processor.dart'
     show SpeechEngine;
-import '../cubit/settings_cubit.dart';
+import '../cubit/settings_cubit.dart';     
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -156,6 +157,23 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+
+              Tooltip(
+                message: 'Show a debug logging overlay for troubleshooting and developer support.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.bug_report,
+                  title: 'Debug Logging Overlay',
+                  subtitle: 'Show debug logs as a dropdown overlay',
+                  trailing: Switch(
+                    value: state.debugLoggingOverlayEnabled,
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().toggleDebugLoggingOverlay(value);
+                    },
+                  ),
+                ),
+              ),
+
               Tooltip(
                 message:
                     'Enable to use device LED for visual alerts (useful for accessibility).',

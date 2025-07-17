@@ -1,4 +1,4 @@
-import 'dart:convert';
+  import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
@@ -6,14 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/debug_capturing_logger.dart';
 import '../../../core/models/user_settings.dart';
-
-import 'dart:convert';
-
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/services/debug_logger_service.dart';
-import '../../../core/services/debug_capturing_logger.dart';
-import '../../../core/models/user_settings.dart';
+ 
+  
 
 class SettingsCubit extends Cubit<UserSettings> {
   void toggleLedAlerts(bool value) {
@@ -26,6 +20,12 @@ class SettingsCubit extends Cubit<UserSettings> {
 
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
   final DebugLoggerService _debugLogger = DebugLoggerService();
+
+
+  void toggleDebugLoggingOverlay(bool value) {
+    _saveSettings(state.copyWith(debugLoggingOverlayEnabled: value));
+  }
+
 
   // Optionally notify other services or update state when the speech engine changes
   void setSpeechEngine(SpeechEngine engine) {
