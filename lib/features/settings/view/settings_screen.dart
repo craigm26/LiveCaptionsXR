@@ -56,14 +56,35 @@ class SettingsScreen extends StatelessWidget {
                 title: 'Speech-to-Text Mode',
                 subtitle: 'Online for accuracy, Offline for privacy',
                 trailing: DropdownButton<SttMode>(
-                  value: state.sttMode,
-                  items: const [
-                    DropdownMenuItem(value: SttMode.online, child: Text('Online')),
-                    DropdownMenuItem(value: SttMode.offline, child: Text('Offline')),
+                  // Always use a non-null value; force to offline if online is disabled
+                  value: state.sttMode == SttMode.online ? SttMode.offline : state.sttMode,
+                  items: [
+                    DropdownMenuItem<SttMode>(
+                      value: SttMode.online,
+                      enabled: false, // disables selection
+                      child: Row(
+                        children: [
+                          Opacity(
+                            opacity: 0.5,
+                            child: Text('Online'),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Disabled for now (requires paid API)',
+                            child: Icon(Icons.lock, size: 16, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const DropdownMenuItem<SttMode>(
+                      value: SttMode.offline,
+                      child: Text('Offline'),
+                    ),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
-                      context.read<SettingsCubit>().setSttMode(value);
+                    // Only allow switching to offline
+                    if (value == SttMode.offline) {
+                      context.read<SettingsCubit>().setSttMode(value as SttMode);
                     }
                   },
                 ),
