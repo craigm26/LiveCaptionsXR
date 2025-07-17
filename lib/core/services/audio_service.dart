@@ -9,7 +9,7 @@ import 'hybrid_localization_engine.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
-import 'speech_processor.dart';
+import 'enhanced_speech_processor.dart';
 import 'debug_capturing_logger.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
@@ -22,24 +22,23 @@ import 'debug_capturing_logger.dart';
 class AudioService {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
+  final Gemma3nService gemma3nService;
   final SoundDetectionCubit soundDetectionCubit;
-  final HybridLocalizationEngine hybridLocalizationEngine;
-  final Gemma3nService gemma3nService = Gemma3nService();
-  late final VisualIdentificationService visualService;
+  final VisualIdentificationService visualService;
   late final StereoAudioCapture _audioCapture;
   late final SpeechLocalizer _speechLocalizer;
-  final SpeechProcessor? speechProcessor;
+  final EnhancedSpeechProcessor? speechProcessor;
 
   bool _modelLoaded = false;
   bool _isListening = false;
   StreamSubscription<StereoAudioFrame>? _captureSub;
   StreamController<SoundEvent>? _soundEventController;
-
   AudioService({
-    required this.soundDetectionCubit,
-    required this.hybridLocalizationEngine,
+    required this.gemma3nService,
     this.speechProcessor,
-  }) {
+    required this.soundDetectionCubit,
+    required this.visualService,
+    }) {
     _logger.i('🏗️ Initializing AudioService...');
     _audioCapture = StereoAudioCapture();
     _speechLocalizer = SpeechLocalizer();
@@ -49,7 +48,7 @@ class AudioService {
       _logger.d('🎤 Speech processor connected to AudioService');
     } else {
       _logger.d('⚠️ No speech processor connected - speech recognition will be limited');
-    }
+    }   
   }
 
   /// Initialize Gemma 3n for audio processing
@@ -60,30 +59,19 @@ class AudioService {
   /// 3. Set up multimodal integration pipeline
   Future<void> start() async {
     _logger.i('🚀 Starting AudioService...');
-    _logger.d('Current state - Model loaded: $_modelLoaded, Listening: $_isListening');
-    
-    if (!_modelLoaded) {
-      try {
-        _logger.i('🎙️ Loading Gemma 3n audio model for real-time processing...');
-        _logger.d('Attempting to load audio model from: assets/models/gemma3n_audio.tflite');
-        
-        // Load Gemma 3n model optimized for mobile audio processing
-        await gemma3nService.loadModel(modelPath: 'assets/models/gemma-3n-E4B-it-int4.task');
-        _modelLoaded = true;
-        _logger.i('✅ Gemma 3n audio model loaded for real-time processing');
-        
-      } catch (e, stackTrace) {
-        _logger.e('❌ Gemma 3n model loading failed', error: e, stackTrace: stackTrace);
-        _logger.w('⚠️ Gemma 3n unavailable, using fallback audio model');
-        
-        // Fallback to standard TFLite audio model
-        await _loadFallbackModel();
-      }
-    } else {
-      _logger.d('Model already loaded, skipping model loading');
-    }
 
-    await _startAudioCapture();
+    // start the gemma3n service
+    await gemma3nService.loadModel();
+
+    // start the visual service
+    await visualService.start();
+
+    // start the speech processor
+    await speechProcessor?.startProcessing();
+
+    // start the audio capture
+    await _startAudioCapture(); 
+
     _logger.i('✅ AudioService started successfully');
   }
 
@@ -146,216 +134,9 @@ class AudioService {
   void _processAudioFrame(Float32List audioFrame, double angle) async {
     _logger.d('🎯 Processing audio frame with ${audioFrame.length} samples at angle ${angle.toStringAsFixed(1)}°');
     
-    try {
-      _logger.d('🔍 Analyzing audio with Gemma 3n...');
-      // Detect significant audio events using Gemma 3n
-      final audioAnalysis = await _analyzeAudioWithGemma3n(audioFrame, angle);
-      _logger.d('📊 Audio analysis result: ${audioAnalysis.type} (confidence: ${audioAnalysis.confidence.toStringAsFixed(2)})');
-
-      // If significant sound detected, trigger multimodal analysis
-      if (audioAnalysis.confidence > 0.7) {
-        _logger.i('🚨 Significant sound detected: ${audioAnalysis.type} (confidence: ${audioAnalysis.confidence.toStringAsFixed(2)})');
-        
-        final multimodalResult = await _performMultimodalAnalysis(
-          audioFrame: audioFrame,
-          audioEvent: audioAnalysis,
-        );
-
-        _logger.i('🎉 Sound event detected: ${multimodalResult.type} - ${multimodalResult.description}');
-        // Emit comprehensive event with spatial and contextual info
-        soundDetectionCubit.detectSound(multimodalResult);
-      } else {
-        _logger.d('🔇 Audio below significance threshold (${audioAnalysis.confidence.toStringAsFixed(2)})');
-      }
-    } catch (e, stackTrace) {
-      _logger.e('❌ Audio processing error', error: e, stackTrace: stackTrace);
-      // Graceful degradation - continue with fallback processing
-    }
-  }
-
-  /// Analyze audio using Gemma 3n's Universal Speech Model (USM)
-  ///
-  /// Shows how we leverage Gemma 3n's state-of-the-art audio processing
-  Future<SoundEvent> _analyzeAudioWithGemma3n(
-      Float32List audioFrame, double angle) async {
-    _logger.d('🔬 Analyzing audio with Gemma 3n USM...');
-    _logger.d('Audio frame size: ${audioFrame.length}, Direction: $angle°');
-    
-    if (!_modelLoaded) {
-      _logger.w('⚠️ Model not loaded, using fallback audio analysis');
-      return _fallbackAudioAnalysis(audioFrame);
-    }
-
-    try {
-      _logger.d('🧠 Running Gemma 3n USM inference...');
-      // Use Gemma 3n's USM encoder for sophisticated audio analysis
-      // final audioFeatures = gemma3nService.runAudioInference(audioFrame);
-      final audioFeatures = <List<double>>[];
-      _logger.d('✅ USM inference completed, extracting classification...');
-
-      // Extract sound classification and confidence
-      final soundType = _classifySoundFromFeatures(audioFeatures);
-      final confidence = _extractConfidence(audioFeatures);
-      final direction = _speechLocalizer.directionLabel(angle);
-
-      _logger.d('🏷️ Classification: $soundType (confidence: $confidence)');
-      _logger.d('📍 Direction: $direction');
-
-      return SoundEvent(
-        type: soundType,
-        confidence: confidence,
-        timestamp: DateTime.now(),
-        sourceDirection: direction,
-        description: 'Detected by Gemma 3n USM',
-      );
-    } catch (e, stackTrace) {
-      _logger.w('⚠️ Gemma 3n audio analysis failed, using fallback', error: e, stackTrace: stackTrace);
-      return _fallbackAudioAnalysis(audioFrame);
-    }
-  }
-
-  /// Multimodal analysis combining audio and visual context
-  ///
-  /// This is the core innovation: using Gemma 3n to process audio + visual +
-  /// spatial context simultaneously for comprehensive understanding
-  Future<SoundEvent> _performMultimodalAnalysis({
-    required Float32List audioFrame,
-    required SoundEvent audioEvent,
-  }) async {
-    _logger.i('🌟 Starting multimodal analysis...');
-    _logger.d('Base audio event: ${audioEvent.type} (${audioEvent.confidence})');
-    
-    try {
-      _logger.d('📸 Capturing current visual context...');
-      // Capture current visual context
-      final visualFrame = await visualService.captureCurrentFrame();
-      _logger.d('✅ Visual frame captured: ${visualFrame.length} bytes');
-
-      _logger.d('📝 Building user context...');
-      // Prepare contextual information
-      final userContext = _buildUserContext(audioEvent);
-      _logger.d('Context prepared: ${userContext.length} characters');
-
-      _logger.d('🧠 Running Gemma 3n multimodal inference...');
-      // Run Gemma 3n multimodal inference
-      final response = await gemma3nService.runMultimodalInference(
-        audioInput: audioFrame,
-        imageInput: visualFrame,
-        textContext: userContext,
-      );
-      _logger.i('✅ Multimodal inference completed');
-
-      // Create enhanced sound event with contextual understanding
-      final enhancedEvent = SoundEvent(
-        type: audioEvent.type,
-        confidence: audioEvent.confidence,
-        timestamp: DateTime.now(),
-        sourceDirection: audioEvent.sourceDirection,
-        description: response, // Natural language description from Gemma 3n
-        isMultimodal: true,
-      );
-      
-      _logger.i('🎯 Enhanced event created: ${enhancedEvent.description}');
-      return enhancedEvent;
-      
-    } catch (e, stackTrace) {
-      _logger.w('⚠️ Multimodal analysis failed, returning audio-only result', error: e, stackTrace: stackTrace);
-      return audioEvent; // Return original audio-only analysis
-    }
-  }
-
-  /// Build contextual prompt for Gemma 3n
-  ///
-  /// Shows how we structure queries for Gemma 3n's text understanding
-  String _buildUserContext(SoundEvent audioEvent) {
-    return '''
-Sound detected: ${audioEvent.type}
-Direction: ${audioEvent.sourceDirection}
-Confidence: ${audioEvent.confidence}
-Time: ${audioEvent.timestamp}
-Request: Analyze the visual scene and provide a natural language description 
-of what is making this sound and its significance for a person with hearing loss.
-''';
-  }
-
-  /// Extract sound classification from Gemma 3n features
-  String _classifySoundFromFeatures(List<List<double>> features) {
-    _logger.d('🏷️ Classifying sound from ${features.length} feature vectors...');
-    // This would implement actual classification logic based on
-    // Gemma 3n's USM output features
-    // For demo: simplified classification
-    if (features.isEmpty || features.first.isEmpty) {
-      return 'Unknown Sound';
-    }
-    final primaryFeature = features[0][0];
-    _logger.d('Primary feature value: $primaryFeature');
-
-    String soundType;
-    if (primaryFeature > 0.8) {
-      soundType = 'Emergency Alert';
-    } else if (primaryFeature > 0.6) {
-      soundType = 'Doorbell';
-    } else if (primaryFeature > 0.4) {
-      soundType = 'Kitchen Timer';
-    } else if (primaryFeature > 0.2) {
-      soundType = 'Voice';
-    } else {
-      soundType = 'Background Noise';
-    }
-    
-    _logger.d('🎯 Sound classified as: $soundType');
-    return soundType;
-  }
-
-  /// Extract confidence score from Gemma 3n output
-  double _extractConfidence(List<List<double>> features) {
-    _logger.d('📊 Extracting confidence from feature vectors...');
-    // Extract confidence from Gemma 3n USM features
-    if (features.isEmpty || features.first.isEmpty) {
-      return 0.0;
-    }
-    final confidence = features[0].reduce((a, b) => a > b ? a : b).clamp(0.0, 1.0);
-    _logger.d('🎯 Confidence extracted: $confidence');
-    return confidence;
-  }
-
-  /// Fallback audio analysis when Gemma 3n unavailable
-  ///
-  /// Demonstrates graceful degradation strategy
-  SoundEvent _fallbackAudioAnalysis(Float32List audioFrame) {
-    _logger.w('⚠️ Using fallback audio analysis...');
-    _logger.d('Fallback processing ${audioFrame.length} audio samples');
-    
-    // Use simpler TFLite model or pattern matching
-    final fallbackEvent = SoundEvent(
-      type: 'Unknown Sound',
-      confidence: 0.5,
-      timestamp: DateTime.now(),
-      sourceDirection: 'unknown',
-      description: 'Processed with fallback model',
-    );
-    
-    _logger.d('📤 Fallback analysis complete: ${fallbackEvent.type}');
-    return fallbackEvent;
-  }
-
-  /// Load fallback TFLite model when Gemma 3n unavailable
-  Future<void> _loadFallbackModel() async {
-    _logger.i('🔄 Loading fallback audio model...');
-    
-    try {
-      _logger.i('📱 Loading fallback audio model for compatibility...');
-      _logger.d('Attempting to initialize standard TFLite audio model...');
-      
-      // Implementation would load standard audio classification model
-      // For now, just mark as loaded for demo purposes
-      _modelLoaded = true;
-      _logger.i('✅ Fallback audio model loaded successfully');
-      
-    } catch (e, stackTrace) {
-      _logger.e('❌ Failed to load fallback audio model', error: e, stackTrace: stackTrace);
-      rethrow;
-    }
+    // pass the audio to Gemma3nService for full analysis.
+    final SoundEvent event = await gemma3nService.analyzeAudioFrame(audioFrame, angle);
+    soundDetectionCubit.detectSound(event);
   }
 
   /// Stop audio processing and cleanup resources

@@ -26,9 +26,14 @@ dependencies:
   device_info_plus: ^11.5.0
   camera: ^0.10.5+9
   permission_handler: ^11.3.1
-  speech_to_text: ^6.6.2
+  flutter_sound: ^9.2.13
   path_provider: ^2.0.11
-  http: ^0.13.3
+  http: ^1.4.0
+  dart_openai: ^5.1.0
+  flutter_dotenv: ^5.1.0
+  
+  google_sign_in: ^6.2.1
+  audio_streamer: ^4.2.2
   # Add your other dependencies here
 
 dev_dependencies:

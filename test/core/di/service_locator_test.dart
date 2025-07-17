@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_anchor_manager.dart';
-import 'package:live_captions_xr/core/services/localization_service.dart';
+
 import 'package:live_captions_xr/core/services/camera_service.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_cubit.dart';
@@ -27,7 +27,7 @@ void main() {
       // Assert - Core singleton services
       expect(sl.isRegistered<HybridLocalizationEngine>(), true);
       expect(sl.isRegistered<ARAnchorManager>(), true);
-      expect(sl.isRegistered<LocalizationService>(), true);
+      
       expect(sl.isRegistered<CameraService>(), true);
       expect(sl.isRegistered<ARSessionPersistenceService>(), true);
       
@@ -86,7 +86,7 @@ void main() {
       // Act & Assert - Should not throw
       expect(() => sl<HybridLocalizationEngine>(), returnsNormally);
       expect(() => sl<ARAnchorManager>(), returnsNormally);
-      expect(() => sl<LocalizationService>(), returnsNormally);
+      
       expect(() => sl<CameraService>(), returnsNormally);
       expect(() => sl<ARSessionPersistenceService>(), returnsNormally);
       expect(() => sl<SoundDetectionCubit>(), returnsNormally);

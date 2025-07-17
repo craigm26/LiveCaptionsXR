@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
 import 'package:live_captions_xr/core/services/gemma3n_service.dart';
-import 'package:live_captions_xr/core/services/speech_processor.dart';
+import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
 import 'package:live_captions_xr/core/services/visual_service.dart';
 import 'package:mockito/mockito.dart';
 

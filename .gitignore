@@ -86,6 +86,7 @@ windows/build/
 # Other
 *.log
 *.lock
+.env
 
 # Generated test mocks
 *.mocks.dart

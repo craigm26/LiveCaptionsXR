@@ -1,58 +1,61 @@
 import 'dart:async';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
+import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dart_openai/dart_openai.dart';
+import 'package:live_captions_xr/core/services/audio_capture_service.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
 import 'debug_capturing_logger.dart';
-import 'gemma_enhancer.dart';
-import 'model_download_manager.dart';
+import 'gemma_3n_service.dart';
 
 /// Speech processing engine types
 enum SpeechEngine {
-  native,      // Current native implementation
-  speechToText, // New speech_to_text package
-  gemma3n,     // Direct Gemma 3n ASR (future)
+  native,
+  flutter_sound,
+  gemma3n, openAI,
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
 class EnhancedSpeechProcessor {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
-  // Speech engines
-  final SpeechToText _speechToText = SpeechToText();
+  final Gemma3nService gemma3nService;
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
-  
-  // Gemma enhancer
-  final GemmaEnhancer? _gemmaEnhancer;
-  
-  // State management
+
+  // FlutterSound specific
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  StreamSubscription? _recorderSubscription;
+
+
+  // Google Cloud Speech specific
+
   bool _isInitialized = false;
   bool _isProcessing = false;
   SpeechConfig _config = const SpeechConfig();
-  SpeechEngine _activeEngine = SpeechEngine.speechToText;
+  SpeechEngine _activeEngine = SpeechEngine.flutter_sound;
   String? _currentLanguage;
   final List<String> _recentTexts = [];
-  
-  // Stream controllers
-  final StreamController<SpeechResult> _speechResultController =
-      StreamController<SpeechResult>.broadcast();
-  final StreamController<EnhancedCaption> _enhancedCaptionController =
-      StreamController<EnhancedCaption>.broadcast();
-  
-  // Public streams
+
+  final StreamController<SpeechResult> _speechResultController = StreamController<SpeechResult>.broadcast();
+  final StreamController<EnhancedCaption> _enhancedCaptionController = StreamController<EnhancedCaption>.broadcast();
+
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
   Stream<EnhancedCaption> get enhancedCaptions => _enhancedCaptionController.stream;
 
-  EnhancedSpeechProcessor({
-    ModelDownloadManager? modelManager,
-    SpeechEngine? defaultEngine,
-  }) : _activeEngine = defaultEngine ?? SpeechEngine.speechToText,
-       _gemmaEnhancer = modelManager != null ? GemmaEnhancer(modelManager: modelManager) : null;
+  final AudioCaptureService _audioCaptureService;
 
-  /// Initialize the speech processor with optional configuration
+  EnhancedSpeechProcessor({
+    required this.gemma3nService,
+    required AudioCaptureService audioCaptureService,
+    SpeechEngine? defaultEngine,
+  }) : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
+       _audioCaptureService = audioCaptureService;
+
   Future<bool> initialize({
     SpeechConfig? config,
     bool enableGemmaEnhancement = true,
@@ -62,32 +65,30 @@ class EnhancedSpeechProcessor {
     try {
       _config = config ?? const SpeechConfig();
       _currentLanguage = _config.language;
-      
-      // Initialize based on active engine
+
       switch (_activeEngine) {
-        case SpeechEngine.speechToText:
-          await _initializeSpeechToText();
+        case SpeechEngine.flutter_sound:
+          await _initializeFlutterSound();
           break;
         case SpeechEngine.native:
           await _initializeNativeEngine();
           break;
         case SpeechEngine.gemma3n:
-          _logger.w('Gemma 3n ASR not yet implemented, falling back to speech_to_text');
-          _activeEngine = SpeechEngine.speechToText;
-          await _initializeSpeechToText();
+          _logger.w('Gemma 3n ASR not yet implemented, falling back to flutter_sound');
+          _activeEngine = SpeechEngine.flutter_sound;
+          await _initializeFlutterSound();
           break;
+        case SpeechEngine.openAI:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
-      
-      // Initialize Gemma enhancer if available and enabled
-      if (enableGemmaEnhancement && _gemmaEnhancer != null) {
-        try {
-          await _gemmaEnhancer!.initialize();
-          _logger.i('✅ Gemma enhancement enabled');
-        } catch (e) {
-          _logger.w('⚠️ Failed to initialize Gemma enhancer, continuing without enhancement', error: e);
-        }
+
+      if (enableGemmaEnhancement && gemma3nService.isReady) {
+        _logger.i('✅ Gemma enhancement enabled');
+      } else if (enableGemmaEnhancement) {
+        _logger.w('⚠️ Gemma3nService not ready, enhancement will be disabled.');
       }
-      
+
       _isInitialized = true;
       _logger.i('✅ EnhancedSpeechProcessor initialized with engine: $_activeEngine');
       return true;
@@ -97,60 +98,40 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  /// Initialize speech_to_text package
-  Future<void> _initializeSpeechToText() async {
-    final available = await _speechToText.initialize(
-      onStatus: (status) => _logger.d('Speech status: $status'),
-      onError: (error) => _logger.e('Speech error: $error'),
-    );
-    
-    if (!available) {
-      throw Exception('Speech-to-text not available on this device');
-    }
-    
-    _logger.i('✅ speech_to_text package initialized');
+  Future<void> _initializeFlutterSound() async {
+    await _recorder.openRecorder();
+    _logger.i('✅ FlutterSound engine initialized');
   }
 
-  /// Initialize native speech engine
   Future<void> _initializeNativeEngine() async {
-    try {
-      await _nativeChannel.invokeMethod('initializeSpeech');
-      _logger.i('✅ Native speech engine initialized');
-    } catch (e) {
-      _logger.e('Failed to initialize native speech engine', error: e);
-      rethrow;
-    }
+    await _nativeChannel.invokeMethod('initializeSpeech');
+    _logger.i('✅ Native speech engine initialized');
   }
 
-  /// Start speech processing
   Future<bool> startProcessing({SpeechConfig? config}) async {
-    if (!_isInitialized) {
-      _logger.w('⚠️ EnhancedSpeechProcessor not initialized');
-      return false;
-    }
-    if (_isProcessing) {
-      _logger.w('⚠️ EnhancedSpeechProcessor is already processing');
-      return true;
-    }
+    if (!_isInitialized) return false;
+    if (_isProcessing) return true;
 
     try {
-      if (config != null) {
-        await updateConfig(config);
-      }
-      
+      if (config != null) await updateConfig(config);
+
+      await _audioCaptureService.start();
+
       switch (_activeEngine) {
-        case SpeechEngine.speechToText:
-          await _startSpeechToTextProcessing();
+        case SpeechEngine.flutter_sound:
+          await _startFlutterSoundProcessing();
           break;
         case SpeechEngine.native:
           await _startNativeProcessing();
           break;
         case SpeechEngine.gemma3n:
-          // Future implementation
-          await _startSpeechToTextProcessing();
+          await _startFlutterSoundProcessing();
           break;
+        case SpeechEngine.openAI:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
-      
+
       _isProcessing = true;
       _logger.i('✅ Speech processing started with engine: $_activeEngine');
       return true;
@@ -160,29 +141,41 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  /// Start speech_to_text processing
-  Future<void> _startSpeechToTextProcessing() async {
-    await _speechToText.listen(
-      onResult: _onSpeechToTextResult,
-      localeId: _currentLanguage,
-      pauseFor: const Duration(seconds: 3),
-      listenOptions: SpeechListenOptions(
-        partialResults: true,
-        onDevice: true, // Prefer on-device recognition
-        listenMode: ListenMode.dictation,
-      ),
+  Future<void> _startFlutterSoundProcessing() async {
+    final StreamController<Food> recordingDataController = StreamController<Food>();
+    _recorderSubscription = recordingDataController.stream.listen((buffer) {
+      if (buffer is FoodData) {
+        _processSpeechResult(SpeechResult(
+          text: "TODO",
+          confidence: 1.0,
+          isFinal: true,
+          timestamp: DateTime.now(),
+        ));
+      }
+    });
+
+    final StreamController<Uint8List> uint8ListController = StreamController<Uint8List>();
+    recordingDataController.stream.transform(StreamTransformer.fromHandlers(
+      handleData: (data, sink) {
+        if (data is FoodData) {
+          sink.add(data.data!);
+        }
+      },
+    )).pipe(uint8ListController);
+
+    await _recorder.startRecorder(
+      toStream: uint8ListController.sink,
+      codec: Codec.pcm16,
+      numChannels: 1,
+      sampleRate: 16000,
     );
   }
 
-  /// Start native processing
   Future<void> _startNativeProcessing() async {
     _nativeChannel.setMethodCallHandler(_handleNativeMethodCall);
-    await _nativeChannel.invokeMethod('startListening', {
-      'language': _currentLanguage,
-    });
+    await _nativeChannel.invokeMethod('startListening', {'language': _currentLanguage});
   }
 
-  /// Handle native method calls
   Future<dynamic> _handleNativeMethodCall(MethodCall call) async {
     switch (call.method) {
       case 'onSpeechResult':
@@ -200,22 +193,9 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  /// Handle speech_to_text results
-  void _onSpeechToTextResult(SpeechRecognitionResult result) {
-    _processSpeechResult(SpeechResult(
-      text: result.recognizedWords,
-      confidence: result.confidence,
-      isFinal: result.finalResult,
-      timestamp: DateTime.now(),
-    ));
-  }
-
-  /// Process speech results and optionally enhance with Gemma
   void _processSpeechResult(SpeechResult result) async {
-    // Always emit the raw result
     _speechResultController.add(result);
     
-    // Track recent texts
     if (result.isFinal) {
       _recentTexts.add(result.text);
       if (_recentTexts.length > 10) {
@@ -223,24 +203,24 @@ class EnhancedSpeechProcessor {
       }
     }
     
-    // Process enhancement if available and enabled
-    if (_gemmaEnhancer != null && _gemmaEnhancer!.isReady) {
+    if (gemma3nService.isReady) {
       try {
         if (result.isFinal) {
-          // Only enhance final results to avoid too many API calls
-          final enhanced = await _gemmaEnhancer!.enhance(result.text);
-          _enhancedCaptionController.add(enhanced);
+          final enhancedText = await gemma3nService.enhanceText(result.text);
+          _enhancedCaptionController.add(EnhancedCaption(
+            raw: result.text,
+            enhanced: enhancedText,
+            isFinal: true,
+            isEnhanced: enhancedText != result.text,
+          ));
         } else {
-          // For partial results, emit without enhancement
           _enhancedCaptionController.add(EnhancedCaption.partial(result.text));
         }
       } catch (e) {
         _logger.e('Failed to enhance caption', error: e);
-        // Fallback to raw text
         _enhancedCaptionController.add(EnhancedCaption.fallback(result.text));
       }
     } else {
-      // No enhancement available, emit raw as enhanced
       _enhancedCaptionController.add(
         result.isFinal 
           ? EnhancedCaption(raw: result.text, enhanced: result.text, isFinal: true, isEnhanced: false)
@@ -249,23 +229,25 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  /// Stop speech processing
   Future<bool> stopProcessing() async {
     if (!_isProcessing) return true;
-    
+
     try {
       switch (_activeEngine) {
-        case SpeechEngine.speechToText:
-          await _speechToText.stop();
+        case SpeechEngine.flutter_sound:
+          await _stopFlutterSoundProcessing();
           break;
         case SpeechEngine.native:
           await _nativeChannel.invokeMethod('stopListening');
           break;
         case SpeechEngine.gemma3n:
-          await _speechToText.stop();
+          await _stopFlutterSoundProcessing();
           break;
+        case SpeechEngine.openAI:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
-      
+
       _isProcessing = false;
       _logger.i('✅ Speech processing stopped');
       return true;
@@ -275,7 +257,11 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  /// Switch speech engine
+  Future<void> _stopFlutterSoundProcessing() async {
+    await _recorder.stopRecorder();
+    await _recorderSubscription?.cancel();
+  }
+  
   Future<bool> switchEngine(SpeechEngine engine) async {
     if (_isProcessing) {
       await stopProcessing();
@@ -284,102 +270,23 @@ class EnhancedSpeechProcessor {
     _activeEngine = engine;
     _logger.i('🔄 Switched to speech engine: $engine');
     
-    // Re-initialize with new engine
     _isInitialized = false;
     return await initialize(config: _config);
   }
 
-  /// Update configuration
-  Future<bool> updateConfig(SpeechConfig newConfig) async {
-    try {
-      _logger.i('📋 Updating speech configuration...');
-      _config = newConfig;
-      _currentLanguage = newConfig.language;
-      _logger.d('✅ Speech configuration updated: $_config');
-      return true;
-    } catch (e, stackTrace) {
-      _logger.e('❌ Error updating speech configuration', error: e, stackTrace: stackTrace);
-      return false;
-    }
+  Future<void> updateConfig(SpeechConfig newConfig) async {
+    _config = newConfig;
+    _currentLanguage = newConfig.language;
   }
 
-  /// Clean up resources
-  Future<void> dispose() async {
-    _logger.i('🗑️ Disposing EnhancedSpeechProcessor...');
-    
-    // Stop processing first with timeout
-    try {
-      await stopProcessing().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          _logger.w('⏰ Stop processing timed out during dispose');
-          return false;
-        },
-      );
-    } catch (e) {
-      _logger.e('❌ Error stopping processing during dispose', error: e);
-    }
-    
-    // Close stream controllers with timeout protection
-    try {
-      await _speechResultController.close().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {
-          _logger.w('⏰ Speech result controller close timed out');
-        },
-      );
-    } catch (e) {
-      _logger.e('❌ Error closing speech result controller', error: e);
-    }
-    
-    try {
-      await _enhancedCaptionController.close().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {
-          _logger.w('⏰ Enhanced caption controller close timed out');
-        },
-      );
-    } catch (e) {
-      _logger.e('❌ Error closing enhanced caption controller', error: e);
-    }
-    
-    // Dispose Gemma enhancer with timeout
-    if (_gemmaEnhancer != null) {
-      try {
-        await _gemmaEnhancer!.dispose().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            _logger.w('⏰ Gemma enhancer dispose timed out');
-          },
-        );
-      } catch (e) {
-        _logger.e('❌ Error disposing Gemma enhancer', error: e);
-      }
-    }
-    
-    _isInitialized = false;
-    _logger.d('✅ EnhancedSpeechProcessor disposed');
+  void dispose() {
+    stopProcessing();
+    _speechResultController.close();
+    _enhancedCaptionController.close();
   }
 
-  // Getters
   bool get isReady => _isInitialized;
   bool get isProcessing => _isProcessing;
-  SpeechConfig get config => _config;
-  String? get currentLanguage => _currentLanguage;
   SpeechEngine get activeEngine => _activeEngine;
-  bool get hasGemmaEnhancement => _gemmaEnhancer?.isReady ?? false;
-
-  /// Get statistics
-  Map<String, dynamic> getStatistics() {
-    return {
-      'isInitialized': _isInitialized,
-      'isProcessing': _isProcessing,
-      'activeEngine': _activeEngine.toString(),
-      'currentLanguage': _currentLanguage,
-      'recentTextsCount': _recentTexts.length,
-      'hasGemmaEnhancement': hasGemmaEnhancement,
-      'config': _config.toMap(),
-      if (_gemmaEnhancer != null) 'gemmaStats': _gemmaEnhancer!.getCacheStats(),
-    };
-  }
-} 
+  bool get hasGemmaEnhancement => gemma3nService.isReady;
+}

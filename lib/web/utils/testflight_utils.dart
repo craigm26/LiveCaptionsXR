@@ -1,5 +1,5 @@
 import 'package:url_launcher/url_launcher.dart';
-import 'web_interaction_handler.dart';
+import '../../core/utils/interaction_handler.dart';
 
 class TestFlightUtils {
   // TestFlight link for beta testing
@@ -7,7 +7,7 @@ class TestFlightUtils {
       'https://testflight.apple.com/join/pyxZEWFh';
 
   static Future<void> openTestFlight() async {
-    return WebInteractionHandler.safeAsyncExecution(
+    return InteractionHandler.safeAsyncExecution(
       action: () async {
         final Uri url = Uri.parse(testFlightUrl);
         await _launchUrlWithTimeout(url);
@@ -54,7 +54,7 @@ class TestFlightUtils {
   }
 
   static Future<void> openWebsite() async {
-    return WebInteractionHandler.safeAsyncExecution(
+    return InteractionHandler.safeAsyncExecution(
       action: () async {
         const String websiteUrl = 'https://github.com/craigm26/livecaptionsxr';
         final Uri url = Uri.parse(websiteUrl);
@@ -74,7 +74,7 @@ class TestFlightUtils {
   }
 
   static Future<void> openGitHub() async {
-    return WebInteractionHandler.safeAsyncExecution(
+    return InteractionHandler.safeAsyncExecution(
       action: () async {
         const String githubUrl = 'https://github.com/craigm26/livecaptionsxr';
         final Uri url = Uri.parse(githubUrl);

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:live_captions_xr/core/models/speech_result.dart';
 
 /// Model representing a caption that has been enhanced by Gemma 3n
 class EnhancedCaption extends Equatable {
@@ -38,6 +39,18 @@ class EnhancedCaption extends Equatable {
       isEnhanced: false,
       confidence: 0.5,
       timestamp: DateTime.now(),
+    );
+  }
+
+  /// Create an EnhancedCaption from a standard SpeechResult
+  factory EnhancedCaption.fromSpeechResult(SpeechResult result) {
+    return EnhancedCaption(
+      raw: result.text,
+      enhanced: result.text,
+      confidence: result.confidence,
+      isFinal: result.isFinal,
+      isEnhanced: false,
+      timestamp: result.timestamp,
     );
   }
 

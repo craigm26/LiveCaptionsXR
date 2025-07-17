@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'package:live_captions_xr/core/models/sound_event.dart';
 import 'debug_capturing_logger.dart';
 
 /// Core service for Google Gemma 3n multimodal AI integration
@@ -119,4 +120,16 @@ class Gemma3nService {
       _logger.i('✅ Gemma3nService disposed');
     }
   }
-} 
+
+  Future<SoundEvent> analyzeAudioFrame(Float32List audioFrame, double angle) async {
+    if (!_isModelLoaded) {
+      throw StateError('Gemma 3n model not loaded. Call loadModel() first.');
+    }
+
+    final result = await _channel.invokeMethod('analyzeAudioFrame', {
+      'audioFrame': audioFrame,
+      'angle': angle,
+    });
+    return SoundEvent.fromJson(result);
+  }
+}
