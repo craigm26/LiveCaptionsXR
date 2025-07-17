@@ -358,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       }
                                     },
                                     onClear: () {
-                                      // TODO: Implement clear captions functionality
+                                      context.read<LiveCaptionsCubit>().clearCaptions();
                                     },
                                     maxWidth: 600,
                                     showHistory: false,

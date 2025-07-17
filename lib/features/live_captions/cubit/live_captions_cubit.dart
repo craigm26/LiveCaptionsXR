@@ -106,6 +106,13 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     emit(currentState.copyWith(isListening: false, currentCaption: null));
   }
 
+  void clearCaptions() {
+    _captionHistory.clear();
+    if (state is LiveCaptionsActive) {
+      emit((state as LiveCaptionsActive).copyWith(captions: [], currentCaption: null));
+    }
+  }
+
   @override
   Future<void> close() {
     stopCaptions();
