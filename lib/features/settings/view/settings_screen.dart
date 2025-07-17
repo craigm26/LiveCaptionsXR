@@ -1,40 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:live_captions_xr/core/services/google_auth_service.dart';
+import '../../../core/models/user_settings.dart';
 import '../cubit/settings_cubit.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
-
-  /// Check if we're in a development or testing build
-  /// This includes debug mode, profile mode, TestFlight builds, or when assertions are enabled
-  bool get _isDevelopmentBuild {
-    bool isInDevelopmentMode = kDebugMode || kProfileMode;
-    
-    // Also check for assertions (which are enabled in debug and profile builds)
-    bool assertionsEnabled = false;
-    assert(assertionsEnabled = true);
-    
-    // Check for TestFlight builds using build-time flag
-    const bool isTestFlight = bool.fromEnvironment('IS_TESTFLIGHT', defaultValue: false);
-    
-    return isInDevelopmentMode || assertionsEnabled || isTestFlight;
-  }
-
-  /// Get the current build mode description
-  String _getBuildModeText() {
-    const bool isTestFlight = bool.fromEnvironment('IS_TESTFLIGHT', defaultValue: false);
-    
-    if (kDebugMode) {
-      return 'Debug';
-    } else if (kProfileMode) {
-      return 'Profile';
-    } else if (isTestFlight) {
-      return 'Release (TestFlight)';
-    } else {
-      return 'Release';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,267 +14,121 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
         elevation: 2,
       ),
-      body: BlocBuilder<SettingsCubit, SettingsState>(
+      body: BlocBuilder<SettingsCubit, UserSettings>(
         builder: (context, state) {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // App Settings Section
-              _buildSectionHeader('App Settings'),
-              const SizedBox(height: 16),
-
-              // Notifications Toggle
-              _buildSettingTile(
-                context,
-                icon: Icons.notifications,
-                title: 'Notifications',
-                subtitle: 'Receive notifications for sound events',
-                trailing: Switch(
-                  value: state.notificationsEnabled,
-                  onChanged: (_) {
-                    context.read<SettingsCubit>().toggleNotifications();
-                  },
-                ),
-              ),
-
-              // Haptic Feedback Toggle
-              _buildSettingTile(
-                context,
-                icon: Icons.vibration,
-                title: 'Haptic Feedback',
-                subtitle: 'Feel vibrations for audio cues',
-                trailing: Switch(
-                  value: state.hapticsEnabled,
-                  onChanged: (_) {
-                    context.read<SettingsCubit>().toggleHaptics();
-                  },
-                ),
-              ),
-
-              // Text Size Slider
+              _buildSectionHeader('Caption Settings'),
               _buildSettingTile(
                 context,
                 icon: Icons.text_fields,
-                title: 'Text Size',
-                subtitle: 'Adjust caption text size',
-                trailing: SizedBox(
-                  width: 100,
-                  child: Slider(
-                    value: state.textSize,
-                    min: 10.0,
-                    max: 32.0,
-                    divisions: 11,
-                    label: state.textSize.round().toString(),
-                    onChanged: (value) {
-                      context.read<SettingsCubit>().updateTextSize(value);
-                    },
-                  ),
+                title: 'Caption Font Size',
+                subtitle: 'Adjust the size of the captions',
+                trailing: Slider(
+                  value: state.captionFontSize,
+                  min: 0.5,
+                  max: 2.0,
+                  divisions: 15,
+                  label: state.captionFontSize.toStringAsFixed(1),
+                  onChanged: (value) {
+                    context.read<SettingsCubit>().setCaptionFontSize(value);
+                  },
                 ),
               ),
-
-              // Language Selection
               _buildSettingTile(
                 context,
-                icon: Icons.language,
-                title: 'Language',
-                subtitle: 'Select app language',
-                trailing: DropdownButton<String>(
-                  value: state.language,
-                  items: const [
-                    DropdownMenuItem(value: 'en', child: Text('English')),
-                    DropdownMenuItem(value: 'es', child: Text('Español')),
-                    DropdownMenuItem(value: 'fr', child: Text('Français')),
-                    DropdownMenuItem(value: 'de', child: Text('Deutsch')),
+                icon: Icons.contrast,
+                title: 'High Contrast',
+                subtitle: 'Improve caption visibility',
+                trailing: Switch(
+                  value: state.highContrastEnabled,
+                  onChanged: (value) {
+                    context.read<SettingsCubit>().toggleHighContrast(value);
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Speech & Enhancement'),
+              _buildSettingTile(
+                context,
+                icon: Icons.cloud_outlined,
+                title: 'Speech-to-Text Mode',
+                subtitle: 'Online for accuracy, Offline for privacy',
+                trailing: DropdownButton<SttMode>(
+                  // Always use a non-null value; force to offline if online is disabled
+                  value: state.sttMode == SttMode.online ? SttMode.offline : state.sttMode,
+                  items: [
+                    DropdownMenuItem<SttMode>(
+                      value: SttMode.online,
+                      enabled: false, // disables selection
+                      child: Row(
+                        children: [
+                          Opacity(
+                            opacity: 0.5,
+                            child: Text('Online'),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Disabled for now (requires paid API)',
+                            child: Icon(Icons.lock, size: 16, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const DropdownMenuItem<SttMode>(
+                      value: SttMode.offline,
+                      child: Text('Offline'),
+                    ),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
-                      context.read<SettingsCubit>().updateLanguage(value);
+                    // Only allow switching to offline
+                    if (value == SttMode.offline) {
+                      context.read<SettingsCubit>().setSttMode(value as SttMode);
                     }
                   },
                 ),
               ),
-
-              const SizedBox(height: 32),
-
-              // Developer Settings Section
-              if (_isDevelopmentBuild) ...[
-                _buildSectionHeader('Developer & Testing'),
-                const SizedBox(height: 16),
-
-                // Debug Logging Toggle - Make it more prominent
-                Card(
-                  elevation: 2,
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.bug_report,
-                      color: state.debugLoggingEnabled ? Colors.orange : Theme.of(context).primaryColor,
-                    ),
-                    title: const Text(
-                      'Debug Logging Overlay',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'Show transparent debug log overlay on screen\n'
-                      'Useful for debugging and issue reporting',
-                    ),
-                    trailing: Switch(
-                      value: state.debugLoggingEnabled,
-                      onChanged: (_) {
-                        context.read<SettingsCubit>().toggleDebugLogging();
-                      },
-                    ),
-                    onTap: () {
-                      context.read<SettingsCubit>().toggleDebugLogging();
-                    },
-                  ),
+              _buildSettingTile(
+                context,
+                icon: Icons.auto_awesome,
+                title: 'Contextual Enhancement',
+                subtitle: 'Use Gemma to improve captions',
+                trailing: Switch(
+                  value: state.enhancementEnabled,
+                  onChanged: (value) {
+                    context.read<SettingsCubit>().toggleEnhancement(value);
+                  },
                 ),
-
-                const SizedBox(height: 16),
-
-                // Debug Info Card
-                if (state.debugLoggingEnabled)
-                  Card(
-                    color: Colors.green.withAlpha((255 * 0.1).round()),
-                    elevation: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline,
-                                color: Colors.green[700],
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Debug Logging Active',
-                                style: TextStyle(
-                                  color: Colors.green[700],
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withAlpha((255 * 0.1).round()),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '📱 Look for the overlay on the Home screen',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'A transparent black box will appear at the top of the Home screen showing debug logs in real-time.',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'How to use the overlay:',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            '• Tap the overlay header to expand/collapse\n'
-                            '• Blue arrow button: Toggle auto-scroll to latest logs\n'
-                            '• Copy button: Copy all logs to clipboard\n'
-                            '• Clear button: Clear all captured logs\n'
-                            '• Orange test button: Generate sample logs (when expanded)',
-                            style: TextStyle(fontSize: 12, height: 1.4),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Helper card when debug logging is disabled
-                if (!state.debugLoggingEnabled)
-                  Card(
-                    color: Colors.blue.withAlpha((255 * 0.1).round()),
-                    elevation: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.lightbulb_outline,
-                                color: Colors.blue[700],
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Enable Debug Logging',
-                                style: TextStyle(
-                                  color: Colors.blue[700],
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Turn on debug logging to see a transparent overlay with real-time app logs on the Home screen. '
-                            'This is especially useful for troubleshooting issues.',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 32),
-              ],
-
-              // Actions Section
-              _buildSectionHeader('Actions'),
-              const SizedBox(height: 16),
-
-              // Reset Settings Button
-              ListTile(
-                leading: const Icon(Icons.restore, color: Colors.red),
-                title: const Text('Reset Settings'),
-                subtitle: const Text('Reset all settings to defaults'),
-                onTap: () => _showResetConfirmation(context),
               ),
-
-              const SizedBox(height: 32),
-
-              // App Info Section
-              _buildSectionHeader('About'),
-              const SizedBox(height: 16),
-
-              ListTile(
-                leading: const Icon(Icons.info),
-                title: const Text('App Version'),
-                subtitle: const Text('1.0.0'),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Cloud Services'),
+              _buildSettingTile(
+                context,
+                icon: Icons.login,
+                title: 'Google Cloud',
+                subtitle: 'Sign in to use Google Cloud STT',
+                trailing: ElevatedButton(
+                  onPressed: () {
+                    context.read<GoogleAuthService>().signIn();
+                  },
+                  child: const Text('Sign In'),
+                ),
               ),
-
-              ListTile(
-                leading: const Icon(Icons.code),
-                title: const Text('Build Mode'),
-                subtitle: Text(_getBuildModeText()),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Feedback'),
+              _buildSettingTile(
+                context,
+                icon: Icons.vibration,
+                title: 'Haptic Feedback',
+                subtitle: 'Vibrations for important events',
+                trailing: Switch(
+                  value: state.hapticsEnabled,
+                  onChanged: (value) {
+                    // This needs to be implemented in the cubit
+                  },
+                ),
               ),
-
-              const SizedBox(height: 32),
             ],
           );
         },
@@ -337,40 +162,6 @@ class SettingsScreen extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: trailing,
       ),
-    );
-  }
-
-  void _showResetConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Reset Settings'),
-          content: const Text(
-            'Are you sure you want to reset all settings to their default values? '
-            'This action cannot be undone.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.read<SettingsCubit>().resetSettings();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Settings reset to defaults'),
-                  ),
-                );
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Reset'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:dart_openai/dart_openai.dart';
 import 'package:live_captions_xr/web/app/app_web.dart';
 import 'app.dart';
 import 'core/services/debug_capturing_logger.dart';
@@ -14,6 +16,12 @@ void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     _logger.d('✅ Flutter widgets binding initialized');
+
+    // Load environment variables
+    await dotenv.load(fileName: ".env");
+    _logger.d('🔑 Environment variables loaded');
+
+
 
     // Initialize debug logger service
     DebugLoggerService().initialize();
