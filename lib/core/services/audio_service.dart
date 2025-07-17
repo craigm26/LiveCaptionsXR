@@ -4,12 +4,12 @@ import 'dart:math' show sqrt;
 
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
-import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
+import 'gemma3n_service.dart';
 import 'hybrid_localization_engine.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
-import 'speech_processor.dart';
+import 'enhanced_speech_processor.dart';
 import 'debug_capturing_logger.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
@@ -23,10 +23,11 @@ class AudioService {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   final Gemma3nService gemma3nService;
-  late final VisualIdentificationService visualService;
+  final SoundDetectionCubit soundDetectionCubit;
+  final VisualIdentificationService visualService;
   late final StereoAudioCapture _audioCapture;
   late final SpeechLocalizer _speechLocalizer;
-  final SpeechProcessor? speechProcessor;
+  final EnhancedSpeechProcessor? speechProcessor;
 
   bool _modelLoaded = false;
   bool _isListening = false;
@@ -35,7 +36,9 @@ class AudioService {
   AudioService({
     required this.gemma3nService,
     this.speechProcessor,
-  }) {
+    required this.soundDetectionCubit,
+    required this.visualService,
+    }) {
     _logger.i('🏗️ Initializing AudioService...');
     _audioCapture = StereoAudioCapture();
     _speechLocalizer = SpeechLocalizer();
@@ -57,13 +60,18 @@ class AudioService {
   Future<void> start() async {
     _logger.i('🚀 Starting AudioService...');
 
-    if (!gemma3nService.isReady) {
-      _logger.w('⚠️ Gemma3nService is not ready. Audio analysis will be limited.');
-    } else {
-      _logger.i('✅ Gemma3nService is ready.');
-    }
+    // start the gemma3n service
+    await gemma3nService.loadModel();
 
-    await _startAudioCapture();
+    // start the visual service
+    await visualService.start();
+
+    // start the speech processor
+    await speechProcessor?.startProcessing();
+
+    // start the audio capture
+    await _startAudioCapture(); 
+
     _logger.i('✅ AudioService started successfully');
   }
 
@@ -126,15 +134,9 @@ class AudioService {
   void _processAudioFrame(Float32List audioFrame, double angle) async {
     _logger.d('🎯 Processing audio frame with ${audioFrame.length} samples at angle ${angle.toStringAsFixed(1)}°');
     
-    if (!gemma3nService.isReady) {
-      _logger.w('⚠️ Gemma3nService not ready, skipping audio frame.');
-      return;
-    }
-
-    // In the future, this will pass the audio to Gemma3nService for full analysis.
-    // For now, we'll keep the placeholder logic.
-    // final SoundEvent event = await gemma3nService.analyzeAudioFrame(audioFrame, angle);
-    // soundDetectionCubit.detectSound(event);
+    // pass the audio to Gemma3nService for full analysis.
+    final SoundEvent event = await gemma3nService.analyzeAudioFrame(audioFrame, angle);
+    soundDetectionCubit.detectSound(event);
   }
 
   /// Stop audio processing and cleanup resources
