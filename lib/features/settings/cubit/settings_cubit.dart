@@ -24,6 +24,8 @@ class SettingsCubit extends Cubit<UserSettings> {
 
   void toggleDebugLoggingOverlay(bool value) {
     _saveSettings(state.copyWith(debugLoggingOverlayEnabled: value));
+    // Enable/disable the debug logger service
+    _debugLogger.setEnabled(value);
   }
 
 
@@ -51,10 +53,15 @@ class SettingsCubit extends Cubit<UserSettings> {
       if (settingsJson != null) {
         final settings = UserSettings.fromJson(jsonDecode(settingsJson));
         emit(settings);
+        // Enable debug logger service based on loaded setting
+        _debugLogger.setEnabled(settings.debugLoggingOverlayEnabled);
         _logger.i('✅ Settings loaded successfully');
       } else {
         _logger.i('ℹ️ No saved settings found, using defaults.');
-        emit(const UserSettings());
+        final defaultSettings = const UserSettings();
+        emit(defaultSettings);
+        // Enable debug logger service based on default setting
+        _debugLogger.setEnabled(defaultSettings.debugLoggingOverlayEnabled);
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Error loading settings', error: e, stackTrace: stackTrace);
