@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/user_settings.dart';
-import '../../../core/services/enhanced_speech_processor.dart' show SpeechEngine;
+import '../../../core/services/enhanced_speech_processor.dart'
+    show SpeechEngine;
 import '../cubit/settings_cubit.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -21,7 +22,8 @@ class SettingsScreen extends StatelessWidget {
             children: [
               _buildSectionHeader('Caption Settings'),
               Tooltip(
-                message: 'Change how large captions appear on screen. Useful for readability and accessibility.',
+                message:
+                    'Change how large captions appear on screen. Useful for readability and accessibility.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.text_fields,
@@ -40,7 +42,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: 'Enable for better visibility in bright or low-contrast environments.',
+                message:
+                    'Enable for better visibility in bright or low-contrast environments.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.contrast,
@@ -56,7 +59,8 @@ class SettingsScreen extends StatelessWidget {
               ),
               _buildSectionHeader('Speech & Enhancement'),
               Tooltip(
-                message: 'Online mode uses cloud services for higher accuracy (may send audio to server). Offline mode keeps audio on device for privacy.',
+                message:
+                    'Online mode uses cloud services for higher accuracy (may send audio to server). Offline mode keeps audio on device for privacy.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.cloud_outlined,
@@ -78,8 +82,8 @@ class SettingsScreen extends StatelessWidget {
                             ),
                             Tooltip(
                               message: 'Disabled for now (requires paid API)',
-                              child:
-                                  Icon(Icons.lock, size: 16, color: Colors.grey),
+                              child: Icon(Icons.lock,
+                                  size: 16, color: Colors.grey),
                             ),
                           ],
                         ),
@@ -100,7 +104,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: 'Select which speech recognition engine to use. Some engines may offer better speed, privacy, or accuracy.',
+                message:
+                    'Select which speech recognition engine to use. Some engines may offer better speed, privacy, or accuracy.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.settings_voice,
@@ -120,7 +125,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: 'Enable to improve captions with context-aware enhancements (may use more processing).',
+                message:
+                    'Enable to improve captions with context-aware enhancements (may use more processing).',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.auto_awesome,
@@ -135,7 +141,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: 'Enable to receive vibration feedback for important events.',
+                message:
+                    'Enable to receive vibration feedback for important events.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.vibration,
@@ -150,7 +157,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: 'Enable to use device LED for visual alerts (useful for accessibility).',
+                message:
+                    'Enable to use device LED for visual alerts (useful for accessibility).',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.lightbulb_outline,
@@ -219,7 +227,7 @@ Widget _buildSettingTile(
       leading: Icon(icon, color: Theme.of(context).primaryColor),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: trailing,
+      trailing: SizedBox(width: 140, child: trailing),
     ),
   );
 }

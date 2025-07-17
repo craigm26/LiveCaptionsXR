@@ -7,16 +7,8 @@ import 'package:live_captions_xr/app.dart';
 import 'package:live_captions_xr/features/model_status/view/model_status_page.dart';
 
 final GoRouter router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/home',
   routes: <RouteBase>[
-    // Bootstrap route - checks onboarding status
-    GoRoute(
-      path: '/',
-      builder: (BuildContext context, GoRouterState state) {
-        return const AppBootstrap();
-      },
-    ),
-
     // Shell routes with navigation
     ShellRoute(
       builder: (BuildContext context, GoRouterState state, Widget child) {
@@ -102,9 +94,9 @@ class AboutScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Features Section
               const Text(
                 'Integrated Features',
@@ -115,37 +107,41 @@ class AboutScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               _buildFeatureCard(
                 icon: Icons.hearing,
                 title: 'Real-time Sound Detection',
-                description: 'Advanced audio analysis identifies sounds and speech with directional awareness.',
+                description:
+                    'Advanced audio analysis identifies sounds and speech with directional awareness.',
                 color: Colors.blue,
               ),
-              
+
               _buildFeatureCard(
                 icon: Icons.location_on,
                 title: 'Spatial Localization',
-                description: 'Precise 3D positioning of sounds using advanced sensor fusion technology.',
+                description:
+                    'Precise 3D positioning of sounds using advanced sensor fusion technology.',
                 color: Colors.orange,
               ),
-              
+
               _buildFeatureCard(
                 icon: Icons.visibility,
                 title: 'Visual Identification',
-                description: 'On-device computer vision for face detection and speaker identification.',
+                description:
+                    'On-device computer vision for face detection and speaker identification.',
                 color: Colors.green,
               ),
-              
+
               _buildFeatureCard(
                 icon: Icons.closed_caption,
                 title: 'Live Captions',
-                description: 'Real-time speech transcription with spatial positioning in AR.',
+                description:
+                    'Real-time speech transcription with spatial positioning in AR.',
                 color: Colors.purple,
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // How it Works Section
               const Text(
                 'How It Works',
@@ -156,7 +152,7 @@ class AboutScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -185,9 +181,9 @@ class AboutScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Privacy Section
               const Text(
                 'Privacy & Performance',
@@ -198,7 +194,7 @@ class AboutScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -239,7 +235,7 @@ class AboutScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildFeatureCard({
     required IconData icon,
     required String title,

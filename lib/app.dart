@@ -13,6 +13,7 @@ import 'features/settings/cubit/settings_cubit.dart';
 import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'shared/theme/app_theme.dart';
+import 'core/services/google_auth_service.dart';
 
 final Logger _appLogger = Logger();
 
@@ -22,9 +23,7 @@ class LiveCaptionsXrApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp');
-
-    // Set up dependency injection
-    setupServiceLocator();
+    print('DEBUG: Building LiveCaptionsXrApp MaterialApp');
 
     return MultiBlocProvider(
       providers: [
@@ -42,13 +41,15 @@ class LiveCaptionsXrApp extends StatelessWidget {
         darkTheme: AppTheme.dark,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
+        builder: (context, child) => AppBootstrap(child: child),
       ),
     );
   }
 }
 
 class AppBootstrap extends StatefulWidget {
-  const AppBootstrap({super.key});
+  final Widget? child;
+  const AppBootstrap({Key? key, this.child}) : super(key: key);
 
   @override
   State<AppBootstrap> createState() => _AppBootstrapState();
@@ -78,7 +79,8 @@ class _AppBootstrapState extends State<AppBootstrap> {
         });
       }
     } catch (e, stackTrace) {
-      _appLogger.e('❌ Error checking onboarding status', error: e, stackTrace: stackTrace);
+      _appLogger.e('❌ Error checking onboarding status',
+          error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() {
           _onboardingComplete = false;
@@ -92,12 +94,14 @@ class _AppBootstrapState extends State<AppBootstrap> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       _appLogger.d('⏳ Waiting for onboarding status check...');
+      print('DEBUG: AppBootstrap is loading (onboarding check)');
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     // The router now handles whether to show the onboarding screen or the main app
-    return const LiveCaptionsXrApp();
+    print('DEBUG: AppBootstrap finished loading, showing app content');
+    return widget.child ?? const Center(child: Text('App loaded!'));
   }
 }
