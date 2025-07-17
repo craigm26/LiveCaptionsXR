@@ -27,10 +27,46 @@ class AudioRouterService {
   void _listenForSettingsChanges() {
     _settingsSubscription = _settingsCubit.stream.listen((settings) {
       _logger.i('⚙️ Settings changed, updating speech engine...');
-      _updateEngine(settings.sttMode);
+      _updateEngineFromSettings(settings);
     });
     // Set initial engine
-    _updateEngine(_settingsCubit.state.sttMode);
+    _updateEngineFromSettings(_settingsCubit.state);
+  }
+
+  /// Update the speech engine based on both ASR backend and STT mode.
+  Future<void> _updateEngineFromSettings(UserSettings settings) async {
+    // Determine engine from ASR backend if set, otherwise fall back to STT mode logic
+    SpeechEngine? engine;
+    // Prefer ASR backend selection if available
+    switch (settings.asrBackend) {
+      case AsrBackend.flutterSound:
+        engine = SpeechEngine.flutter_sound;
+        break;
+      case AsrBackend.gemma3n:
+        engine = SpeechEngine.gemma3n;
+        break;
+      case AsrBackend.native:
+        engine = SpeechEngine.native;
+        break;
+      case AsrBackend.openAI:
+        engine = SpeechEngine.openAI;
+        break;
+    }
+    // If for some reason engine is null, fallback to STT mode logic
+    if (engine == null) {
+      switch (settings.sttMode) {
+        case SttMode.online:
+          engine = SpeechEngine.openAI;
+          break;
+        case SttMode.offline:
+          engine = SpeechEngine.flutter_sound;
+          break;
+      }
+    }
+    if (_speechProcessor.activeEngine != engine) {
+      _logger.i('🔄 Switching speech engine to $engine');
+      await _speechProcessor.switchEngine(engine);
+    }
   }
 
   Future<void> _updateEngine(SttMode mode) async {

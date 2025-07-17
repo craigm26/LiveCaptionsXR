@@ -17,20 +17,22 @@ import 'gemma_3n_service.dart';
 enum SpeechEngine {
   native,
   flutter_sound,
-  gemma3n, openAI,
+  gemma3n,
+  openAI,
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
 class EnhancedSpeechProcessor {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static const String defaultFallbackTranscript = "No speech recognized";
 
   final Gemma3nService gemma3nService;
-  static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
+  static const MethodChannel _nativeChannel =
+      MethodChannel('live_captions_xr/speech');
 
   // FlutterSound specific
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   StreamSubscription? _recorderSubscription;
-
 
   // Google Cloud Speech specific
 
@@ -38,14 +40,37 @@ class EnhancedSpeechProcessor {
   bool _isProcessing = false;
   SpeechConfig _config = const SpeechConfig();
   SpeechEngine _activeEngine = SpeechEngine.flutter_sound;
+  List<SpeechEngine> get availableEngines {
+    final engines = <SpeechEngine>[];
+    // Always available
+    engines.add(SpeechEngine.flutter_sound);
+    // Native engine availability could be checked here if needed
+    // For Gemma3n, only add if ready
+    if (gemma3nService.isReady) {
+      engines.add(SpeechEngine.gemma3n);
+    }
+    // Add other engines as they become available
+    return engines;
+  }
+
+  void setActiveEngine(SpeechEngine engine) {
+    if (!availableEngines.contains(engine)) {
+      throw StateError('Selected ASR backend is not available: $engine');
+    }
+    _activeEngine = engine;
+    _logger.i('🔄 User selected speech engine: $engine');
+  }
   String? _currentLanguage;
   final List<String> _recentTexts = [];
 
-  final StreamController<SpeechResult> _speechResultController = StreamController<SpeechResult>.broadcast();
-  final StreamController<EnhancedCaption> _enhancedCaptionController = StreamController<EnhancedCaption>.broadcast();
+  final StreamController<SpeechResult> _speechResultController =
+      StreamController<SpeechResult>.broadcast();
+  final StreamController<EnhancedCaption> _enhancedCaptionController =
+      StreamController<EnhancedCaption>.broadcast();
 
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
-  Stream<EnhancedCaption> get enhancedCaptions => _enhancedCaptionController.stream;
+  Stream<EnhancedCaption> get enhancedCaptions =>
+      _enhancedCaptionController.stream;
 
   final AudioCaptureService _audioCaptureService;
 
@@ -53,8 +78,8 @@ class EnhancedSpeechProcessor {
     required this.gemma3nService,
     required AudioCaptureService audioCaptureService,
     SpeechEngine? defaultEngine,
-  }) : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
-       _audioCaptureService = audioCaptureService;
+  })  : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
+        _audioCaptureService = audioCaptureService;
 
   Future<bool> initialize({
     SpeechConfig? config,
@@ -74,7 +99,8 @@ class EnhancedSpeechProcessor {
           await _initializeNativeEngine();
           break;
         case SpeechEngine.gemma3n:
-          _logger.w('Gemma 3n ASR not yet implemented, falling back to flutter_sound');
+          _logger.w(
+              'Gemma 3n ASR not yet implemented, falling back to flutter_sound');
           _activeEngine = SpeechEngine.flutter_sound;
           await _initializeFlutterSound();
           break;
@@ -90,10 +116,12 @@ class EnhancedSpeechProcessor {
       }
 
       _isInitialized = true;
-      _logger.i('✅ EnhancedSpeechProcessor initialized with engine: $_activeEngine');
+      _logger.i(
+          '✅ EnhancedSpeechProcessor initialized with engine: $_activeEngine');
       return true;
     } catch (e, stackTrace) {
-      _logger.e('❌ Error initializing EnhancedSpeechProcessor', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error initializing EnhancedSpeechProcessor',
+          error: e, stackTrace: stackTrace);
       return false;
     }
   }
@@ -136,25 +164,48 @@ class EnhancedSpeechProcessor {
       _logger.i('✅ Speech processing started with engine: $_activeEngine');
       return true;
     } catch (e, stackTrace) {
-      _logger.e('❌ Error starting speech processing', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error starting speech processing',
+          error: e, stackTrace: stackTrace);
       return false;
     }
   }
 
   Future<void> _startFlutterSoundProcessing() async {
     final StreamController<Food> recordingDataController = StreamController<Food>();
-    _recorderSubscription = recordingDataController.stream.listen((buffer) {
-      if (buffer is FoodData) {
-        _processSpeechResult(SpeechResult(
-          text: "TODO",
-          confidence: 1.0,
-          isFinal: true,
-          timestamp: DateTime.now(),
-        ));
+    _recorderSubscription = recordingDataController.stream.listen((buffer) async {
+      if (buffer is FoodData && buffer.data != null) {
+        try {
+          String transcript = defaultFallbackTranscript;
+          switch (_activeEngine) {
+            case SpeechEngine.flutter_sound:
+              // TODO: Integrate a real ASR backend for flutter_sound if available
+              break;
+            case SpeechEngine.gemma3n:
+              if (gemma3nService.isReady) {
+                transcript = await gemma3nService.transcribeAudio(buffer.data!);
+              }
+              break;
+            case SpeechEngine.native:
+              // TODO: Integrate native ASR backend if available
+              break;
+            case SpeechEngine.openAI:
+              // TODO: Integrate OpenAI ASR backend if available
+              break;
+          }
+          _processSpeechResult(SpeechResult(
+            text: transcript,
+            confidence: 1.0,
+            isFinal: true,
+            timestamp: DateTime.now(),
+          ));
+        } catch (e) {
+          _logger.e('Error transcribing audio', error: e);
+        }
       }
     });
 
-    final StreamController<Uint8List> uint8ListController = StreamController<Uint8List>();
+    final StreamController<Uint8List> uint8ListController =
+        StreamController<Uint8List>();
     recordingDataController.stream.transform(StreamTransformer.fromHandlers(
       handleData: (data, sink) {
         if (data is FoodData) {
@@ -173,7 +224,8 @@ class EnhancedSpeechProcessor {
 
   Future<void> _startNativeProcessing() async {
     _nativeChannel.setMethodCallHandler(_handleNativeMethodCall);
-    await _nativeChannel.invokeMethod('startListening', {'language': _currentLanguage});
+    await _nativeChannel
+        .invokeMethod('startListening', {'language': _currentLanguage});
   }
 
   Future<dynamic> _handleNativeMethodCall(MethodCall call) async {
@@ -182,7 +234,7 @@ class EnhancedSpeechProcessor {
         final text = call.arguments['text'] as String;
         final confidence = call.arguments['confidence'] as double;
         final isFinal = call.arguments['isFinal'] as bool;
-        
+
         _processSpeechResult(SpeechResult(
           text: text,
           confidence: confidence,
@@ -195,14 +247,14 @@ class EnhancedSpeechProcessor {
 
   void _processSpeechResult(SpeechResult result) async {
     _speechResultController.add(result);
-    
+
     if (result.isFinal) {
       _recentTexts.add(result.text);
       if (_recentTexts.length > 10) {
         _recentTexts.removeAt(0);
       }
     }
-    
+
     if (gemma3nService.isReady) {
       try {
         if (result.isFinal) {
@@ -221,11 +273,13 @@ class EnhancedSpeechProcessor {
         _enhancedCaptionController.add(EnhancedCaption.fallback(result.text));
       }
     } else {
-      _enhancedCaptionController.add(
-        result.isFinal 
-          ? EnhancedCaption(raw: result.text, enhanced: result.text, isFinal: true, isEnhanced: false)
-          : EnhancedCaption.partial(result.text)
-      );
+      _enhancedCaptionController.add(result.isFinal
+          ? EnhancedCaption(
+              raw: result.text,
+              enhanced: result.text,
+              isFinal: true,
+              isEnhanced: false)
+          : EnhancedCaption.partial(result.text));
     }
   }
 
@@ -252,7 +306,8 @@ class EnhancedSpeechProcessor {
       _logger.i('✅ Speech processing stopped');
       return true;
     } catch (e, stackTrace) {
-      _logger.e('❌ Error stopping speech processing', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error stopping speech processing',
+          error: e, stackTrace: stackTrace);
       return false;
     }
   }
@@ -261,15 +316,15 @@ class EnhancedSpeechProcessor {
     await _recorder.stopRecorder();
     await _recorderSubscription?.cancel();
   }
-  
+
   Future<bool> switchEngine(SpeechEngine engine) async {
     if (_isProcessing) {
       await stopProcessing();
     }
-    
+
     _activeEngine = engine;
     _logger.i('🔄 Switched to speech engine: $engine');
-    
+
     _isInitialized = false;
     return await initialize(config: _config);
   }

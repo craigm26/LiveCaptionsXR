@@ -1,23 +1,47 @@
 import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/models/user_settings.dart';
+
+import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/models/user_settings.dart';
 import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/models/user_settings.dart';
 
 class SettingsCubit extends Cubit<UserSettings> {
+  void toggleLedAlerts(bool value) {
+    _saveSettings(state.copyWith(ledAlertsEnabled: value));
+  }
+
   SettingsCubit() : super(const UserSettings()) {
     _loadSettings();
   }
 
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
   final DebugLoggerService _debugLogger = DebugLoggerService();
+
+  // Optionally notify other services or update state when the speech engine changes
+  void setSpeechEngine(SpeechEngine engine) {
+    // This is a placeholder for integration with the actual speech processor.
+    // You can add logic here to notify the processor or update state if needed.
+    _logger.i('🔄 Speech engine set to: $engine');
+  }
+
+  /// Set the ASR backend/engine.
+  void setAsrBackend(AsrBackend backend) {
+    _saveSettings(state.copyWith(asrBackend: backend));
+  }
+
+  void toggleHaptics(bool value) {
+    _saveSettings(state.copyWith(hapticsEnabled: value));
+  }
 
   Future<void> _loadSettings() async {
     try {
