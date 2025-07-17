@@ -2,15 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_speech/generated/google/cloud/speech/v2/cloud_speech.pb.dart' as google_speech;
 import 'package:path_provider/path_provider.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart' as stt;
 import 'package:dart_openai/dart_openai.dart';
-import 'package:google_speech/google_speech.dart' as google_speech;
-import 'package:live_captions_xr/core/di/service_locator.dart';
-import 'package:live_captions_xr/core/services/google_auth_service.dart';
 import 'package:live_captions_xr/core/services/audio_capture_service.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
@@ -21,10 +16,8 @@ import 'gemma_3n_service.dart';
 /// Speech processing engine types
 enum SpeechEngine {
   native,
-  speechToText,
-  gemma3n,
-  openAI,
-  googleCloud,
+  flutter_sound,
+  gemma3n, openAI,
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
@@ -32,19 +25,19 @@ class EnhancedSpeechProcessor {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   final Gemma3nService gemma3nService;
-  final SpeechToText _speechToText = SpeechToText();
   static const MethodChannel _nativeChannel = MethodChannel('live_captions_xr/speech');
 
+  // FlutterSound specific
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  StreamSubscription? _recorderSubscription;
+
+
   // Google Cloud Speech specific
-  // Google Cloud Speech specific
-  // Google Cloud Speech specific
-  google_speech.SpeechToTextV2? _googleSpeechV2;
-  StreamSubscription<google_speech.StreamingRecognizeResponse>? _googleSpeechSubscription;
 
   bool _isInitialized = false;
   bool _isProcessing = false;
   SpeechConfig _config = const SpeechConfig();
-  SpeechEngine _activeEngine = SpeechEngine.speechToText;
+  SpeechEngine _activeEngine = SpeechEngine.flutter_sound;
   String? _currentLanguage;
   final List<String> _recentTexts = [];
 
@@ -60,7 +53,7 @@ class EnhancedSpeechProcessor {
     required this.gemma3nService,
     required AudioCaptureService audioCaptureService,
     SpeechEngine? defaultEngine,
-  }) : _activeEngine = defaultEngine ?? SpeechEngine.speechToText,
+  }) : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
        _audioCaptureService = audioCaptureService;
 
   Future<bool> initialize({
@@ -74,23 +67,20 @@ class EnhancedSpeechProcessor {
       _currentLanguage = _config.language;
 
       switch (_activeEngine) {
-        case SpeechEngine.speechToText:
-          await _initializeSpeechToText();
+        case SpeechEngine.flutter_sound:
+          await _initializeFlutterSound();
           break;
         case SpeechEngine.native:
           await _initializeNativeEngine();
           break;
-        case SpeechEngine.openAI:
-          _initializeOpenAI();
-          break;
-        case SpeechEngine.googleCloud:
-          await _initializeGoogleCloudSpeech();
-          break;
         case SpeechEngine.gemma3n:
-          _logger.w('Gemma 3n ASR not yet implemented, falling back to speech_to_text');
-          _activeEngine = SpeechEngine.speechToText;
-          await _initializeSpeechToText();
+          _logger.w('Gemma 3n ASR not yet implemented, falling back to flutter_sound');
+          _activeEngine = SpeechEngine.flutter_sound;
+          await _initializeFlutterSound();
           break;
+        case SpeechEngine.openAI:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
 
       if (enableGemmaEnhancement && gemma3nService.isReady) {
@@ -108,33 +98,14 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  Future<void> _initializeSpeechToText() async {
-    final available = await _speechToText.initialize(
-      onStatus: (status) => _logger.d('Speech status: $status'),
-      onError: (error) => _logger.e('Speech error: $error'),
-    );
-    if (!available) throw Exception('Speech-to-text not available on this device');
-    _logger.i('✅ speech_to_text package initialized');
+  Future<void> _initializeFlutterSound() async {
+    await _recorder.openRecorder();
+    _logger.i('✅ FlutterSound engine initialized');
   }
 
   Future<void> _initializeNativeEngine() async {
     await _nativeChannel.invokeMethod('initializeSpeech');
     _logger.i('✅ Native speech engine initialized');
-  }
-
-  void _initializeOpenAI() {
-    _logger.i('✅ OpenAI (Whisper) engine initialized');
-  }
-
-  Future<void> _initializeGoogleCloudSpeech() async {
-    final serviceAccountJson = dotenv.env['GOOGLE_APPLICATION_CREDENTIALS_JSON'];
-    if (serviceAccountJson == null || serviceAccountJson.isEmpty) {
-      _logger.e('❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found in .env file.');
-      throw Exception('Google Cloud credentials not found.');
-    }
-    final credentials = google_speech.ServiceAccount.fromString(serviceAccountJson);
-    _googleSpeechV2 = google_speech.SpeechToTextV2.viaServiceAccount(credentials, projectId: 'live-captions-xr');
-    _logger.i('✅ Google Cloud Speech V2 initialized');
   }
 
   Future<bool> startProcessing({SpeechConfig? config}) async {
@@ -147,21 +118,18 @@ class EnhancedSpeechProcessor {
       await _audioCaptureService.start();
 
       switch (_activeEngine) {
-        case SpeechEngine.speechToText:
-          await _startSpeechToTextProcessing();
+        case SpeechEngine.flutter_sound:
+          await _startFlutterSoundProcessing();
           break;
         case SpeechEngine.native:
           await _startNativeProcessing();
           break;
-        case SpeechEngine.openAI:
-          _startOpenAIProcessing();
-          break;
-        case SpeechEngine.googleCloud:
-          _startGoogleCloudSpeechProcessing();
-          break;
         case SpeechEngine.gemma3n:
-          await _startSpeechToTextProcessing();
+          await _startFlutterSoundProcessing();
           break;
+        case SpeechEngine.openAI:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
 
       _isProcessing = true;
@@ -173,82 +141,39 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  Future<void> _startSpeechToTextProcessing() async {
-    await _speechToText.listen(
-      onResult: _onSpeechToTextResult,
-      localeId: _currentLanguage,
+  Future<void> _startFlutterSoundProcessing() async {
+    final StreamController<Food> recordingDataController = StreamController<Food>();
+    _recorderSubscription = recordingDataController.stream.listen((buffer) {
+      if (buffer is FoodData) {
+        _processSpeechResult(SpeechResult(
+          text: "TODO",
+          confidence: 1.0,
+          isFinal: true,
+          timestamp: DateTime.now(),
+        ));
+      }
+    });
+
+    final StreamController<Uint8List> uint8ListController = StreamController<Uint8List>();
+    recordingDataController.stream.transform(StreamTransformer.fromHandlers(
+      handleData: (data, sink) {
+        if (data is FoodData) {
+          sink.add(data.data!);
+        }
+      },
+    )).pipe(uint8ListController);
+
+    await _recorder.startRecorder(
+      toStream: uint8ListController.sink,
+      codec: Codec.pcm16,
+      numChannels: 1,
+      sampleRate: 16000,
     );
   }
 
   Future<void> _startNativeProcessing() async {
     _nativeChannel.setMethodCallHandler(_handleNativeMethodCall);
     await _nativeChannel.invokeMethod('startListening', {'language': _currentLanguage});
-  }
-
-  void _startOpenAIProcessing() {
-    _logger.w('OpenAI processing needs to be adapted to a file-based workflow.');
-    _audioCaptureService.audioStream?.listen((data) {
-      _transcribeAudioChunk(Uint8List.fromList(data));
-    });
-  }
-
-  void _startGoogleCloudSpeechProcessing() {
-    final config = google_speech.RecognitionConfigV2(
-      autoDecodingConfig: google_speech.AutoDetectDecodingConfig(),
-      model: google_speech.RecognitionModelV2.chirp,
-      languageCodes: [_currentLanguage ?? 'en-US'],
-      features: google_speech.RecognitionFeatures(enableAutomaticPunctuation: true),
-    );
-    
-    final audioStream = Stream<List<int>>.empty();
-
-    _googleSpeechSubscription = _googleSpeechV2?.streamingRecognize(config as google_speech.StreamingRecognitionConfigV2, audioStream).listen((response) {
-      final result = response.results.first;
-      _processSpeechResult(SpeechResult(
-        text: result.alternatives.first.transcript,
-        confidence: result.alternatives.first.confidence,
-        isFinal: result.isFinal,
-        timestamp: DateTime.now(),
-      ));
-    });
-  }
-
-  Future<void> _transcribeAudioChunk(Uint8List audioData) async {
-
-
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/temp_audio.wav');
-    await tempFile.writeAsBytes(audioData);
-
-    try {
-      final transcription = await OpenAI.instance.audio.createTranscription(
-        file: tempFile,
-        model: 'whisper-1',
-      );
-
-      final result = SpeechResult(
-        text: transcription.text,
-        confidence: 1.0,
-        isFinal: true,
-        timestamp: DateTime.now(),
-      );
-      _processSpeechResult(result);
-    } catch (e) {
-      _logger.e('❌ OpenAI transcription failed', error: e);
-    } finally {
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
-    }
-  }
-
-  void _onSpeechToTextResult(stt.SpeechRecognitionResult result) {
-    _processSpeechResult(SpeechResult(
-      text: result.recognizedWords,
-      confidence: result.confidence,
-      isFinal: result.finalResult,
-      timestamp: DateTime.now(),
-    ));
   }
 
   Future<dynamic> _handleNativeMethodCall(MethodCall call) async {
@@ -309,20 +234,18 @@ class EnhancedSpeechProcessor {
 
     try {
       switch (_activeEngine) {
-        case SpeechEngine.speechToText:
-          await _speechToText.stop();
+        case SpeechEngine.flutter_sound:
+          await _stopFlutterSoundProcessing();
           break;
         case SpeechEngine.native:
           await _nativeChannel.invokeMethod('stopListening');
           break;
-        case SpeechEngine.openAI:
-          break;
-        case SpeechEngine.googleCloud:
-          await _googleSpeechSubscription?.cancel();
-          break;
         case SpeechEngine.gemma3n:
-          await _speechToText.stop();
+          await _stopFlutterSoundProcessing();
           break;
+        case SpeechEngine.openAI:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
 
       _isProcessing = false;
@@ -332,6 +255,11 @@ class EnhancedSpeechProcessor {
       _logger.e('❌ Error stopping speech processing', error: e, stackTrace: stackTrace);
       return false;
     }
+  }
+
+  Future<void> _stopFlutterSoundProcessing() async {
+    await _recorder.stopRecorder();
+    await _recorderSubscription?.cancel();
   }
   
   Future<bool> switchEngine(SpeechEngine engine) async {

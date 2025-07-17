@@ -43,7 +43,7 @@ class AudioRouterService {
       case SttMode.offline:
         // Defaulting to speech_to_text for offline, as it's a stable on-device option.
         // We can change this to gemma3n to test its performance.
-        engine = SpeechEngine.speechToText;
+        engine = SpeechEngine.flutter_sound;
         break;
     }
 
