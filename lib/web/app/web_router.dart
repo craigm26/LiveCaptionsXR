@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../pages/home/home_page.dart';
 import '../pages/features/features_page.dart';
+import '../pages/features/enhanced_features_page.dart';
 import '../pages/technology/technology_page.dart';
 import '../pages/about/about_page.dart';
 import '../pages/support/support_page.dart';
@@ -12,27 +13,27 @@ final GoRouter webRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (context, state) => const AppShell(child: HomePage()),
+      builder: (context, state) => const HomePage(),
     ),
     GoRoute(
       path: '/features',
-      builder: (context, state) => const AppShell(child: FeaturesPage()),
+      builder: (context, state) => const EnhancedFeaturesPage(),
     ),
     GoRoute(
       path: '/technology',
-      builder: (context, state) => const AppShell(child: TechnologyPage()),
+      builder: (context, state) => const TechnologyPage(),
     ),
     GoRoute(
       path: '/about',
-      builder: (context, state) => const AppShell(child: AboutPage()),
+      builder: (context, state) => const AboutPage(),
     ),
     GoRoute(
       path: '/support',
-      builder: (context, state) => const AppShell(child: SupportPage()),
+      builder: (context, state) => const SupportPage(),
     ),
     GoRoute(
       path: '/privacy',
-      builder: (context, state) => const AppShell(child: PrivacyPolicyPage()),
+      builder: (context, state) => const PrivacyPolicyPage(),
     ),
   ],
 );

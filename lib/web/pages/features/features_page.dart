@@ -138,7 +138,7 @@ class _FeaturesPageState extends State<FeaturesPage>
 
     return Scaffold(
       appBar: const NavBar(),
-      endDrawer: isMobile ? NavDrawer(location: location) : null,
+
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -164,7 +164,7 @@ class _FeaturesPageState extends State<FeaturesPage>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.1),
+            Theme.of(context).primaryColor.withValues(alpha: 0.1),
             Colors.white,
           ],
         ),
@@ -253,7 +253,7 @@ class _FeaturesPageState extends State<FeaturesPage>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 15,
             spreadRadius: 3,
           ),
@@ -267,7 +267,7 @@ class _FeaturesPageState extends State<FeaturesPage>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: (feature['color'] as Color).withOpacity(0.1),
+                color: (feature['color'] as Color).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -402,7 +402,7 @@ class _FeaturesPageState extends State<FeaturesPage>
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: (tech['color'] as Color).withOpacity(0.3),
+          color: (tech['color'] as Color).withValues(alpha: 0.3),
           width: 2,
         ),
       ),

@@ -11,7 +11,7 @@
 ## 1. Overview & Background
 
 *   **What is this product/feature?**
-    *   This feature integrates the `speech_to_text` Flutter package for real-time speech recognition with the `flutter_gemma` package and the downloaded Gemma 3n model to provide enhanced, context-aware live captions in AR mode. The system will capture speech, transcribe it using `speech_to_text`, enhance/process the text using Gemma 3n, and then place the refined captions in the AR session.
+    *   This feature integrates the `whisper_ggml` Flutter package for real-time speech recognition with the `flutter_gemma` package and the downloaded Gemma 3n model to provide enhanced, context-aware live captions in AR mode. The system will capture speech, transcribe it using `whisper_ggml` with the base model, enhance/process the text using Gemma 3n, and then place the refined captions in the AR session.
     
 *   **Why are we building this?**
     *   While basic speech-to-text provides functional captions, integrating Gemma 3n allows us to:
@@ -62,7 +62,7 @@
 ## 4. Scope & Features
 
 *   **In-Scope Features (Must-Haves):**
-    *   Integration of `speech_to_text` package for real-time transcription
+    *   Integration of `whisper_ggml` package for real-time transcription
     *   Integration of `flutter_gemma` package with the downloaded Gemma 3n model
     *   Real-time caption enhancement pipeline:
         - Raw transcription → Gemma 3n processing → AR placement
@@ -84,7 +84,7 @@
 
 *   **Processing Pipeline Flow:**
     ```
-    Audio Input → speech_to_text → Raw Transcript → flutter_gemma/Gemma3n → Enhanced Caption → AR Placement
+    Audio Input → whisper_ggml → Raw Transcript → flutter_gemma/Gemma3n → Enhanced Caption → AR Placement
     ```
 
 *   **Caption Display States:**
@@ -106,7 +106,7 @@
 *   **Platform(s):** iOS (14.0+), Android (API 24+)
 *   **Technology Stack:**
     *   Flutter/Dart
-    *   `speech_to_text` package (^6.0.0)
+    *   `whisper_ggml` package (^1.4.0)
     *   `flutter_gemma` package (latest)
     *   Gemma 3n model (4GB .task file)
     *   Existing AR/Localization infrastructure
@@ -186,10 +186,10 @@
 
 ### Core Components:
 
-1. **SpeechToTextManager**
-   - Wraps `speech_to_text` package
+1. **WhisperManager**
+   - Wraps `whisper_ggml` package
    - Handles microphone permissions
-   - Streams raw transcriptions
+   - Streams raw transcriptions using the base model
    
 2. **GemmaEnhancer**
    - Manages `flutter_gemma` instance

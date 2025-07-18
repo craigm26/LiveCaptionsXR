@@ -1,17 +1,16 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:dart_openai/dart_openai.dart';
-import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:logger/logger.dart';
 
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
+import 'audio_capture_service.dart';
+import 'gemma3n_service.dart';
+import 'whisper_service.dart';
 import 'debug_capturing_logger.dart';
-import 'gemma_3n_service.dart';
 
 /// Speech processing engine types
 enum SpeechEngine {
@@ -19,34 +18,59 @@ enum SpeechEngine {
   flutter_sound,
   gemma3n,
   openAI,
+  whisper_ggml,
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
 class EnhancedSpeechProcessor {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
-  static const String defaultFallbackTranscript = "No speech recognized";
+  static final Logger _processorLogger = Logger();
 
   final Gemma3nService gemma3nService;
-  static const MethodChannel _nativeChannel =
-      MethodChannel('live_captions_xr/speech');
+  final AudioCaptureService _audioCaptureService;
+  final WhisperService _whisperService;
 
-  // FlutterSound specific
+  SpeechEngine _activeEngine;
+  SpeechConfig _config = const SpeechConfig();
+  String _currentLanguage = 'en';
+  bool _isInitialized = false;
+  bool _isProcessing = false;
+
+  // Flutter Sound components
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   StreamSubscription? _recorderSubscription;
 
-  // Google Cloud Speech specific
+  // Native channel
+  static const MethodChannel _nativeChannel =
+      MethodChannel('com.example.live_captions_xr/speech');
 
-  bool _isInitialized = false;
-  bool _isProcessing = false;
-  SpeechConfig _config = const SpeechConfig();
-  SpeechEngine _activeEngine = SpeechEngine.flutter_sound;
+  // Stream controllers
+  final StreamController<SpeechResult> _speechResultController =
+      StreamController<SpeechResult>.broadcast();
+  final StreamController<EnhancedCaption> _enhancedCaptionController =
+      StreamController<EnhancedCaption>.broadcast();
+
+  // Recent texts for enhancement
+  final List<String> _recentTexts = [];
+  static const String defaultFallbackTranscript = "Listening...";
+
+  EnhancedSpeechProcessor({
+    required this.gemma3nService,
+    required AudioCaptureService audioCaptureService,
+    required WhisperService whisperService,
+    SpeechEngine? defaultEngine,
+  })  : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
+        _audioCaptureService = audioCaptureService,
+        _whisperService = whisperService;
+
   List<SpeechEngine> get availableEngines {
     final engines = <SpeechEngine>[];
     // Always available
     engines.add(SpeechEngine.flutter_sound);
+    engines.add(SpeechEngine.whisper_ggml);
     // Native engine availability could be checked here if needed
-    // For Gemma3n, only add if ready
-    if (gemma3nService.isReady) {
+    // For Gemma3n, only add if available
+    if (gemma3nService.isAvailable) {
       engines.add(SpeechEngine.gemma3n);
     }
     // Add other engines as they become available
@@ -60,26 +84,10 @@ class EnhancedSpeechProcessor {
     _activeEngine = engine;
     _logger.i('🔄 User selected speech engine: $engine');
   }
-  String? _currentLanguage;
-  final List<String> _recentTexts = [];
-
-  final StreamController<SpeechResult> _speechResultController =
-      StreamController<SpeechResult>.broadcast();
-  final StreamController<EnhancedCaption> _enhancedCaptionController =
-      StreamController<EnhancedCaption>.broadcast();
 
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
   Stream<EnhancedCaption> get enhancedCaptions =>
       _enhancedCaptionController.stream;
-
-  final AudioCaptureService _audioCaptureService;
-
-  EnhancedSpeechProcessor({
-    required this.gemma3nService,
-    required AudioCaptureService audioCaptureService,
-    SpeechEngine? defaultEngine,
-  })  : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
-        _audioCaptureService = audioCaptureService;
 
   Future<bool> initialize({
     SpeechConfig? config,
@@ -107,12 +115,15 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.openAI:
           // TODO: Handle this case.
           throw UnimplementedError();
+        case SpeechEngine.whisper_ggml:
+          await _initializeWhisperGgml();
+          break;
       }
 
-      if (enableGemmaEnhancement && gemma3nService.isReady) {
+      if (enableGemmaEnhancement && gemma3nService.isAvailable) {
         _logger.i('✅ Gemma enhancement enabled');
       } else if (enableGemmaEnhancement) {
-        _logger.w('⚠️ Gemma3nService not ready, enhancement will be disabled.');
+        _logger.w('⚠️ Gemma3nService not available, enhancement will be disabled.');
       }
 
       _isInitialized = true;
@@ -134,6 +145,16 @@ class EnhancedSpeechProcessor {
   Future<void> _initializeNativeEngine() async {
     await _nativeChannel.invokeMethod('initializeSpeech');
     _logger.i('✅ Native speech engine initialized');
+  }
+
+  Future<void> _initializeWhisperGgml() async {
+    try {
+      await _whisperService.initialize(config: _config);
+      _logger.i('✅ Whisper GGML engine initialized');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to initialize Whisper GGML', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   Future<bool> startProcessing({SpeechConfig? config}) async {
@@ -158,6 +179,9 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.openAI:
           // TODO: Handle this case.
           throw UnimplementedError();
+        case SpeechEngine.whisper_ggml:
+          await _startWhisperGgmlProcessing();
+          break;
       }
 
       _isProcessing = true;
@@ -181,8 +205,10 @@ class EnhancedSpeechProcessor {
               // TODO: Integrate a real ASR backend for flutter_sound if available
               break;
             case SpeechEngine.gemma3n:
-              if (gemma3nService.isReady) {
-                transcript = await gemma3nService.transcribeAudio(buffer.data!);
+              if (gemma3nService.isAvailable) {
+                // TODO: Implement audio transcription with Gemma3nService
+                // For now, use fallback transcript
+                transcript = defaultFallbackTranscript;
               }
               break;
             case SpeechEngine.native:
@@ -190,6 +216,15 @@ class EnhancedSpeechProcessor {
               break;
             case SpeechEngine.openAI:
               // TODO: Integrate OpenAI ASR backend if available
+              break;
+            case SpeechEngine.whisper_ggml:
+              // Process audio with WhisperService
+              if (_whisperService.isInitialized) {
+                final result = await _whisperService.processAudioBuffer(buffer.data!);
+                transcript = result.text;
+              } else {
+                transcript = defaultFallbackTranscript;
+              }
               break;
           }
           _processSpeechResult(SpeechResult(
@@ -228,6 +263,16 @@ class EnhancedSpeechProcessor {
         .invokeMethod('startListening', {'language': _currentLanguage});
   }
 
+  Future<void> _startWhisperGgmlProcessing() async {
+    try {
+      await _whisperService.startProcessing();
+      _logger.i('🎤 Whisper GGML processing started');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to start Whisper GGML processing', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
   Future<dynamic> _handleNativeMethodCall(MethodCall call) async {
     switch (call.method) {
       case 'onSpeechResult':
@@ -255,15 +300,17 @@ class EnhancedSpeechProcessor {
       }
     }
 
-    if (gemma3nService.isReady) {
+    if (gemma3nService.isAvailable) {
       try {
         if (result.isFinal) {
-          final enhancedText = await gemma3nService.enhanceText(result.text);
+          // TODO: Implement text enhancement with Gemma3nService
+          // For now, use the original text
+          final enhancedText = result.text;
           _enhancedCaptionController.add(EnhancedCaption(
             raw: result.text,
             enhanced: enhancedText,
             isFinal: true,
-            isEnhanced: enhancedText != result.text,
+            isEnhanced: false,
           ));
         } else {
           _enhancedCaptionController.add(EnhancedCaption.partial(result.text));
@@ -300,6 +347,9 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.openAI:
           // TODO: Handle this case.
           throw UnimplementedError();
+        case SpeechEngine.whisper_ggml:
+          await _whisperService.stopProcessing();
+          break;
       }
 
       _isProcessing = false;
@@ -343,5 +393,5 @@ class EnhancedSpeechProcessor {
   bool get isReady => _isInitialized;
   bool get isProcessing => _isProcessing;
   SpeechEngine get activeEngine => _activeEngine;
-  bool get hasGemmaEnhancement => gemma3nService.isReady;
+  bool get hasGemmaEnhancement => gemma3nService.isAvailable;
 }

@@ -35,7 +35,7 @@ To ensure the settings UI, user experience, and backend pipeline fully meet user
 ## 4. Scope & Features
 
 **In-Scope:**
-- Real-time integration of settings with backend services (audio router, speech processor)
+- Real-time integration of settings with backend services (audio router, enhanced speech processor with whisper_ggml)
 - UI indicator for caption processing state
 - Analytics event logging for all key user actions
 - Exposing all user preferences in the settings UI (including LED alerts)
@@ -50,7 +50,7 @@ To ensure the settings UI, user experience, and backend pipeline fully meet user
 
 ## 5. Technical Requirements
 
-- Settings changes must trigger immediate updates in backend services (e.g., engine switching)
+- Settings changes must trigger immediate updates in backend services (e.g., engine switching between whisper_ggml and other engines)
 - UI must show a processing indicator during caption delays
 - Analytics events must be logged for all key actions
 - All user preferences must be persisted and loaded on app start

@@ -54,7 +54,7 @@
 * **In-Scope Features (Must-Haves):**
   * Audio Router Service to select between cloud and on-device STT
   * Integration with at least one cloud STT API (e.g., Google, Azure)
-  * Integration with an on-device STT model (e.g., Whisper)
+  * Integration with an on-device STT model (whisper_ggml with base model)
   * Camera snapshot service for capturing context images
   * Multimodal enhancement using Gemma 3n via flutter_gemma
   * User settings for mode selection and enhancement toggling
@@ -82,7 +82,7 @@
 ## 6. Technical Requirements & Constraints
 
 * **Platform(s):** iOS, Android, (optionally macOS, Windows for dev/testing)
-* **Technology Stack:** Flutter, flutter_gemma, dart_openai, google_speech, camera, flutter_dotenv
+* **Technology Stack:** Flutter, flutter_gemma, whisper_ggml, dart_openai, google_speech, camera, flutter_dotenv
 * **Performance Requirements:**
   * Caption latency < 1s (cloud), < 5s (offline)
   * Enhancement latency < 2s
@@ -92,6 +92,7 @@
   * GDPR/CCPA compliance
 * **Dependencies & Integrations:**
   - **flutter_gemma:** For on-device text enhancement and experimental on-device STT.
+  - **whisper_ggml:** For on-device STT using the Whisper base model. Provides fast, private, offline transcription.
   - **dart_openai:** For cloud-based STT using the Whisper API. Requires a file-based workflow (record, save, transcribe).
   - **google_speech:** For cloud-based STT using Google's Speech-to-Text V2 API (Chirp model). Supports streaming.
   - **camera:** For capturing visual context for multimodal features.

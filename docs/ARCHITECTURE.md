@@ -18,13 +18,13 @@ LiveCaptionsXR is a cross-platform AR captioning system that fuses audio, vision
 ### Native Layer (iOS/Android)
 - **HybridLocalizationEngine:** Fuses audio direction, visual detection, and IMU orientation using a Kalman filter. Exposed to Dart via MethodChannel for prediction, update, and fused transform retrieval.
 - **ARKit/ARCore Plugins:** Native plugins for AR anchor management, visual object detection, and caption placement.
-- **Streaming ASR:** On-device, low-latency speech recognition using the `speech_to_text` package.
+- **Streaming ASR:** On-device, low-latency speech recognition using the `whisper_ggml` package with the base model for fast, private processing.
 
 ## End-to-End Pipeline
 1. **Audio & Vision Capture:** Stereo audio is captured in real-time. When needed, a visual snapshot is captured from the camera.
 2. **Direction Estimation:** Audio direction is estimated using RMS and GCC-PHAT; visual speaker identification is optionally used.
 3. **Hybrid Localization Fusion:** The HybridLocalizationEngine fuses all modalities to estimate the 3D world position of the speaker.
-4. **Streaming ASR:** Speech is transcribed in real time using the `speech_to_text` package.
+4. **Streaming ASR:** Speech is transcribed in real time using the `whisper_ggml` package with the base model for fast, private processing.
 5. **AR Caption Placement:** When a final transcript is available, the fused transform and caption are sent to the native AR view, which anchors the caption in 3D space at the speaker's location.
 
 ## Dart-Native Communication

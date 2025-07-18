@@ -14,8 +14,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _slideController;
+  late AnimationController _pulseController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -30,6 +32,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: WebPerformanceConfig.slowAnimationDuration,
       vsync: this,
     );
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
@@ -38,16 +44,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
-    // Start animations simultaneously for better performance
+    // Start animations
     _fadeController.forward();
     _slideController.forward();
+    _pulseController.repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -59,63 +70,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     return Scaffold(
       appBar: const NavBar(),
-      endDrawer: isMobile ? NavDrawer(location: location) : null,
+
       body: SingleChildScrollView(
         child: Column(
           children: [
             // Hero Section
             _buildHeroSection(context, isMobile, screenWidth),
 
-            // Coming Soon Section
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-              child: Card(
-                color: Colors.blue[50],
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.android,
-                              color: Colors.green[700], size: 32),
-                          SizedBox(width: 12),
-                          Icon(Icons.vrpano,
-                              color: Colors.deepPurple, size: 32),
-                          SizedBox(width: 12),
-                          Icon(Icons.phone_iphone,
-                              color: Colors.grey[800], size: 32),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Coming Soon: Android & Android XR Support!',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue[900],
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases!',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.blueGrey[800],
-                              fontSize: 16,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            // Technology Highlights Section
+            _buildTechnologyHighlights(context, isMobile),
 
             // Features Preview Section
             _buildFeaturesPreview(context, isMobile),
@@ -144,8 +107,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.1),
-            Theme.of(context).primaryColor.withOpacity(0.05),
+            Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            Theme.of(context).primaryColor.withValues(alpha: 0.05),
             Colors.white,
           ],
         ),
@@ -164,12 +127,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Logo with pulse animation
-                TweenAnimationBuilder<double>(
-                  duration: const Duration(seconds: 2),
-                  tween: Tween(begin: 0.8, end: 1.0),
-                  builder: (context, scale, child) {
+                AnimatedBuilder(
+                  animation: _pulseAnimation,
+                  builder: (context, child) {
                     return Transform.scale(
-                      scale: scale,
+                      scale: _pulseAnimation.value,
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(30),
@@ -177,7 +139,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             BoxShadow(
                               color: Theme.of(context)
                                   .primaryColor
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               blurRadius: 20,
                               spreadRadius: 5,
                             ),
@@ -198,50 +160,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 SizedBox(height: isMobile ? 32 : 48),
 
-                // Main title with gradient
-                ShaderMask(
-                  shaderCallback: (bounds) => LinearGradient(
-                    colors: [
-                      Theme.of(context).primaryColor,
-                      Theme.of(context).primaryColor.withOpacity(0.8),
-                    ],
-                  ).createShader(bounds),
-                  child: Text(
-                    'Live Captions XR',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 48 : 72,
-                          letterSpacing: 1.2,
-                          color: Colors.white,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
+                // Main headline
+                Text(
+                  'Live Captions XR',
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                        fontSize: isMobile ? 32 : 48,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
                 SizedBox(height: isMobile ? 16 : 24),
 
                 // Subtitle
-                Text(
-                  'Real-Time AI Closed Captioning for the Deaf and Hard of Hearing',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.grey[800],
-                        fontWeight: FontWeight.w400,
-                        fontSize: isMobile ? 20 : 32,
-                        height: 1.3,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: isMobile ? 24 : 32),
-
-                // Description
                 Container(
                   constraints: BoxConstraints(
-                      maxWidth: isMobile ? screenWidth * 0.9 : 800),
+                    maxWidth: isMobile ? double.infinity : 600,
+                  ),
                   child: Text(
-                    'Live Captions XR delivers instant, accurate closed captions for spoken content in any environment. Powered by on-device AI for privacy and performance.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[700],
-                          fontSize: isMobile ? 16 : 22,
-                          height: 1.6,
+                    'Revolutionary AR-powered live captioning with on-device AI, spatial audio, and contextual understanding.',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.grey[600],
+                          height: 1.5,
+                          fontSize: isMobile ? 18 : 22,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -249,30 +190,47 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 SizedBox(height: isMobile ? 32 : 48),
 
                 // CTA Buttons
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildAnimatedButton(
-                      context,
-                      onPressed: () async {
-                        try {
-                          await TestFlightUtils.openTestFlight();
-                        } catch (e) {
-                          // Handle error gracefully without blocking UI
-                          debugPrint('Could not open TestFlight: $e');
-                        }
-                      },
-                      icon: Icons.apple,
-                      label: 'Download on TestFlight',
-                      isPrimary: true,
-                    ),
-                    _buildAnimatedButton(
-                      context,
+                    ElevatedButton.icon(
                       onPressed: () => context.go('/features'),
-                      icon: Icons.featured_play_list,
-                      label: 'Explore Features',
-                      isPrimary: false,
+                      icon: const Icon(Icons.explore),
+                      label: Text(
+                        'Explore Features',
+                        style: TextStyle(fontSize: isMobile ? 16 : 18),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 24 : 32,
+                          vertical: isMobile ? 16 : 20,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: isMobile ? 16 : 24),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go('/technology'),
+                      icon: const Icon(Icons.psychology),
+                      label: Text(
+                        'Learn Technology',
+                        style: TextStyle(fontSize: isMobile ? 16 : 18),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).primaryColor,
+                        side: BorderSide(color: Theme.of(context).primaryColor),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 24 : 32,
+                          vertical: isMobile ? 16 : 20,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -284,59 +242,136 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAnimatedButton(
-    BuildContext context, {
-    required VoidCallback onPressed,
-    required IconData icon,
-    required String label,
-    required bool isPrimary,
-  }) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 200),
-      tween: Tween(begin: 1.0, end: 1.0),
-      builder: (context, scale, child) {
-        return Transform.scale(
-          scale: scale,
-          child: isPrimary
-              ? ElevatedButton.icon(
-                  onPressed: onPressed,
-                  icon: Icon(icon),
-                  label: Text(label),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 4,
-                  ),
-                )
-              : OutlinedButton.icon(
-                  onPressed: onPressed,
-                  icon: Icon(icon),
-                  label: Text(label),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: BorderSide(
-                      color: Theme.of(context).primaryColor,
-                      width: 2,
-                    ),
-                  ),
+  Widget _buildTechnologyHighlights(BuildContext context, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24.0 : 48.0,
+        vertical: isMobile ? 48.0 : 80.0,
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Powered by Advanced AI',
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
                 ),
-        );
-      },
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: isMobile ? 24 : 32),
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : 800,
+            ),
+            child: Text(
+              'Live Captions XR combines cutting-edge on-device AI technologies to deliver the most advanced accessibility experience.',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.grey[600],
+                    height: 1.5,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: isMobile ? 32 : 48),
+          
+          // Technology cards
+          Wrap(
+            spacing: isMobile ? 16 : 24,
+            runSpacing: isMobile ? 16 : 24,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildTechCard(
+                context,
+                'Whisper GGML',
+                'On-device speech recognition using the Whisper base model for fast, private, offline transcription.',
+                Icons.mic,
+                Colors.blue,
+                isMobile,
+              ),
+              _buildTechCard(
+                context,
+                'Gemma 3n',
+                'Google\'s state-of-the-art multimodal AI for contextual enhancement and understanding.',
+                Icons.psychology,
+                Colors.green,
+                isMobile,
+              ),
+              _buildTechCard(
+                context,
+                'Spatial Audio',
+                'Advanced stereo audio processing with directional awareness and speaker localization.',
+                Icons.hearing,
+                Colors.purple,
+                isMobile,
+              ),
+              _buildTechCard(
+                context,
+                'Computer Vision',
+                'Real-time face detection and speaker identification using on-device AI.',
+                Icons.visibility,
+                Colors.orange,
+                isMobile,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTechCard(BuildContext context, String title, String description,
+      IconData icon, Color color, bool isMobile) {
+    return Container(
+      width: isMobile ? double.infinity : 280,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -400,7 +435,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             spreadRadius: 2,
           ),
@@ -411,7 +446,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: (feature['color'] as Color).withOpacity(0.1),
+              color: (feature['color'] as Color).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -457,8 +492,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.05),
-            Theme.of(context).primaryColor.withOpacity(0.1),
+            Theme.of(context).primaryColor.withValues(alpha: 0.05),
+            Theme.of(context).primaryColor.withValues(alpha: 0.1),
           ],
         ),
       ),
@@ -534,8 +569,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             spacing: 16,
             runSpacing: 16,
             children: [
-              _buildAnimatedButton(
-                context,
+              ElevatedButton.icon(
                 onPressed: () async {
                   try {
                     await TestFlightUtils.openTestFlight();
@@ -543,16 +577,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     debugPrint('Could not open TestFlight: $e');
                   }
                 },
-                icon: Icons.apple,
-                label: 'Download TestFlight',
-                isPrimary: true,
+                icon: const Icon(Icons.apple),
+                label: const Text('Download TestFlight'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-              _buildAnimatedButton(
-                context,
+              OutlinedButton.icon(
                 onPressed: () => context.go('/technology'),
-                icon: Icons.code,
-                label: 'View Technology',
-                isPrimary: false,
+                icon: const Icon(Icons.code),
+                label: const Text('View Technology'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).primaryColor,
+                  side: BorderSide(color: Theme.of(context).primaryColor),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ],
           ),
@@ -573,8 +620,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.03),
-            Colors.blue.withOpacity(0.02),
+            Theme.of(context).primaryColor.withValues(alpha: 0.03),
+            Colors.blue.withValues(alpha: 0.02),
             Colors.white,
           ],
         ),
@@ -589,7 +636,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha: 0.2),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -665,12 +712,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               gradient: LinearGradient(
                 colors: [
                   Theme.of(context).primaryColor,
-                  Theme.of(context).primaryColor.withOpacity(0.8),
+                  Theme.of(context).primaryColor.withValues(alpha: 0.8),
                 ],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).primaryColor.withOpacity(0.3),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -724,7 +771,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
