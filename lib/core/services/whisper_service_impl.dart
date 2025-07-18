@@ -10,6 +10,22 @@ import 'package:whisper_ggml/whisper_ggml.dart';
 import '../models/speech_config.dart';
 import '../models/speech_result.dart';
 import 'debug_capturing_logger.dart';
+import 'model_download_manager.dart';
+
+/// Event class for Whisper STT progress and status
+class WhisperSTTEvent {
+  final double progress; // 0.0 to 1.0
+  final String message;
+  final bool isComplete;
+  final Object? error;
+
+  const WhisperSTTEvent({
+    required this.progress,
+    required this.message,
+    this.isComplete = false,
+    this.error,
+  });
+}
 
 /// Service for handling Whisper GGML speech-to-text processing
 class WhisperService {
@@ -22,13 +38,26 @@ class WhisperService {
   // Whisper GGML instance
   Whisper? _whisper;
   
+  // Model download manager
+  final ModelDownloadManager _modelDownloadManager;
+  
   final StreamController<SpeechResult> _speechResultController =
       StreamController<SpeechResult>.broadcast();
   
+  // New: STT progress event stream for AR session integration
+  final StreamController<WhisperSTTEvent> _sttEventController =
+      StreamController<WhisperSTTEvent>.broadcast();
+  
   Stream<SpeechResult> get speechResults => _speechResultController.stream;
+  
+  // New: Expose STT events stream
+  Stream<WhisperSTTEvent> get sttEvents => _sttEventController.stream;
   
   bool get isInitialized => _isInitialized;
   bool get isProcessing => _isProcessing;
+  
+  WhisperService({ModelDownloadManager? modelDownloadManager}) 
+      : _modelDownloadManager = modelDownloadManager ?? ModelDownloadManager();
   
   /// Initialize the Whisper service with configuration
   Future<bool> initialize({SpeechConfig? config}) async {
@@ -38,39 +67,80 @@ class WhisperService {
       _config = config ?? const SpeechConfig();
       _logger.i('🔧 Initializing Whisper service with model: ${_config.whisperModel}');
       
-      // Get the documents directory for model storage
-      final documentsDir = await getApplicationDocumentsDirectory();
-      final modelDir = '${documentsDir.path}/whisper_models';
+      // Emit STT event for initialization start
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.0,
+        message: 'Initializing Whisper service...',
+      ));
       
-      // Create model directory if it doesn't exist
-      final modelDirFile = Directory(modelDir);
-      if (!await modelDirFile.exists()) {
-        await modelDirFile.create(recursive: true);
-      }
+      // Determine the model key based on the config
+      final modelKey = 'whisper-${_config.whisperModel}';
+      _logger.i('🔍 Looking for model: $modelKey');
       
-      // Copy model from assets to documents directory if it doesn't exist
-      final modelFileName = 'whisper_${_config.whisperModel}.bin';
-      final modelFile = File('$modelDir/$modelFileName');
+      // Emit STT event for model checking
+      _sttEventController.add(WhisperSTTEvent(
+        progress: 0.2,
+        message: 'Checking model availability...',
+      ));
       
-      if (!await modelFile.exists()) {
-        _logger.i('📁 Copying model from assets: $modelFileName');
-        try {
-          // Copy from assets to documents directory
-          final assetPath = 'assets/models/$modelFileName';
-          final assetFile = File(assetPath);
-          
-          if (await assetFile.exists()) {
-            await assetFile.copy(modelFile.path);
-            _logger.i('✅ Model copied from assets to: ${modelFile.path}');
-          } else {
-            _logger.w('⚠️ Model not found in assets: $assetPath');
-            _logger.i('📥 Will attempt to download model automatically');
+      // Check if model exists and is complete
+      final modelExists = await _modelDownloadManager.modelExists(modelKey);
+      final modelComplete = await _modelDownloadManager.modelIsComplete(modelKey);
+      
+      if (!modelExists || !modelComplete) {
+        _logger.i('📥 Model not found or incomplete, downloading: $modelKey');
+        
+        // Emit STT event for model download start
+        _sttEventController.add(WhisperSTTEvent(
+          progress: 0.3,
+          message: 'Downloading Whisper model...',
+        ));
+        
+        // Check if model is currently downloading
+        if (_modelDownloadManager.isDownloading(modelKey)) {
+          _logger.i('⏳ Model is already downloading, waiting...');
+          // Wait for download to complete
+          while (_modelDownloadManager.isDownloading(modelKey)) {
+            await Future.delayed(const Duration(seconds: 1));
           }
-        } catch (e) {
-          _logger.w('⚠️ Could not copy from assets: $e');
-          _logger.i('📥 Will attempt to download model automatically');
+        } else {
+          // Start download
+          await _modelDownloadManager.downloadModel(modelKey);
         }
+        
+        // Check if download was successful
+        if (!await _modelDownloadManager.modelIsComplete(modelKey)) {
+          final error = _modelDownloadManager.getError(modelKey);
+          _logger.e('❌ Failed to download model: $error');
+          
+          // Emit STT event for model download failure
+          _sttEventController.add(WhisperSTTEvent(
+            progress: 0.0,
+            message: 'Failed to download model: $error',
+            error: error,
+          ));
+          
+          throw Exception('Failed to download model: $error');
+        }
+        
+        // Emit STT event for model download complete
+        _sttEventController.add(WhisperSTTEvent(
+          progress: 0.8,
+          message: 'Model download complete',
+        ));
       }
+      
+      // Get the model path
+      final modelPath = await _modelDownloadManager.getModelPath(modelKey);
+      final modelDir = Directory(modelPath).parent.path;
+      
+      _logger.i('📁 Using model from: $modelPath');
+      
+      // Emit STT event for model loading
+      _sttEventController.add(WhisperSTTEvent(
+        progress: 0.9,
+        message: 'Loading Whisper model...',
+      ));
       
       // Initialize Whisper with the specified model
       _whisper = Whisper(
@@ -87,9 +157,25 @@ class WhisperService {
       
       _isInitialized = true;
       _logger.i('✅ Whisper service initialized successfully');
+      
+      // Emit STT event for initialization complete
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 1.0,
+        message: 'Whisper service ready',
+        isComplete: true,
+      ));
+      
       return true;
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Whisper service', error: e, stackTrace: stackTrace);
+      
+      // Emit STT event for initialization failure
+      _sttEventController.add(WhisperSTTEvent(
+        progress: 0.0,
+        message: 'Failed to initialize Whisper service',
+        error: e,
+      ));
+      
       return false;
     }
   }
@@ -109,10 +195,25 @@ class WhisperService {
     try {
       _isProcessing = true;
       _logger.i('🎤 Starting Whisper processing');
+      
+      // Emit STT event for processing start
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.0,
+        message: 'Starting on-device STT...',
+      ));
+      
       return true;
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to start Whisper processing', error: e, stackTrace: stackTrace);
       _isProcessing = false;
+      
+      // Emit STT event for processing start failure
+      _sttEventController.add(WhisperSTTEvent(
+        progress: 0.0,
+        message: 'Failed to start STT processing',
+        error: e,
+      ));
+      
       return false;
     }
   }
@@ -121,6 +222,14 @@ class WhisperService {
   Future<SpeechResult> processAudioBuffer(Uint8List audioData) async {
     if (!_isInitialized || _whisper == null) {
       _logger.w('⚠️ Whisper not initialized, returning fallback result');
+      
+      // Emit STT event for processing failure
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.0,
+        message: 'Whisper not initialized',
+        error: 'Service not initialized',
+      ));
+      
       return SpeechResult(
         text: "Whisper not initialized",
         confidence: 0.0,
@@ -132,10 +241,22 @@ class WhisperService {
     try {
       _logger.d('🎵 Processing audio buffer (${audioData.length} bytes)');
       
+      // Emit STT event for processing start
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.3,
+        message: 'Transcribing speech...',
+      ));
+      
       // Save audio data to a temporary file
       final tempDir = await getTemporaryDirectory();
       final tempFile = File('${tempDir.path}/whisper_audio_${DateTime.now().millisecondsSinceEpoch}.wav');
       await tempFile.writeAsBytes(audioData);
+      
+      // Emit STT event for audio preparation
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.5,
+        message: 'Preparing audio for transcription...',
+      ));
       
       // Create transcription request
       final transcribeRequest = TranscribeRequest(
@@ -148,6 +269,12 @@ class WhisperService {
         isNoTimestamps: true, // We don't need timestamps for real-time
         isRealtime: true, // Enable real-time processing
       );
+      
+      // Emit STT event for transcription start
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.7,
+        message: 'Processing with Whisper GGML...',
+      ));
       
       // Process audio with Whisper GGML
       final response = await _whisper!.transcribe(
@@ -167,12 +294,26 @@ class WhisperService {
       
       _logger.d('📝 Whisper result: "${speechResult.text}" (confidence: ${speechResult.confidence})');
       
+      // Emit STT event for processing complete
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 1.0,
+        message: 'STT complete',
+        isComplete: true,
+      ));
+      
       // Emit the result
       _speechResultController.add(speechResult);
       
       return speechResult;
     } catch (e, stackTrace) {
       _logger.e('❌ Error processing audio with Whisper', error: e, stackTrace: stackTrace);
+      
+      // Emit STT event for processing error
+      _sttEventController.add(WhisperSTTEvent(
+        progress: 0.0,
+        message: 'Error processing audio',
+        error: e,
+      ));
       
       final fallbackResult = SpeechResult(
         text: "Error processing audio",
@@ -205,6 +346,12 @@ class WhisperService {
     try {
       _isProcessing = false;
       _logger.i('🛑 Stopped Whisper processing');
+      
+      // Emit STT event for processing stop
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.0,
+        message: 'STT processing stopped',
+      ));
     } catch (e, stackTrace) {
       _logger.e('❌ Error stopping Whisper processing', error: e, stackTrace: stackTrace);
     }
@@ -216,6 +363,7 @@ class WhisperService {
       await stopProcessing();
       _whisper = null;
       await _speechResultController.close();
+      await _sttEventController.close();
       _isInitialized = false;
       _logger.i('🗑️ Whisper service disposed');
     } catch (e, stackTrace) {

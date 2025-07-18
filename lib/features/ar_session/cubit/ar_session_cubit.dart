@@ -6,6 +6,8 @@ import 'package:logger/logger.dart';
 import '../../../core/services/ar_anchor_manager.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/ar_session_persistence_service.dart';
+import '../../../core/services/whisper_service.dart';
+import '../../../core/services/gemma_3n_service.dart';
 import 'ar_session_state.dart';
 
 /// Cubit for managing AR session state and operations with persistence support
@@ -18,6 +20,14 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   Future<void> Function()? _stopSoundDetection;
   Future<void> Function()? _stopLocalization;
   Future<void> Function()? _stopVisualIdentification;
+  
+  // Store Whisper service for STT event listening
+  WhisperService? _whisperService;
+  StreamSubscription<WhisperSTTEvent>? _whisperSTTSubscription;
+  
+  // Store Gemma 3n service for enhancement event listening
+  Gemma3nService? _gemma3nService;
+  StreamSubscription<Gemma3nEnhancementEvent>? _gemma3nEnhancementSubscription;
   
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
@@ -37,6 +47,90 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         _persistenceService = persistenceService ?? ARSessionPersistenceService(),
         super(const ARSessionInitial()) {
     _initMethodChannelListener();
+  }
+
+  /// Listen to Whisper STT events and emit AR session states
+  void listenToWhisperSTT(WhisperService whisperService) {
+    _whisperService = whisperService;
+    
+    // Cancel any existing subscription
+    _whisperSTTSubscription?.cancel();
+    
+    // Subscribe to Whisper STT events
+    _whisperSTTSubscription = whisperService.sttEvents.listen((event) {
+      _logger.d('🎤 Whisper STT event: ${event.message} (progress: ${event.progress})');
+      
+      if (event.error != null) {
+        _logger.e('❌ Whisper STT error: ${event.error}');
+        emit(ARSessionError(
+          message: 'STT failed: ${event.message}',
+          details: event.error.toString(),
+          errorCode: 'STT_ERROR',
+        ));
+      } else {
+        emit(ARSessionSTTProcessing(
+          backend: 'Whisper',
+          isOnline: false, // Always on-device for Whisper
+          progress: event.progress,
+          message: event.message,
+        ));
+      }
+    }, onError: (error) {
+      _logger.e('❌ Error in Whisper STT event stream', error: error);
+      emit(ARSessionError(
+        message: 'STT event stream error',
+        details: error.toString(),
+        errorCode: 'STT_STREAM_ERROR',
+      ));
+    });
+  }
+
+  /// Stop listening to Whisper STT events
+  void stopListeningToWhisperSTT() {
+    _whisperSTTSubscription?.cancel();
+    _whisperSTTSubscription = null;
+    _whisperService = null;
+  }
+
+  /// Listen to Gemma 3n enhancement events and emit AR session states
+  void listenToGemma3nEnhancement(Gemma3nService gemma3nService) {
+    _gemma3nService = gemma3nService;
+    
+    // Cancel any existing subscription
+    _gemma3nEnhancementSubscription?.cancel();
+    
+    // Subscribe to Gemma 3n enhancement events
+    _gemma3nEnhancementSubscription = gemma3nService.enhancementEvents.listen((event) {
+      _logger.d('🔮 Gemma 3n enhancement event: ${event.message} (progress: ${event.progress})');
+      
+      if (event.error != null) {
+        _logger.e('❌ Gemma 3n enhancement error: ${event.error}');
+        emit(ARSessionError(
+          message: 'Contextual enhancement failed: ${event.message}',
+          details: event.error.toString(),
+          errorCode: 'ENHANCEMENT_ERROR',
+        ));
+      } else {
+        emit(ARSessionContextualEnhancement(
+          progress: event.progress,
+          message: event.message,
+        ));
+      }
+    }, onError: (error) {
+      _logger.e('❌ Error in Gemma 3n enhancement event stream', error: error);
+      emit(ARSessionError(
+        message: 'Enhancement event stream error',
+        details: error.toString(),
+        errorCode: 'ENHANCEMENT_STREAM_ERROR',
+      ));
+    });
+  }
+
+  /// Stop listening to Gemma 3n enhancement events
+  void stopListeningToGemma3nEnhancement() {
+    _gemma3nEnhancementSubscription?.cancel();
+    _gemma3nEnhancementSubscription = null;
+    _gemma3nService = null;
   }
 
   Future<void> updateWithAudioMeasurement({
@@ -95,8 +189,18 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         }
       }
       
-      emit(const ARSessionConfiguring());
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Configuration phase with progress updates
+      emit(const ARSessionConfiguring(progress: 0.0));
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      emit(const ARSessionConfiguring(progress: 0.3));
+      await Future.delayed(const Duration(milliseconds: 200));
+      
+      emit(const ARSessionConfiguring(progress: 0.6));
+      await Future.delayed(const Duration(milliseconds: 200));
+      
+      emit(const ARSessionConfiguring(progress: 1.0));
+      await Future.delayed(const Duration(milliseconds: 200));
       
       emit(const ARSessionInitializing());
 
@@ -113,7 +217,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       _logger.i('✅ AR View launched successfully');
 
-      // Calibrate the AR session
+      // Calibrate the AR session with progress updates
       await _performCalibration();
 
       // Give ARSession a moment to initialize before declaring ready
@@ -523,6 +627,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     Future<void> Function()? stopSoundDetection,
     Future<void> Function()? stopLocalization,
     Future<void> Function()? stopVisualIdentification,
+    // New: Optionally specify STT backend and online/offline
+    String sttBackend = 'Whisper',
+    bool sttIsOnline = false,
   }) async {
     final currentState = state;
     if (currentState is! ARSessionReady) {
@@ -545,16 +652,97 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       _stopLocalization = stopLocalization;
       _stopVisualIdentification = stopVisualIdentification;
 
+      // Initialize service statuses
+      final serviceStatuses = <String, ServiceStatus>{
+        'liveCaptions': const ServiceStatus(
+          serviceName: 'Live Captions',
+          state: ServiceState.pending,
+        ),
+        'soundDetection': const ServiceStatus(
+          serviceName: 'Sound Detection',
+          state: ServiceState.pending,
+        ),
+        'localization': const ServiceStatus(
+          serviceName: 'Audio Localization',
+          state: ServiceState.pending,
+        ),
+        'visualIdentification': const ServiceStatus(
+          serviceName: 'Visual Identification',
+          state: ServiceState.pending,
+        ),
+      };
+
+      // Emit starting services state
+      emit(ARSessionStartingServices(
+        serviceStatuses: serviceStatuses,
+        overallProgress: 0.0,
+      ));
+
       // Start session health monitoring
       _startSessionHealthMonitoring();
 
-      // Start all services in parallel for better performance
-      await Future.wait([
-        startLiveCaptions(),
-        startSoundDetection(),
-        startLocalization(),
-        startVisualIdentification(),
-      ]);
+      // Start services sequentially with progress updates
+      final services = [
+        ('liveCaptions', startLiveCaptions),
+        ('soundDetection', startSoundDetection),
+        ('localization', startLocalization),
+        ('visualIdentification', startVisualIdentification),
+      ];
+
+      for (int i = 0; i < services.length; i++) {
+        final (serviceKey, serviceStartFunction) = services[i];
+        
+        // Update service status to starting
+        final updatedStatuses = Map<String, ServiceStatus>.from(serviceStatuses);
+        updatedStatuses[serviceKey] = updatedStatuses[serviceKey]!.copyWith(
+          state: ServiceState.starting,
+          message: 'Starting...',
+          progress: 0.0,
+        );
+        
+        emit(ARSessionStartingServices(
+          serviceStatuses: updatedStatuses,
+          overallProgress: i / services.length,
+        ));
+
+        try {
+          // Start the service
+          await serviceStartFunction();
+          
+          // Update service status to running
+          updatedStatuses[serviceKey] = updatedStatuses[serviceKey]!.copyWith(
+            state: ServiceState.running,
+            message: 'Running',
+            progress: 1.0,
+          );
+          
+          emit(ARSessionStartingServices(
+            serviceStatuses: updatedStatuses,
+            overallProgress: (i + 1) / services.length,
+          ));
+          
+          _logger.i('✅ ${updatedStatuses[serviceKey]!.serviceName} started successfully');
+        } catch (e) {
+          _logger.e('❌ Failed to start ${updatedStatuses[serviceKey]!.serviceName}', error: e);
+          
+          // Update service status to error
+          updatedStatuses[serviceKey] = updatedStatuses[serviceKey]!.copyWith(
+            state: ServiceState.error,
+            message: 'Failed: ${e.toString()}',
+          );
+          
+          emit(ARSessionStartingServices(
+            serviceStatuses: updatedStatuses,
+            overallProgress: (i + 1) / services.length,
+          ));
+          
+          // Continue with other services even if one fails
+        }
+      }
+
+      // Note: STT and Gemma 3n pipeline stages are now handled by real service events
+      // Whisper STT events are emitted via listenToWhisperSTT()
+      // Gemma 3n enhancement events are emitted via listenToGemma3nEnhancement()
 
       // Place anchor after services are started and ready
       await placeAutoAnchor();
@@ -618,6 +806,14 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     try {
       _logger.i('🛑 Stopping AR session and all services...');
       emit(const ARSessionStopping());
+
+      // Stop listening to Whisper STT events
+      stopListeningToWhisperSTT();
+      _logger.d('🎤 Whisper STT event listening stopped');
+
+      // Stop listening to Gemma 3n enhancement events
+      stopListeningToGemma3nEnhancement();
+      _logger.d('🔮 Gemma 3n enhancement event listening stopped');
 
       // Stop session health monitoring first
       _sessionHealthTimer?.cancel();
@@ -742,5 +938,30 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   String? get anchorId {
     final currentState = state;
     return currentState is ARSessionReady ? currentState.anchorId : null;
+  }
+
+  /// Dispose resources and cancel all subscriptions
+  @override
+  Future<void> close() async {
+    _logger.i('🗑️ Disposing ARSessionCubit...');
+    
+    // Stop listening to Whisper STT events
+    stopListeningToWhisperSTT();
+    
+    // Stop listening to Gemma 3n enhancement events
+    stopListeningToGemma3nEnhancement();
+    
+    // Stop session health monitoring
+    _sessionHealthTimer?.cancel();
+    _sessionHealthTimer = null;
+    
+    // Clear stop callbacks
+    _stopLiveCaptions = null;
+    _stopSoundDetection = null;
+    _stopLocalization = null;
+    _stopVisualIdentification = null;
+    
+    _logger.i('✅ ARSessionCubit disposed');
+    await super.close();
   }
 }

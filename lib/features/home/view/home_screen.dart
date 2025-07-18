@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:live_captions_xr/features/settings/cubit/settings_state.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -18,9 +17,12 @@ import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
 import '../../../core/services/debug_capturing_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
+import '../../../shared/widgets/ar_session_status_widget.dart';
 import '../../../core/services/model_download_manager.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/debug_logger_service.dart';
+import '../../../core/services/whisper_service.dart';
+import '../../../core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
 
@@ -48,13 +50,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkAndPromptModelDownload() async {
-    final exists = await _modelDownloadManager.modelExists();
-    if (!exists && mounted) {
-      _showModelDownloadDialog();
+    // Check if required models exist
+    final gemmaExists = await _modelDownloadManager.modelExists('gemma-3n-E4B-it-int4');
+    final whisperExists = await _modelDownloadManager.modelExists('whisper-base');
+    
+    if ((!gemmaExists || !whisperExists) && mounted) {
+      _showModelDownloadDialog(gemmaExists: gemmaExists, whisperExists: whisperExists);
     }
   }
 
-  void _showModelDownloadDialog() {
+  void _showModelDownloadDialog({required bool gemmaExists, required bool whisperExists}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -63,75 +68,199 @@ class _HomeScreenState extends State<HomeScreen> {
           value: _modelDownloadManager,
           child: Consumer<ModelDownloadManager>(
             builder: (context, manager, _) {
-              // Remove disk space check and warning
+              const gemmaKey = 'gemma-3n-E4B-it-int4';
+              const whisperKey = 'whisper-base';
+              
+              final gemmaDownloading = manager.isDownloading(gemmaKey);
+              final gemmaProgress = manager.getProgress(gemmaKey);
+              final gemmaError = manager.getError(gemmaKey);
+              final gemmaCompleted = manager.isCompleted(gemmaKey);
+              
+              final whisperDownloading = manager.isDownloading(whisperKey);
+              final whisperProgress = manager.getProgress(whisperKey);
+              final whisperError = manager.getError(whisperKey);
+              final whisperCompleted = manager.isCompleted(whisperKey);
+              
               return AlertDialog(
-                title: const Text('Download Required Model'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                        'To enable speech recognition, a 4GB model file must be downloaded. This is a one-time download.'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline,
-                            size: 18, color: Colors.blueGrey),
-                        SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () => launchUrl(Uri.parse(
-                              'https://huggingface.co/google/gemma-3n-E2B-it')),
-                          child: Text('Learn more about the model',
-                              style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline)),
+                title: const Text('Download Required Models'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'LiveCaptionsXR requires two AI models for full functionality:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Gemma Model Section
+                      if (!gemmaExists || !gemmaCompleted)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.blue.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.auto_awesome, color: Colors.blue.shade600),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Gemma 3n Multimodal Model',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'For caption enhancement and multimodal processing (4.1 GB)',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 8),
+                              if (gemmaDownloading)
+                                Column(
+                                  children: [
+                                    LinearProgressIndicator(value: gemmaProgress),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Downloading: ${(gemmaProgress * 100).toStringAsFixed(1)}%',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                )
+                              else if (gemmaError != null)
+                                Column(
+                                  children: [
+                                    Text(
+                                      'Error: $gemmaError',
+                                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        manager.resetModel(gemmaKey);
+                                        manager.downloadModel(gemmaKey);
+                                      },
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                )
+                              else if (!gemmaCompleted)
+                                ElevatedButton(
+                                  onPressed: () => manager.downloadModel(gemmaKey),
+                                  child: const Text('Download Gemma Model'),
+                                ),
+                              if (gemmaCompleted) 
+                                const Text('✅ Gemma model ready', style: TextStyle(color: Colors.green)),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                        'Estimated download time: ~15-30 min on a 50 Mbps connection.'),
-                    const SizedBox(height: 16),
-                    if (manager.downloading)
-                      Column(
+                      
+                      const SizedBox(height: 12),
+                      
+                      // Whisper Model Section
+                      if (!whisperExists || !whisperCompleted)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.green.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.mic, color: Colors.green.shade600),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Whisper Speech Recognition Model',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'For speech-to-text transcription (1.4 GB)',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 8),
+                              if (whisperDownloading)
+                                Column(
+                                  children: [
+                                    LinearProgressIndicator(value: whisperProgress),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                )
+                              else if (whisperError != null)
+                                Column(
+                                  children: [
+                                    Text(
+                                      'Error: $whisperError',
+                                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        manager.resetModel(whisperKey);
+                                        manager.downloadModel(whisperKey);
+                                      },
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                )
+                              else if (!whisperCompleted)
+                                ElevatedButton(
+                                  onPressed: () => manager.downloadModel(whisperKey),
+                                  child: const Text('Download Whisper Model'),
+                                ),
+                              if (whisperCompleted) 
+                                const Text('✅ Whisper model ready', style: TextStyle(color: Colors.green)),
+                            ],
+                          ),
+                        ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Info section
+                      Row(
                         children: [
-                          LinearProgressIndicator(value: manager.progress),
-                          const SizedBox(height: 8),
-                          Text(
-                              'Downloading:  ${(manager.progress * 100).toStringAsFixed(1)}%'),
-                        ],
-                      )
-                    else if (manager.error != null)
-                      Column(
-                        children: [
-                          Text('Error:  ${manager.error}',
-                              style: const TextStyle(color: Colors.red)),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              manager.reset();
-                              manager.downloadModel();
-                            },
-                            child: const Text('Retry'),
+                          Icon(Icons.info_outline, size: 16, color: Colors.blueGrey),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Estimated total download time: ~20-45 min on a 50 Mbps connection',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
-                      )
-                    else if (!manager.completed)
-                      ElevatedButton(
-                        onPressed: () {
-                          manager.downloadModel();
-                        },
-                        child: const Text('Download Model'),
                       ),
-                    if (manager.completed) const Text('Model downloaded!'),
-                  ],
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => launchUrl(Uri.parse('https://huggingface.co/google/gemma-3n-E2B-it')),
+                        child: const Text(
+                          'Learn more about the models',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 actions: [
-                  if (!manager.downloading && !manager.completed)
+                  if (!gemmaDownloading && !whisperDownloading && 
+                      (!gemmaCompleted || !whisperCompleted))
                     TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
+                      onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancel'),
                     ),
                 ],
@@ -148,6 +277,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     final arSessionCubit = context.read<ARSessionCubit>();
+    
+    // Get the Whisper service from the service locator
+    final whisperService = sl<WhisperService>();
+    
+    // Get the Gemma 3n service from the service locator
+    final gemma3nService = sl<Gemma3nService>();
+    
+    // Start listening to Whisper STT events
+    arSessionCubit.listenToWhisperSTT(whisperService);
+    
+    // Start listening to Gemma 3n enhancement events
+    arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
 
     // Use the ARSessionCubit to manage starting all services
     await arSessionCubit.startAllARServices(
@@ -350,6 +491,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _buildCameraOrFallback(),
                     ),
 
+                    // AR Session Status Widget (top of screen)
+                    BlocBuilder<ARSessionCubit, ARSessionState>(
+                      builder: (context, arSessionState) {
+                        // Show status widget when AR session is not in initial state
+                        if (arSessionState is! ARSessionInitial) {
+                          return Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: ARSessionStatusWidget(
+                              showCloseButton: arSessionState is ARSessionReady,
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+
                     BlocBuilder<ARSessionCubit, ARSessionState>(
                       builder: (context, arSessionState) {
                         final inARMode = arSessionState is ARSessionReady;
@@ -511,25 +670,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       _logger.i(
                           '🔄 AR session ready. Services should already be started.');
                     } else if (state is ARSessionError) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('⚠️ ${state.message}'),
-                          backgroundColor: Colors.orange,
-                          duration: const Duration(seconds: 4),
-                        ),
-                      );
+                      _logger.e('❌ AR session error: ${state.message}');
                     } else if (state is ARSessionInitial) {
                       // AR mode was closed
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('🛑 AR Mode closed and services stopped'),
-                          backgroundColor: Colors.blueGrey,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
                       _logger.i('✅ AR mode closed and all services stopped');
                     }
                   },
@@ -540,23 +683,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       final arSessionCubit = context.read<ARSessionCubit>();
 
                       try {
-                        // Show loading indicator to user
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Row(
-                              children: [
-                                CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                                SizedBox(width: 16),
-                                Text('🥽 Entering AR Mode...'),
-                              ],
-                            ),
-                            backgroundColor: Colors.blue,
-                            duration:
-                                Duration(seconds: 10), // Increased duration
-                          ),
-                        );
-
                         // Initialize AR session
                         await arSessionCubit.initializeARSession(
                             restoreFromPersistence: false);
@@ -564,16 +690,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Start all AR services immediately after initialization
                         await _startAllServicesForARMode();
 
-                        // Show confirmation to user
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('🥽 AR Mode activated! Services started.'),
-                            backgroundColor: Colors.green,
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
                       } catch (e, stackTrace) {
                         _logger.e('�� Failed to enter AR mode',
                             error: e, stackTrace: stackTrace);

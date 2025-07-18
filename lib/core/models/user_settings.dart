@@ -96,7 +96,7 @@ class UserSettings {
     return UserSettings(
       sttMode: SttMode.values.byName(json['sttMode'] as String? ?? 'online'),
       asrBackend: AsrBackend.values
-          .byName(json['asrBackend'] as String? ?? 'flutterSound'),
+          .byName(json['asrBackend'] as String? ?? 'whisperGgml'),
       enhancementEnabled: json['enhancementEnabled'] as bool? ?? true,
       hapticsEnabled: json['hapticsEnabled'] as bool? ?? true,
       ledAlertsEnabled: json['ledAlertsEnabled'] as bool? ?? true,

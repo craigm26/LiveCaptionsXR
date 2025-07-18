@@ -46,6 +46,30 @@ class ARSessionCalibrating extends ARSessionState {
   List<Object?> get props => [progress, calibrationType];
 }
 
+/// AR session is starting services
+class ARSessionStartingServices extends ARSessionState {
+  final Map<String, ServiceStatus> serviceStatuses;
+  final double overallProgress;
+  
+  const ARSessionStartingServices({
+    this.serviceStatuses = const {},
+    this.overallProgress = 0.0,
+  });
+
+  @override
+  List<Object?> get props => [serviceStatuses, overallProgress];
+
+  ARSessionStartingServices copyWith({
+    Map<String, ServiceStatus>? serviceStatuses,
+    double? overallProgress,
+  }) {
+    return ARSessionStartingServices(
+      serviceStatuses: serviceStatuses ?? this.serviceStatuses,
+      overallProgress: overallProgress ?? this.overallProgress,
+    );
+  }
+}
+
 /// AR session is ready and fully initialized
 class ARSessionReady extends ARSessionState {
   final bool anchorPlaced;
@@ -151,4 +175,77 @@ class ARSessionError extends ARSessionState {
 /// AR session is stopping
 class ARSessionStopping extends ARSessionState {
   const ARSessionStopping();
+}
+
+/// Represents the status of individual services during startup
+class ServiceStatus extends Equatable {
+  final String serviceName;
+  final ServiceState state;
+  final String? message;
+  final double? progress;
+
+  const ServiceStatus({
+    required this.serviceName,
+    required this.state,
+    this.message,
+    this.progress,
+  });
+
+  @override
+  List<Object?> get props => [serviceName, state, message, progress];
+
+  ServiceStatus copyWith({
+    String? serviceName,
+    ServiceState? state,
+    String? message,
+    double? progress,
+  }) {
+    return ServiceStatus(
+      serviceName: serviceName ?? this.serviceName,
+      state: state ?? this.state,
+      message: message ?? this.message,
+      progress: progress ?? this.progress,
+    );
+  }
+}
+
+/// Enum for service states
+enum ServiceState {
+  pending,
+  starting,
+  running,
+  error,
+  stopped,
+}
+
+/// AR session is processing speech-to-text (STT)
+class ARSessionSTTProcessing extends ARSessionState {
+  final String backend; // e.g., 'Google', 'Azure', 'Whisper'
+  final bool isOnline;
+  final double progress;
+  final String? message;
+
+  const ARSessionSTTProcessing({
+    required this.backend,
+    required this.isOnline,
+    this.progress = 0.0,
+    this.message,
+  });
+
+  @override
+  List<Object?> get props => [backend, isOnline, progress, message];
+}
+
+/// AR session is running contextual enhancement (Gemma 3n)
+class ARSessionContextualEnhancement extends ARSessionState {
+  final double progress;
+  final String? message;
+
+  const ARSessionContextualEnhancement({
+    this.progress = 0.0,
+    this.message,
+  });
+
+  @override
+  List<Object?> get props => [progress, message];
 }

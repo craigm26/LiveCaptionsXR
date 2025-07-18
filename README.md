@@ -82,11 +82,11 @@
     flutter run
     ```
 
-For detailed information on the project's architecture, technical implementation, and product requirements, please refer to the documents in the [`docs`](docs) and [`prd`](prd) directories.
+For detailed information on the project's architecture, technical implementation, and development guidelines, please refer to our consolidated documentation:
 
-- [**Technical Writeup**](docs/TECHNICAL_WRITEUP.md)
-- [**Architecture Overview**](docs/ARCHITECTURE.md)
-- [**Hackathon Submission**](docs/HACKATHON_SUBMISSION.md)
+- [**Technical Documentation**](TECHNICAL_DOCUMENTATION.md) - Complete technical architecture, AR session state machine, and implementation details
+- [**Development Guide**](DEVELOPMENT_GUIDE.md) - Setup, testing, debugging, and contribution guidelines
+- [**Hackathon Submission**](docs/HACKATHON_SUBMISSION.md) - Original hackathon submission details
 
 ## 🧪 Running Tests
 

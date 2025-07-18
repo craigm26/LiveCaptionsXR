@@ -10,16 +10,20 @@ import '../../../core/models/user_settings.dart';
   
 
 class SettingsCubit extends Cubit<UserSettings> {
-  void toggleLedAlerts(bool value) {
-    _saveSettings(state.copyWith(ledAlertsEnabled: value));
-  }
+  final EnhancedSpeechProcessor? _speechProcessor;
 
-  SettingsCubit() : super(const UserSettings()) {
+  SettingsCubit({EnhancedSpeechProcessor? speechProcessor}) 
+      : _speechProcessor = speechProcessor,
+        super(const UserSettings()) {
     _loadSettings();
   }
 
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
   final DebugLoggerService _debugLogger = DebugLoggerService();
+
+  void toggleLedAlerts(bool value) {
+    _saveSettings(state.copyWith(ledAlertsEnabled: value));
+  }
 
 
   void toggleDebugLoggingOverlay(bool value) {
@@ -30,10 +34,20 @@ class SettingsCubit extends Cubit<UserSettings> {
 
 
   // Optionally notify other services or update state when the speech engine changes
-  void setSpeechEngine(SpeechEngine engine) {
-    // This is a placeholder for integration with the actual speech processor.
-    // You can add logic here to notify the processor or update state if needed.
+  Future<void> setSpeechEngine(SpeechEngine engine) async {
     _logger.i('🔄 Speech engine set to: $engine');
+    
+    // Actually switch the engine in the speech processor if available
+    if (_speechProcessor != null) {
+      try {
+        await _speechProcessor!.switchEngine(engine);
+        _logger.i('✅ Successfully switched speech engine to: $engine');
+      } catch (e, stackTrace) {
+        _logger.e('❌ Failed to switch speech engine to: $engine', error: e, stackTrace: stackTrace);
+      }
+    } else {
+      _logger.w('⚠️ Speech processor not available, engine change not applied');
+    }
   }
 
   /// Set the ASR backend/engine.
