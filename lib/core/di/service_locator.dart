@@ -5,13 +5,15 @@ import 'package:live_captions_xr/core/services/camera_service.dart';
 import 'package:live_captions_xr/core/services/google_auth_service.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
-import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
+import 'package:live_captions_xr/core/services/gemma3n_service.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
 import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
+import 'package:live_captions_xr/core/services/whisper_service.dart';
 import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'package:live_captions_xr/features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart';
+import 'package:live_captions_xr/core/models/speech_config.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -22,23 +24,29 @@ void setupServiceLocator() {
     sl.registerLazySingleton<ModelDownloadManager>(() => ModelDownloadManager());
   }
   if (!sl.isRegistered<Gemma3nService>()) {
-    sl.registerLazySingleton<Gemma3nService>(
-      () => Gemma3nService(modelManager: sl<ModelDownloadManager>()),
-    );
+    sl.registerLazySingleton<Gemma3nService>(() => Gemma3nService());
+  }
+  if (!sl.isRegistered<WhisperService>()) {
+    sl.registerLazySingleton<WhisperService>(() => WhisperService());
   }
   if (!sl.isRegistered<EnhancedSpeechProcessor>()) {
     sl.registerLazySingleton<EnhancedSpeechProcessor>(
       () => EnhancedSpeechProcessor(
         gemma3nService: sl<Gemma3nService>(),
         audioCaptureService: sl<AudioCaptureService>(),
+        whisperService: sl<WhisperService>(),
       ),
     );
   }
   if (!sl.isRegistered<LiveCaptionsCubit>()) {
-    sl.registerFactory<LiveCaptionsCubit>(() => LiveCaptionsCubit(
-      speechProcessor: sl<EnhancedSpeechProcessor>(),
-      hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
-    ));
+    sl.registerLazySingleton<LiveCaptionsCubit>(
+      () => LiveCaptionsCubit(
+        speechProcessor: sl<EnhancedSpeechProcessor>(),
+        hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+        useEnhancement: true,
+        speechConfig: const SpeechConfig(), // Pass default config with whisper settings
+      ),
+    );
   }
   if (!sl.isRegistered<SoundDetectionCubit>()) {
     sl.registerFactory<SoundDetectionCubit>(() => SoundDetectionCubit());

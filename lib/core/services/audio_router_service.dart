@@ -51,6 +51,9 @@ class AudioRouterService {
       case AsrBackend.openAI:
         engine = SpeechEngine.openAI;
         break;
+      case AsrBackend.whisperGgml:
+        engine = SpeechEngine.whisper_ggml;
+        break;
     }
     // If for some reason engine is null, fallback to STT mode logic
     if (engine == null) {

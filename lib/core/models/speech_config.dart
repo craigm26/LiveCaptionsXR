@@ -13,6 +13,13 @@ class SpeechConfig extends Equatable {
   final bool enableRealTimeEnhancement;
   final double enhancementTemperature;
   final int enhancementMaxTokens;
+  
+  // Whisper-specific configuration
+  final String whisperModel;
+  final bool whisperTranslateToEnglish;
+  final int whisperMaxTokens;
+  final double whisperTemperature;
+  final bool whisperSuppressNonSpeechTokens;
 
   const SpeechConfig({
     this.voiceActivityThreshold = 0.01,
@@ -26,6 +33,11 @@ class SpeechConfig extends Equatable {
     this.enableRealTimeEnhancement = true,
     this.enhancementTemperature = 0.3,
     this.enhancementMaxTokens = 100,
+    this.whisperModel = 'base',
+    this.whisperTranslateToEnglish = false,
+    this.whisperMaxTokens = 448,
+    this.whisperTemperature = 0.0,
+    this.whisperSuppressNonSpeechTokens = true,
   });
 
   /// Create config with custom parameters
@@ -41,6 +53,11 @@ class SpeechConfig extends Equatable {
     bool? enableRealTimeEnhancement,
     double? enhancementTemperature,
     int? enhancementMaxTokens,
+    String? whisperModel,
+    bool? whisperTranslateToEnglish,
+    int? whisperMaxTokens,
+    double? whisperTemperature,
+    bool? whisperSuppressNonSpeechTokens,
   }) {
     return SpeechConfig(
       voiceActivityThreshold: voiceActivityThreshold ?? this.voiceActivityThreshold,
@@ -54,6 +71,11 @@ class SpeechConfig extends Equatable {
       enableRealTimeEnhancement: enableRealTimeEnhancement ?? this.enableRealTimeEnhancement,
       enhancementTemperature: enhancementTemperature ?? this.enhancementTemperature,
       enhancementMaxTokens: enhancementMaxTokens ?? this.enhancementMaxTokens,
+      whisperModel: whisperModel ?? this.whisperModel,
+      whisperTranslateToEnglish: whisperTranslateToEnglish ?? this.whisperTranslateToEnglish,
+      whisperMaxTokens: whisperMaxTokens ?? this.whisperMaxTokens,
+      whisperTemperature: whisperTemperature ?? this.whisperTemperature,
+      whisperSuppressNonSpeechTokens: whisperSuppressNonSpeechTokens ?? this.whisperSuppressNonSpeechTokens,
     );
   }
 
@@ -71,6 +93,11 @@ class SpeechConfig extends Equatable {
       'enableRealTimeEnhancement': enableRealTimeEnhancement,
       'enhancementTemperature': enhancementTemperature,
       'enhancementMaxTokens': enhancementMaxTokens,
+      'whisperModel': whisperModel,
+      'whisperTranslateToEnglish': whisperTranslateToEnglish,
+      'whisperMaxTokens': whisperMaxTokens,
+      'whisperTemperature': whisperTemperature,
+      'whisperSuppressNonSpeechTokens': whisperSuppressNonSpeechTokens,
     };
   }
 
@@ -88,6 +115,11 @@ class SpeechConfig extends Equatable {
       enableRealTimeEnhancement: map['enableRealTimeEnhancement'] ?? true,
       enhancementTemperature: map['enhancementTemperature']?.toDouble() ?? 0.3,
       enhancementMaxTokens: map['enhancementMaxTokens']?.toInt() ?? 100,
+      whisperModel: map['whisperModel'] ?? 'base',
+      whisperTranslateToEnglish: map['whisperTranslateToEnglish'] ?? false,
+      whisperMaxTokens: map['whisperMaxTokens']?.toInt() ?? 448,
+      whisperTemperature: map['whisperTemperature']?.toDouble() ?? 0.0,
+      whisperSuppressNonSpeechTokens: map['whisperSuppressNonSpeechTokens'] ?? true,
     );
   }
 
@@ -132,6 +164,11 @@ class SpeechConfig extends Equatable {
         enableRealTimeEnhancement,
         enhancementTemperature,
         enhancementMaxTokens,
+        whisperModel,
+        whisperTranslateToEnglish,
+        whisperMaxTokens,
+        whisperTemperature,
+        whisperSuppressNonSpeechTokens,
       ];
 
   @override

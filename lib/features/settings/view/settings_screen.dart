@@ -68,9 +68,7 @@ class SettingsScreen extends StatelessWidget {
                   title: 'Speech-to-Text Mode',
                   subtitle: 'Online for accuracy, Offline for privacy',
                   trailing: DropdownButton<SttMode>(
-                    value: state.sttMode == SttMode.online
-                        ? SttMode.offline
-                        : state.sttMode,
+                    value: state.sttMode,
                     items: [
                       DropdownMenuItem<SttMode>(
                         value: SttMode.online,
@@ -116,7 +114,7 @@ class SettingsScreen extends StatelessWidget {
                     value: state.asrBackend,
                     items: _asrBackendDropdownItems(context),
                     onChanged: (backend) {
-                      if (backend != null) {
+                      if (backend != null && backend != AsrBackend.openAI) {
                         final engine = _asrBackendToSpeechEngine(backend);
                         context.read<SettingsCubit>().setAsrBackend(backend);
                         context.read<SettingsCubit>().setSpeechEngine(engine);
@@ -201,9 +199,46 @@ class SettingsScreen extends StatelessWidget {
 List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
     BuildContext context) {
   return AsrBackend.values.map((backend) {
+    String displayName;
+    bool isEnabled = true;
+    
+    switch (backend) {
+      case AsrBackend.flutterSound:
+        displayName = 'Flutter Sound';
+        break;
+      case AsrBackend.gemma3n:
+        displayName = 'Gemma 3n';
+        break;
+      case AsrBackend.native:
+        displayName = 'Native';
+        break;
+      case AsrBackend.openAI:
+        displayName = 'OpenAI';
+        isEnabled = false;
+        break;
+      case AsrBackend.whisperGgml:
+        displayName = 'Whisper GGML (Recommended)';
+        break;
+    }
+    
     return DropdownMenuItem<AsrBackend>(
       value: backend,
-      child: Text(backend.name),
+      enabled: isEnabled,
+      child: Row(
+        children: [
+          if (backend == AsrBackend.whisperGgml)
+            Icon(Icons.star, size: 16, color: Colors.amber),
+          if (!isEnabled)
+            Opacity(opacity: 0.5, child: Text(displayName))
+          else
+            Text(displayName),
+          if (!isEnabled)
+            Tooltip(
+              message: 'Disabled for now (requires paid API)',
+              child: Icon(Icons.lock, size: 16, color: Colors.grey),
+            ),
+        ],
+      ),
     );
   }).toList();
 }
@@ -218,6 +253,8 @@ SpeechEngine _asrBackendToSpeechEngine(AsrBackend backend) {
       return SpeechEngine.native;
     case AsrBackend.openAI:
       return SpeechEngine.openAI;
+    case AsrBackend.whisperGgml:
+      return SpeechEngine.whisper_ggml;
   }
 }
 

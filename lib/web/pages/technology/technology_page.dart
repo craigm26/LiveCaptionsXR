@@ -44,7 +44,6 @@ class _TechnologyPageState extends State<TechnologyPage>
 
     return Scaffold(
       appBar: const NavBar(),
-      endDrawer: isMobile ? NavDrawer(location: location) : null,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SingleChildScrollView(
@@ -127,8 +126,8 @@ class _TechnologyPageState extends State<TechnologyPage>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.1),
-            Colors.purple.withOpacity(0.05),
+            Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            Colors.purple.withValues(alpha: 0.05),
             Colors.white,
           ],
         ),
@@ -206,15 +205,27 @@ class _TechnologyPageState extends State<TechnologyPage>
   Widget _buildAISection() {
     final aiTechnologies = [
       {
+        'name': 'Whisper GGML',
+        'description':
+            'On-device speech recognition using the Whisper base model for fast, private, offline transcription.',
+        'icon': Icons.mic,
+        'features': [
+          'On-device processing',
+          'Fast transcription',
+          'Privacy-first',
+          'Offline capability'
+        ],
+      },
+      {
         'name': 'Google Gemma 3n',
         'description':
-            'On-device large language model for real-time, streaming speech recognition.',
+            'On-device large language model for contextual enhancement and multimodal understanding.',
         'icon': Icons.psychology,
         'features': [
           'On-device inference',
-          'Low latency',
+          'Context enhancement',
           'Privacy-first',
-          'Multimodal context'
+          'Multimodal fusion'
         ],
       },
       {
@@ -413,7 +424,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                                   decoration: BoxDecoration(
                                     color: Theme.of(context)
                                         .primaryColor
-                                        .withOpacity(0.1),
+                                        .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

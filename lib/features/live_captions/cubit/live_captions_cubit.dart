@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 
 import '../../../core/models/enhanced_caption.dart';
 import '../../../core/models/speech_result.dart';
+import '../../../core/models/speech_config.dart';
 import '../../../core/services/enhanced_speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import 'live_captions_state.dart';
@@ -21,15 +22,24 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   StreamSubscription? _captionSubscription;
   final List<EnhancedCaption> _captionHistory = [];
   final bool _useEnhancement;
+  SpeechConfig? _speechConfig;
 
   LiveCaptionsCubit({
     required EnhancedSpeechProcessor speechProcessor,
     required HybridLocalizationEngine hybridLocalizationEngine,
     bool useEnhancement = true,
+    SpeechConfig? speechConfig,
   })  : _speechProcessor = speechProcessor,
         _hybridLocalizationEngine = hybridLocalizationEngine,
         _useEnhancement = useEnhancement,
+        _speechConfig = speechConfig,
         super(const LiveCaptionsInitial());
+
+  /// Update speech configuration (useful for changing whisper settings)
+  void updateSpeechConfig(SpeechConfig config) {
+    _speechConfig = config;
+    _logger.i('⚙️ Updated speech config: ${config.whisperModel}');
+  }
 
   Future<void> startCaptions() async {
     if (state is LiveCaptionsActive && (state as LiveCaptionsActive).isListening) {
@@ -42,8 +52,16 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       emit(const LiveCaptionsLoading());
 
       if (!_speechProcessor.isReady) {
-        await _speechProcessor.initialize(enableGemmaEnhancement: _useEnhancement);
+        // Pass the speech config during initialization
+        await _speechProcessor.initialize(
+          config: _speechConfig,
+          enableGemmaEnhancement: _useEnhancement,
+        );
+      } else if (_speechConfig != null) {
+        // Update config if processor is already initialized
+        await _speechProcessor.updateConfig(_speechConfig!);
       }
+      
       // The UI will remain in the "loading" state until the first caption is received.
       if (_useEnhancement && _speechProcessor.isReady) {
         _captionSubscription = _speechProcessor.enhancedCaptions.listen(_handleEnhancedCaption);
@@ -53,7 +71,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         _logger.i('📝 Subscribed to raw speech results stream.');
       }
 
-      await _speechProcessor.startProcessing();
+      // Pass the speech config during processing start
+      await _speechProcessor.startProcessing(config: _speechConfig);
       
       // We no longer emit an "Active" state here immediately. The first
       // received caption will transition the state from Loading to Active.

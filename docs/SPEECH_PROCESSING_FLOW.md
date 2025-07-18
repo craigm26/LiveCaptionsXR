@@ -9,7 +9,7 @@ This document explains how speech is captured and processed in the LiveCaptionsX
 1. **StereoAudioCapturePlugin** (iOS Native) - Captures stereo audio from microphones
 2. **StereoAudioCapture** (Dart) - Dart wrapper for native audio capture
 3. **LiveCaptionsCubit** - Manages the connection between audio capture and speech processing
-4. **SpeechProcessor** - Processes audio for speech recognition using the `speech_to_text` package.
+4. **EnhancedSpeechProcessor** - Processes audio for speech recognition using the `whisper_ggml` package with the base model for fast, private processing.
 
 ## Complete Audio Flow
 
@@ -39,19 +39,20 @@ StereoAudioFrame → LiveCaptionsCubit → processAudioChunk() → SpeechProcess
 - Subscribes to audio frames from `StereoAudioCapture`
 - Sends audio chunks to `SpeechProcessor.startProcessing()`
 
-**SpeechProcessor:**
-- Initializes the `speech_to_text` plugin.
-- Starts listening for speech.
-- Receives speech results from the `speech_to_text` plugin.
+**EnhancedSpeechProcessor:**
+- Initializes the `whisper_ggml` plugin with the base model.
+- Starts listening for speech with real-time processing.
+- Receives speech results from the `whisper_ggml` plugin.
 
 ### 3. Speech Recognition
 ```
-Audio stream → speech_to_text plugin → Native Speech Recognition Engine → Speech results
+Audio stream → whisper_ggml plugin → Whisper Base Model → Speech results
 ```
 
-**`speech_to_text` Plugin:**
-- Handles the interaction with the native speech recognition engine (Siri on iOS, Google on Android).
-- Provides a simple API for starting, stopping, and listening for speech recognition results.
+**`whisper_ggml` Plugin:**
+- Handles on-device speech recognition using the Whisper base model.
+- Provides fast, private, offline speech recognition with ~3-5 second processing delay.
+- Processes audio in real-time with configurable parameters.
 
 ### 4. Caption Placement
 ```
@@ -108,8 +109,8 @@ If you see:
 ```
 [INFO] 🎤 Starting speech processing...
 ```
-but no "🎤 Speech result received" logs, the cause is likely with the `speech_to_text` plugin.
-**Solution:** Check the device's speech recognition service and the plugin's initialization.
+but no "🎤 Speech result received" logs, the cause is likely with the `whisper_ggml` plugin.
+**Solution:** Check the Whisper model initialization and audio format compatibility.
 
 ### No AR Caption Placement
 If you see:

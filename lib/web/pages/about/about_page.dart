@@ -35,12 +35,11 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.toString();
     final isMobile = MediaQuery.of(context).size.width < 700;
 
     return Scaffold(
       appBar: const NavBar(),
-      endDrawer: isMobile ? NavDrawer(location: location) : null,
+
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SingleChildScrollView(
@@ -123,8 +122,8 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.1),
-            Colors.purple.withOpacity(0.05),
+            Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            Colors.purple.withValues(alpha: 0.05),
             Colors.white,
           ],
         ),
@@ -233,7 +232,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -290,7 +289,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -301,7 +300,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 CircleAvatar(
                   radius: 60,
                   backgroundColor:
-                      Theme.of(context).primaryColor.withOpacity(0.1),
+                      Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.person,
                     size: 60,
@@ -489,8 +488,8 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.05),
-            Colors.blue.withOpacity(0.03),
+            Theme.of(context).primaryColor.withValues(alpha: 0.05),
+            Colors.blue.withValues(alpha: 0.03),
           ],
         ),
       ),

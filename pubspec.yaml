@@ -22,6 +22,7 @@ dependencies:
   url_launcher: ^6.2.2
   flutter_launcher_icons: ^0.14.4
   flutter_gemma: ^0.9.0
+  whisper_ggml: ^1.4.0
   
   device_info_plus: ^11.5.0
   camera: ^0.10.5+9
@@ -48,6 +49,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logos/
+    - assets/models/
   # fonts:
   #   - family: Roboto
   #     fonts:

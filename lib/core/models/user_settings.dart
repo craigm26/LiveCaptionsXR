@@ -4,6 +4,7 @@ enum AsrBackend {
   gemma3n,
   native,
   openAI,
+  whisperGgml,
 }
 
 /// Enum for selecting the Speech-to-Text (STT) mode.
@@ -42,8 +43,8 @@ class UserSettings {
   final bool debugLoggingOverlayEnabled;
 
   const UserSettings({
-    this.sttMode = SttMode.online,
-    this.asrBackend = AsrBackend.flutterSound,
+    this.sttMode = SttMode.offline,
+    this.asrBackend = AsrBackend.whisperGgml,
     this.enhancementEnabled = true,
     this.hapticsEnabled = true,
     this.ledAlertsEnabled = true,

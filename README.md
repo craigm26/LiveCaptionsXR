@@ -28,7 +28,7 @@
 | --- | --- | --- |
 | **Frontend Framework** | Flutter 3.x with Dart 3 | Single codebase for iOS/Android, native performance, excellent accessibility support. |
 | **AI Model** | Google Gemma 3n | State-of-the-art on-device multimodal model. |
-| **Speech Recognition**| **flutter_gemma** by Sasha Denisov | A community-driven package to leverage **Gemma 3n** for state-of-the-art, on-device, streaming ASR. |
+| **Speech Recognition**| **whisper_ggml** | On-device Whisper speech recognition using the base model for fast, private, offline transcription. |
 | **State Management** | flutter_bloc (Cubit pattern) | Predictable state management for complex AI workflows. |
 | **Service Architecture** | Dependency Injection (get_it) | Clean separation of concerns and a testable service layer. |
 | **AR** | ARKit (iOS), ARCore (Android) | Native AR frameworks for the best performance and features. |
@@ -40,7 +40,7 @@
 1. **Audio & Vision Capture:** Real-time stereo audio and camera frames are captured.
 2. **Direction Estimation:** Audio direction is estimated (using RMS and GCC-PHAT) and optionally fused with visual speaker identification.
 3. **Hybrid Localization Fusion:** A Kalman filter in the **HybridLocalizationEngine** fuses all modalities to estimate the 3D world position of the speaker.
-4. **Streaming ASR:** Speech is transcribed in real time using the on-device `speech_to_text` engine.
+4. **Streaming ASR:** Speech is transcribed in real time using the on-device `whisper_ggml` engine with the base model for fast, private processing.
 5. **AR Caption Placement:** When a final transcript is available, the fused 3D transform and caption are sent to the native AR view (ARKit/ARCore), which anchors the caption in space at the speaker's location.
 
 ## 🔌 MethodChannels

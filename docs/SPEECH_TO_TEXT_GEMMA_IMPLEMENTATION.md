@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the implementation of PRD 18, which integrates the `speech_to_text` Flutter package with the `flutter_gemma` package and Gemma 3n model for enhanced live captioning in AR mode.
+This document summarizes the implementation of PRD 18, which integrates the `whisper_ggml` Flutter package with the `flutter_gemma` package and Gemma 3n model for enhanced live captioning in AR mode.
 
 ## Implementation Status
 
@@ -18,7 +18,7 @@ This document summarizes the implementation of PRD 18, which integrates the `spe
    - Note: ModelType enum issue needs resolution based on flutter_gemma version
 
 3. **Enhanced Speech Processor** (`lib/core/services/enhanced_speech_processor.dart`)
-   - Supports multiple speech engines (native, speech_to_text, future Gemma 3n ASR)
+   - Supports multiple speech engines (native, whisper_ggml, future Gemma 3n ASR)
    - Integrates with GemmaEnhancer for real-time caption enhancement
    - Provides both raw and enhanced caption streams
 
@@ -42,7 +42,7 @@ This document summarizes the implementation of PRD 18, which integrates the `spe
 
 ```
 ┌─────────────────────┐     ┌────────────────────┐     ┌─────────────────┐
-│  speech_to_text    │────▶│ EnhancedSpeech     │────▶│ GemmaEnhancer   │
+│  whisper_ggml      │────▶│ EnhancedSpeech     │────▶│ GemmaEnhancer   │
 │  Package           │     │ Processor          │     │ Service         │
 └─────────────────────┘     └────────────────────┘     └─────────────────┘
                                      │                           │
@@ -92,7 +92,7 @@ setupServiceLocator(
 
 ## Key Features
 
-1. **Multi-Engine Support**: Switch between native, speech_to_text, and future Gemma 3n ASR
+1. **Multi-Engine Support**: Switch between native, whisper_ggml, and future Gemma 3n ASR
 2. **Real-time Enhancement**: Gemma 3n processes final captions for punctuation and corrections
 3. **Fallback Handling**: Graceful degradation when enhancement fails
 4. **Cache Optimization**: LRU cache for common phrase enhancements
