@@ -59,15 +59,16 @@ class EnhancedSpeechProcessor {
     required AudioCaptureService audioCaptureService,
     required WhisperService whisperService,
     SpeechEngine? defaultEngine,
-  })  : _activeEngine = defaultEngine ?? SpeechEngine.flutter_sound,
+  })  : _activeEngine = defaultEngine ?? SpeechEngine.whisper_ggml,
         _audioCaptureService = audioCaptureService,
         _whisperService = whisperService;
 
   List<SpeechEngine> get availableEngines {
     final engines = <SpeechEngine>[];
-    // Always available
-    engines.add(SpeechEngine.flutter_sound);
+    // Prioritize Whisper GGML as the primary engine
     engines.add(SpeechEngine.whisper_ggml);
+    // Add other engines
+    engines.add(SpeechEngine.flutter_sound);
     // Native engine availability could be checked here if needed
     // For Gemma3n, only add if available
     if (gemma3nService.isAvailable) {
@@ -247,7 +248,7 @@ class EnhancedSpeechProcessor {
           sink.add(data.data!);
         }
       },
-    )).pipe(uint8ListController);
+    )).pipe(uint8ListController.sink);
 
     await _recorder.startRecorder(
       toStream: uint8ListController.sink,

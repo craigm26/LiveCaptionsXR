@@ -27,7 +27,9 @@ void setupServiceLocator() {
     sl.registerLazySingleton<Gemma3nService>(() => Gemma3nService());
   }
   if (!sl.isRegistered<WhisperService>()) {
-    sl.registerLazySingleton<WhisperService>(() => WhisperService());
+    sl.registerLazySingleton<WhisperService>(() => WhisperService(
+      modelDownloadManager: sl<ModelDownloadManager>(),
+    ));
   }
   if (!sl.isRegistered<EnhancedSpeechProcessor>()) {
     sl.registerLazySingleton<EnhancedSpeechProcessor>(
@@ -76,7 +78,9 @@ void setupServiceLocator() {
   }
   // Register SettingsCubit
   if (!sl.isRegistered<SettingsCubit>()) {
-    sl.registerFactory<SettingsCubit>(() => SettingsCubit());
+    sl.registerFactory<SettingsCubit>(() => SettingsCubit(
+      speechProcessor: sl<EnhancedSpeechProcessor>(),
+    ));
   }
   // ... existing registrations
 }

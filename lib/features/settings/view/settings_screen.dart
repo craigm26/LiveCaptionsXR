@@ -113,11 +113,11 @@ class SettingsScreen extends StatelessWidget {
                   trailing: DropdownButton<AsrBackend>(
                     value: state.asrBackend,
                     items: _asrBackendDropdownItems(context),
-                    onChanged: (backend) {
+                    onChanged: (backend) async {
                       if (backend != null && backend != AsrBackend.openAI) {
                         final engine = _asrBackendToSpeechEngine(backend);
                         context.read<SettingsCubit>().setAsrBackend(backend);
-                        context.read<SettingsCubit>().setSpeechEngine(engine);
+                        await context.read<SettingsCubit>().setSpeechEngine(engine);
                       }
                     },
                   ),
@@ -188,6 +188,22 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              Tooltip(
+                message: 'Manage AI model downloads for speech recognition and enhancement.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.storage,
+                  title: 'Model Management',
+                  subtitle: 'Download and manage AI models',
+                  trailing: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pushNamed('/model-status');
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open'),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -217,7 +233,7 @@ List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
         isEnabled = false;
         break;
       case AsrBackend.whisperGgml:
-        displayName = 'Whisper GGML (Recommended)';
+        displayName = 'Whisper GGML';
         break;
     }
     
