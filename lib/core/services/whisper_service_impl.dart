@@ -267,7 +267,6 @@ class WhisperService {
         threads: 4, // Use 4 threads for processing
         isVerbose: false,
         isNoTimestamps: true, // We don't need timestamps for real-time
-        isRealtime: true, // Enable real-time processing
       );
       
       // Emit STT event for transcription start
