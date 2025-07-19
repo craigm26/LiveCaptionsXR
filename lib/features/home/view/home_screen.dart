@@ -22,7 +22,7 @@ import '../../../core/services/model_download_manager.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/whisper_service.dart';
-import '../../../core/services/gemma_3n_service.dart';
+import '../../../core/services/gemma3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
 
@@ -185,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               const Text(
-                                'For speech-to-text transcription (1.4 GB)',
+                                'For speech-to-text transcription (147.95 MB)',
                                 style: TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               const SizedBox(height: 8),

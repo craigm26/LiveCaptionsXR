@@ -1,7 +1,25 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:live_captions_xr/core/models/sound_event.dart';
 import 'debug_capturing_logger.dart';
+
+/// Event class for Gemma 3n contextual enhancement progress and status
+class Gemma3nEnhancementEvent {
+  final double progress; // 0.0 to 1.0
+  final String message;
+  final bool isComplete;
+  final Object? error;
+  final String? enhancedText;
+
+  const Gemma3nEnhancementEvent({
+    required this.progress,
+    required this.message,
+    this.isComplete = false,
+    this.error,
+    this.enhancedText,
+  });
+}
 
 /// Core service for Google Gemma 3n multimodal AI integration
 ///
@@ -18,6 +36,13 @@ class Gemma3nService {
   static final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   bool _isModelLoaded = false;
+  
+  // Enhancement progress event stream for AR session integration
+  final StreamController<Gemma3nEnhancementEvent> _enhancementEventController =
+      StreamController<Gemma3nEnhancementEvent>.broadcast();
+  
+  // Expose enhancement events stream
+  Stream<Gemma3nEnhancementEvent> get enhancementEvents => _enhancementEventController.stream;
 
   /// Model paths for different Gemma 3n variants
   static const String _primaryModelPath = 'assets/models/gemma-3n-E4B-it-int4.task';
@@ -119,6 +144,9 @@ class Gemma3nService {
       _isModelLoaded = false;
       _logger.i('✅ Gemma3nService disposed');
     }
+    
+    // Dispose the enhancement event controller
+    await _enhancementEventController.close();
   }
 
   Future<SoundEvent> analyzeAudioFrame(Float32List audioFrame, double angle) async {
@@ -132,4 +160,63 @@ class Gemma3nService {
     });
     return SoundEvent.fromJson(result);
   }
+
+  /// Enhances a raw text string using the Gemma model.
+  /// This is a simplified version that emits enhancement events for AR session integration.
+  Future<String> enhanceText(String rawText) async {
+    if (!_isModelLoaded) {
+      _logger.w('⚠️ Gemma3nService not initialized, returning raw text');
+      
+      // Emit enhancement event for service not ready
+      _enhancementEventController.add(const Gemma3nEnhancementEvent(
+        progress: 0.0,
+        message: 'Gemma 3n service not ready',
+        error: 'Service not initialized',
+      ));
+      
+      return rawText;
+    }
+
+    try {
+      _logger.d('🔮 Enhancing text: "$rawText"');
+      
+      // Emit enhancement event for enhancement start
+      _enhancementEventController.add(const Gemma3nEnhancementEvent(
+        progress: 0.0,
+        message: 'Starting contextual enhancement...',
+      ));
+      
+      // Emit enhancement event for processing
+      _enhancementEventController.add(const Gemma3nEnhancementEvent(
+        progress: 0.5,
+        message: 'Processing with Gemma 3n...',
+      ));
+      
+      // For now, return the raw text as enhancement is not fully implemented
+      // TODO: Implement actual text enhancement using the native plugin
+      final enhancedText = rawText;
+      
+      // Emit enhancement event for completion
+      _enhancementEventController.add(Gemma3nEnhancementEvent(
+        progress: 1.0,
+        message: 'Enhancement completed',
+        isComplete: true,
+        enhancedText: enhancedText,
+      ));
+      
+      return enhancedText;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error enhancing text', error: e, stackTrace: stackTrace);
+      
+      // Emit enhancement event for error
+      _enhancementEventController.add(Gemma3nEnhancementEvent(
+        progress: 0.0,
+        message: 'Enhancement failed',
+        error: e,
+      ));
+      
+      return rawText;
+    }
+  }
+
 }
