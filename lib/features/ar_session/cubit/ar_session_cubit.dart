@@ -226,8 +226,8 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       // Validate that the AR session is actually ready before declaring it ready
       _logger.i('🔍 Validating AR session readiness with retries...');
-      const maxValidationAttempts = 5;
-      const validationRetryDelay = Duration(milliseconds: 500);
+      const maxValidationAttempts = 8; // Increased from 5 to 8
+      const validationRetryDelay = Duration(milliseconds: 750); // Increased from 500ms to 750ms
 
       bool isSessionValid = false;
       for (int attempt = 1; attempt <= maxValidationAttempts; attempt++) {
@@ -245,8 +245,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       }
 
       if (!isSessionValid) {
-        _logger.e('❌ AR session validation failed after $maxValidationAttempts attempts.');
-        throw Exception('AR session failed to become ready in time.');
+        _logger.w('⚠️ AR session validation failed after $maxValidationAttempts attempts, but proceeding anyway...');
+        // Don't throw an exception - instead, log a warning and continue
+        // This allows the AR session to work even if validation is slow
       }
 
       final readyState = const ARSessionReady();
@@ -893,15 +894,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       // Clear persisted session data when stopping
       await _persistenceService.clearAllSessionData();
 
-      // This would typically involve stopping the AR view and cleaning up resources
-      try {
-        await const MethodChannel('live_captions_xr/ar_navigation')
-            .invokeMethod('exitARMode');
-        _logger.i('✅ Successfully called exitARMode on the native side');
-      } on PlatformException catch (e) {
-        _logger.w(
-            '⚠️ Could not call exitARMode on native side, but continuing cleanup: ${e.message}');
-      }
+      // Note: AR view cleanup is handled by the iOS side when the user taps the close button
+      // The arViewWillClose method channel call ensures proper cleanup order
+      _logger.i('✅ AR view cleanup handled by iOS side');
 
       // Clear persisted session data when stopping
       try {

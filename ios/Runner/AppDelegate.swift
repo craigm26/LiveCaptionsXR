@@ -215,16 +215,16 @@ import Foundation
                 }
             }
             
-            print("⏰ Setting up 5-second timeout for AR session initialization...")
+            print("⏰ Setting up 8-second timeout for AR session initialization...")
             
             // Add timeout to prevent hanging if session never becomes ready
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
                 guard !hasCompleted else { 
                     print("✅ Timeout avoided - session was ready in time")
                     return 
                 }
                 hasCompleted = true
-                print("⏰ ARSession initialization timed out after 5 seconds")
+                print("⏰ ARSession initialization timed out after 8 seconds")
                 result(FlutterError(
                     code: "SESSION_TIMEOUT",
                     message: "ARSession initialization timed out",
