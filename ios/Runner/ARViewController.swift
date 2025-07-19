@@ -41,13 +41,13 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         
         // Notify that the session is ready after ensuring proper initialization
         // Use a longer delay to ensure the session is fully stable
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            print("🕐 First session readiness check (after 1.0s)...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            print("🕐 First session readiness check (after 1.5s)...")
             self?.checkSessionReadiness(attempt: 1)
         }
     } 
     // Method to check session readiness with retry logic
-    private func checkSessionReadiness(attempt: Int, maxAttempts: Int = 3) {
+    private func checkSessionReadiness(attempt: Int, maxAttempts: Int = 5) {
         guard let session = ARAnchorManager.arSession else {
             print("❌ Session readiness check failed: ARAnchorManager.arSession is nil (attempt \(attempt))")
             if attempt < maxAttempts {
