@@ -7,7 +7,7 @@ import '../../../core/services/ar_anchor_manager.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/ar_session_persistence_service.dart';
 import '../../../core/services/whisper_service.dart';
-import '../../../core/services/gemma_3n_service.dart';
+import '../../../core/services/gemma3n_service.dart';
 import 'ar_session_state.dart';
 
 /// Cubit for managing AR session state and operations with persistence support

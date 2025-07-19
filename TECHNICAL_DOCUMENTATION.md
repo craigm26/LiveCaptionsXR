@@ -137,7 +137,7 @@ The application uses a layered state management approach:
 - **Format Conversion**: Audio is converted to WAV format for Whisper processing
 
 #### Whisper GGML Integration
-- **Model**: Uses `whisper-base.bin` (141 MB) for optimal speed/accuracy balance
+- **Model**: Uses `whisper-base.bin` (147.95 MB) for optimal speed/accuracy balance
 - **Processing**: Real-time transcription with 4 threads
 - **Language**: English (configurable)
 - **Timestamps**: Disabled for real-time processing
@@ -176,13 +176,13 @@ The system includes a unified model management system:
 - **UI Integration**: Model status page for user management
 
 ### Model Types
-- **Whisper Models**: `whisper-base`, `whisper-small`, `whisper-medium`, `whisper-large`
+- **Whisper Models**: `whisper-base` (speech recognition)
 - **Gemma Models**: `gemma-3n-E4B-it-int4` (multimodal enhancement)
 
 ### Model Setup
 
 #### Whisper Setup
-- **Model File**: `whisper_base.bin` (141 MB)
+- **Model File**: `whisper_base.bin` (147.95 MB)
 - **Status**: ✅ Ready for use
 - **Location**: `assets/models/whisper_base.bin`
 - **Configuration**: Optimized for real-time processing

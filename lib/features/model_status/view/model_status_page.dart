@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
 import 'package:live_captions_xr/core/services/debug_capturing_logger.dart';
 
@@ -113,7 +112,7 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${(config.expectedSize / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB',
+                        _formatModelSize(config.expectedSize),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -210,6 +209,18 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
       return Icon(Icons.warning, color: Colors.orange, size: 24);
     }
     return Icon(Icons.cloud_download, color: Colors.grey, size: 24);
+  }
+
+  String _formatModelSize(int bytes) {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    } else if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    } else if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    } else {
+      return '$bytes B';
+    }
   }
 
   Widget _buildStorageInfo() {

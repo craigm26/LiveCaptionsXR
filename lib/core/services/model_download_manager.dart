@@ -39,23 +39,9 @@ class ModelDownloadManager extends ChangeNotifier {
     'whisper-base': ModelConfig(
       fileName: 'whisper_base.bin',
       url: 'https://livecaptionsxrbucket.com/whisper_base.bin',
-      expectedSize: 1512762759, // ~1.4 GB
+      expectedSize: 155189248, // 147.95 MB (147.95 * 1024 * 1024)
       type: ModelType.whisper,
       displayName: 'Whisper Base',
-    ),
-    'whisper-small': ModelConfig(
-      fileName: 'whisper_small.bin',
-      url: 'https://livecaptionsxrbucket.com/whisper_small.bin',
-      expectedSize: 4613734400, // ~4.3 GB
-      type: ModelType.whisper,
-      displayName: 'Whisper Small',
-    ),
-    'whisper-medium': ModelConfig(
-      fileName: 'whisper_medium.bin',
-      url: 'https://livecaptionsxrbucket.com/whisper_medium.bin',
-      expectedSize: 14526745600, // ~13.5 GB
-      type: ModelType.whisper,
-      displayName: 'Whisper Medium',
     ),
   };
 
