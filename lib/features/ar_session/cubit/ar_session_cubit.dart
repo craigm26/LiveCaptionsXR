@@ -909,6 +909,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       emit(const ARSessionInitial());
       _logger.i('✅ AR session stopped and persistence cleared');
+      _logger.i('🔄 AR session state reset to initial - no services should be running');
     } catch (e, stackTrace) {
       _logger.e('❌ Error stopping AR session',
           error: e, stackTrace: stackTrace);
