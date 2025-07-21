@@ -50,12 +50,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkAndPromptModelDownload() async {
+    _logger.d('🔍 Checking model availability on app startup...');
+    
     // Check if required models exist
+    _logger.d('🔍 Checking Gemma model availability...');
     final gemmaExists = await _modelDownloadManager.modelExists('gemma-3n-E4B-it-int4');
+    _logger.d('📦 Gemma model exists: $gemmaExists');
+    
+    _logger.d('🔍 Checking Whisper model availability...');
     final whisperExists = await _modelDownloadManager.modelExists('whisper-base');
+    _logger.d('📦 Whisper model exists: $whisperExists');
+    
+    _logger.d('📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists');
     
     if ((!gemmaExists || !whisperExists) && mounted) {
+      _logger.w('⚠️ Missing models detected, showing download dialog');
       _showModelDownloadDialog(gemmaExists: gemmaExists, whisperExists: whisperExists);
+    } else {
+      _logger.i('✅ All required models are available');
     }
   }
 
@@ -523,13 +535,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         return BlocBuilder<LiveCaptionsCubit,
                             LiveCaptionsState>(
                           builder: (context, captionsState) {
+                            // Only show overlay when in AR mode and captions are active
+                            // or when explicitly requested for fallback
                             bool showOverlay = false;
-                            if (!inARMode) {
+                            if (inARMode && captionsState is LiveCaptionsActive) {
                               showOverlay = true;
-                            } else if (captionsState is LiveCaptionsActive &&
+                            } else if (inARMode && captionsState is LiveCaptionsActive &&
                                 captionsState.showOverlayFallback) {
                               showOverlay = true;
                             }
+                            // Remove the automatic showing of LiveCaptionsWidget when not in AR mode
                             return showOverlay
                                 ? Positioned(
                                     bottom: 120,
@@ -680,8 +695,37 @@ class _HomeScreenState extends State<HomeScreen> {
                     } else if (state is ARSessionError) {
                       _logger.e('❌ AR session error: ${state.message}');
                     } else if (state is ARSessionInitial) {
-                      // AR mode was closed
+                      // AR mode was closed - ensure all services are stopped
                       _logger.i('✅ AR mode closed and all services stopped');
+                      
+                      // Double-check that live captions are stopped
+                      final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+                      if (liveCaptionsCubit.state is LiveCaptionsActive &&
+                          (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+                        _logger.w('⚠️ Live captions still active after AR session end, stopping...');
+                        liveCaptionsCubit.stopCaptions();
+                      }
+                      
+                      // Double-check that other services are stopped
+                      final soundDetectionCubit = context.read<SoundDetectionCubit>();
+                      if (soundDetectionCubit.isActive) {
+                        _logger.w('⚠️ Sound detection still active after AR session end, stopping...');
+                        soundDetectionCubit.stop();
+                      }
+                      
+                      final localizationCubit = context.read<LocalizationCubit>();
+                      if (localizationCubit.isActive) {
+                        _logger.w('⚠️ Localization still active after AR session end, stopping...');
+                        localizationCubit.stop();
+                      }
+                      
+                      final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+                      if (visualIdentificationCubit.isActive) {
+                        _logger.w('⚠️ Visual identification still active after AR session end, stopping...');
+                        visualIdentificationCubit.stop();
+                      }
+                      
+                      _logger.i('✅ All services verified as stopped after AR session end');
                     }
                   },
                   child: FloatingActionButton(

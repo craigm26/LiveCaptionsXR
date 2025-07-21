@@ -3,6 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'debug_capturing_logger.dart';
 
 /// Enum for different model types
 enum ModelType {
@@ -30,6 +31,8 @@ class ModelConfig {
 }
 
 class ModelDownloadManager extends ChangeNotifier {
+  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  
   // Model configurations
   static const Map<String, ModelConfig> _modelConfigs = {
     'gemma-3n-E4B-it-int4': ModelConfig(
@@ -91,30 +94,82 @@ class ModelDownloadManager extends ChangeNotifier {
 
   /// Check if a model file exists
   Future<bool> modelExists(String modelKey) async {
+    final config = _modelConfigs[modelKey];
+    if (config == null) {
+      _logger.w('⚠️ Unknown model key: $modelKey');
+      return false;
+    }
+    
+    _logger.d('🔍 Checking if model exists: $modelKey');
+    
+    // First check if the model exists in the documents directory
     final path = await getModelPath(modelKey);
-    return File(path).existsSync();
+    final fileExists = File(path).existsSync();
+    
+    _logger.d('📁 Model file exists in documents: $fileExists (path: $path)');
+    
+    if (fileExists) {
+      _logger.d('✅ Model found in documents directory: $modelKey');
+      return true;
+    }
+    
+    // If not in documents, check if it exists as an asset
+    _logger.d('🔍 Checking if model exists as asset: ${config.assetPath}');
+    final assetExists = await _assetExists(config.assetPath);
+    _logger.d('📦 Model exists as asset: $assetExists (${config.assetPath})');
+    
+    if (assetExists) {
+      _logger.i('✅ Model found as asset: $modelKey');
+    } else {
+      _logger.w('⚠️ Model not found in documents or assets: $modelKey');
+    }
+    
+    return assetExists;
   }
 
   /// Check if a model file is complete (not partial)
   Future<bool> modelIsComplete(String modelKey) async {
     final config = _modelConfigs[modelKey];
-    if (config == null) return false;
+    if (config == null) {
+      _logger.w('⚠️ Unknown model key: $modelKey');
+      return false;
+    }
     
+    _logger.d('🔍 Checking if model is complete: $modelKey');
+    
+    // First check if the model exists in the documents directory
     final path = await getModelPath(modelKey);
     final file = File(path);
     if (await file.exists()) {
       final stat = await file.stat();
-      return stat.size >= config.expectedSize;
+      final isComplete = stat.size >= config.expectedSize;
+      _logger.d('📁 Model file in documents: size=${stat.size}, expected=${config.expectedSize}, complete=$isComplete');
+      return isComplete;
     }
-    return false;
+    
+    // If not in documents, check if it exists as an asset (assets are always complete)
+    _logger.d('🔍 Checking if model is complete as asset: ${config.assetPath}');
+    final assetExists = await _assetExists(config.assetPath);
+    _logger.d('📦 Model complete as asset: $assetExists (${config.assetPath})');
+    
+    if (assetExists) {
+      _logger.i('✅ Model is complete as asset: $modelKey');
+    } else {
+      _logger.w('⚠️ Model not complete in documents or assets: $modelKey');
+    }
+    
+    return assetExists;
   }
 
   /// Check if a model exists in the assets directory
   Future<bool> _assetExists(String assetPath) async {
     try {
+      _logger.d('📦 Attempting to load asset: $assetPath');
       await rootBundle.load(assetPath);
+      _logger.d('✅ Asset loaded successfully: $assetPath');
       return true;
     } catch (e) {
+      _logger.w('⚠️ Failed to load asset: $assetPath - $e');
       return false;
     }
   }
@@ -126,20 +181,28 @@ class ModelDownloadManager extends ChangeNotifier {
       throw ArgumentError('Unknown model key: $modelKey');
     }
 
+    _logger.d('📋 Copying model from assets to documents: $modelKey');
     final targetPath = await getModelPath(modelKey);
     final targetFile = File(targetPath);
+    
+    _logger.d('📁 Target path: $targetPath');
     
     // Create parent directory if it doesn't exist
     final parentDir = Directory(targetFile.parent.path);
     if (!await parentDir.exists()) {
+      _logger.d('📁 Creating parent directory: ${parentDir.path}');
       await parentDir.create(recursive: true);
     }
 
     // Load the asset
+    _logger.d('📦 Loading asset: ${config.assetPath}');
     final assetBytes = await rootBundle.load(config.assetPath);
+    _logger.d('📦 Asset loaded, size: ${assetBytes.lengthInBytes} bytes');
     
     // Write to documents directory with the correct filename
+    _logger.d('💾 Writing model to documents: $targetPath');
     await targetFile.writeAsBytes(assetBytes.buffer.asUint8List());
+    _logger.d('✅ Model written to documents: $targetPath');
     
     // For Whisper models, also create a copy with the expected name
     if (config.type == ModelType.whisper) {
@@ -147,13 +210,17 @@ class ModelDownloadManager extends ChangeNotifier {
       final expectedPath = '${parentDir.path}/$expectedName';
       final expectedFile = File(expectedPath);
       
+      _logger.d('📁 Creating Whisper model copy: $expectedPath');
+      
       if (!await expectedFile.exists()) {
         await expectedFile.writeAsBytes(assetBytes.buffer.asUint8List());
-        print('📁 Created Whisper model file: $expectedPath');
+        _logger.i('📁 Created Whisper model file: $expectedPath');
       } else {
-        print('📁 Whisper model file already exists: $expectedPath');
+        _logger.d('📁 Whisper model file already exists: $expectedPath');
       }
     }
+    
+    _logger.i('✅ Model copy from assets completed: $modelKey');
   }
 
   /// Get the total size of all models
@@ -173,6 +240,7 @@ class ModelDownloadManager extends ChangeNotifier {
       throw ArgumentError('Unknown model key: $modelKey');
     }
 
+    _logger.i('📥 Starting model download/copy process: $modelKey');
     _downloading[modelKey] = true;
     _completed[modelKey] = false;
     _errors[modelKey] = null;
@@ -181,9 +249,11 @@ class ModelDownloadManager extends ChangeNotifier {
 
     try {
       // First, check if the model exists in assets
+      _logger.d('🔍 Checking if model exists in assets: ${config.assetPath}');
       final assetExists = await _assetExists(config.assetPath);
       
       if (assetExists) {
+        _logger.i('📦 Model found in assets, copying to documents: $modelKey');
         // Copy from assets instead of downloading
         _progress[modelKey] = 0.5;
         notifyListeners();
@@ -193,10 +263,12 @@ class ModelDownloadManager extends ChangeNotifier {
         _progress[modelKey] = 1.0;
         _completed[modelKey] = true;
         _downloading[modelKey] = false;
+        _logger.i('✅ Model copied from assets successfully: $modelKey');
         notifyListeners();
         return;
       }
 
+      _logger.w('⚠️ Model not found in assets, attempting remote download: $modelKey');
       // Fallback to downloading from remote URL if asset doesn't exist
       final path = await getModelPath(modelKey);
       final file = File(path);
