@@ -85,6 +85,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   }
 
   void _handleEnhancedCaption(EnhancedCaption caption) {
+    _logger.d('📋 Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})');
+    
     final currentState = state is LiveCaptionsActive
         ? (state as LiveCaptionsActive)
         : LiveCaptionsActive(isListening: true, hasEnhancement: _useEnhancement, captions: []);
@@ -92,8 +94,10 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     if (caption.isFinal) {
       _captionHistory.add(caption);
       if (_captionHistory.length > 50) _captionHistory.removeAt(0);
+      _logger.i('📚 Added final caption to history (${_captionHistory.length} total)');
 
       final displayText = caption.displayText;
+      _logger.d('🎯 Placing caption in AR space: "$displayText"');
       _hybridLocalizationEngine.placeRealtimeCaption(displayText);
 
       emit(currentState.copyWith(
@@ -101,13 +105,16 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         currentCaption: null,
         hasEnhancement: caption.isEnhanced,
       ));
+      _logger.d('📤 Emitted updated state with ${_captionHistory.length} captions');
     } else {
+      _logger.d('⏳ Processing partial caption: "${caption.displayText}"');
       emit(currentState.copyWith(currentCaption: SpeechResult(
         text: caption.displayText,
         confidence: caption.confidence,
         isFinal: caption.isFinal,
         timestamp: caption.timestamp,
       )));
+      _logger.d('📤 Emitted state with partial caption');
     }
   }
 

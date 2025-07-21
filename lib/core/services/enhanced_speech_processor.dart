@@ -35,6 +35,7 @@ class EnhancedSpeechProcessor {
   String _currentLanguage = 'en';
   bool _isInitialized = false;
   bool _isProcessing = false;
+  bool _useEnhancement = true; // New flag to control enhancement
 
   // Flutter Sound components
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
@@ -99,6 +100,7 @@ class EnhancedSpeechProcessor {
     try {
       _config = config ?? const SpeechConfig();
       _currentLanguage = _config.language;
+      _useEnhancement = enableGemmaEnhancement; // Set the flag
 
       switch (_activeEngine) {
         case SpeechEngine.flutter_sound:
@@ -266,8 +268,35 @@ class EnhancedSpeechProcessor {
 
   Future<void> _startWhisperGgmlProcessing() async {
     try {
+      _logger.i('🎤 Starting Whisper GGML processing...');
+      
+      // Subscribe to audio capture service for real-time processing
+      _audioCaptureService.audioStream.listen((audioData) async {
+        _logger.d('🎵 Received audio chunk (${audioData.length} samples)');
+        
+        try {
+          // Convert audio data to Uint8List for Whisper processing
+          final audioBytes = Uint8List.fromList(audioData);
+          _logger.d('🔄 Converting audio to bytes (${audioBytes.length} bytes)');
+          
+          // Process with Whisper service
+          _logger.d('🎤 Sending audio to Whisper for transcription...');
+          final result = await _whisperService.processAudioBuffer(audioBytes);
+          
+          _logger.i('📝 Whisper transcription result: "${result.text}" (confidence: ${result.confidence})');
+          
+          // Process the speech result
+          _processSpeechResult(result);
+          
+        } catch (e, stackTrace) {
+          _logger.e('❌ Error processing audio chunk', error: e, stackTrace: stackTrace);
+        }
+      }, onError: (error, stackTrace) {
+        _logger.e('❌ Error in audio stream', error: error, stackTrace: stackTrace);
+      });
+      
       await _whisperService.startProcessing();
-      _logger.i('🎤 Whisper GGML processing started');
+      _logger.i('✅ Whisper GGML processing started successfully');
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to start Whisper GGML processing', error: e, stackTrace: stackTrace);
       rethrow;
@@ -291,43 +320,68 @@ class EnhancedSpeechProcessor {
     }
   }
 
-  void _processSpeechResult(SpeechResult result) async {
-    _speechResultController.add(result);
-
-    if (result.isFinal) {
-      _recentTexts.add(result.text);
-      if (_recentTexts.length > 10) {
-        _recentTexts.removeAt(0);
+  void _processSpeechResult(SpeechResult result) {
+    _logger.d('🔄 Processing speech result: "${result.text}" (final: ${result.isFinal})');
+    
+    try {
+      // Add to recent texts for enhancement
+      if (result.text.isNotEmpty && result.text != defaultFallbackTranscript) {
+        _recentTexts.add(result.text);
+        if (_recentTexts.length > 10) _recentTexts.removeAt(0);
+        _logger.d('📚 Added to recent texts (${_recentTexts.length} items)');
       }
+
+      // Emit the raw speech result
+      _speechResultController.add(result);
+      _logger.d('📤 Emitted raw speech result to stream');
+
+      // Try to enhance with Gemma 3n if available and enabled
+      if (gemma3nService.isAvailable && _useEnhancement) {
+        _logger.d('✨ Attempting Gemma 3n enhancement...');
+        _enhanceWithGemma3n(result);
+      } else {
+        _logger.d('📝 Using raw speech result (enhancement disabled or unavailable)');
+        // Create basic enhanced caption from raw result
+        final basicCaption = EnhancedCaption.fromSpeechResult(result);
+        _enhancedCaptionController.add(basicCaption);
+        _logger.i('📋 Created basic caption: "${basicCaption.displayText}"');
+      }
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error processing speech result', error: e, stackTrace: stackTrace);
     }
+  }
 
-    if (gemma3nService.isAvailable) {
-      try {
-        if (result.isFinal) {
-          // TODO: Implement text enhancement with Gemma3nService
-          // For now, use the original text
-          final enhancedText = result.text;
-          _enhancedCaptionController.add(EnhancedCaption(
-            raw: result.text,
-            enhanced: enhancedText,
-            isFinal: true,
-            isEnhanced: false,
-          ));
-        } else {
-          _enhancedCaptionController.add(EnhancedCaption.partial(result.text));
-        }
-      } catch (e) {
-        _logger.e('Failed to enhance caption', error: e);
-        _enhancedCaptionController.add(EnhancedCaption.fallback(result.text));
+  void _enhanceWithGemma3n(SpeechResult result) async {
+    try {
+      _logger.d('🚀 Starting Gemma 3n enhancement for: "${result.text}"');
+      
+      if (result.isFinal) {
+        // TODO: Implement text enhancement with Gemma3nService
+        // For now, use the original text
+        final enhancedText = result.text;
+        _logger.d('📝 Gemma 3n enhancement result: "$enhancedText"');
+        
+        final enhancedCaption = EnhancedCaption(
+          raw: result.text,
+          enhanced: enhancedText,
+          isFinal: true,
+          isEnhanced: false,
+        );
+        
+        _enhancedCaptionController.add(enhancedCaption);
+        _logger.i('📋 Created enhanced caption: "${enhancedCaption.displayText}"');
+      } else {
+        // For partial results, create a partial caption
+        final partialCaption = EnhancedCaption.partial(result.text);
+        _enhancedCaptionController.add(partialCaption);
+        _logger.d('📋 Created partial caption: "${partialCaption.displayText}"');
       }
-    } else {
-      _enhancedCaptionController.add(result.isFinal
-          ? EnhancedCaption(
-              raw: result.text,
-              enhanced: result.text,
-              isFinal: true,
-              isEnhanced: false)
-          : EnhancedCaption.partial(result.text));
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error enhancing with Gemma 3n', error: e, stackTrace: stackTrace);
+      // Fallback to basic caption
+      final fallbackCaption = EnhancedCaption.fallback(result.text);
+      _enhancedCaptionController.add(fallbackCaption);
+      _logger.w('⚠️ Using fallback caption: "${fallbackCaption.displayText}"');
     }
   }
 
