@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_captions_xr/core/services/debug_capturing_logger.dart';
 import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
-import 'package:live_captions_xr/core/services/whisper_service.dart';
+import 'package:live_captions_xr/core/services/whisper_service_impl.dart';
 import 'package:live_captions_xr/core/services/gemma3n_service.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
 

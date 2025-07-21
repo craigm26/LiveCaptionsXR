@@ -9,7 +9,7 @@ import 'package:live_captions_xr/core/services/gemma3n_service.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
 import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
-import 'package:live_captions_xr/core/services/whisper_service.dart';
+import 'package:live_captions_xr/core/services/whisper_service_impl.dart';
 import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'package:live_captions_xr/features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart';

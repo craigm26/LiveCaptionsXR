@@ -2,15 +2,16 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-// Conditional imports to avoid dart:ffi on web
-import 'whisper_service_impl.dart' if (dart.library.html) 'whisper_service_web.dart';
+// Platform-specific imports
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:whisper_ggml/whisper_ggml.dart';
 import '../models/speech_config.dart';
 import '../models/speech_result.dart';
 import 'debug_capturing_logger.dart';
 import 'model_download_manager.dart';
+
+// Only import whisper_ggml on non-web platforms
+import 'package:whisper_ggml/whisper_ggml.dart' if (dart.library.html) 'whisper_ggml_web_stub.dart';
 
 /// Event class for Whisper STT progress and status
 class WhisperSTTEvent {
@@ -62,6 +63,14 @@ class WhisperService {
   /// Initialize the Whisper service with configuration
   Future<bool> initialize({SpeechConfig? config}) async {
     if (_isInitialized) return true;
+    
+    // Check if we're on web platform
+    if (kIsWeb) {
+      _logger.w('⚠️ Web platform detected - Whisper service not available');
+      _logger.w('⚠️ Using fallback mode for web builds');
+      _isInitialized = true;
+      return true;
+    }
     
     try {
       _config = config ?? const SpeechConfig();
@@ -225,6 +234,17 @@ class WhisperService {
   
   /// Process audio buffer and return transcription
   Future<SpeechResult> processAudioBuffer(Uint8List audioData) async {
+    // Handle web platform
+    if (kIsWeb) {
+      _logger.w('⚠️ Web platform detected - returning demo result');
+      return SpeechResult(
+        text: 'Web Demo: Audio processing not available',
+        confidence: 0.0,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+    }
+    
     if (!_isInitialized || _whisper == null) {
       _logger.w('⚠️ Whisper not initialized, returning fallback result');
       
