@@ -9,7 +9,7 @@ import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
 import 'audio_capture_service.dart';
 import 'gemma3n_service.dart';
-import 'whisper_service.dart';
+import 'whisper_service_impl.dart';
 import 'debug_capturing_logger.dart';
 
 /// Speech processing engine types
@@ -356,16 +356,15 @@ class EnhancedSpeechProcessor {
       _logger.d('🚀 Starting Gemma 3n enhancement for: "${result.text}"');
       
       if (result.isFinal) {
-        // TODO: Implement text enhancement with Gemma3nService
-        // For now, use the original text
-        final enhancedText = result.text;
+        // Actually call the Gemma 3n service for text enhancement
+        final enhancedText = await gemma3nService.enhanceText(result.text);
         _logger.d('📝 Gemma 3n enhancement result: "$enhancedText"');
         
         final enhancedCaption = EnhancedCaption(
           raw: result.text,
           enhanced: enhancedText,
           isFinal: true,
-          isEnhanced: false,
+          isEnhanced: enhancedText != result.text, // Mark as enhanced if text changed
         );
         
         _enhancedCaptionController.add(enhancedCaption);

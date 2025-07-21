@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:live_captions_xr/core/models/sound_event.dart';
 import 'debug_capturing_logger.dart';
 
@@ -55,6 +56,14 @@ class Gemma3nService {
   /// 3.  Handle potential errors gracefully.
   Future<void> loadModel({String? modelPath}) async {
     if (_isModelLoaded) return;
+
+    // Handle web platform
+    if (kIsWeb) {
+      _logger.w('⚠️ Web platform detected - Gemma 3n not available');
+      _logger.w('⚠️ Using fallback mode for web builds');
+      _isModelLoaded = true; // Mark as loaded for web compatibility
+      return;
+    }
 
     _logger.i('🚀 Starting Gemma 3n model loading...');
     try {
@@ -164,6 +173,12 @@ class Gemma3nService {
   /// Enhances a raw text string using the Gemma model.
   /// This is a simplified version that emits enhancement events for AR session integration.
   Future<String> enhanceText(String rawText) async {
+    // Handle web platform
+    if (kIsWeb) {
+      _logger.w('⚠️ Web platform detected - returning raw text');
+      return rawText;
+    }
+    
     if (!_isModelLoaded) {
       _logger.w('⚠️ Gemma3nService not initialized, returning raw text');
       
