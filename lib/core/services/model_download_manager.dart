@@ -46,7 +46,7 @@ class ModelDownloadManager extends ChangeNotifier {
     'whisper-base': ModelConfig(
       fileName: 'ggml-base.bin',
       url: 'https://livecaptionsxrbucket.com/whisper_base.bin',
-      expectedSize: 155189248, // 147.95 MB (147.95 * 1024 * 1024)
+      expectedSize: 147951465, // Actual size from server
       type: ModelType.whisper,
       displayName: 'Whisper Base',
       assetPath: 'assets/models/whisper_base.bin',
@@ -142,9 +142,28 @@ class ModelDownloadManager extends ChangeNotifier {
     final file = File(path);
     if (await file.exists()) {
       final stat = await file.stat();
-      final isComplete = stat.size >= config.expectedSize;
-      _logger.d('📁 Model file in documents: size=${stat.size}, expected=${config.expectedSize}, complete=$isComplete');
-      return isComplete;
+      
+      // Try to get the actual file size from server for comparison
+      int? serverSize;
+      try {
+        final response = await http.head(Uri.parse(config.url));
+        if (response.statusCode == 200) {
+          serverSize = int.tryParse(response.headers['content-length'] ?? '');
+          _logger.d('🌐 Server file size: $serverSize bytes');
+        }
+      } catch (e) {
+        _logger.w('⚠️ Could not check server file size: $e');
+      }
+      
+      // Use server size if available, otherwise fall back to config expected size
+      final expectedSize = serverSize ?? config.expectedSize;
+      final isComplete = stat.size >= expectedSize;
+      
+      // Additional validation: check if file is corrupted or empty
+      final isValidFile = stat.size > 0 && await _validateModelFile(file, modelKey);
+      
+      _logger.d('📁 Model file in documents: size=${stat.size}, expected=$expectedSize, complete=$isComplete, valid=$isValidFile');
+      return isComplete && isValidFile;
     }
     
     // If not in documents, check if it exists as an asset (assets are always complete)
@@ -159,6 +178,57 @@ class ModelDownloadManager extends ChangeNotifier {
     }
     
     return assetExists;
+  }
+
+  /// Validate model file integrity
+  Future<bool> _validateModelFile(File file, String modelKey) async {
+    try {
+      final config = _modelConfigs[modelKey];
+      if (config == null) return false;
+      
+      // Check file size is reasonable (not empty, not too small)
+      final stat = await file.stat();
+      if (stat.size < 1024) { // Less than 1KB is suspicious
+        _logger.w('⚠️ Model file too small: ${stat.size} bytes');
+        return false;
+      }
+      
+      // For Whisper models, check if it's a valid GGML file
+      if (config.type == ModelType.whisper) {
+        final bytes = await file.openRead(0, 16).first; // Read first 16 bytes
+        // Check for GGML magic number or common model file patterns
+        if (bytes.length >= 4) {
+          final magic = bytes.take(4).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+          _logger.d('🔍 Model file magic: $magic');
+          // GGML files typically start with specific patterns
+          if (magic.startsWith('67676d6c') || magic.startsWith('67676d6d')) { // "ggml" or "ggmm"
+            _logger.d('✅ Valid GGML model file detected');
+            return true;
+          }
+        }
+      }
+      
+      // For Gemma models, check if it's a valid task file
+      if (config.type == ModelType.gemma) {
+        final bytes = await file.openRead(0, 16).first; // Read first 16 bytes
+        if (bytes.length >= 4) {
+          final magic = bytes.take(4).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+          _logger.d('🔍 Model file magic: $magic');
+          // Task files might have different patterns, but we can check for non-zero content
+          if (bytes.any((b) => b != 0)) {
+            _logger.d('✅ Valid Gemma model file detected');
+            return true;
+          }
+        }
+      }
+      
+      // If we can't validate the format, assume it's valid if it's not empty
+      _logger.d('⚠️ Could not validate model format, assuming valid');
+      return true;
+    } catch (e) {
+      _logger.e('❌ Error validating model file: $e');
+      return false;
+    }
   }
 
   /// Check if a model exists in the assets directory
@@ -279,11 +349,16 @@ class ModelDownloadManager extends ChangeNotifier {
         await parentDir.create(recursive: true);
       }
 
+      _logger.i('🌐 Downloading from URL: ${config.url}');
       final request = http.Request('GET', Uri.parse(config.url));
       final response = await request.send();
       
+      _logger.i('📡 HTTP response status: ${response.statusCode}');
+      
       if (response.statusCode != 200) {
-        throw Exception('Failed to download model: ${response.statusCode}');
+        final errorMessage = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
+        _logger.e('❌ Download failed: $errorMessage');
+        throw Exception('Failed to download model: $errorMessage');
       }
 
       final contentLength = response.contentLength ?? 0;
@@ -305,6 +380,7 @@ class ModelDownloadManager extends ChangeNotifier {
       _downloading[modelKey] = false;
       notifyListeners();
     } catch (e) {
+      _logger.e('❌ Download error for $modelKey: $e');
       _errors[modelKey] = e.toString();
       _downloading[modelKey] = false;
       _completed[modelKey] = false;
@@ -381,6 +457,7 @@ class ModelDownloadManager extends ChangeNotifier {
       if (await file.exists()) {
         await file.delete();
         resetModel(modelKey);
+        _logger.i('🗑️ Deleted model file: $modelKey');
         return true;
       }
       return false;
@@ -389,6 +466,27 @@ class ModelDownloadManager extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// Clear partial download and retry
+  Future<void> retryDownload(String modelKey) async {
+    _logger.i('🔄 Retrying download for: $modelKey');
+    
+    // Delete partial file if it exists
+    final path = await getModelPath(modelKey);
+    final file = File(path);
+    if (await file.exists()) {
+      final stat = await file.stat();
+      final config = _modelConfigs[modelKey];
+      if (config != null && stat.size < config.expectedSize) {
+        _logger.i('🗑️ Deleting partial download: ${stat.size} bytes (expected: ${config.expectedSize})');
+        await file.delete();
+      }
+    }
+    
+    // Reset state and retry
+    resetModel(modelKey);
+    await downloadModel(modelKey);
   }
 
   /// Get models by type
@@ -404,4 +502,68 @@ class ModelDownloadManager extends ChangeNotifier {
   
   /// Get Gemma models
   List<String> get gemmaModels => getModelsByType(ModelType.gemma);
+
+  /// Get comprehensive model status for all models
+  Future<Map<String, ModelStatus>> getDetailedModelStatus() async {
+    final status = <String, ModelStatus>{};
+    
+    for (final modelKey in _modelConfigs.keys) {
+      final config = _modelConfigs[modelKey]!;
+      final exists = await modelExists(modelKey);
+      final complete = await modelIsComplete(modelKey);
+      final downloading = isDownloading(modelKey);
+      final error = getError(modelKey);
+      
+      status[modelKey] = ModelStatus(
+        key: modelKey,
+        displayName: config.displayName,
+        type: config.type,
+        exists: exists,
+        complete: complete,
+        downloading: downloading,
+        progress: getProgress(modelKey),
+        error: error,
+        expectedSize: config.expectedSize,
+        url: config.url,
+      );
+    }
+    
+    return status;
+  }
+}
+
+/// Comprehensive model status information
+class ModelStatus {
+  final String key;
+  final String displayName;
+  final ModelType type;
+  final bool exists;
+  final bool complete;
+  final bool downloading;
+  final double progress;
+  final String? error;
+  final int expectedSize;
+  final String url;
+
+  const ModelStatus({
+    required this.key,
+    required this.displayName,
+    required this.type,
+    required this.exists,
+    required this.complete,
+    required this.downloading,
+    required this.progress,
+    this.error,
+    required this.expectedSize,
+    required this.url,
+  });
+
+  bool get isReady => exists && complete && !downloading && error == null;
+  bool get needsDownload => !exists || !complete;
+  bool get hasError => error != null;
+
+  @override
+  String toString() {
+    return 'ModelStatus($key: exists=$exists, complete=$complete, downloading=$downloading, error=$error)';
+  }
 }

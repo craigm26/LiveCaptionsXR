@@ -21,7 +21,7 @@ import '../../../shared/widgets/ar_session_status_widget.dart';
 import '../../../core/services/model_download_manager.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/debug_logger_service.dart';
-import '../../../core/services/whisper_service.dart';
+import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/gemma3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
