@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:live_captions_xr/core/services/whisper_service.dart';
+import 'package:live_captions_xr/core/services/whisper_service_impl.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
 import 'package:live_captions_xr/core/models/speech_result.dart';
 
