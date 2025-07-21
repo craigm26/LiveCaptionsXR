@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 /// Enum for different model types
 enum ModelType {
@@ -16,6 +17,7 @@ class ModelConfig {
   final int expectedSize;
   final ModelType type;
   final String displayName;
+  final String assetPath; // Path to the model in assets directory
 
   const ModelConfig({
     required this.fileName,
@@ -23,6 +25,7 @@ class ModelConfig {
     required this.expectedSize,
     required this.type,
     required this.displayName,
+    required this.assetPath,
   });
 }
 
@@ -35,13 +38,15 @@ class ModelDownloadManager extends ChangeNotifier {
       expectedSize: 4398046511, // 4.1 GB
       type: ModelType.gemma,
       displayName: 'Gemma 3n Multimodal',
+      assetPath: 'assets/models/gemma-3n-E4B-it-int4.task',
     ),
     'whisper-base': ModelConfig(
-      fileName: 'whisper_base.bin',
+      fileName: 'ggml-base.bin',
       url: 'https://livecaptionsxrbucket.com/whisper_base.bin',
       expectedSize: 155189248, // 147.95 MB (147.95 * 1024 * 1024)
       type: ModelType.whisper,
       displayName: 'Whisper Base',
+      assetPath: 'assets/models/whisper_base.bin',
     ),
   };
 
@@ -72,7 +77,7 @@ class ModelDownloadManager extends ChangeNotifier {
 
     final dir = await getApplicationDocumentsDirectory();
     final modelDir = config.type == ModelType.whisper 
-        ? '${dir.path}/whisper_models'
+        ? '${dir.path}/models'
         : dir.path;
     
     // Create directory if it doesn't exist
@@ -104,6 +109,53 @@ class ModelDownloadManager extends ChangeNotifier {
     return false;
   }
 
+  /// Check if a model exists in the assets directory
+  Future<bool> _assetExists(String assetPath) async {
+    try {
+      await rootBundle.load(assetPath);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Copy a model from assets to the documents directory
+  Future<void> _copyAssetToDocuments(String modelKey) async {
+    final config = _modelConfigs[modelKey];
+    if (config == null) {
+      throw ArgumentError('Unknown model key: $modelKey');
+    }
+
+    final targetPath = await getModelPath(modelKey);
+    final targetFile = File(targetPath);
+    
+    // Create parent directory if it doesn't exist
+    final parentDir = Directory(targetFile.parent.path);
+    if (!await parentDir.exists()) {
+      await parentDir.create(recursive: true);
+    }
+
+    // Load the asset
+    final assetBytes = await rootBundle.load(config.assetPath);
+    
+    // Write to documents directory with the correct filename
+    await targetFile.writeAsBytes(assetBytes.buffer.asUint8List());
+    
+    // For Whisper models, also create a copy with the expected name
+    if (config.type == ModelType.whisper) {
+      final expectedName = 'ggml-${modelKey.replaceFirst('whisper-', '')}.bin';
+      final expectedPath = '${parentDir.path}/$expectedName';
+      final expectedFile = File(expectedPath);
+      
+      if (!await expectedFile.exists()) {
+        await expectedFile.writeAsBytes(assetBytes.buffer.asUint8List());
+        print('📁 Created Whisper model file: $expectedPath');
+      } else {
+        print('📁 Whisper model file already exists: $expectedPath');
+      }
+    }
+  }
+
   /// Get the total size of all models
   int getTotalModelsSize() {
     return _modelConfigs.values.fold(0, (sum, config) => sum + config.expectedSize);
@@ -114,7 +166,7 @@ class ModelDownloadManager extends ChangeNotifier {
     return _modelConfigs[modelKey]?.expectedSize ?? 0;
   }
 
-  /// Download a specific model
+  /// Download a specific model (or copy from assets if available)
   Future<void> downloadModel(String modelKey) async {
     final config = _modelConfigs[modelKey];
     if (config == null) {
@@ -128,6 +180,24 @@ class ModelDownloadManager extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // First, check if the model exists in assets
+      final assetExists = await _assetExists(config.assetPath);
+      
+      if (assetExists) {
+        // Copy from assets instead of downloading
+        _progress[modelKey] = 0.5;
+        notifyListeners();
+        
+        await _copyAssetToDocuments(modelKey);
+        
+        _progress[modelKey] = 1.0;
+        _completed[modelKey] = true;
+        _downloading[modelKey] = false;
+        notifyListeners();
+        return;
+      }
+
+      // Fallback to downloading from remote URL if asset doesn't exist
       final path = await getModelPath(modelKey);
       final file = File(path);
       

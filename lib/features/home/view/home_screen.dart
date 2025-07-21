@@ -280,17 +280,24 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // Get the Whisper service from the service locator
     final whisperService = sl<WhisperService>();
+    _logger.d('🎤 Retrieved Whisper service from service locator');
     
     // Get the Gemma 3n service from the service locator
     final gemma3nService = sl<Gemma3nService>();
+    _logger.d('🤖 Retrieved Gemma 3n service from service locator');
     
     // Start listening to Whisper STT events
+    _logger.d('👂 Setting up Whisper STT event listener...');
     arSessionCubit.listenToWhisperSTT(whisperService);
+    _logger.i('✅ Whisper STT event listener configured');
     
     // Start listening to Gemma 3n enhancement events
+    _logger.d('👂 Setting up Gemma 3n enhancement event listener...');
     arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
+    _logger.i('✅ Gemma 3n enhancement event listener configured');
 
     // Use the ARSessionCubit to manage starting all services
+    _logger.d('🚀 Starting all AR services through ARSessionCubit...');
     await arSessionCubit.startAllARServices(
       startLiveCaptions: () async {
         final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
@@ -370,6 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
     );
+    _logger.i('✅ All AR services started successfully');
   }
 
   @override

@@ -135,6 +135,11 @@ class WhisperService {
       final modelDir = Directory(modelPath).parent.path;
       
       _logger.i('📁 Using model from: $modelPath');
+      _logger.i('📁 Model directory: $modelDir');
+      
+      // Check if the expected model file exists
+      final expectedModelFile = File('$modelDir/ggml-base.bin');
+      _logger.i('📁 Expected model file exists: ${await expectedModelFile.exists()}');
       
       // Emit STT event for model loading
       _sttEventController.add(WhisperSTTEvent(
@@ -251,6 +256,7 @@ class WhisperService {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File('${tempDir.path}/whisper_audio_${DateTime.now().millisecondsSinceEpoch}.wav');
       await tempFile.writeAsBytes(audioData);
+      _logger.d('💾 Saved audio to temp file: ${tempFile.path}');
       
       // Emit STT event for audio preparation
       _sttEventController.add(const WhisperSTTEvent(
@@ -269,6 +275,8 @@ class WhisperService {
         isNoTimestamps: true, // We don't need timestamps for real-time
       );
       
+      _logger.d('🎤 Sending transcription request to Whisper GGML...');
+      
       // Emit STT event for transcription start
       _sttEventController.add(const WhisperSTTEvent(
         progress: 0.7,
@@ -281,8 +289,11 @@ class WhisperService {
         modelPath: tempFile.path, // Use the temp file path
       );
       
+      _logger.d('📝 Whisper GGML response received: "${response.text}"');
+      
       // Clean up temp file
       await tempFile.delete();
+      _logger.d('🗑️ Cleaned up temp audio file');
       
       final speechResult = SpeechResult(
         text: response.text,
@@ -291,7 +302,7 @@ class WhisperService {
         timestamp: DateTime.now(),
       );
       
-      _logger.d('📝 Whisper result: "${speechResult.text}" (confidence: ${speechResult.confidence})');
+      _logger.i('📝 Whisper result: "${speechResult.text}" (confidence: ${speechResult.confidence})');
       
       // Emit STT event for processing complete
       _sttEventController.add(const WhisperSTTEvent(
@@ -302,6 +313,7 @@ class WhisperService {
       
       // Emit the result
       _speechResultController.add(speechResult);
+      _logger.d('📤 Emitted speech result to stream');
       
       return speechResult;
     } catch (e, stackTrace) {
