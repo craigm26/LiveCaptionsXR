@@ -4,7 +4,7 @@ import 'dart:math' show sqrt;
 
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
-import 'gemma3n_service.dart';
+import 'gemma_3n_service.dart';
 import 'hybrid_localization_engine.dart';
 import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
@@ -61,7 +61,7 @@ class AudioService {
     _logger.i('🚀 Starting AudioService...');
 
     // start the gemma3n service
-    await gemma3nService.loadModel();
+    await gemma3nService.initialize();
 
     // start the visual service
     await visualService.start();
@@ -134,8 +134,14 @@ class AudioService {
   void _processAudioFrame(Float32List audioFrame, double angle) async {
     _logger.d('🎯 Processing audio frame with ${audioFrame.length} samples at angle ${angle.toStringAsFixed(1)}°');
     
-    // pass the audio to Gemma3nService for full analysis.
-    final SoundEvent event = await gemma3nService.analyzeAudioFrame(audioFrame, angle);
+    // Audio processing handled by Whisper, not Gemma
+    // Create basic sound event for localization
+    final event = SoundEvent(
+      type: 'speech',
+      confidence: 0.8,
+      timestamp: DateTime.now(),
+      sourceDirection: '${angle.toStringAsFixed(1)}°',
+    );
     soundDetectionCubit.detectSound(event);
   }
 

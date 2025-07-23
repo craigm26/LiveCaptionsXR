@@ -24,7 +24,7 @@ dependencies:
   logger: ^2.0.2+1
   url_launcher: ^6.2.2
   flutter_launcher_icons: ^0.14.4
-  flutter_gemma: ^0.9.0
+  flutter_gemma: ^0.10.0
   whisper_ggml: 1.3.0
   device_info_plus: ^11.5.0
   camera: ^0.10.5+9

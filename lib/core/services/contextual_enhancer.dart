@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:live_captions_xr/core/services/gemma3n_service.dart';
+import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/services/visual_service.dart';
 
 class ContextualEnhancer {
@@ -12,10 +12,9 @@ class ContextualEnhancer {
   Future<String> enhanceText(String text) async {
     final imageBytes = await _visualService.captureVisualSnapshot();
     
-    return await _gemma3nService.runMultimodalInference(
-      textContext: text,
-      imageInput: imageBytes,
-      audioInput: Float32List(0),
-    );
+    return await _gemma3nService.multimodalInference(
+      text: text,
+      image: imageBytes,
+    ) ?? text;
   }
 }

@@ -5,7 +5,7 @@ import 'package:live_captions_xr/core/services/camera_service.dart';
 import 'package:live_captions_xr/core/services/google_auth_service.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
-import 'package:live_captions_xr/core/services/gemma3n_service.dart';
+import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
 import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
@@ -24,7 +24,9 @@ void setupServiceLocator() {
     sl.registerLazySingleton<ModelDownloadManager>(() => ModelDownloadManager());
   }
   if (!sl.isRegistered<Gemma3nService>()) {
-    sl.registerLazySingleton<Gemma3nService>(() => Gemma3nService());
+    sl.registerLazySingleton<Gemma3nService>(() => Gemma3nService(
+    modelManager: sl<ModelDownloadManager>(),
+  ));
   }
   if (!sl.isRegistered<WhisperService>()) {
     sl.registerLazySingleton<WhisperService>(() => WhisperService(
