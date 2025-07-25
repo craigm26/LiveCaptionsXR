@@ -8,7 +8,7 @@ import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
 import 'audio_capture_service.dart';
-import 'gemma3n_service.dart';
+import 'gemma_3n_service.dart';
 import 'whisper_service_impl.dart';
 import 'debug_capturing_logger.dart';
 
@@ -72,7 +72,7 @@ class EnhancedSpeechProcessor {
     engines.add(SpeechEngine.flutter_sound);
     // Native engine availability could be checked here if needed
     // For Gemma3n, only add if available
-    if (gemma3nService.isAvailable) {
+    if (gemma3nService.isReady) {
       engines.add(SpeechEngine.gemma3n);
     }
     // Add other engines as they become available
@@ -123,7 +123,7 @@ class EnhancedSpeechProcessor {
           break;
       }
 
-      if (enableGemmaEnhancement && gemma3nService.isAvailable) {
+      if (enableGemmaEnhancement && gemma3nService.isReady) {
         _logger.i('✅ Gemma enhancement enabled');
       } else if (enableGemmaEnhancement) {
         _logger.w('⚠️ Gemma3nService not available, enhancement will be disabled.');
@@ -208,11 +208,10 @@ class EnhancedSpeechProcessor {
               // TODO: Integrate a real ASR backend for flutter_sound if available
               break;
             case SpeechEngine.gemma3n:
-              if (gemma3nService.isAvailable) {
-                // TODO: Implement audio transcription with Gemma3nService
-                // For now, use fallback transcript
-                transcript = defaultFallbackTranscript;
-              }
+              // Gemma3n handles visual analysis only, not audio transcription
+              // Audio transcription is handled by Whisper
+              _logger.w('⚠️ Gemma3n engine called for audio transcription - this should not happen');
+              transcript = defaultFallbackTranscript;
               break;
             case SpeechEngine.native:
               // TODO: Integrate native ASR backend if available
@@ -336,7 +335,7 @@ class EnhancedSpeechProcessor {
       _logger.d('📤 Emitted raw speech result to stream');
 
       // Try to enhance with Gemma 3n if available and enabled
-      if (gemma3nService.isAvailable && _useEnhancement) {
+      if (gemma3nService.isReady && _useEnhancement) {
         _logger.d('✨ Attempting Gemma 3n enhancement...');
         _enhanceWithGemma3n(result);
       } else {
@@ -447,5 +446,5 @@ class EnhancedSpeechProcessor {
   bool get isReady => _isInitialized;
   bool get isProcessing => _isProcessing;
   SpeechEngine get activeEngine => _activeEngine;
-  bool get hasGemmaEnhancement => gemma3nService.isAvailable;
+  bool get hasGemmaEnhancement => gemma3nService.isReady;
 }

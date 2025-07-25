@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart' as gemma_model;
-import '../models/speech_result.dart';
 import 'model_download_manager.dart';
 import 'debug_capturing_logger.dart';
 
@@ -109,7 +108,8 @@ class Gemma3nService {
       
       _inferenceModel = await gemmaPlugin.createModel(
         modelType: gemma_model.ModelType.gemmaIt,
-        maxTokens: 2048,
+        maxTokens: 4096, // Increased for multimodal content
+        supportImage: true, // Enable image support for Gemma 3n
       );
       
       _isInitialized = true;
@@ -232,38 +232,7 @@ class Gemma3nService {
     }
   }
 
-  /// Performs streaming audio-to-text transcription.
-  Stream<SpeechResult> streamTranscription(Stream<Uint8List> audioStream) async* {
-    if (!_isInitialized || _inferenceModel == null) {
-      _logger.e('Gemma3nService not initialized, cannot perform transcription.');
-      throw StateError('Service not initialized');
-    }
-
-    _logger.i('🎙️ Starting Gemma streaming transcription...');
-    final session = await _inferenceModel!.createSession();
-    
-    await for (final audioChunk in audioStream) {
-      try {
-        await session.addQueryChunk(Message(text: ''));
-        yield SpeechResult(
-          text: '', // Placeholder, actual text will be added by the model
-          confidence: 0.9, // Placeholder
-          isFinal: false, // Placeholder
-          timestamp: DateTime.now(),
-        );
-      } catch (e) {
-        _logger.e('❌ Error during Gemma streaming transcription', error: e);
-        yield SpeechResult(
-          text: 'Error during transcription',
-          confidence: 0.0,
-          isFinal: true,
-          timestamp: DateTime.now(),
-        );
-      }
-    }
-    await session.close();
-    _logger.i('✅ Gemma streaming transcription finished.');
-  }
+  // Audio transcription removed - handled by Whisper service instead
 
   /// Performs multimodal inference with image and text context.
   Future<String?> multimodalInference({
@@ -284,30 +253,68 @@ class Gemma3nService {
         message: 'Starting multimodal enhancement...',
       ));
       
+      // Create session for single inference
       final session = await _inferenceModel!.createSession();
       
       // Emit enhancement event for multimodal processing
       _enhancementEventController.add(const Gemma3nEnhancementEvent(
-        progress: 0.5,
+        progress: 0.3,
         message: 'Processing text and image context...',
       ));
       
-      await session.addQueryChunk(Message(text: 'Context: $text. Describe the scene.'));
-      final response = await session.getResponse();
-      _logger.d('🔍 Multimodal inference response: $response');
-      await session.close();
+      String prompt;
+      Message message;
+      
+      if (image != null) {
+        // Create multimodal message with both text and image
+        prompt = '''Analyze this image and enhance the following caption with visual context:
 
-      _logger.d('✅ Multimodal inference successful.');
+Original caption: "$text"
+
+Please provide an enhanced caption that includes relevant visual details from the image to make it more descriptive and contextually rich.''';
+        
+        message = Message.withImage(
+          text: prompt,
+          imageBytes: image,
+          isUser: true,
+        );
+        
+        _logger.d('📸 Processing with image (${image.length} bytes)');
+      } else {
+        // Text-only enhancement
+        prompt = '''Enhance the following caption by improving grammar, adding clarity, and making it more natural:
+
+Original: "$text"
+
+Enhanced:''';
+        
+        message = Message.text(text: prompt, isUser: true);
+        _logger.d('📝 Processing text-only enhancement');
+      }
+      
+      // Emit enhancement event for inference
+      _enhancementEventController.add(const Gemma3nEnhancementEvent(
+        progress: 0.6,
+        message: 'Running Gemma 3n multimodal inference...',
+      ));
+      
+      // Single inference request
+      await session.addQueryChunk(message);
+      final response = await session.getResponse();
+      await session.close();
+      final enhancedText = _cleanEnhancedText(response);
+      
+      _logger.d('🔍 Multimodal inference response: $enhancedText');
       
       // Emit enhancement event for multimodal completion
       _enhancementEventController.add(Gemma3nEnhancementEvent(
         progress: 1.0,
         message: 'Multimodal enhancement complete',
         isComplete: true,
-        enhancedText: response,
+        enhancedText: enhancedText,
       ));
       
-      return 'Multimodal inference successful.';
+      return enhancedText;
     } catch (e) {
       _logger.e('❌ Failed to perform multimodal inference', error: e);
       
@@ -318,7 +325,8 @@ class Gemma3nService {
         error: e,
       ));
       
-      return 'Error performing multimodal inference.';
+      // Return original text as fallback
+      return text;
     }
   }
 
@@ -358,5 +366,123 @@ Enhanced:''';
 
   bool get isReady => _isInitialized && _inferenceModel != null;
 
-  Future transcribeAudio(Uint8List audioData) async {}
+  /// Analyzes an image to provide scene description for visual context
+  Future<String> analyzeImageForContext(Uint8List imageData) async {
+    if (!_isInitialized || _inferenceModel == null) {
+      _logger.w('⚠️ Gemma3nService not initialized, cannot analyze image.');
+      return 'Service not initialized';
+    }
+
+    try {
+      _logger.d('📸 Analyzing image for context (${imageData.length} bytes)');
+      
+      // Create session for single image analysis
+      final session = await _inferenceModel!.createSession();
+      
+      const prompt = '''Describe this scene briefly in 1-2 sentences, focusing on:
+- Main objects or people visible
+- Activities happening
+- Setting/environment
+- Any text or signs visible
+
+Provide a concise, helpful description that could enhance live captions.''';
+      
+      final message = Message.withImage(
+        text: prompt,
+        imageBytes: imageData,
+        isUser: true,
+      );
+      
+      await session.addQueryChunk(message);
+      final response = await session.getResponse();
+      await session.close();
+      final cleanedResponse = _cleanEnhancedText(response);
+      
+      _logger.d('🔍 Image analysis result: $cleanedResponse');
+      return cleanedResponse;
+      
+    } catch (e) {
+      _logger.e('❌ Failed to analyze image', error: e);
+      return 'Error analyzing image';
+    }
+  }
+
+  /// Detects and describes objects in an image for spatial context
+  Future<List<String>> detectObjectsInImage(Uint8List imageData) async {
+    if (!_isInitialized || _inferenceModel == null) {
+      _logger.w('⚠️ Gemma3nService not initialized, cannot detect objects.');
+      return [];
+    }
+
+    try {
+      _logger.d('🔍 Detecting objects in image (${imageData.length} bytes)');
+      
+      // Create session for single object detection
+      final session = await _inferenceModel!.createSession();
+      
+      const prompt = '''List the main objects visible in this image, one per line:
+- Focus on objects that could be relevant for live captions
+- Include people, furniture, electronics, vehicles, signs, etc.
+- Use simple, clear object names
+- Maximum 10 objects
+
+Objects:''';
+      
+      final message = Message.withImage(
+        text: prompt,
+        imageBytes: imageData,
+        isUser: true,
+      );
+      
+      await session.addQueryChunk(message);
+      final response = await session.getResponse();
+      await session.close();
+      
+      // Parse response into list of objects
+      final objects = response
+          .split('\n')
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty && !line.startsWith('Objects:'))
+          .map((line) => line.replaceAll(RegExp(r'^[-•*]\s*'), ''))
+          .take(10)
+          .toList();
+      
+      _logger.d('🔍 Detected objects: $objects');
+      return objects;
+      
+    } catch (e) {
+      _logger.e('❌ Failed to detect objects', error: e);
+      return [];
+    }
+  }
+
+  /// Enhances text with visual context from image
+  Future<String> enhanceTextWithVisualContext({
+    required String text,
+    required Uint8List imageData,
+    String? spatialDirection,
+  }) async {
+    final contextInfo = spatialDirection != null 
+        ? 'The speaker is located $spatialDirection.' 
+        : '';
+    
+    final enhancedPrompt = '''$contextInfo Enhance this caption with visual context from the image:
+
+Original: "$text"
+
+Provide an enhanced caption that:
+- Keeps the original meaning intact
+- Adds relevant visual details from the image
+- Mentions spatial context if applicable
+- Remains natural and concise
+
+Enhanced:''';
+
+    return await multimodalInference(
+      text: enhancedPrompt,
+      image: imageData,
+    ) ?? text;
+  }
+
+  // Audio transcription removed - handled by Whisper service instead
 }
