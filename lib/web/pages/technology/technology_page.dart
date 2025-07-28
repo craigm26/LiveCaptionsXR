@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/responsive_utils.dart';
 
 class TechnologyPage extends StatefulWidget {
   const TechnologyPage({super.key});
@@ -40,7 +41,8 @@ class _TechnologyPageState extends State<TechnologyPage>
   @override
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
@@ -399,6 +401,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         tech['name'] as String,
@@ -406,38 +409,49 @@ class _TechnologyPageState extends State<TechnologyPage>
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        tech['description'] as String,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                            ),
+                      const SizedBox(height: 2),
+                      Flexible(
+                        child: Text(
+                          tech['description'] as String,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: (tech['features'] as List<String>)
-                            .map((feature) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .primaryColor
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    feature,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(context).primaryColor,
-                                        ),
-                                  ),
-                                ))
-                            .toList(),
+                      const SizedBox(height: 6),
+                      Flexible(
+                        child: Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: (tech['features'] as List<String>)
+                              .take(3) // Limit to 3 features to prevent overflow
+                              .map((feature) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .primaryColor
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      feature,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context).primaryColor,
+                                            fontSize: 10,
+                                          ),
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
                       ),
                     ],
                   ),
@@ -571,7 +585,7 @@ class _TechnologyPageState extends State<TechnologyPage>
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: isMobile ? 2 : 4,
-              childAspectRatio: 1.2,
+              childAspectRatio: 1.5,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
             ),
@@ -583,29 +597,40 @@ class _TechnologyPageState extends State<TechnologyPage>
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
                         metric['icon'] as IconData,
-                        size: 32,
+                        size: 28,
                         color: Theme.of(context).primaryColor,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        metric['value'] as String,
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).primaryColor,
-                                ),
+                      const SizedBox(height: 6),
+                      Flexible(
+                        child: Text(
+                          metric['value'] as String,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        metric['metric'] as String,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: 2),
+                      Flexible(
+                        child: Text(
+                          metric['metric'] as String,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
                       ),
                     ],
                   ),

@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
 import '../../config/web_performance_config.dart';
+import '../../widgets/youtube_embed.dart';
+import '../../utils/responsive_utils.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -65,7 +67,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -77,6 +80,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             // Hero Section
             _buildHeroSection(context, isMobile, screenWidth),
 
+            // Youtube Embed Section
+            _buildYoutubeEmbedSection(context, isMobile),
+
             // Technology Highlights Section
             _buildTechnologyHighlights(context, isMobile),
 
@@ -84,7 +90,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             _buildFeaturesPreview(context, isMobile),
 
             // Stats Section
-            _buildStatsSection(context, isMobile),
 
             // TestFlight Section
             _buildTestFlightSection(context, isMobile),
@@ -476,70 +481,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildStatsSection(BuildContext context, bool isMobile) {
-    final stats = [
-      {'value': '99.5%', 'label': 'Accuracy'},
-      {'value': '<50ms', 'label': 'Latency'},
-      {'value': '100+', 'label': 'Languages'},
-      {'value': '24/7', 'label': 'Available'},
-    ];
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 64.0,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor.withValues(alpha: 0.05),
-            Theme.of(context).primaryColor.withValues(alpha: 0.1),
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Performance Metrics',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 48),
-          Wrap(
-            spacing: 32,
-            runSpacing: 32,
-            children:
-                stats.map((stat) => _buildStatItem(context, stat)).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(BuildContext context, Map<String, String> stat) {
-    return Column(
-      children: [
-        Text(
-          stat['value']!,
-          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          stat['label']!,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildCtaSection(BuildContext context, bool isMobile) {
     return Container(
       padding: EdgeInsets.symmetric(
@@ -751,6 +692,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildYoutubeEmbedSection(BuildContext context, bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 32,
+        vertical: isMobile ? 32 : 64,
+      ),
+      child: Column(
+        children: [
+          Text(
+            'See Live Captions XR in Action',
+            style: TextStyle(
+              fontSize: isMobile ? 24 : 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Watch our demo video to see how Live Captions XR transforms accessibility in augmented reality',
+            style: TextStyle(
+              fontSize: isMobile ? 16 : 18,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Center(
+            child: EnhancedYouTubeEmbed(
+              videoId: 'dQw4w9WgXcQ',
+              autoPlay: false,
+              showControls: true,
+              enableCaption: true,
             ),
           ),
         ],

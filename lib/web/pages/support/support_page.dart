@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
 import '../../config/web_performance_config.dart';
+import '../../utils/responsive_utils.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -58,7 +59,8 @@ class _SupportPageState extends State<SupportPage>
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
     final String location = GoRouterState.of(context).uri.toString();
 
     return Scaffold(
