@@ -1,13 +1,11 @@
 import 'package:go_router/go_router.dart';
 
 import '../pages/home/home_page.dart';
-import '../pages/features/features_page.dart';
 import '../pages/features/enhanced_features_page.dart';
 import '../pages/technology/technology_page.dart';
 import '../pages/about/about_page.dart';
 import '../pages/support/support_page.dart';
 import '../pages/privacy_policy/privacy_policy_page.dart';
-import '../../app_shell.dart';
 
 final GoRouter webRouter = GoRouter(
   routes: [

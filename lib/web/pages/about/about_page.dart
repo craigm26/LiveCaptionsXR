@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/responsive_utils.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -35,7 +36,8 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
@@ -273,7 +275,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       child: Column(
         children: [
           Text(
-            'Meet the Founder',
+            'Meet the Founders',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
@@ -281,88 +283,140 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
-          Container(
-            constraints: const BoxConstraints(maxWidth: 800),
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor:
-                      Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  child: Icon(
-                    Icons.person,
-                    size: 60,
-                    color: Theme.of(context).primaryColor,
+          Wrap(
+            spacing: 32,
+            runSpacing: 32,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildFounderCard(
+                context,
+                'Craig Merry',
+                'Founder & Lead Developer',
+                'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded Live Captions XR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
+                [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await TestFlightUtils.openWebsite();
+                    },
+                    icon: const Icon(Icons.code),
+                    label: const Text('GitHub Profile'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Craig Merry',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Founder & Lead Developer',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded Live Captions XR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[700],
-                        height: 1.6,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await TestFlightUtils.openWebsite();
-                      },
-                      icon: const Icon(Icons.code),
-                      label: const Text('GitHub Profile'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                      ),
+                  OutlinedButton.icon(
+                    onPressed: () => context.go('/support'),
+                    icon: const Icon(Icons.email),
+                    label: const Text('Contact'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () => context.go('/support'),
-                      icon: const Icon(Icons.email),
-                      label: const Text('Contact'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                      ),
+                  ),
+                ],
+              ),
+              _buildFounderCard(
+                context,
+                'Sasha Denisov',
+                'Co-Founder & Technical Lead',
+                'Chief Software Engineer and Head of Flutter Competency with 12+ years in designing scalable, maintainable systems. Google Developer Expert for AI, Flutter and Firebase. Creator of flutter_gemma, the on-device AI package powering Live Captions XR\'s speech recognition capabilities. Specializes in end-to-end architecture and AI integration.',
+                [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await TestFlightUtils.openWebsite();
+                    },
+                    icon: const Icon(Icons.code),
+                    label: const Text('GitHub Profile'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await TestFlightUtils.openWebsite();
+                    },
+                    icon: const Icon(Icons.inventory),
+                    label: const Text('flutter_gemma'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFounderCard(
+      BuildContext context,
+      String name,
+      String title,
+      String bio,
+      List<Widget> buttons) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 60,
+            backgroundColor:
+                Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            child: Icon(
+              Icons.person,
+              size: 60,
+              color: Theme.of(context).primaryColor,
             ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            name,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            bio,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.grey[700],
+                  height: 1.6,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: buttons,
           ),
         ],
       ),
@@ -447,28 +501,38 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(
               icon,
               size: 32,
               color: Theme.of(context).primaryColor,
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
+            const SizedBox(height: 12),
+            Flexible(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-              textAlign: TextAlign.center,
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 3,
+              ),
             ),
           ],
         ),
