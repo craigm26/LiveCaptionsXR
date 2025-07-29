@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
 import '../../config/web_performance_config.dart';
-import '../../widgets/youtube_embed.dart';
 import '../../utils/responsive_utils.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,10 +20,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _pulseAnimation;
+  
+  // YouTube player controller
+  late YoutubePlayerController _youtubeController;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize YouTube player controller
+    _youtubeController = YoutubePlayerController.fromVideoId(
+      videoId: '1seS-Otr1HA', // Extracted from https://youtu.be/1seS-Otr1HA
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        enableCaption: true,
+        mute: false,
+      ),
+    );
 
     // Use optimized animation durations from performance config
     _fadeController = AnimationController(
@@ -61,12 +76,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _fadeController.dispose();
     _slideController.dispose();
     _pulseController.dispose();
+    _youtubeController.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.toString();
     final isMobile = ResponsiveUtils.isMobile(context);
     final isTablet = ResponsiveUtils.isTablet(context);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -729,11 +744,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 32),
           Center(
-            child: EnhancedYouTubeEmbed(
-              videoId: 'dQw4w9WgXcQ',
-              autoPlay: false,
-              showControls: true,
-              enableCaption: true,
+            child: YoutubePlayer(
+              controller: _youtubeController,
+              aspectRatio: 16 / 9,
             ),
           ),
         ],
