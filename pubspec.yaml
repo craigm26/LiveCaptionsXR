@@ -38,7 +38,8 @@ dependencies:
   
   google_sign_in: ^6.2.1
   audio_streamer: ^4.2.2
-  youtube_player_flutter: ^9.1.1
+  youtube_player_iframe: ^5.2.1
+  # youtube_player_iframe: ^5.2.1  # Removed due to webview dependency issues
   # Add your other dependencies here
 
 dev_dependencies:
