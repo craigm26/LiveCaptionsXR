@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
+import '../../utils/responsive_utils.dart';
 
 class PrivacyPolicyPage extends StatefulWidget {
   const PrivacyPolicyPage({super.key});
@@ -35,7 +36,8 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
     final String location = GoRouterState.of(context).uri.toString();
 
     return Scaffold(

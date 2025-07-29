@@ -4,6 +4,7 @@ import '../../widgets/nav_bar.dart';
 import '../../widgets/interactive_demo.dart';
 import '../../utils/testflight_utils.dart';
 import '../../config/web_performance_config.dart';
+import '../../utils/responsive_utils.dart';
 
 class EnhancedFeaturesPage extends StatefulWidget {
   const EnhancedFeaturesPage({super.key});
@@ -53,7 +54,8 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
   @override
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
