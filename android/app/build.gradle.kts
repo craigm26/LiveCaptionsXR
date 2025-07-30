@@ -6,22 +6,22 @@ plugins {
 }
 
 android {
-    namespace = "com.example.live_captions_xr"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.livecaptionsxr.app"
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.live_captions_xr"
+        // Updated Application ID for Google Play Store
+        applicationId = "com.livecaptionsxr.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24
@@ -40,13 +40,26 @@ android {
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // For Google Play Store, you'll need to create a keystore and configure signing
+            // signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug") // Temporary for testing
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
+    // TODO: Uncomment and configure when you have a release keystore
+    /*
+    signingConfigs {
+        create("release") {
+            keyAlias = "your-key-alias"
+            keyPassword = "your-key-password"
+            storeFile = file("path/to/your/keystore.jks")
+            storePassword = "your-store-password"
+        }
+    }
+    */
 }
 
 dependencies {

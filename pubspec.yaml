@@ -4,7 +4,7 @@ dependency_overrides:
 publish_to: none
 
 name: live_captions_xr
-description: A Flutter app for live captions and XR accessibility features.
+description: Live Captions XR - Real-time, spatially-aware closed captioning powered by on-device AI for accessibility.
 version: 1.0.0+1
 
 environment:
