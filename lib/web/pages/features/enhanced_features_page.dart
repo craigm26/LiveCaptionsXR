@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/interactive_demo.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/google_play_utils.dart';
 import '../../config/web_performance_config.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -544,9 +545,28 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
                   }
                 },
                 icon: const Icon(Icons.apple),
-                label: const Text('Download TestFlight'),
+                label: const Text('iOS TestFlight'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    await GooglePlayUtils.openGooglePlayBeta();
+                  } catch (e) {
+                    debugPrint('Could not open Google Play Beta: $e');
+                  }
+                },
+                icon: const Icon(Icons.android),
+                label: const Text('Android Beta'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   shape: RoundedRectangleBorder(

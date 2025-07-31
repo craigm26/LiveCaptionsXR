@@ -271,12 +271,14 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
                   color: Colors.orange.withAlpha((255 * 0.7).round()),
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  'Processing...',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.orange.withAlpha((255 * 0.7).round()),
-                        fontStyle: FontStyle.italic,
-                      ),
+                Expanded(
+                  child: Text(
+                    'Processing...',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.orange.withAlpha((255 * 0.7).round()),
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
