@@ -54,6 +54,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logos/
+    - assets/images/
   #  - assets/models/whisper_base.bin
   # - assets/models/gemma-3n-E4B-it-int4.task
   # fonts:

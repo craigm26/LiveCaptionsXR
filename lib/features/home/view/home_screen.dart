@@ -121,9 +121,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Icon(Icons.auto_awesome, color: Colors.blue.shade600),
                                   const SizedBox(width: 8),
-                                  const Text(
-                                    'Gemma 3n Multimodal Model',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  Expanded(
+                                    child: const Text(
+                                      'Gemma 3n Multimodal Model',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -189,9 +191,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Icon(Icons.mic, color: Colors.green.shade600),
                                   const SizedBox(width: 8),
-                                  const Text(
-                                    'Whisper Speech Recognition Model',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  Expanded(
+                                    child: const Text(
+                                      'Whisper Speech Recognition Model',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -247,9 +251,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.info_outline, size: 16, color: Colors.blueGrey),
                           const SizedBox(width: 4),
-                          const Text(
-                            'Estimated total download time: ~20-45 min on a 50 Mbps connection',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          Expanded(
+                            child: const Text(
+                              'Estimated total download time: ~20-45 min on a 50 Mbps connection',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
                           ),
                         ],
                       ),
@@ -598,9 +604,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Icon(Icons.hearing,
                                       color: Colors.white),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                    style: const TextStyle(color: Colors.white),
+                                  Expanded(
+                                    child: Text(
+                                      '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -670,10 +678,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Icon(Icons.visibility,
                                       color: Colors.greenAccent),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
-                                    style: const TextStyle(
-                                        color: Colors.greenAccent),
+                                  Expanded(
+                                    child: Text(
+                                      '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
+                                      style: const TextStyle(
+                                          color: Colors.greenAccent),
+                                    ),
                                   ),
                                 ],
                               ),

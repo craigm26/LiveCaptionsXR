@@ -28,38 +28,46 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        
-        // Add externalNativeBuild arguments for 16 KB page size
-        externalNativeBuild {
-            cmake {
-                arguments += listOf("-DANDROID_PAGE_SIZE=16384")
-            }
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = "upload"
+            keyPassword = "livecaptionsxr2024"
+            storeFile = file("upload-keystore.jks")
+            storePassword = "livecaptionsxr2024"
         }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // For Google Play Store, you'll need to create a keystore and configure signing
-            // signingConfig = signingConfigs.getByName("release")
-            signingConfig = signingConfigs.getByName("debug") // Temporary for testing
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            
+            // Additional R8 configuration to be more conservative
+            proguardFile("proguard-rules.pro")
+            
+            // 16 KB page size support for release builds
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf("-DANDROID_PAGE_SIZE=16384")
+                }
+            }
+        }
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            
+            // 16 KB page size support for debug builds
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf("-DANDROID_PAGE_SIZE=16384")
+                }
+            }
         }
     }
-
-    // TODO: Uncomment and configure when you have a release keystore
-    /*
-    signingConfigs {
-        create("release") {
-            keyAlias = "your-key-alias"
-            keyPassword = "your-key-password"
-            storeFile = file("path/to/your/keystore.jks")
-            storePassword = "your-store-password"
-        }
-    }
-    */
 }
 
 dependencies {

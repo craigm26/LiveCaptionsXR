@@ -1,4 +1,4 @@
-package com.example.live_captions_xr
+package com.livecaptionsxr.app
 
 import android.app.Activity
 import android.content.Context

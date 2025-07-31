@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/google_play_utils.dart';
+import '../../utils/github_docs_utils.dart';
 import '../../config/web_performance_config.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -191,7 +193,7 @@ class _SupportPageState extends State<SupportPage>
                     _buildSupportCard(
                       context,
                       icon: Icons.apple_rounded,
-                      title: 'Beta Testing',
+                      title: 'iOS Beta Testing',
                       description:
                           'Join our TestFlight program to test new features early.',
                       actionText: 'Join TestFlight',
@@ -210,6 +212,48 @@ class _SupportPageState extends State<SupportPage>
                       },
                       gradient: [Colors.blue.shade400, Colors.blue.shade300],
                     ),
+                    _buildSupportCard(
+                      context,
+                      icon: Icons.android_rounded,
+                      title: 'Android Beta Testing',
+                      description:
+                          'Join our Google Play Beta program to test new features early.',
+                      actionText: 'Join Beta',
+                      onTap: () async {
+                        try {
+                          await GooglePlayUtils.openGooglePlayBeta();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Could not open Google Play Beta: $e')),
+                            );
+                          }
+                        }
+                      },
+                      gradient: [Colors.green.shade400, Colors.green.shade300],
+                    ),
+                    _buildSupportCard(
+                      context,
+                      icon: Icons.description_rounded,
+                      title: 'Technical Documentation',
+                      description:
+                          'Comprehensive guides for developers, setup instructions, and architecture documentation.',
+                      actionText: 'View Docs',
+                      onTap: () => context.go('/docs'),
+                      gradient: [Colors.indigo.shade400, Colors.indigo.shade300],
+                    ),
+                    _buildSupportCard(
+                      context,
+                      icon: Icons.build_rounded,
+                      title: 'Setup Guide',
+                      description:
+                          'Step-by-step instructions for setting up the development environment and contributing.',
+                      actionText: 'Get Started',
+                      onTap: () => context.go('/docs'),
+                      gradient: [Colors.teal.shade400, Colors.teal.shade300],
+                    ),
                   ],
                 ),
 
@@ -217,6 +261,11 @@ class _SupportPageState extends State<SupportPage>
 
                 // FAQ Section
                 _buildFAQSection(context, isMobile),
+
+                const SizedBox(height: 48),
+
+                // Developer Documentation Section
+                _buildDeveloperDocsSection(context, isMobile),
 
                 const SizedBox(height: 48),
 
@@ -347,7 +396,7 @@ class _SupportPageState extends State<SupportPage>
           ),
           _buildFAQItem(
             'How do I join the beta program?',
-            'You can join our TestFlight beta program by clicking the TestFlight button. This gives you early access to new features and helps us improve the app.',
+            'You can join our beta programs by clicking the iOS TestFlight or Android Beta buttons. This gives you early access to new features and helps us improve the app.',
           ),
           _buildFAQItem(
             'Is the app free?',
@@ -355,11 +404,23 @@ class _SupportPageState extends State<SupportPage>
           ),
           _buildFAQItem(
             'What devices are supported?',
-            'Currently, we support iOS devices with ARKit capability. We\'re working on expanding to more platforms in the future.',
+            'We support iOS devices with ARKit capability and Android devices. We\'re working on expanding to more platforms including Android XR headsets in the future.',
           ),
           _buildFAQItem(
             'How can I contribute to the project?',
             'As an open-source project, we welcome contributions! You can contribute code, report bugs, suggest features, or help with documentation on our GitHub repository.',
+          ),
+          _buildFAQItem(
+            'What technologies does Live Captions XR use?',
+            'We use Flutter for cross-platform development, ARKit for iOS AR features, Whisper for speech recognition, Gemma 3n for AI processing, and various native plugins for audio processing.',
+          ),
+          _buildFAQItem(
+            'How do I set up the development environment?',
+            'You\'ll need Flutter SDK, Xcode (for iOS development), Android Studio, and the necessary dependencies. Check our detailed setup guide in the Developer Resources section.',
+          ),
+          _buildFAQItem(
+            'Can I integrate Live Captions XR into my own app?',
+            'Yes! Live Captions XR is open-source and can be integrated into other applications. Check our technical documentation and integration guides for details.',
           ),
         ],
       ),
@@ -387,6 +448,351 @@ class _SupportPageState extends State<SupportPage>
               fontSize: 14,
               color: Colors.grey[600],
               height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperDocsSection(BuildContext context, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.code_rounded,
+                size: 32,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Developer Resources',
+                style: TextStyle(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Comprehensive documentation and guides for developers who want to contribute to Live Captions XR or integrate with our technology.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 32),
+          
+          // Documentation Categories
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              _buildDocCategory(
+                context,
+                'Architecture',
+                'System design, data flow, and technical architecture',
+                Icons.architecture_rounded,
+                Colors.blue,
+                () async {
+                  try {
+                    await TestFlightUtils.openGitHub();
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open GitHub: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+              _buildDocCategory(
+                context,
+                'API Reference',
+                'Complete API documentation and integration guides',
+                Icons.api_rounded,
+                Colors.green,
+                () async {
+                  try {
+                    await TestFlightUtils.openGitHub();
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open GitHub: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+              _buildDocCategory(
+                context,
+                'Setup Guide',
+                'Development environment setup and contribution workflow',
+                Icons.settings_rounded,
+                Colors.orange,
+                () async {
+                  try {
+                    await TestFlightUtils.openGitHub();
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open GitHub: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+              _buildDocCategory(
+                context,
+                'Testing',
+                'Testing strategies, test cases, and quality assurance',
+                Icons.science_rounded,
+                Colors.purple,
+                () async {
+                  try {
+                    await TestFlightUtils.openGitHub();
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open GitHub: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Quick Start Guide
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.rocket_launch_rounded,
+                      color: Theme.of(context).primaryColor,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Quick Start for Contributors',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildQuickStartStep(
+                  '1. Fork the Repository',
+                  'Start by forking the LiveCaptionsXR repository on GitHub',
+                ),
+                _buildQuickStartStep(
+                  '2. Clone Your Fork',
+                  'Clone your forked repository to your local machine',
+                ),
+                _buildQuickStartStep(
+                  '3. Set Up Development Environment',
+                  'Install Flutter, Xcode (for iOS), and Android Studio',
+                ),
+                _buildQuickStartStep(
+                  '4. Install Dependencies',
+                  'Run `flutter pub get` to install all required packages',
+                ),
+                _buildQuickStartStep(
+                  '5. Run the App',
+                  'Use `flutter run` to start the development server',
+                ),
+                _buildQuickStartStep(
+                  '6. Make Changes',
+                  'Create a feature branch and implement your changes',
+                ),
+                _buildQuickStartStep(
+                  '7. Submit a Pull Request',
+                  'Create a pull request with a detailed description of your changes',
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => context.go('/docs'),
+                  icon: const Icon(Icons.code, color: Colors.white),
+                  label: const Text(
+                    'View Full Setup Guide',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocCategory(
+    BuildContext context,
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    return Container(
+      width: isMobile ? double.infinity : 280,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStartStep(String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                title.split(' ').first,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -500,7 +906,9 @@ class _SupportPageState extends State<SupportPage>
             ),
           ),
           const SizedBox(height: 24),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
             children: [
               Expanded(
                 child: Container(
@@ -519,7 +927,7 @@ class _SupportPageState extends State<SupportPage>
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Email Support',
+                        'GitHub Issues',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -537,43 +945,76 @@ class _SupportPageState extends State<SupportPage>
                   ),
                 ),
               ),
-              if (!isMobile) const SizedBox(width: 16),
-              if (!isMobile)
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.description_rounded,
-                          color: Theme.of(context).primaryColor,
-                          size: 24,
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.description_rounded,
+                        color: Theme.of(context).primaryColor,
+                        size: 24,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Documentation',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Documentation',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Check our comprehensive docs and guides',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Check our comprehensive docs and guides',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.code_rounded,
+                        color: Theme.of(context).primaryColor,
+                        size: 24,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Developer Chat',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Join our developer community discussions',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ],
