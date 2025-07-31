@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/google_play_utils.dart';
 import '../../config/web_performance_config.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -534,9 +535,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   }
                 },
                 icon: const Icon(Icons.apple),
-                label: const Text('Download TestFlight'),
+                label: const Text('iOS TestFlight'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    await GooglePlayUtils.openGooglePlayBeta();
+                  } catch (e) {
+                    debugPrint('Could not open Google Play Beta: $e');
+                  }
+                },
+                icon: const Icon(Icons.android),
+                label: const Text('Android Beta'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -584,30 +604,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
       child: Column(
         children: [
-          // iOS App Icon
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.apple,
-              size: 64,
-              color: Theme.of(context).primaryColor,
-            ),
-          ),
-          const SizedBox(height: 32),
-
           Text(
-            'Available on iOS',
+            'Available on Mobile',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
@@ -620,7 +618,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
             child: Text(
-              'Join our TestFlight beta program to get early access to Live Captions XR and help us improve the experience for everyone.',
+              'Join our beta programs to get early access to Live Captions XR and help us improve the experience for everyone.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,
@@ -630,7 +628,56 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 40),
 
-          // TestFlight Features
+          // Platform Icons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // iOS App Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.apple,
+                  size: 64,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              SizedBox(width: isMobile ? 24 : 48),
+              // Android App Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.android,
+                  size: 64,
+                  color: Colors.green[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+
+          // Beta Features
           Container(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Wrap(
@@ -661,53 +708,109 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 48),
 
-          // Download Button
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).primaryColor,
-                  Theme.of(context).primaryColor.withValues(alpha: 0.8),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  await TestFlightUtils.openTestFlight();
-                } catch (e) {
-                  debugPrint('Could not open TestFlight: $e');
-                }
-              },
-              icon: const Icon(Icons.download, color: Colors.white, size: 24),
-              label: Text(
-                'Join TestFlight Beta',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isMobile ? 16 : 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 32 : 48,
-                  vertical: isMobile ? 16 : 20,
-                ),
-                shape: RoundedRectangleBorder(
+          // Download Buttons
+          Wrap(
+            spacing: isMobile ? 16 : 24,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: [
+              // iOS TestFlight Button
+              Container(
+                decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).primaryColor.withValues(alpha: 0.8),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await TestFlightUtils.openTestFlight();
+                    } catch (e) {
+                      debugPrint('Could not open TestFlight: $e');
+                    }
+                  },
+                  icon: const Icon(Icons.apple, color: Colors.white, size: 24),
+                  label: Text(
+                    'iOS TestFlight',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isMobile ? 16 : 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 24 : 32,
+                      vertical: isMobile ? 16 : 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              // Android Google Play Beta Button
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.green[600]!,
+                      Colors.green[600]!.withValues(alpha: 0.8),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green[600]!.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await GooglePlayUtils.openGooglePlayBeta();
+                    } catch (e) {
+                      debugPrint('Could not open Google Play Beta: $e');
+                    }
+                  },
+                  icon: const Icon(Icons.android, color: Colors.white, size: 24),
+                  label: Text(
+                    'Android Beta',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isMobile ? 16 : 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 24 : 32,
+                      vertical: isMobile ? 16 : 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -717,9 +820,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildYoutubeEmbedSection(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
+      margin: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 32,
+        vertical: 8,
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16 : 32,
-        vertical: isMobile ? 32 : 64,
+        vertical: isMobile ? 24 : 40,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -732,7 +850,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             'Watch our demo video to see how Live Captions XR transforms accessibility in augmented reality',
             style: TextStyle(
@@ -742,11 +860,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Center(
-            child: YoutubePlayer(
-              controller: _youtubeController,
-              aspectRatio: 16 / 9,
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: isMobile ? double.infinity : 800,
+                maxHeight: isMobile ? 300 : 450,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: YoutubePlayer(
+                  controller: _youtubeController,
+                  aspectRatio: 16 / 9,
+                ),
+              ),
             ),
           ),
         ],

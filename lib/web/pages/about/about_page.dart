@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:live_captions_xr/core/utils/interaction_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
 import '../../utils/responsive_utils.dart';
@@ -294,19 +296,34 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 'Founder & Lead Developer',
                 'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded Live Captions XR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
                 [
+                  // direct link to linkedin profile: https://www.linkedin.com/in/craigmerry/
                   OutlinedButton.icon(
                     onPressed: () async {
-                      await TestFlightUtils.openWebsite();
+                      // use a common url package to open the linkedin profile
+                      await InteractionHandler.safeAsyncExecution(
+                        action: () async {
+                          await launchUrl(Uri.parse('https://www.linkedin.com/in/craigmerry/'));
+                        },
+                        timeout: const Duration(seconds: 5),
+                      );
                     },
                     icon: const Icon(Icons.code),
-                    label: const Text('GitHub Profile'),
+                    label: const Text('LinkedIn Profile'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 12),
                     ),
                   ),
+                  // contact should go to email: craig@craigmerry.com
                   OutlinedButton.icon(
-                    onPressed: () => context.go('/support'),
+                    onPressed: () async {
+                      await InteractionHandler.safeAsyncExecution(
+                        action: () async {
+                          await launchUrl(Uri.parse('mailto:craig@craigmerry.com'));
+                        },
+                        timeout: const Duration(seconds: 5),
+                      );
+                    },
                     icon: const Icon(Icons.email),
                     label: const Text('Contact'),
                     style: OutlinedButton.styleFrom(
@@ -322,23 +339,35 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 'Co-Founder & Technical Lead',
                 'Chief Software Engineer and Head of Flutter Competency with 12+ years in designing scalable, maintainable systems. Google Developer Expert for AI, Flutter and Firebase. Creator of flutter_gemma, the on-device AI package powering Live Captions XR\'s speech recognition capabilities. Specializes in end-to-end architecture and AI integration.',
                 [
+                  // direct link to linkedin profile: https://www.linkedin.com/in/aleks-denisov/
                   OutlinedButton.icon(
                     onPressed: () async {
-                      await TestFlightUtils.openWebsite();
+                      await InteractionHandler.safeAsyncExecution(
+                        action: () async {
+                          await launchUrl(Uri.parse('https://www.linkedin.com/in/aleks-denisov/'));
+                        },
+                        timeout: const Duration(seconds: 5),
+                      );
                     },
                     icon: const Icon(Icons.code),
-                    label: const Text('GitHub Profile'),
+                    label: const Text('LinkedIn Profile'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 12),
                     ),
                   ),
+                  // contact should go to email: aleks@denisov.com (this is a fake email)
                   OutlinedButton.icon(
                     onPressed: () async {
-                      await TestFlightUtils.openWebsite();
+                      await InteractionHandler.safeAsyncExecution(
+                        action: () async {
+                          await launchUrl(Uri.parse('mailto:aleks@denisov.com'));
+                        },
+                        timeout: const Duration(seconds: 5),
+                      );
                     },
-                    icon: const Icon(Icons.inventory),
-                    label: const Text('flutter_gemma'),
+                    icon: const Icon(Icons.email),
+                    label: const Text('Contact'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 12),
@@ -377,13 +406,19 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
         children: [
           CircleAvatar(
             radius: 60,
-            backgroundColor:
-                Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            child: Icon(
-              Icons.person,
-              size: 60,
-              color: Theme.of(context).primaryColor,
-            ),
+            backgroundColor: Colors.grey[200],
+            backgroundImage: name == 'Craig Merry' 
+                ? const AssetImage('assets/images/CraigMerry.jpg')
+                : name == 'Sasha Denisov'
+                    ? const AssetImage('assets/images/SashaProfilePicture.jpg')
+                    : null,
+            child: name == 'Craig Merry' || name == 'Sasha Denisov'
+                ? null
+                : Icon(
+                    Icons.person,
+                    size: 60,
+                    color: Theme.of(context).primaryColor,
+                  ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -593,7 +628,12 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
             children: [
               FilledButton.icon(
                 onPressed: () async {
-                  await TestFlightUtils.openWebsite();
+                  await InteractionHandler.safeAsyncExecution(
+                    action: () async {
+                      await launchUrl(Uri.parse('https://github.com/craigm26/livecaptionsxr'));
+                    },
+                    timeout: const Duration(seconds: 5),
+                  );
                 },
                 icon: const Icon(Icons.code),
                 label: const Text('Contribute on GitHub'),
@@ -603,7 +643,14 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () => context.go('/support'),
+                onPressed: () async {
+                  await InteractionHandler.safeAsyncExecution(
+                    action: () async {
+                      await launchUrl(Uri.parse('https://github.com/craigm26/livecaptionsxr'));
+                    },
+                    timeout: const Duration(seconds: 5),
+                  );
+                },
                 icon: const Icon(Icons.support),
                 label: const Text('Get Support'),
                 style: OutlinedButton.styleFrom(

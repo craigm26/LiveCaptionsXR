@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/testflight_utils.dart';
+import '../utils/google_play_utils.dart';
 import '../config/web_performance_config.dart';
 import '../utils/responsive_utils.dart';
 
@@ -154,6 +155,12 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
           route: '/support',
           selected: location == '/support',
         ),
+        SizedBox(width: spacing),
+        _NavLink(
+          label: 'Docs',
+          route: '/docs',
+          selected: location == '/docs',
+        ),
       ],
     );
   }
@@ -163,52 +170,89 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
     final verticalPadding = isMobile ? 10.0 : isTablet ? 11.0 : 12.0;
     final fontSize = isMobile ? 14.0 : isTablet ? 15.0 : 16.0;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withValues(alpha: 0.8),
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 50),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).primaryColor,
+              Theme.of(context).primaryColor.withValues(alpha: 0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.download, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Download',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: fontSize,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+            ],
+          ),
+        ),
       ),
-      child: ElevatedButton.icon(
-        onPressed: () async {
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: 'ios',
+          child: Row(
+            children: [
+              const Icon(Icons.apple, color: Colors.grey),
+              const SizedBox(width: 12),
+              const Text('iOS TestFlight'),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'android',
+          child: Row(
+            children: [
+              Icon(Icons.android, color: Colors.green[600]),
+              const SizedBox(width: 12),
+              const Text('Android Beta'),
+            ],
+          ),
+        ),
+      ],
+      onSelected: (value) async {
+        if (value == 'ios') {
           try {
             await TestFlightUtils.openTestFlight();
           } catch (e) {
             debugPrint('Could not open TestFlight: $e');
           }
-        },
-        icon: const Icon(Icons.apple, color: Colors.white, size: 20),
-        label: Text(
-          'Download',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: fontSize,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
-      ),
+        } else if (value == 'android') {
+          try {
+            await GooglePlayUtils.openGooglePlayBeta();
+          } catch (e) {
+            debugPrint('Could not open Google Play Beta: $e');
+          }
+        }
+      },
     );
   }
 
@@ -358,6 +402,15 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                           context.go('/support');
                         },
                       ),
+                      _DrawerItem(
+                        icon: Icons.code_rounded,
+                        title: 'Documentation',
+                        selected: location == '/docs',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/docs');
+                        },
+                      ),
                       const Divider(),
                       _DrawerItem(
                         icon: Icons.privacy_tip_outlined,
@@ -371,38 +424,71 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
-                // Download button in drawer for mobile
+                // Download buttons in drawer for mobile
                 if (isMobile) ...[
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          try {
-                            await TestFlightUtils.openTestFlight();
-                          } catch (e) {
-                            debugPrint('Could not open TestFlight: $e');
-                          }
-                        },
-                        icon: const Icon(Icons.apple, color: Colors.white, size: 20),
-                        label: const Text(
-                          'Download',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await TestFlightUtils.openTestFlight();
+                              } catch (e) {
+                                debugPrint('Could not open TestFlight: $e');
+                              }
+                            },
+                            icon: const Icon(Icons.apple, color: Colors.white, size: 20),
+                            label: const Text(
+                              'iOS TestFlight',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await GooglePlayUtils.openGooglePlayBeta();
+                              } catch (e) {
+                                debugPrint('Could not open Google Play Beta: $e');
+                              }
+                            },
+                            icon: const Icon(Icons.android, color: Colors.white, size: 20),
+                            label: const Text(
+                              'Android Beta',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[600],
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],

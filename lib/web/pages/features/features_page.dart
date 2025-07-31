@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/google_play_utils.dart';
 import '../../config/web_performance_config.dart';
 
 class FeaturesPage extends StatefulWidget {
@@ -446,7 +447,7 @@ class _FeaturesPageState extends State<FeaturesPage>
           ),
           const SizedBox(height: 16),
           Text(
-            'Download Live Captions XR from TestFlight to experience these features',
+            'Download Live Captions XR to experience these features',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -459,11 +460,38 @@ class _FeaturesPageState extends State<FeaturesPage>
             children: [
               ElevatedButton.icon(
                 onPressed: () async {
-                  await TestFlightUtils.openTestFlight();
+                  try {
+                    await TestFlightUtils.openTestFlight();
+                  } catch (e) {
+                    debugPrint('Could not open TestFlight: $e');
+                  }
                 },
                 icon: const Icon(Icons.apple),
-                label: const Text('Download on TestFlight'),
+                label: const Text('iOS TestFlight'),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    await GooglePlayUtils.openGooglePlayBeta();
+                  } catch (e) {
+                    debugPrint('Could not open Google Play Beta: $e');
+                  }
+                },
+                icon: const Icon(Icons.android),
+                label: const Text('Android Beta'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[600],
+                  foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   textStyle: const TextStyle(
@@ -477,6 +505,8 @@ class _FeaturesPageState extends State<FeaturesPage>
                 icon: const Icon(Icons.code),
                 label: const Text('View Technology'),
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).primaryColor,
+                  side: BorderSide(color: Theme.of(context).primaryColor),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   textStyle: const TextStyle(

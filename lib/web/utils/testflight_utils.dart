@@ -53,7 +53,7 @@ class TestFlightUtils {
     }
   }
 
-  static Future<void> openWebsite() async {
+  static Future<void> openWebsite(String s) async {
     return InteractionHandler.safeAsyncExecution(
       action: () async {
         const String websiteUrl = 'https://github.com/craigm26/livecaptionsxr';

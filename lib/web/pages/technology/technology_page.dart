@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
+import '../../utils/google_play_utils.dart';
 import '../../utils/responsive_utils.dart';
 
 class TechnologyPage extends StatefulWidget {
@@ -668,7 +669,7 @@ class _TechnologyPageState extends State<TechnologyPage>
           ),
           const SizedBox(height: 8),
           Text(
-            'Download Live Captions XR from TestFlight and experience real-time AR captions.',
+            'Download Live Captions XR and experience real-time AR captions.',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -682,11 +683,34 @@ class _TechnologyPageState extends State<TechnologyPage>
             children: [
               FilledButton.icon(
                 onPressed: () async {
-                  await TestFlightUtils.openTestFlight();
+                  try {
+                    await TestFlightUtils.openTestFlight();
+                  } catch (e) {
+                    debugPrint('Could not open TestFlight: $e');
+                  }
                 },
                 icon: const Icon(Icons.apple),
-                label: const Text('Download on TestFlight'),
+                label: const Text('iOS TestFlight'),
                 style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  try {
+                    await GooglePlayUtils.openGooglePlayBeta();
+                  } catch (e) {
+                    debugPrint('Could not open Google Play Beta: $e');
+                  }
+                },
+                icon: const Icon(Icons.android),
+                label: const Text('Android Beta'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green[600],
+                  foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
@@ -696,6 +720,8 @@ class _TechnologyPageState extends State<TechnologyPage>
                 icon: const Icon(Icons.list),
                 label: const Text('View Features'),
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).primaryColor,
+                  side: BorderSide(color: Theme.of(context).primaryColor),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
