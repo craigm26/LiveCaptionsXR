@@ -6,6 +6,7 @@ import '../pages/technology/technology_page.dart';
 import '../pages/about/about_page.dart';
 import '../pages/support/support_page.dart';
 import '../pages/privacy_policy/privacy_policy_page.dart';
+import '../pages/technical_docs/technical_docs_page.dart';
 
 final GoRouter webRouter = GoRouter(
   routes: [
@@ -32,6 +33,10 @@ final GoRouter webRouter = GoRouter(
     GoRoute(
       path: '/privacy',
       builder: (context, state) => const PrivacyPolicyPage(),
+    ),
+    GoRoute(
+      path: '/docs',
+      builder: (context, state) => const TechnicalDocsPage(),
     ),
   ],
 );

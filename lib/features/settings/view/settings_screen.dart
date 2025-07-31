@@ -74,10 +74,13 @@ class SettingsScreen extends StatelessWidget {
                         value: SttMode.online,
                         enabled: false,
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Opacity(
-                              opacity: 0.5,
-                              child: Text('Online'),
+                            Flexible(
+                              child: Opacity(
+                                opacity: 0.5,
+                                child: Text('Online'),
+                              ),
                             ),
                             Tooltip(
                               message: 'Disabled for now (requires paid API)',
@@ -233,7 +236,7 @@ List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
         isEnabled = false;
         break;
       case AsrBackend.whisperGgml:
-        displayName = 'Whisper GGML';
+        displayName = 'Whisper';
         break;
     }
     
@@ -241,13 +244,15 @@ List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
       value: backend,
       enabled: isEnabled,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (backend == AsrBackend.whisperGgml)
             Icon(Icons.star, size: 16, color: Colors.amber),
-          if (!isEnabled)
-            Opacity(opacity: 0.5, child: Text(displayName))
-          else
-            Text(displayName),
+          Flexible(
+            child: !isEnabled
+                ? Opacity(opacity: 0.5, child: Text(displayName))
+                : Text(displayName),
+          ),
           if (!isEnabled)
             Tooltip(
               message: 'Disabled for now (requires paid API)',
@@ -298,7 +303,7 @@ Widget _buildSettingTile(
       leading: Icon(icon, color: Theme.of(context).primaryColor),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: SizedBox(width: 140, child: trailing),
+      trailing: SizedBox(width: 160, child: trailing),
     ),
   );
 }

@@ -61,10 +61,11 @@ class AboutScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.spatial_audio_off,
-                      size: 64,
-                      color: Colors.blue,
+                    // use a logo image from the assets folder
+                    Image.asset(
+                      'assets/logos/LiveCaptionsXRLogo.png',
+                      width: 128,
+                      height: 128,
                     ),
                     const SizedBox(height: 16),
                     const Text(
