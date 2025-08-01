@@ -25652,7 +25652,7 @@ case 7:case 3:return A.z(null,r)}})
 return A.A($async$zP,r)},
 a6f(){var s=0,r=A.B(t.H),q=1,p=[],o,n,m,l,k
 var $async$a6f=A.C(function(a,b){if(a===1){p.push(b)
-s=q}while(true)switch(s){case 0:l=A.cy("https://play.google.com/store/apps/details?id=com.example.live_captions_xr",0,null)
+s=q}while(true)switch(s){case 0:l=A.cy("https://play.google.com/store/apps/details?id=com.livecaptionsxr.app",0,null)
 q=3
 n=t.z
 s=6
@@ -86444,7 +86444,7 @@ A.a6g.prototype={
 $0(){var s=0,r=A.B(t.H)
 var $async$$0=A.C(function(a,b){if(a===1)return A.y(b,r)
 while(true)switch(s){case 0:s=2
-return A.J(A.zP(A.cy("https://play.google.com/apps/testing/com.example.live_captions_xr",0,null)),$async$$0)
+return A.J(A.zP(A.cy("https://play.google.com/apps/testing/com.livecaptionsxr.app",0,null)),$async$$0)
 case 2:return A.z(null,r)}})
 return A.A($async$$0,r)},
 $S:5}

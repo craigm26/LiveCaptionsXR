@@ -4,7 +4,7 @@ import '../../core/utils/interaction_handler.dart';
 class GooglePlayUtils {
   // Google Play Beta link for testing
   static const String googlePlayBetaUrl =
-      'https://play.google.com/apps/testing/com.example.live_captions_xr';
+      'https://play.google.com/apps/testing/com.livecaptionsxr.app';
 
   static Future<void> openGooglePlayBeta() async {
     return InteractionHandler.safeAsyncExecution(
@@ -30,7 +30,7 @@ class GooglePlayUtils {
   static Future<void> _openGooglePlayStore() async {
     // Update with Google Play Store link when published
     const String googlePlayUrl =
-        'https://play.google.com/store/apps/details?id=com.example.live_captions_xr';
+        'https://play.google.com/store/apps/details?id=com.livecaptionsxr.app';
     final Uri url = Uri.parse(googlePlayUrl);
 
     try {
