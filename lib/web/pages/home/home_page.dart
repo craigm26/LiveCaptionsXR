@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     // Initialize YouTube player controller
     _youtubeController = YoutubePlayerController.fromVideoId(
-      videoId: '1seS-Otr1HA', // Extracted from https://youtu.be/1seS-Otr1HA
+      videoId: 'Oz8nzt2cc3Q', // Extracted from https://youtu.be/Oz8nzt2cc3Q
       autoPlay: false,
       params: const YoutubePlayerParams(
         showControls: true,
@@ -211,8 +211,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 SizedBox(height: isMobile ? 32 : 48),
 
                 // CTA Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  spacing: isMobile ? 16 : 24,
+                  runSpacing: 16,
+                  alignment: WrapAlignment.center,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => context.go('/features'),
@@ -233,7 +235,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    SizedBox(width: isMobile ? 16 : 24),
                     OutlinedButton.icon(
                       onPressed: () => context.go('/technology'),
                       icon: const Icon(Icons.psychology),
@@ -253,6 +254,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
+
                   ],
                 ),
               ],

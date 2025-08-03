@@ -34,6 +34,12 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         ARAnchorManager.arSession = sceneView.session
         print("🔗 ARSession assigned to ARAnchorManager.arSession")
         
+        // Set sceneView reference for spatial captions plugin
+        if let spatialCaptionsPlugin = FlutterPluginRegistry.shared?.valuePublished(byPlugin: "SpatialCaptionsPlugin") as? SpatialCaptionsPlugin {
+            spatialCaptionsPlugin.sceneView = sceneView
+            print("🗨️ SceneView assigned to SpatialCaptionsPlugin")
+        }
+        
         let config = ARWorldTrackingConfiguration()
         print("📐 Starting ARSession with ARWorldTrackingConfiguration...")
         sceneView.session.run(config)
