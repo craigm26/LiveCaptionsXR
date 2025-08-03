@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     // Initialize YouTube player controller
     _youtubeController = YoutubePlayerController.fromVideoId(
-      videoId: '1seS-Otr1HA', // Extracted from https://youtu.be/1seS-Otr1HA
+      videoId: 'Oz8nzt2cc3Q', // Extracted from https://youtu.be/Oz8nzt2cc3Q
       autoPlay: false,
       params: const YoutubePlayerParams(
         showControls: true,
