@@ -1,12 +1,13 @@
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart' as gemma_model;
 import 'model_download_manager.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Event class for Gemma 3n contextual enhancement progress and status
 class Gemma3nEnhancementEvent {
@@ -31,7 +32,7 @@ class Gemma3nEnhancementEvent {
 /// and multimodal inference, as outlined in the refactoring plan in
 /// `prd/19_livecaptionsxr_multistage_captioning_pipeline.md`.
 class Gemma3nService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  final AppLogger _logger = AppLogger.instance;
 
   final ModelDownloadManager _modelManager;
   InferenceModel? _inferenceModel;
@@ -51,15 +52,18 @@ class Gemma3nService {
   Gemma3nService({required ModelDownloadManager modelManager})
       : _modelManager = modelManager;
 
-  /// Initializes the Gemma 3n model.
+  /// Initializes the Gemma 3n model with timeout and error handling.
   Future<void> initialize() async {
     if (_isInitialized && _inferenceModel != null) {
-      _logger.i('✅ Gemma3nService already initialized');
+      _logger.i('✅ Gemma3nService already initialized', category: LogCategory.gemma);
       return;
     }
 
     try {
-      _logger.i('🚀 Initializing Gemma3nService...');
+      _logger.i('🚀 Initializing Gemma3nService...', category: LogCategory.gemma);
+      
+      // Clear XNNPack cache to fix version incompatibility issues
+      await _clearXNNPackCache();
       
       // Emit enhancement event for initialization start
       _enhancementEventController.add(const Gemma3nEnhancementEvent(
@@ -76,16 +80,17 @@ class Gemma3nService {
       ));
       
       if (!await _modelManager.modelIsComplete(modelKey)) {
-        _logger.e('❌ Gemma 3n model not downloaded or incomplete');
+        _logger.w('⚠️ Gemma 3n model not downloaded or incomplete - service will be disabled', category: LogCategory.gemma);
         
-        // Emit enhancement event for model error
+        // Emit enhancement event for model missing (not an error, just unavailable)
         _enhancementEventController.add(const Gemma3nEnhancementEvent(
           progress: 0.0,
-          message: 'Gemma 3n model not available',
-          error: 'Model not downloaded or incomplete',
+          message: 'Gemma 3n model not available - enhancement disabled',
+          error: 'Model not downloaded',
         ));
         
-        throw Exception('Gemma 3n model not downloaded or incomplete');
+        // Don't throw error - just mark as not initialized so app can continue
+        return;
       }
       
       // Emit enhancement event for model loading
@@ -95,7 +100,7 @@ class Gemma3nService {
       ));
       
       final modelPath = await _modelManager.getModelPath(modelKey);
-      _logger.i('📁 Loading Gemma model from: $modelPath');
+      _logger.i('📁 Loading Gemma model from: $modelPath', category: LogCategory.gemma);
       
       final gemmaPlugin = FlutterGemmaPlugin.instance;
       await gemmaPlugin.modelManager.setModelPath(modelPath);
@@ -106,14 +111,17 @@ class Gemma3nService {
         message: 'Creating inference model...',
       ));
       
+      // Add timeout to prevent freezing during model creation
+      _logger.i('⏱️ Creating Gemma model with 60-second timeout...', category: LogCategory.gemma);
       _inferenceModel = await gemmaPlugin.createModel(
         modelType: gemma_model.ModelType.gemmaIt,
-        maxTokens: 4096, // Increased for multimodal content
+        maxTokens: 1024, // Increased for multimodal support
         supportImage: true, // Enable image support for Gemma 3n
-      );
+        maxNumImages: 1, // Support one image per message
+      ).timeout(Duration(seconds: 90)); // Increased timeout for iOS
       
       _isInitialized = true;
-      _logger.i('✅ Gemma3nService initialized successfully');
+      _logger.i('✅ Gemma3nService initialized successfully', category: LogCategory.gemma);
       
       // Emit enhancement event for initialization complete
       _enhancementEventController.add(const Gemma3nEnhancementEvent(
@@ -121,17 +129,32 @@ class Gemma3nService {
         message: 'Gemma 3n service ready',
         isComplete: true,
       ));
+    } on TimeoutException catch (e) {
+      _logger.e('⏱️ Gemma3nService initialization timed out after 60 seconds', category: LogCategory.gemma, error: e);
+      
+      // Emit enhancement event for timeout
+      _enhancementEventController.add(const Gemma3nEnhancementEvent(
+        progress: 0.0,
+        message: 'Gemma 3n initialization timed out - enhancement disabled',
+        error: 'Initialization timeout',
+      ));
+      
+      // Don't rethrow timeout - let app continue without enhancement
+      _isInitialized = false;
+      _inferenceModel = null;
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to initialize Gemma3nService', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to initialize Gemma3nService', category: LogCategory.gemma, error: e, stackTrace: stackTrace);
       
       // Emit enhancement event for initialization failure
       _enhancementEventController.add(Gemma3nEnhancementEvent(
         progress: 0.0,
-        message: 'Failed to initialize Gemma 3n service',
+        message: 'Failed to initialize Gemma 3n service - enhancement disabled',
         error: e,
       ));
       
-      rethrow;
+      // Don't rethrow error - let app continue without enhancement
+      _isInitialized = false;
+      _inferenceModel = null;
     }
   }
 
@@ -482,6 +505,36 @@ Enhanced:''';
       text: enhancedPrompt,
       image: imageData,
     ) ?? text;
+  }
+
+  /// Clear XNNPack cache to fix version incompatibility issues
+  Future<void> _clearXNNPackCache() async {
+    try {
+      _logger.i('🧹 Clearing XNNPack cache to fix version issues...');
+      
+      // Get app temp directory where XNNPack cache is stored
+      final Directory tempDir = Directory.systemTemp;
+      final String cachePath = '${tempDir.path}';
+      
+      // Look for XNNPack cache files and delete them
+      final Directory cacheDir = Directory(cachePath);
+      if (await cacheDir.exists()) {
+        await for (final FileSystemEntity entity in cacheDir.list()) {
+          if (entity.path.contains('xnnpack') || entity.path.contains('tflite')) {
+            try {
+              await entity.delete(recursive: true);
+              _logger.d('🗑️ Deleted cache file: ${entity.path}');
+            } catch (e) {
+              _logger.w('⚠️ Could not delete cache file ${entity.path}: $e');
+            }
+          }
+        }
+      }
+      
+      _logger.i('✅ XNNPack cache cleared');
+    } catch (e) {
+      _logger.w('⚠️ Error clearing XNNPack cache (continuing anyway): $e');
+    }
   }
 
   // Audio transcription removed - handled by Whisper service instead

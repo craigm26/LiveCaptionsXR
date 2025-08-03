@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Represents a chunk of stereo audio sampled from the microphone.
 class StereoAudioFrame {
@@ -37,7 +37,7 @@ class StereoAudioCapture {
   static const EventChannel _eventChannel =
       EventChannel('live_captions_xr/audio_capture_events');
 
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   Stream<StereoAudioFrame>? _frameStream;
 

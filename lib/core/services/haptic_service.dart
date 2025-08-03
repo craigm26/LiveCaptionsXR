@@ -1,4 +1,4 @@
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Service for providing haptic feedback for accessibility features
 /// 
@@ -6,7 +6,7 @@ import 'debug_capturing_logger.dart';
 /// to enhance the accessibility experience for users with hearing
 /// or visual impairments.
 class HapticService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   
   bool _isInitialized = false;
   bool _isEnabled = true;

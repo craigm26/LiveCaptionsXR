@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
@@ -15,7 +16,7 @@ import '../../ar_session/cubit/ar_session_state.dart';
 import '../cubit/home_cubit.dart';
 import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
-import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/services/app_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
 import '../../../shared/widgets/ar_session_status_widget.dart';
 import '../../../core/services/model_download_manager.dart';
@@ -34,40 +35,96 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   late ModelDownloadManager _modelDownloadManager;
+  bool _isGemmaInitialized = false;
+  bool _isGemmaInitializing = false;
 
   @override
   void initState() {
     super.initState();
-    _logger.i('🏠 HomeScreen initialized');
+    _logger.i('🏠 HomeScreen initialized', category: LogCategory.ui);
+    print('DEBUG: HomeScreen initialized'); // Debug print
     _modelDownloadManager = ModelDownloadManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptModelDownload();
+      // Initialize Gemma after model checks
+      await _initializeGemmaBeforeAR();
     });
   }
 
   Future<void> _checkAndPromptModelDownload() async {
-    _logger.d('🔍 Checking model availability on app startup...');
+    _logger.d('🔍 Checking model availability on app startup...', category: LogCategory.system);
     
     // Check if required models exist
-    _logger.d('🔍 Checking Gemma model availability...');
+    _logger.d('🔍 Checking Gemma model availability...', category: LogCategory.gemma);
     final gemmaExists = await _modelDownloadManager.modelExists('gemma-3n-E4B-it-int4');
-    _logger.d('📦 Gemma model exists: $gemmaExists');
+    _logger.d('📦 Gemma model exists: $gemmaExists', category: LogCategory.gemma);
     
-    _logger.d('🔍 Checking Whisper model availability...');
+    _logger.d('🔍 Checking Whisper model availability...', category: LogCategory.speech);
     final whisperExists = await _modelDownloadManager.modelExists('whisper-base');
-    _logger.d('📦 Whisper model exists: $whisperExists');
+    _logger.d('📦 Whisper model exists: $whisperExists', category: LogCategory.speech);
     
-    _logger.d('📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists');
+    _logger.d('📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists', category: LogCategory.system);
     
     if ((!gemmaExists || !whisperExists) && mounted) {
-      _logger.w('⚠️ Missing models detected, showing download dialog');
+      _logger.w('⚠️ Missing models detected, showing download dialog', category: LogCategory.system);
       _showModelDownloadDialog(gemmaExists: gemmaExists, whisperExists: whisperExists);
     } else {
-      _logger.i('✅ All required models are available');
+      _logger.i('✅ All required models are available', category: LogCategory.system);
+    }
+  }
+
+  /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session
+  Future<void> _initializeGemmaBeforeAR() async {
+    if (_isGemmaInitialized || _isGemmaInitializing) {
+      _logger.i('🤖 Gemma already initialized or initializing, skipping', category: LogCategory.gemma);
+      return;
+    }
+    
+    try {
+      _isGemmaInitializing = true;
+      _logger.i('🤖 Pre-initializing Gemma 3n service before AR launch...', category: LogCategory.gemma);
+      
+      final gemma3nService = sl<Gemma3nService>();
+      
+      if (gemma3nService.isReady) {
+        _logger.i('✅ Gemma 3n service already ready', category: LogCategory.gemma);
+        _isGemmaInitialized = true;
+        return;
+      }
+      
+      // Show loading state if needed
+      if (mounted) {
+        setState(() {});
+      }
+      
+      // Initialize with platform-specific timeout
+      final timeout = Platform.isIOS ? Duration(seconds: 90) : Duration(seconds: 120);
+      _logger.i('⏱️ Initializing Gemma with ${timeout.inSeconds}s timeout for ${Platform.isIOS ? 'iOS' : 'Android'}', category: LogCategory.gemma);
+      
+      await gemma3nService.initialize().timeout(timeout);
+      
+      if (gemma3nService.isReady) {
+        _logger.i('✅ Gemma 3n service pre-initialized successfully!', category: LogCategory.gemma);
+        _isGemmaInitialized = true;
+      } else {
+        _logger.w('⚠️ Gemma 3n service initialized but not ready', category: LogCategory.gemma);
+      }
+      
+    } on TimeoutException catch (e) {
+      _logger.e('⏱️ Gemma 3n service initialization timed out', category: LogCategory.gemma, error: e);
+      _logger.w('⚠️ Continuing without Gemma enhancement', category: LogCategory.gemma);
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to pre-initialize Gemma 3n service', category: LogCategory.gemma, error: e, stackTrace: stackTrace);
+      _logger.w('⚠️ Continuing without Gemma enhancement', category: LogCategory.gemma);
+    } finally {
+      _isGemmaInitializing = false;
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -286,71 +343,95 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Start all services needed for AR mode using the ARSessionCubit
   Future<void> _startAllServicesForARMode() async {
-    if (!mounted) return;
+    _logger.i('🚀🚀🚀 [HOME] _startAllServicesForARMode STARTED!', category: LogCategory.ui);
+    print('DEBUG: _startAllServicesForARMode STARTED!'); // Добавим print для гарантии
+    
+    try {
+      if (!mounted) {
+        _logger.w('⚠️ [HOME] Widget not mounted, returning', category: LogCategory.ui);
+        return;
+      }
 
-    final arSessionCubit = context.read<ARSessionCubit>();
-    
-    // Get the Whisper service from the service locator
-    final whisperService = sl<WhisperService>();
-    _logger.d('🎤 Retrieved Whisper service from service locator');
-    
-    // Get the Gemma 3n service from the service locator
-    final gemma3nService = sl<Gemma3nService>();
-    _logger.d('🤖 Retrieved Gemma 3n service from service locator');
-    
-    // Start listening to Whisper STT events
-    _logger.d('👂 Setting up Whisper STT event listener...');
-    arSessionCubit.listenToWhisperSTT(whisperService);
-    _logger.i('✅ Whisper STT event listener configured');
-    
-    // Start listening to Gemma 3n enhancement events
-    _logger.d('👂 Setting up Gemma 3n enhancement event listener...');
-    arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
-    _logger.i('✅ Gemma 3n enhancement event listener configured');
+      _logger.i('🔍 [HOME] Step 1: Getting ARSessionCubit...', category: LogCategory.ui);
+      final arSessionCubit = context.read<ARSessionCubit>();
+      _logger.i('✅ [HOME] Step 1 complete: Got arSessionCubit', category: LogCategory.ui);
+      
+      _logger.i('🔍 [HOME] Step 2: Getting Whisper service...', category: LogCategory.ui);
+      final whisperService = sl<WhisperService>();
+      _logger.i('✅ [HOME] Step 2 complete: Retrieved Whisper service from service locator', category: LogCategory.speech);
+      
+      _logger.i('🔍 [HOME] Step 3: Getting Gemma 3n service...', category: LogCategory.ui);
+      final gemma3nService = sl<Gemma3nService>();
+      _logger.i('✅ [HOME] Step 3 complete: Retrieved Gemma 3n service from service locator', category: LogCategory.gemma);
+      
+      _logger.i('🔍 [HOME] Step 4: Setting up Whisper STT event listener...', category: LogCategory.ui);
+      arSessionCubit.listenToWhisperSTT(whisperService);
+      _logger.i('✅ [HOME] Step 4 complete: Whisper STT event listener configured', category: LogCategory.speech);
+      
+      _logger.i('🔍 [HOME] Step 5: Setting up Gemma 3n enhancement event listener...', category: LogCategory.ui);
+      arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
+      _logger.i('✅ [HOME] Step 5 complete: Gemma 3n enhancement event listener configured', category: LogCategory.gemma);
 
-    // Use the ARSessionCubit to manage starting all services
-    _logger.d('🚀 Starting all AR services through ARSessionCubit...');
-    await arSessionCubit.startAllARServices(
+      _logger.i('🔍 [HOME] Step 6: Starting all AR services through ARSessionCubit...', category: LogCategory.ui);
+      print('DEBUG: About to call arSessionCubit.startAllARServices'); // Debug print
+      await arSessionCubit.startAllARServices(
       startLiveCaptions: () async {
+        print('DEBUG: startLiveCaptions callback called'); // Debug print
+        _logger.i('🔍 [HOME] Step 6a: Getting LiveCaptionsCubit...', category: LogCategory.ui);
         final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+        _logger.i('✅ [HOME] Step 6a complete: Got LiveCaptionsCubit', category: LogCategory.ui);
+        print('DEBUG: LiveCaptionsCubit obtained'); // Debug print
+        
+        _logger.i('🔍 [HOME] Step 6b: Checking LiveCaptions state...', category: LogCategory.ui);
+        print('DEBUG: LiveCaptions current state: ${liveCaptionsCubit.state.runtimeType}'); // Debug print
         if (liveCaptionsCubit.state is! LiveCaptionsActive ||
             !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-          _logger.i('🎤 Starting live captions for AR mode...');
+          _logger.i('🎤 [HOME] Step 6c: Starting live captions for AR mode...', category: LogCategory.captions);
+          print('DEBUG: About to call liveCaptionsCubit.startCaptions()'); // Debug print
           await liveCaptionsCubit.startCaptions();
-          _logger.i('✅ Live captions started for AR mode');
+          print('DEBUG: liveCaptionsCubit.startCaptions() completed'); // Debug print
+          _logger.i('✅ [HOME] Step 6c complete: Live captions started for AR mode', category: LogCategory.captions);
         } else {
-          _logger.i('🎤 Live captions already active');
+          _logger.i('🎤 [HOME] Step 6c: Live captions already active', category: LogCategory.captions);
+          print('DEBUG: Live captions already active, skipping start'); // Debug print
         }
+        print('DEBUG: startLiveCaptions callback finished'); // Debug print
       },
       startSoundDetection: () async {
+        print('DEBUG: startSoundDetection callback called'); // Debug print
         final soundDetectionCubit = context.read<SoundDetectionCubit>();
+        print('DEBUG: SoundDetectionCubit obtained, isActive: ${soundDetectionCubit.isActive}'); // Debug print
         if (!soundDetectionCubit.isActive) {
-          _logger.i('🔊 Starting sound detection for AR mode...');
+          _logger.i('🔊 Starting sound detection for AR mode...', category: LogCategory.audio);
+          print('DEBUG: About to call soundDetectionCubit.start()'); // Debug print
           await soundDetectionCubit.start();
-          _logger.i('✅ Sound detection started for AR mode');
+          print('DEBUG: soundDetectionCubit.start() completed'); // Debug print
+          _logger.i('✅ Sound detection started for AR mode', category: LogCategory.audio);
         } else {
-          _logger.i('🔊 Sound detection already active');
+          _logger.i('🔊 Sound detection already active', category: LogCategory.audio);
+          print('DEBUG: Sound detection already active, skipping start'); // Debug print
         }
+        print('DEBUG: startSoundDetection callback finished'); // Debug print
       },
       startLocalization: () async {
         final localizationCubit = context.read<LocalizationCubit>();
         if (!localizationCubit.isActive) {
-          _logger.i('🧭 Starting localization for AR mode...');
+          _logger.i('🧭 Starting localization for AR mode...', category: LogCategory.ar);
           await localizationCubit.start();
-          _logger.i('✅ Localization started for AR mode');
+          _logger.i('✅ Localization started for AR mode', category: LogCategory.ar);
         } else {
-          _logger.i('🧭 Localization already active');
+          _logger.i('🧭 Localization already active', category: LogCategory.ar);
         }
       },
       startVisualIdentification: () async {
         final visualIdentificationCubit =
             context.read<VisualIdentificationCubit>();
         if (!visualIdentificationCubit.isActive) {
-          _logger.i('👁️ Starting visual identification for AR mode...');
+          _logger.i('👁️ Starting visual identification for AR mode...', category: LogCategory.camera);
           await visualIdentificationCubit.start();
-          _logger.i('✅ Visual identification started for AR mode');
+          _logger.i('✅ Visual identification started for AR mode', category: LogCategory.camera);
         } else {
-          _logger.i('👁️ Visual identification already active');
+          _logger.i('👁️ Visual identification already active', category: LogCategory.camera);
         }
       },
       // Provide stop callbacks for proper cleanup
@@ -358,9 +439,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
         if (liveCaptionsCubit.state is LiveCaptionsActive &&
             (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-          _logger.i('🎤 Stopping live captions...');
+          _logger.i('🎤 Stopping live captions...', category: LogCategory.captions);
           await liveCaptionsCubit.stopCaptions();
-          _logger.i('✅ Live captions stopped');
+          _logger.i('✅ Live captions stopped', category: LogCategory.captions);
         }
       },
       stopSoundDetection: () async {
@@ -389,7 +470,15 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
     );
-    _logger.i('✅ All AR services started successfully');
+    _logger.i('✅ [HOME] Step 6 complete: All AR services started successfully through ARSessionCubit', category: LogCategory.ui);
+    _logger.i('🎉🎉🎉 [HOME] _startAllServicesForARMode COMPLETED SUCCESSFULLY!', category: LogCategory.ui);
+    print('DEBUG: _startAllServicesForARMode COMPLETED SUCCESSFULLY!'); // Debug print
+    
+    } catch (e, stackTrace) {
+      _logger.e('❌ [HOME] _startAllServicesForARMode FAILED!', category: LogCategory.ui, error: e, stackTrace: stackTrace);
+      print('DEBUG ERROR: _startAllServicesForARMode FAILED: $e'); // Debug print
+      rethrow;
+    }
   }
 
   @override
@@ -532,19 +621,27 @@ class _HomeScreenState extends State<HomeScreen> {
                     BlocBuilder<ARSessionCubit, ARSessionState>(
                       builder: (context, arSessionState) {
                         final inARMode = arSessionState is ARSessionReady;
+                        // Only log significant AR state changes
                         return BlocBuilder<LiveCaptionsCubit,
                             LiveCaptionsState>(
                           builder: (context, captionsState) {
+                            // Removed verbose caption state logging
+                            // Removed verbose caption details logging
+                            
                             // Only show overlay when in AR mode and captions are active
                             // or when explicitly requested for fallback
                             bool showOverlay = false;
                             if (inARMode && captionsState is LiveCaptionsActive) {
                               showOverlay = true;
+                              _logger.i('🎯 [UI] Showing captions overlay in AR mode', category: LogCategory.ui);
                             } else if (inARMode && captionsState is LiveCaptionsActive &&
                                 captionsState.showOverlayFallback) {
                               showOverlay = true;
+                              // Fallback mode
+                            } else {
+                              // Not showing captions overlay
                             }
-                            // Remove the automatic showing of LiveCaptionsWidget when not in AR mode
+                            
                             return showOverlay
                                 ? Positioned(
                                     bottom: 120,
@@ -730,20 +827,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: FloatingActionButton(
                     heroTag: "ar_view_fab",
-                    onPressed: () async {
-                      _logger.i('🥽 Enter AR Mode button pressed...');
+                    onPressed: _isGemmaInitializing ? null : () async {
+                      _logger.i('🥽 Enter AR Mode button pressed...', category: LogCategory.ui);
+                      print('DEBUG: Enter AR Mode button pressed'); // Добавим print для гарантии
+                      
                       final arSessionCubit = context.read<ARSessionCubit>();
+                      _logger.i('🎯 Got ARSessionCubit instance', category: LogCategory.ui);
 
                       try {
-                        // Initialize AR session
+                        // Ensure Gemma is initialized before starting AR
+                        if (!_isGemmaInitialized && !_isGemmaInitializing) {
+                          _logger.i('🤖 Gemma not yet initialized, initializing now...', category: LogCategory.ar);
+                          await _initializeGemmaBeforeAR();
+                        }
+                        
+                        // FIRST: Start all AR services BEFORE showing AR view
+                        _logger.i('🚀🚀🚀 [HOME] Starting AR services BEFORE AR view...', category: LogCategory.ui);
+                        print('DEBUG: Starting AR services BEFORE AR view'); // Debug print
+                        await _startAllServicesForARMode();
+                        _logger.i('✅ [HOME] All AR services started successfully', category: LogCategory.ui);
+                        
+                        // THEN: Initialize AR session (this will block until AR view is closed)
+                        _logger.i('🎯 [HOME] Now calling initializeARSession...', category: LogCategory.ui);
                         await arSessionCubit.initializeARSession(
                             restoreFromPersistence: false);
-
-                        // Start all AR services immediately after initialization
-                        await _startAllServicesForARMode();
+                        _logger.i('✅ [HOME] AR session completed (AR view was closed)', category: LogCategory.ui);
 
                       } catch (e, stackTrace) {
-                        _logger.e('�� Failed to enter AR mode',
+                        _logger.e('❌ Failed to enter AR mode',
                             error: e, stackTrace: stackTrace);
 
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -757,8 +868,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                     },
-                    tooltip: 'Enter AR Mode',
-                    child: const Icon(Icons.view_in_ar),
+                    tooltip: _isGemmaInitializing ? 'Initializing Gemma...' : 'Enter AR Mode',
+                    child: _isGemmaInitializing 
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.view_in_ar),
                   ),
                 ),
               ),

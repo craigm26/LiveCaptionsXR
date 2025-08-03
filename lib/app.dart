@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/di/service_locator.dart';
 import 'core/router/app_router.dart';
+import 'core/services/app_logger.dart';
 import 'features/ar_session/cubit/ar_session_cubit.dart';
 import 'features/home/cubit/home_cubit.dart';
 import 'features/live_captions/cubit/live_captions_cubit.dart';
@@ -15,15 +16,14 @@ import 'features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'shared/theme/app_theme.dart';
 import 'core/services/google_auth_service.dart';
 
-final Logger _appLogger = Logger();
+final AppLogger _appLogger = AppLogger.instance;
 
 class LiveCaptionsXrApp extends StatelessWidget {
   const LiveCaptionsXrApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp');
-    print('DEBUG: Building LiveCaptionsXrApp MaterialApp');
+    _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp', category: LogCategory.ui);
 
     return MultiBlocProvider(
       providers: [

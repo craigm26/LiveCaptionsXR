@@ -7,9 +7,10 @@
 4. [Model Management](#model-management)
 5. [Audio Processing](#audio-processing)
 6. [AR Integration](#ar-integration)
-7. [Performance Optimization](#performance-optimization)
-8. [Testing & Debugging](#testing--debugging)
-9. [Build & Deployment](#build--deployment)
+7. [Logging System](#logging-system)
+8. [Performance Optimization](#performance-optimization)
+9. [Testing & Debugging](#testing--debugging)
+10. [Build & Deployment](#build--deployment)
 
 ---
 
@@ -26,8 +27,10 @@ LiveCaptionsXR is a cross-platform AR captioning system that fuses audio, vision
   - `SpeechProcessor`: Processes the audio stream and sends it to the ASR engine.
   - `StereoAudioCapture`: Captures stereo audio from the device's microphones.
   - `WhisperService`: On-device speech-to-text processing using Whisper GGML with real-time event emission.
+  - `AppleSpeechService`: iOS-native speech-to-text using Apple's Speech Recognition framework with offline support.
   - `Gemma3nService`: Contextual enhancement and multimodal inference using Gemma 3n with real-time event emission.
   - `ModelDownloadManager`: Unified model management for both Whisper and Gemma models.
+  - `ARFrameService`: iOS-specific service for capturing visual frames from ARKit sessions for multimodal context.
   
 - **UI:** The user interface of the application, built with Flutter.
 - **State Management:** Cubit is used for state management with event-driven AR session states.
@@ -47,6 +50,7 @@ Communication between the Dart and native layers is handled via MethodChannels.
 - `live_captions_xr/visual_object_methods`: Sends information about visually detected objects (e.g., faces) from the native AR view back to the Dart application logic.
 - `live_captions_xr/audio_capture_methods`: Manages the capture of stereo audio.
 - `live_captions_xr/audio_capture_events`: An event channel that streams audio data from the native layer to the Dart layer.
+- `live_captions_xr/ar_frames`: iOS-specific channel for capturing ARKit frame data for visual context enhancement.
 
 ---
 
@@ -80,14 +84,26 @@ The AR session follows a sophisticated state machine that provides real-time fee
    - **Progress Events**: Model loading, enhancement processing, multimodal inference
    - **State**: `ARSessionContextualEnhancement` with real-time progress updates
 
+### Platform-Specific STT Engines
+- **iOS**: Uses `AppleSpeechService` (Apple Speech Recognition framework) for native integration
+- **Android**: Uses `WhisperService` (Whisper GGML) for on-device processing
+- **Web**: Falls back to `flutter_sound` for compatibility
+
 ### Event-Driven Integration
 The system uses event streams to provide real-time feedback:
 
-#### Whisper STT Events (`WhisperSTTEvent`)
+#### STT Service Events
+**Whisper STT Events (`WhisperSTTEvent`)**
 - Service initialization progress
 - Model download and availability checking
 - Audio processing and transcription progress
 - Error handling and recovery
+
+**Apple Speech Events (`AppleSpeechEvent`)**
+- iOS Speech Recognition initialization
+- Real-time transcription with partial and final results
+- Offline mode support and configuration
+- Permission and availability checking
 
 #### Gemma 3n Enhancement Events (`Gemma3nEnhancementEvent`)
 - Service initialization and model loading
@@ -136,18 +152,73 @@ The application uses a layered state management approach:
 - **Real-time Processing**: Audio streams are processed in real-time for low latency
 - **Format Conversion**: Audio is converted to WAV format for Whisper processing
 
-#### Whisper GGML Integration
+#### STT Engine Integration
+
+**Whisper GGML Integration (Android)**
 - **Model**: Uses `whisper-base.bin` (147.95 MB) for optimal speed/accuracy balance
 - **Processing**: Real-time transcription with 4 threads
 - **Language**: English (configurable)
 - **Timestamps**: Disabled for real-time processing
 - **Audio Format**: WAV (auto-converted)
 
+**Apple Speech Integration (iOS)**
+- **Framework**: Native iOS Speech Recognition framework
+- **Processing**: Real-time transcription with partial and final results
+- **Language**: Configurable locale support (English default)
+- **Offline Mode**: Supports offline transcription with `onDevice: true`
+- **Permissions**: Requires microphone and speech recognition permissions
+- **Features**: Auto-punctuation, haptic feedback, confidence scoring
+
+**ARKit Frame Capture (iOS)**
+- **Service**: `ARFrameService` - Captures visual frames from ARKit sessions
+- **Method Channel**: `live_captions_xr/ar_frames` for frame capture communication
+- **Processing**: Real-time CVPixelBuffer to JPEG conversion for Gemma 3n
+- **Integration**: Seamlessly integrates with `EnhancedSpeechProcessor` on iOS
+- **Format**: Returns JPEG image data as Uint8List for multimodal processing
+- **Native Implementation**: Uses `ARViewController.captureCurrentARFrame()` method
+- **Error Handling**: Graceful fallback to text-only enhancement if capture fails
+
 #### Gemma 3n Enhancement
 - **Model**: `gemma-3n-E4B-it-int4` for multimodal enhancement
 - **Function**: Enhances raw transcriptions with punctuation, corrections, and context
 - **Caching**: Implements enhancement caching for repeated phrases
 - **Multimodal**: Supports image context for enhanced understanding
+
+### Visual Context System
+
+#### Platform-Specific Implementation
+- **iOS**: Uses `ARFrameService` to capture frames from active ARKit sessions
+- **Android**: Uses `CameraService` for periodic frame capture from device camera
+- **Integration**: Both services provide visual context to `EnhancedSpeechProcessor`
+
+#### ARFrameService (iOS)
+```dart
+// Service for capturing ARKit frames
+class ARFrameService {
+  Future<Uint8List?> captureFrame() async {
+    // Captures current ARKit frame via method channel
+    // Returns JPEG data for Gemma 3n processing
+  }
+}
+```
+
+#### CameraService (Android)
+```dart
+// Service for camera frame capture
+class CameraService {
+  Stream<List<int>> get frameStream => _frameStreamController.stream;
+  Future<List<int>?> captureFrame() async {
+    // Captures frame from device camera
+    // Returns image data for processing
+  }
+}
+```
+
+#### Visual Processing Pipeline
+1. **Frame Capture**: Platform-specific frame acquisition
+2. **Format Conversion**: Convert to Gemma 3n compatible format (JPEG/PNG)
+3. **Context Integration**: Combine visual data with speech transcription
+4. **Enhancement**: Use multimodal Gemma 3n for contextual speech enhancement
 
 ### Speech Debug Guide
 
@@ -176,7 +247,8 @@ The system includes a unified model management system:
 - **UI Integration**: Model status page for user management
 
 ### Model Types
-- **Whisper Models**: `whisper-base` (speech recognition)
+- **Whisper Models**: `whisper-base` (speech recognition - Android)
+- **Apple Speech**: Native iOS Speech Recognition (no model download required)
 - **Gemma Models**: `gemma-3n-E4B-it-int4` (multimodal enhancement)
 
 ### Model Setup
@@ -186,6 +258,14 @@ The system includes a unified model management system:
 - **Status**: ✅ Ready for use
 - **Location**: `assets/models/whisper_base.bin`
 - **Configuration**: Optimized for real-time processing
+
+#### Apple Speech Setup (iOS)
+- **Service**: `AppleSpeechService` - iOS native Speech Recognition framework
+- **Status**: ✅ Ready for use
+- **Location**: `lib/core/services/apple_speech_service.dart`
+- **Configuration**: Offline support, real-time partial/final results, auto-punctuation
+- **Permissions**: Configured in `ios/Runner/Info.plist` (Speech Recognition + Microphone)
+- **Dependencies**: `speech_to_text: ^6.6.0`
 
 #### Gemma 3n Setup
 - **Model File**: `gemma-3n-E4B-it-int4.task` (4.1 GB)
@@ -257,6 +337,94 @@ The system includes a unified model management system:
 - **Spatial Alignment**: Aligns captions with device orientation
 - **Stability**: Maintains caption stability during device movement
 - **Calibration**: Calibrates orientation sensors for accuracy
+
+---
+
+## Logging System
+
+LiveCaptionsXR implements a comprehensive, configurable logging system designed to provide detailed debugging information while maintaining performance in production.
+
+### Architecture
+
+#### Core Components
+- **AppLogger**: Central logging service with category-based filtering
+- **LogConfigManager**: Persistent configuration management
+- **LogCategory**: Categorized logging for different system components
+- **LogLevel**: Hierarchical log levels (debug, info, warning, error)
+
+#### Log Categories
+```dart
+enum LogCategory {
+  audio('🎵 AUDIO'),      // Audio capture and processing
+  gemma('🤖 GEMMA'),      // Gemma 3n AI service 
+  ar('📱 AR'),            // AR/ARKit functionality
+  captions('📋 CAPTIONS'), // Caption display and management
+  camera('📷 CAMERA'),     // Camera and frame capture
+  speech('🎤 SPEECH'),     // Speech recognition engines
+  ui('🖥️ UI'),            // User interface events
+  system('⚙️ SYSTEM');     // System-level operations
+}
+```
+
+### Configuration
+
+#### Development Mode
+```dart
+AppLogger.instance.configure(const LogConfig(
+  globalLevel: LogLevel.debug,
+  enableConsoleOutput: true,
+));
+```
+
+#### Production Mode
+```dart
+AppLogger.instance.configure(LogConfigManager.minimalConfig);
+// Reduces noise from AI and audio processing
+```
+
+#### Custom Configuration
+```dart
+AppLogger.instance.configure(const LogConfig(
+  globalLevel: LogLevel.info,
+  categoryLevels: {
+    LogCategory.gemma: LogLevel.warning,    // Reduce AI logs
+    LogCategory.audio: LogLevel.warning,    // Reduce audio logs
+    LogCategory.ar: LogLevel.debug,         // Detailed AR logs
+    LogCategory.captions: LogLevel.info,    // Caption events
+  },
+  enableConsoleOutput: true,
+));
+```
+
+### Usage
+
+#### In Services
+```dart
+class ExampleService {
+  final AppLogger _logger = AppLogger.instance;
+  
+  void processData() {
+    _logger.i('Processing started', category: LogCategory.system);
+    _logger.d('Debug details', category: LogCategory.system);
+    _logger.w('Warning message', category: LogCategory.system);
+    _logger.e('Error occurred', category: LogCategory.system, error: e);
+  }
+}
+```
+
+#### Quick Configuration Changes
+```dart
+// Enable detailed Gemma and AR logging for debugging
+AppLogger.instance.setCategoryLevel(LogCategory.gemma, LogLevel.debug);
+AppLogger.instance.setCategoryLevel(LogCategory.ar, LogLevel.debug);
+```
+
+### Benefits
+- **Performance**: Category-based filtering prevents expensive log operations
+- **Debugging**: Granular control over what gets logged
+- **Production Ready**: Automatic log reduction in release builds
+- **Persistent**: Configuration survives app restarts
+- **Maintainable**: Centralized logging configuration
 
 ---
 

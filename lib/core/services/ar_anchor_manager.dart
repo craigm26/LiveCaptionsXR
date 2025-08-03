@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Model for AR anchor info.
 class ARAnchorInfo {
@@ -18,14 +18,14 @@ class ARAnchorInfo {
 class ARAnchorManager {
   static const MethodChannel _methodChannel =
       MethodChannel('live_captions_xr/ar_anchor_methods');
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   /// Create an AR anchor at a given horizontal angle (radians) and distance (meters) from the camera.
   /// Returns the anchor identifier.
   Future<String> createAnchorAtAngle(double angle,
       {double distance = 2.0}) async {
     _logger.i(
-        '🎯 Creating AR anchor at angle: ${angle.toStringAsFixed(3)} rad (${(angle * 180 / 3.14159).toStringAsFixed(1)}°), distance: ${distance}m');
+        '🎯 Creating AR anchor at angle: ${angle.toStringAsFixed(3)} rad (${(angle * 180 / 3.14159).toStringAsFixed(1)}°), distance: ${distance}m', category: LogCategory.ar);
 
     try {
       final id =
@@ -36,14 +36,14 @@ class ARAnchorManager {
 
       final anchorId = id ?? '';
       if (anchorId.isNotEmpty) {
-        _logger.i('✅ AR anchor created successfully with ID: $anchorId');
+        _logger.i('✅ AR anchor created successfully with ID: $anchorId', category: LogCategory.ar);
       } else {
-        _logger.w('⚠️ AR anchor creation returned empty ID');
+        _logger.w('⚠️ AR anchor creation returned empty ID', category: LogCategory.ar);
       }
 
       return anchorId;
     } catch (e) {
-      _logger.e('❌ Failed to create AR anchor at angle: $e');
+      _logger.e('❌ Failed to create AR anchor at angle: $e', category: LogCategory.ar);
       rethrow;
     }
   }
@@ -52,11 +52,11 @@ class ARAnchorManager {
   /// [transform] should be a 16-element list (row-major order).
   Future<String> createAnchorAtWorldTransform(List<double> transform) async {
     _logger.i(
-        '🌍 Creating AR anchor at world transform: [${transform.take(4).map((v) => v.toStringAsFixed(3)).join(', ')}...]');
+        '🌍 Creating AR anchor at world transform: [${transform.take(4).map((v) => v.toStringAsFixed(3)).join(', ')}...]', category: LogCategory.ar);
 
     if (transform.length != 16) {
       _logger.e(
-          '❌ Invalid transform matrix length: ${transform.length}, expected 16');
+          '❌ Invalid transform matrix length: ${transform.length}, expected 16', category: LogCategory.ar);
       throw ArgumentError('Transform matrix must have exactly 16 elements');
     }
 
@@ -68,29 +68,29 @@ class ARAnchorManager {
 
       final anchorId = id ?? '';
       if (anchorId.isNotEmpty) {
-        _logger.i('✅ AR anchor created at world transform with ID: $anchorId');
+        _logger.i('✅ AR anchor created at world transform with ID: $anchorId', category: LogCategory.ar);
       } else {
-        _logger.w('⚠️ AR anchor creation at world transform returned empty ID');
+        _logger.w('⚠️ AR anchor creation at world transform returned empty ID', category: LogCategory.ar);
       }
 
       return anchorId;
     } catch (e) {
-      _logger.e('❌ Failed to create AR anchor at world transform: $e');
+      _logger.e('❌ Failed to create AR anchor at world transform: $e', category: LogCategory.ar);
       rethrow;
     }
   }
 
   /// Remove an AR anchor by its identifier.
   Future<void> removeAnchor(String identifier) async {
-    _logger.i('🗑️ Removing AR anchor with ID: $identifier');
+    _logger.i('🗑️ Removing AR anchor with ID: $identifier', category: LogCategory.ar);
 
     try {
       await _methodChannel.invokeMethod('removeAnchor', {
         'identifier': identifier,
       });
-      _logger.i('✅ AR anchor removed successfully: $identifier');
+      _logger.i('✅ AR anchor removed successfully: $identifier', category: LogCategory.ar);
     } catch (e) {
-      _logger.e('❌ Failed to remove AR anchor $identifier: $e');
+      _logger.e('❌ Failed to remove AR anchor $identifier: $e', category: LogCategory.ar);
       rethrow;
     }
   }
@@ -99,7 +99,7 @@ class ARAnchorManager {
   /// This method also validates that the AR session is ready for anchor operations.
   /// Includes retry logic to handle session initialization delays.
   Future<List<double>> getDeviceOrientation({int maxRetries = 3}) async {
-    _logger.d('📱 Getting device orientation for AR session validation...');
+    _logger.d('📱 Getting device orientation for AR session validation...', category: LogCategory.ar);
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -113,16 +113,16 @@ class ARAnchorManager {
           throw Exception('Invalid device orientation matrix length: ${orientation.length}');
         }
         
-        _logger.d('✅ Device orientation retrieved successfully');
+        _logger.d('✅ Device orientation retrieved successfully', category: LogCategory.ar);
         return orientation;
       } catch (e) {
         if (attempt < maxRetries && e.toString().contains('NO_SESSION')) {
-          _logger.w('⚠️ AR session not ready (attempt $attempt/$maxRetries), retrying in 500ms...');
+          _logger.w('⚠️ AR session not ready (attempt $attempt/$maxRetries), retrying in 500ms...', category: LogCategory.ar);
           await Future.delayed(const Duration(milliseconds: 500));
           continue;
         }
         
-        _logger.e('❌ Failed to get device orientation (attempt $attempt/$maxRetries): $e');
+        _logger.e('❌ Failed to get device orientation (attempt $attempt/$maxRetries): $e', category: LogCategory.ar);
         if (attempt == maxRetries) {
           rethrow;
         }

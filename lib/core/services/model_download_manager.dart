@@ -3,7 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Enum for different model types
 enum ModelType {
@@ -31,7 +31,7 @@ class ModelConfig {
 }
 
 class ModelDownloadManager extends ChangeNotifier {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   
   // Model configurations
   static const Map<String, ModelConfig> _modelConfigs = {

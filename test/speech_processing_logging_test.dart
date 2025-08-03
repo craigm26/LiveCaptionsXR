@@ -5,8 +5,11 @@ import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
 import 'package:live_captions_xr/core/services/whisper_service_impl.dart';
 import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
+import 'package:live_captions_xr/core/services/camera_service.dart';
+import 'package:live_captions_xr/core/services/apple_speech_service.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
-import 'package:live_captions_xr/core/models/speech_config.dart';
+import 'mocks/mock_camera_service.dart';
+import 'mocks/mock_apple_speech_service.dart';
 
 class MockModelDownloadManager extends Mock implements ModelDownloadManager {}
 
@@ -15,19 +18,25 @@ void main() {
     late DebugCapturingLogger logger;
     late AudioCaptureService audioCaptureService;
     late WhisperService whisperService;
+    late AppleSpeechService appleSpeechService;
     late Gemma3nService gemma3nService;
+    late CameraService cameraService;
     late EnhancedSpeechProcessor speechProcessor;
 
     setUp(() {
       logger = DebugCapturingLogger();
       audioCaptureService = AudioCaptureService();
       whisperService = WhisperService();
+      appleSpeechService = MockAppleSpeechService();
+      cameraService = MockCameraService();
       final mockModelManager = MockModelDownloadManager();
       gemma3nService = Gemma3nService(modelManager: mockModelManager);
       speechProcessor = EnhancedSpeechProcessor(
         gemma3nService: gemma3nService,
         audioCaptureService: audioCaptureService,
         whisperService: whisperService,
+        appleSpeechService: appleSpeechService,
+        cameraService: cameraService,
         defaultEngine: SpeechEngine.whisper_ggml,
       );
     });
