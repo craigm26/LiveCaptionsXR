@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:logger/logger.dart';
 
 import '../../../core/services/ar_anchor_manager.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/ar_session_persistence_service.dart';
 import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/gemma_3n_service.dart';
+import '../../../core/services/app_logger.dart';
 import 'ar_session_state.dart';
 
 /// Cubit for managing AR session state and operations with persistence support
@@ -21,6 +21,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   Future<void> Function()? _stopLocalization;
   Future<void> Function()? _stopVisualIdentification;
   
+  // Track if services were started before AR session was ready
+  bool _servicesStartedBeforeReady = false;
+  
   // Store Whisper service for STT event listening
   WhisperService? _whisperService;
   StreamSubscription<WhisperSTTEvent>? _whisperSTTSubscription;
@@ -29,16 +32,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   Gemma3nService? _gemma3nService;
   StreamSubscription<Gemma3nEnhancementEvent>? _gemma3nEnhancementSubscription;
   
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  static final AppLogger _logger = AppLogger.instance;
 
   ARSessionCubit({
     required HybridLocalizationEngine hybridLocalizationEngine,
@@ -58,10 +52,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     
     // Subscribe to Whisper STT events
     _whisperSTTSubscription = whisperService.sttEvents.listen((event) {
-      _logger.d('🎤 Whisper STT event: ${event.message} (progress: ${event.progress})');
+      _logger.d('🎤 Whisper STT event: ${event.message} (progress: ${event.progress})', category: LogCategory.speech);
       
       if (event.error != null) {
-        _logger.e('❌ Whisper STT error: ${event.error}');
+        _logger.e('❌ Whisper STT error: ${event.error}', category: LogCategory.speech);
         emit(ARSessionError(
           message: 'STT failed: ${event.message}',
           details: event.error.toString(),
@@ -76,7 +70,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         ));
       }
     }, onError: (error) {
-      _logger.e('❌ Error in Whisper STT event stream', error: error);
+      _logger.e('❌ Error in Whisper STT event stream', category: LogCategory.speech, error: error);
       emit(ARSessionError(
         message: 'STT event stream error',
         details: error.toString(),
@@ -101,10 +95,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     
     // Subscribe to Gemma 3n enhancement events
     _gemma3nEnhancementSubscription = gemma3nService.enhancementEvents.listen((event) {
-      _logger.d('🔮 Gemma 3n enhancement event: ${event.message} (progress: ${event.progress})');
+      _logger.d('🔮 Gemma 3n enhancement event: ${event.message} (progress: ${event.progress})', category: LogCategory.gemma);
       
       if (event.error != null) {
-        _logger.e('❌ Gemma 3n enhancement error: ${event.error}');
+        _logger.e('❌ Gemma 3n enhancement error: ${event.error}', category: LogCategory.gemma);
         emit(ARSessionError(
           message: 'Contextual enhancement failed: ${event.message}',
           details: event.error.toString(),
@@ -117,7 +111,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         ));
       }
     }, onError: (error) {
-      _logger.e('❌ Error in Gemma 3n enhancement event stream', error: error);
+      _logger.e('❌ Error in Gemma 3n enhancement event stream', category: LogCategory.gemma, error: error);
       emit(ARSessionError(
         message: 'Enhancement event stream error',
         details: error.toString(),
@@ -162,9 +156,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   void _initMethodChannelListener() {
     const MethodChannel('live_captions_xr/ar_navigation').setMethodCallHandler((call) async {
       if (call.method == 'arViewWillClose') {
-        _logger.i('🚪 AR view is closing, stopping all services...');
+        _logger.i('🚪 AR view is closing, stopping all services...', category: LogCategory.ar);
         await stopARSession();
-        _logger.i('✅ All services stopped, AR view can proceed with cleanup');
+        _logger.i('✅ All services stopped, AR view can proceed with cleanup', category: LogCategory.ar);
         // Return success to indicate cleanup is complete
         return 'cleanup_complete';
       }
@@ -174,12 +168,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   /// Initialize AR session with optional restoration from previous session
   Future<void> initializeARSession({bool restoreFromPersistence = true}) async {
     if (state is ARSessionInitializing || state is ARSessionReady) {
-      _logger.w('⚠️ AR session already initializing or ready');
+      _logger.w('⚠️ AR session already initializing or ready', category: LogCategory.ar);
       return;
     }
 
     try {
-      _logger.i('🥽 Initializing AR session...');
+      _logger.i('🥽 Initializing AR session...', category: LogCategory.ar);
       
       // Check for and potentially restore previous session
       if (restoreFromPersistence) {
@@ -205,27 +199,34 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       emit(const ARSessionInitializing());
 
       // Start AR view using the AR navigation channel
-      _logger.i('🔗 Calling showARView via method channel...');
+      _logger.i('🔗 Calling showARView via method channel...', category: LogCategory.ar);
       try {
-        await const MethodChannel('live_captions_xr/ar_navigation')
-            .invokeMethod('showARView');
-        _logger.i('✅ AR View method channel call completed successfully');
+        // Don't wait for showARView to complete - it blocks until AR view is closed!
+        const MethodChannel('live_captions_xr/ar_navigation')
+            .invokeMethod('showARView').then((_) {
+          _logger.i('✅ AR View closed (showARView completed)', category: LogCategory.ar);
+        }).catchError((e) {
+          _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
+        });
+        
+        // Continue immediately without waiting
+        _logger.i('📱 AR View launched (not waiting for completion)', category: LogCategory.ar);
       } catch (e) {
-        _logger.e('❌ AR View method channel call failed', error: e);
+        _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
         rethrow;
       }
 
-      _logger.i('✅ AR View launched successfully');
+      _logger.i('✅ AR View launched successfully', category: LogCategory.ar);
 
       // Calibrate the AR session with progress updates
       await _performCalibration();
 
       // Give ARSession a moment to initialize before declaring ready
-      _logger.i('⏳ Waiting for ARSession to fully initialize...');
+      _logger.i('⏳ Waiting for ARSession to fully initialize...', category: LogCategory.ar);
       await Future.delayed(const Duration(milliseconds: 1000));
 
       // Validate that the AR session is actually ready before declaring it ready
-      _logger.i('🔍 Validating AR session readiness with retries...');
+      _logger.i('🔍 Validating AR session readiness with retries...', category: LogCategory.ar);
       const maxValidationAttempts = 8; // Increased from 5 to 8
       const validationRetryDelay = Duration(milliseconds: 750); // Increased from 500ms to 750ms
 
@@ -234,10 +235,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         try {
           await _validateARSessionReadiness();
           isSessionValid = true;
-          _logger.i('✅ AR session validation passed on attempt $attempt');
+          _logger.i('✅ AR session validation passed on attempt $attempt', category: LogCategory.ar);
           break;
         } catch (e) {
-          _logger.w('⚠️ AR session validation failed on attempt $attempt/$maxValidationAttempts: $e');
+          _logger.w('⚠️ AR session validation failed on attempt $attempt/$maxValidationAttempts: $e', category: LogCategory.ar);
           if (attempt < maxValidationAttempts) {
             await Future.delayed(validationRetryDelay);
           }
@@ -250,12 +251,17 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         // This allows the AR session to work even if validation is slow
       }
 
-      final readyState = const ARSessionReady();
+      final readyState = ARSessionReady(servicesStarted: _servicesStartedBeforeReady);
       emit(readyState);
       await _persistenceService.saveSessionState(readyState);
-      _logger.i('🎉 AR session initialized and ready');
+      
+      if (_servicesStartedBeforeReady) {
+        _logger.i('🎉 AR session initialized and ready (services already started)', category: LogCategory.ar);
+      } else {
+        _logger.i('🎉 AR session initialized and ready (services not yet started)', category: LogCategory.ar);
+      }
     } on PlatformException catch (e) {
-      _logger.e('❌ AR View platform exception', error: e);
+      _logger.e('❌ AR View platform exception', error: e, category: LogCategory.ar);
 
       String errorMessage;
       String? errorCode = e.code;
@@ -300,15 +306,15 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   /// Attempt to restore AR session from persistent storage
   Future<void> _attemptSessionRestore() async {
     try {
-      _logger.i('🔄 Attempting to restore AR session from persistence...');
+      _logger.i('🔄 Attempting to restore AR session from persistence...', category: LogCategory.ar);
       
       final restoredState = await _persistenceService.restoreSessionState();
       if (restoredState == null) {
-        _logger.i('ℹ️ No valid session state to restore');
+        _logger.i('ℹ️ No valid session state to restore', category: LogCategory.ar);
         return;
       }
       
-      _logger.i('📂 Restoring AR session state: ${restoredState.runtimeType}');
+      _logger.i('📂 Restoring AR session state: ${restoredState.runtimeType}', category: LogCategory.ar);
       
       if (restoredState is ARSessionReady) {
         // Verify the restored anchor is still valid
@@ -317,12 +323,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           if (anchorData != null) {
             // Don't restore servicesStarted flag - services should be explicitly started
             emit(restoredState.copyWith(servicesStarted: false));
-            _logger.i('✅ AR session restored successfully with anchor (services not auto-started)');
+            _logger.i('✅ AR session restored successfully with anchor (services not auto-started)', category: LogCategory.ar);
             return;
           }
         }
         emit(const ARSessionReady(servicesStarted: false));
-        _logger.i('✅ AR session restored without anchor (services not auto-started)');
+        _logger.i('✅ AR session restored without anchor (services not auto-started)', category: LogCategory.ar);
       } else if (restoredState is ARSessionPaused) {
         emit(const ARSessionResuming());
         await Future.delayed(const Duration(milliseconds: 1000));
@@ -336,36 +342,36 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         } else {
           emit(const ARSessionReady(servicesStarted: false));
         }
-        _logger.i('✅ AR session resumed from paused state (services not auto-started)');
+        _logger.i('✅ AR session resumed from paused state (services not auto-started)', category: LogCategory.ar);
       }
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to restore AR session', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to restore AR session', error: e, stackTrace: stackTrace, category: LogCategory.ar);
     }
   }
 
   /// Validate that the AR session is actually ready for operations
   Future<void> _validateARSessionReadiness() async {
     try {
-      _logger.i('🔬 Testing AR session availability via anchor methods...');
+      _logger.i('🔬 Testing AR session availability via anchor methods...', category: LogCategory.ar);
       
       // Try to call a simple method to check if the AR session is available
       await const MethodChannel('live_captions_xr/ar_anchor_methods')
           .invokeMethod('getDeviceOrientation');
       
-      _logger.i('✅ AR session responded to validation call');
+      _logger.i('✅ AR session responded to validation call', category: LogCategory.ar);
     } on PlatformException catch (e) {
       if (e.code == 'NO_SESSION') {
-        _logger.e('❌ AR session validation failed: NO_SESSION');
+        _logger.e('❌ AR session validation failed: NO_SESSION', category: LogCategory.ar);
         throw Exception('AR session not available during validation');
       } else if (e.code == 'SESSION_NOT_READY') {
         _logger.w('⚠️ AR session not ready during validation, but may become ready');
         throw Exception('AR session not ready during validation');
       } else {
-        _logger.w('⚠️ AR session validation returned unexpected error: ${e.code}');
+        _logger.w('⚠️ AR session validation returned unexpected error: ${e.code}', category: LogCategory.ar);
         throw Exception('AR session validation failed: ${e.code}');
       }
     } catch (e) {
-      _logger.e('❌ AR session validation failed with unexpected error', error: e);
+      _logger.e('❌ AR session validation failed with unexpected error', error: e, category: LogCategory.ar);
       throw Exception('AR session validation failed: $e');
     }
   }
@@ -373,7 +379,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   /// Perform AR session calibration
   Future<void> _performCalibration() async {
     try {
-      _logger.i('📐 Starting AR session calibration...');
+      _logger.i('📐 Starting AR session calibration...', category: LogCategory.ar);
       
       emit(const ARSessionCalibrating(progress: 0.0, calibrationType: 'device'));
       await Future.delayed(const Duration(milliseconds: 500));
@@ -387,9 +393,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       emit(const ARSessionCalibrating(progress: 1.0, calibrationType: 'complete'));
       await Future.delayed(const Duration(milliseconds: 300));
       
-      _logger.i('✅ AR session calibration completed');
+      _logger.i('✅ AR session calibration completed', category: LogCategory.ar);
     } catch (e, stackTrace) {
-      _logger.e('❌ AR calibration failed', error: e, stackTrace: stackTrace);
+      _logger.e('❌ AR calibration failed', error: e, stackTrace: stackTrace, category: LogCategory.ar);
       throw Exception('AR calibration failed: $e');
     }
   }
@@ -399,7 +405,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     final currentState = state;
     
     try {
-      _logger.i('⏸️ Pausing AR session...');
+      _logger.i('⏸️ Pausing AR session...', category: LogCategory.ar);
       
       if (currentState is ARSessionReady) {
         final pausedState = ARSessionPaused(
@@ -421,10 +427,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           );
         }
         
-        _logger.i('✅ AR session paused successfully');
+        _logger.i('✅ AR session paused successfully', category: LogCategory.ar);
       }
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to pause AR session', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to pause AR session', error: e, stackTrace: stackTrace, category: LogCategory.ar);
     }
   }
 
@@ -433,12 +439,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     final currentState = state;
     
     if (currentState is! ARSessionPaused) {
-      _logger.w('⚠️ Cannot resume - AR session not paused');
+      _logger.w('⚠️ Cannot resume - AR session not paused', category: LogCategory.ar);
       return;
     }
     
     try {
-      _logger.i('▶️ Resuming AR session...');
+      _logger.i('▶️ Resuming AR session...', category: LogCategory.ar);
       
       emit(const ARSessionResuming(progress: 0.0));
       await Future.delayed(const Duration(milliseconds: 500));
@@ -455,9 +461,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       emit(readyState);
       await _persistenceService.saveSessionState(readyState);
       
-      _logger.i('✅ AR session resumed successfully');
+      _logger.i('✅ AR session resumed successfully', category: LogCategory.ar);
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to resume AR session', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to resume AR session', error: e, stackTrace: stackTrace, category: LogCategory.ar);
       
       emit(ARSessionError(
         message: 'Failed to resume AR session',
@@ -468,7 +474,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
   /// Handle tracking lost scenario
   Future<void> handleTrackingLost(String reason) async {
-    _logger.w('⚠️ AR tracking lost: $reason');
+    _logger.w('⚠️ AR tracking lost: $reason', category: LogCategory.ar);
     
     emit(ARSessionTrackingLost(
       reason: reason,
@@ -486,7 +492,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        _logger.i('🔄 Attempting to reconnect AR session (attempt $attempt/$maxAttempts)...');
+        _logger.i('🔄 Attempting to reconnect AR session (attempt $attempt/$maxAttempts)...', category: LogCategory.ar);
         
         emit(ARSessionReconnecting(attempt: attempt));
         await Future.delayed(const Duration(seconds: 1));
@@ -495,11 +501,11 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         await initializeARSession(restoreFromPersistence: true);
         
         if (state is ARSessionReady) {
-          _logger.i('✅ AR session reconnected successfully');
+          _logger.i('✅ AR session reconnected successfully', category: LogCategory.ar);
           return;
         }
       } catch (e) {
-        _logger.w('⚠️ Reconnection attempt $attempt failed: $e');
+        _logger.w('⚠️ Reconnection attempt $attempt failed: $e', category: LogCategory.ar);
         
         if (attempt == maxAttempts) {
           emit(ARSessionError(
@@ -516,12 +522,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   Future<void> placeAutoAnchor() async {
     final currentState = state;
     if (currentState is! ARSessionReady) {
-      _logger.w('⚠️ Cannot place anchor - AR session not ready. Current state: ${currentState.runtimeType}');
+      _logger.w('⚠️ Cannot place anchor - AR session not ready. Current state: ${currentState.runtimeType}', category: LogCategory.ar);
       return;
     }
 
     if (currentState.anchorPlaced) {
-      _logger.i('🎯 AR anchor already placed');
+      _logger.i('🎯 AR anchor already placed', category: LogCategory.ar);
       return;
     }
 
@@ -530,32 +536,32 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        _logger.i('🎯 Auto-placing AR anchor... (attempt $attempt/$maxRetries)');
+        _logger.i('🎯 Auto-placing AR anchor... (attempt $attempt/$maxRetries)', category: LogCategory.ar);
 
         final arAnchorManager = ARAnchorManager();
 
         // First, validate that the AR session is actually ready for anchor operations
-        _logger.d('🔍 Validating AR session readiness...');
+        _logger.d('🔍 Validating AR session readiness...', category: LogCategory.ar);
         try {
           await arAnchorManager.getDeviceOrientation();
-          _logger.d('✅ AR session validation successful');
+          _logger.d('✅ AR session validation successful', category: LogCategory.ar);
         } catch (e) {
-          _logger.w('⚠️ AR session not ready yet: $e');
+          _logger.w('⚠️ AR session not ready yet: $e', category: LogCategory.ar);
           if (attempt < maxRetries) {
-            _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+            _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...', category: LogCategory.ar);
             await Future.delayed(retryDelay);
             continue;
           } else {
-            _logger.e('❌ AR session validation failed after $maxRetries attempts');
+            _logger.e('❌ AR session validation failed after $maxRetries attempts', category: LogCategory.ar);
             rethrow;
           }
         }
 
-        _logger.d('🔄 Requesting fused transform from hybrid localization...');
+        _logger.d('🔄 Requesting fused transform from hybrid localization...', category: LogCategory.ar);
         final fusedTransform = await _hybridLocalizationEngine.getFusedTransform();
-        _logger.d('✅ Fused transform retrieved successfully - length: ${fusedTransform.length}');
+        _logger.d('✅ Fused transform retrieved successfully - length: ${fusedTransform.length}', category: LogCategory.ar);
 
-        _logger.i('🌍 Creating AR anchor at world transform: [${fusedTransform.take(4).map((e) => e.toStringAsFixed(3)).join(', ')}...]');
+        _logger.i('🌍 Creating AR anchor at world transform: [${fusedTransform.take(4).map((e) => e.toStringAsFixed(3)).join(', ')}...]', category: LogCategory.ar);
         
         final anchorId = await arAnchorManager
             .createAnchorAtWorldTransform(fusedTransform);
@@ -579,11 +585,11 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           },
         );
 
-        _logger.i('🎉 AR anchor auto-placed successfully: $anchorId');
+        _logger.i('🎉 AR anchor auto-placed successfully: $anchorId', category: LogCategory.ar);
         return; // Success, exit retry loop
       } catch (e, stackTrace) {
         if (e is PlatformException) {
-          _logger.e('❌ Platform exception during anchor placement (attempt $attempt/$maxRetries): ${e.code} - ${e.message}', error: e);
+          _logger.e('❌ Platform exception during anchor placement (attempt $attempt/$maxRetries): ${e.code} - ${e.message}', error: e, category: LogCategory.ar);
           
           // Add specific handling for different error types
           switch (e.code) {
@@ -591,26 +597,26 @@ class ARSessionCubit extends Cubit<ARSessionState> {
             case 'SESSION_NOT_READY':
               _logger.w('⏳ ARSession not ready, will retry. Error: ${e.code}');
               if (attempt < maxRetries) {
-                _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+                _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...', category: LogCategory.ar);
                 await Future.delayed(retryDelay);
                 continue; // Continue to the next attempt immediately
               }
               break;
             case 'INVALID_ARGUMENTS':
-              _logger.e('📝 Invalid arguments passed to anchor creation');
+              _logger.e('📝 Invalid arguments passed to anchor creation', category: LogCategory.ar);
               break;
             default:
-              _logger.e('🔍 Unknown platform exception: ${e.code}');
+              _logger.e('🔍 Unknown platform exception: ${e.code}', category: LogCategory.ar);
           }
         } else {
-          _logger.e('❌ Unexpected error during anchor placement (attempt $attempt/$maxRetries)', error: e, stackTrace: stackTrace);
+          _logger.e('❌ Unexpected error during anchor placement (attempt $attempt/$maxRetries)', error: e, stackTrace: stackTrace, category: LogCategory.ar);
         }
 
         if (attempt < maxRetries) {
-          _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+          _logger.i('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...', category: LogCategory.ar);
           await Future.delayed(retryDelay);
         } else {
-          _logger.e('❌ All anchor placement attempts failed. AR mode will continue without auto-anchor.');
+          _logger.e('❌ All anchor placement attempts failed. AR mode will continue without auto-anchor.', category: LogCategory.ar);
           // Don't emit error state since AR session can still work without anchor
           // The main AR mode functionality should still work
         }
@@ -632,26 +638,32 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     String sttBackend = 'Whisper',
     bool sttIsOnline = false,
   }) async {
+    print('DEBUG: ARSessionCubit.startAllARServices called'); // Debug print
+    _logger.i('🔍 [AR_CUBIT] startAllARServices called', category: LogCategory.ar);
     final currentState = state;
-    if (currentState is! ARSessionReady) {
-      _logger.w('⚠️ Cannot start AR services - AR session not ready. Current state: ${currentState.runtimeType}');
-      return;
-    }
+    print('DEBUG: Current AR session state: ${currentState.runtimeType}'); // Debug print
+    _logger.i('🔍 [AR_CUBIT] Current AR session state: ${currentState.runtimeType}', category: LogCategory.ar);
+    
+    // Services can start independently of AR session state
+    _logger.i('✅ [AR_CUBIT] Starting services regardless of AR session state (services work independently)', category: LogCategory.ar);
 
-    // Check if services are already started
-    if (currentState.servicesStarted) {
-      _logger.i('🔄 AR services already started, skipping');
+    // Check if services are already started (only for ARSessionReady state)
+    if (currentState is ARSessionReady && currentState.servicesStarted) {
+      _logger.i('🔄 AR services already started, skipping', category: LogCategory.ar);
       return;
     }
 
     try {
-      _logger.i('🚀 Starting all services for AR mode...');
+      print('DEBUG: Inside try block, starting services'); // Debug print
+      _logger.i('🚀 Starting all services for AR mode...', category: LogCategory.ar);
 
+      print('DEBUG: Storing stop callbacks'); // Debug print
       // Store stop callbacks for later cleanup
       _stopLiveCaptions = stopLiveCaptions;
       _stopSoundDetection = stopSoundDetection;
       _stopLocalization = stopLocalization;
       _stopVisualIdentification = stopVisualIdentification;
+      print('DEBUG: Stop callbacks stored'); // Debug print
 
       // Initialize service statuses
       final serviceStatuses = <String, ServiceStatus>{
@@ -692,6 +704,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       for (int i = 0; i < services.length; i++) {
         final (serviceKey, serviceStartFunction) = services[i];
+        print('DEBUG: Starting service $serviceKey (${i+1}/${services.length})'); // Debug print
         
         // Update service status to starting
         final updatedStatuses = Map<String, ServiceStatus>.from(serviceStatuses);
@@ -701,14 +714,17 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           progress: 0.0,
         );
         
+        print('DEBUG: Emitting ARSessionStartingServices for $serviceKey'); // Debug print
         emit(ARSessionStartingServices(
           serviceStatuses: updatedStatuses,
           overallProgress: i / services.length,
         ));
 
         try {
+          print('DEBUG: About to call serviceStartFunction for $serviceKey'); // Debug print
           // Start the service
           await serviceStartFunction();
+          print('DEBUG: serviceStartFunction completed for $serviceKey'); // Debug print
           
           // Update service status to running
           updatedStatuses[serviceKey] = updatedStatuses[serviceKey]!.copyWith(
@@ -722,9 +738,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
             overallProgress: (i + 1) / services.length,
           ));
           
-          _logger.i('✅ ${updatedStatuses[serviceKey]!.serviceName} started successfully');
+          _logger.i('✅ ${updatedStatuses[serviceKey]!.serviceName} started successfully', category: LogCategory.ar);
         } catch (e) {
-          _logger.e('❌ Failed to start ${updatedStatuses[serviceKey]!.serviceName}', error: e);
+          _logger.e('❌ Failed to start ${updatedStatuses[serviceKey]!.serviceName}', error: e, category: LogCategory.ar);
           
           // Update service status to error
           updatedStatuses[serviceKey] = updatedStatuses[serviceKey]!.copyWith(
@@ -748,10 +764,16 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       // Place anchor after services are started and ready
       await placeAutoAnchor();
 
-      // Update state to indicate services have been started
-      emit(currentState.copyWith(servicesStarted: true));
+      // Update state to indicate services have been started (only if AR session is ready)
+      if (currentState is ARSessionReady) {
+        emit(currentState.copyWith(servicesStarted: true));
+        _logger.i('✅ [AR_CUBIT] Updated ARSessionReady state with servicesStarted: true', category: LogCategory.ar);
+      } else {
+        _servicesStartedBeforeReady = true;
+        _logger.i('ℹ️ [AR_CUBIT] AR session not ready yet, marking services as started for later', category: LogCategory.ar);
+      }
 
-      _logger.i('🎉 All AR mode services started successfully');
+      _logger.i('🎉 All AR mode services started successfully', category: LogCategory.ar);
     } catch (e, stackTrace) {
       _logger.e('❌ Error starting AR mode services',
           error: e, stackTrace: stackTrace);
@@ -767,7 +789,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
   /// Start monitoring AR session health
   void _startSessionHealthMonitoring() {
-    _logger.d('🏥 Starting AR session health monitoring...');
+    _logger.d('🏥 Starting AR session health monitoring...', category: LogCategory.ar);
     
     _sessionHealthTimer?.cancel();
     _sessionHealthTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
@@ -783,15 +805,15 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     }
 
     try {
-      _logger.d('🔍 Performing AR session health check...');
+      _logger.d('🔍 Performing AR session health check...', category: LogCategory.ar);
       await const MethodChannel('live_captions_xr/ar_anchor_methods')
           .invokeMethod('getDeviceOrientation');
-      _logger.d('✅ AR session health check passed');
+      _logger.d('✅ AR session health check passed', category: LogCategory.ar);
     } catch (e) {
       _logger.w('⚠️ AR session health check failed', error: e);
       
       if (e is PlatformException && e.code == 'NO_SESSION') {
-        _logger.e('💥 CRITICAL: AR session lost during health check');
+        _logger.e('💥 CRITICAL: AR session lost during health check', category: LogCategory.ar);
         // Session was lost, emit error state
         emit(ARSessionError(
           message: 'AR session was lost during operation',
@@ -805,34 +827,34 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   /// Stop AR session and clean up
   Future<void> stopARSession() async {
     try {
-      _logger.i('🛑 Stopping AR session and all services...');
+      _logger.i('🛑 Stopping AR session and all services...', category: LogCategory.ar);
       emit(const ARSessionStopping());
 
       // Stop listening to Whisper STT events
       stopListeningToWhisperSTT();
-      _logger.d('🎤 Whisper STT event listening stopped');
+      _logger.d('🎤 Whisper STT event listening stopped', category: LogCategory.speech);
 
       // Stop listening to Gemma 3n enhancement events
       stopListeningToGemma3nEnhancement();
-      _logger.d('🔮 Gemma 3n enhancement event listening stopped');
+      _logger.d('🔮 Gemma 3n enhancement event listening stopped', category: LogCategory.gemma);
 
       // Stop session health monitoring first
       _sessionHealthTimer?.cancel();
       _sessionHealthTimer = null;
-      _logger.d('🏥 AR session health monitoring stopped');
+      _logger.d('🏥 AR session health monitoring stopped', category: LogCategory.ar);
 
       // Stop all AR services with proper error handling and timeouts
-      _logger.i('🛑 Stopping all AR services with timeouts...');
+      _logger.i('🛑 Stopping all AR services with timeouts...', category: LogCategory.ar);
       final stopFutures = <Future<void>>[];
       
       if (_stopLiveCaptions != null) {
         stopFutures.add(_stopLiveCaptions!().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            _logger.w('⏰ Live captions stop timed out');
+            _logger.w('⏰ Live captions stop timed out', category: LogCategory.captions);
           },
         ).catchError((e) {
-          _logger.w('⚠️ Error stopping live captions: $e');
+          _logger.w('⚠️ Error stopping live captions: $e', category: LogCategory.captions);
         }));
       }
       
@@ -840,10 +862,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         stopFutures.add(_stopSoundDetection!().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            _logger.w('⏰ Sound detection stop timed out');
+            _logger.w('⏰ Sound detection stop timed out', category: LogCategory.audio);
           },
         ).catchError((e) {
-          _logger.w('⚠️ Error stopping sound detection: $e');
+          _logger.w('⚠️ Error stopping sound detection: $e', category: LogCategory.audio);
         }));
       }
       
@@ -851,10 +873,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         stopFutures.add(_stopLocalization!().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            _logger.w('⏰ Localization stop timed out');
+            _logger.w('⏰ Localization stop timed out', category: LogCategory.ar);
           },
         ).catchError((e) {
-          _logger.w('⚠️ Error stopping localization: $e');
+          _logger.w('⚠️ Error stopping localization: $e', category: LogCategory.ar);
         }));
       }
       
@@ -862,10 +884,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         stopFutures.add(_stopVisualIdentification!().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            _logger.w('⏰ Visual identification stop timed out');
+            _logger.w('⏰ Visual identification stop timed out', category: LogCategory.camera);
           },
         ).catchError((e) {
-          _logger.w('⚠️ Error stopping visual identification: $e');
+          _logger.w('⚠️ Error stopping visual identification: $e', category: LogCategory.camera);
         }));
       }
       
@@ -878,11 +900,11 @@ class ARSessionCubit extends Cubit<ARSessionState> {
             return <void>[];
           },
         );
-        _logger.i('✅ All AR services stopped (or timed out)');
+        _logger.i('✅ All AR services stopped (or timed out)', category: LogCategory.ar);
       }
       
       // Add extra delay to ensure all MediaPipe/LLM background threads complete
-      _logger.i('⏳ Waiting for background inference threads to complete...');
+      _logger.i('⏳ Waiting for background inference threads to complete...', category: LogCategory.ar);
       await Future.delayed(const Duration(milliseconds: 1000));
       
       // Clear stop callbacks
@@ -890,26 +912,29 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       _stopSoundDetection = null;
       _stopLocalization = null;
       _stopVisualIdentification = null;
+      
+      // Reset the services started flag
+      _servicesStartedBeforeReady = false;
 
       // Clear persisted session data when stopping
       await _persistenceService.clearAllSessionData();
 
       // Note: AR view cleanup is handled by the iOS side when the user taps the close button
       // The arViewWillClose method channel call ensures proper cleanup order
-      _logger.i('✅ AR view cleanup handled by iOS side');
+      _logger.i('✅ AR view cleanup handled by iOS side', category: LogCategory.ar);
 
       // Clear persisted session data when stopping
       try {
         await _persistenceService.clearAllSessionData();
-        _logger.i('✅ Cleared all session data from persistence');
+        _logger.i('✅ Cleared all session data from persistence', category: LogCategory.ar);
       } catch (e, stackTrace) {
         _logger.w('⚠️ Failed to clear session data, but continuing cleanup',
             error: e, stackTrace: stackTrace);
       }
 
       emit(const ARSessionInitial());
-      _logger.i('✅ AR session stopped and persistence cleared');
-      _logger.i('🔄 AR session state reset to initial - no services should be running');
+      _logger.i('✅ AR session stopped and persistence cleared', category: LogCategory.ar);
+      _logger.i('🔄 AR session state reset to initial - no services should be running', category: LogCategory.ar);
     } catch (e, stackTrace) {
       _logger.e('❌ Error stopping AR session',
           error: e, stackTrace: stackTrace);
@@ -939,7 +964,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   /// Dispose resources and cancel all subscriptions
   @override
   Future<void> close() async {
-    _logger.i('🗑️ Disposing ARSessionCubit...');
+    _logger.i('🗑️ Disposing ARSessionCubit...', category: LogCategory.ar);
     
     // Stop listening to Whisper STT events
     stopListeningToWhisperSTT();
@@ -957,7 +982,7 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     _stopLocalization = null;
     _stopVisualIdentification = null;
     
-    _logger.i('✅ ARSessionCubit disposed');
+    _logger.i('✅ ARSessionCubit disposed', category: LogCategory.ar);
     await super.close();
   }
 }

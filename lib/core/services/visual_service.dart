@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// A service for capturing visual snapshots from the device's camera.
 ///
@@ -9,7 +9,7 @@ import 'debug_capturing_logger.dart';
 class VisualService {
   static const _channel = MethodChannel('com.craig.livecaptions/visual');
 
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   VisualService() {
     _logger.i('🏗️ Initializing VisualService...');
