@@ -127,7 +127,7 @@ class _InteractiveDemoState extends State<InteractiveDemo>
                           },
                         ),
                         const SizedBox(width: 16),
-                        Expanded(
+                        Flexible(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
