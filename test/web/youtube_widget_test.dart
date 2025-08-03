@@ -21,8 +21,8 @@ void main() {
 
     test('should extract correct video ID from YouTube URL', () {
       // Test the video ID extraction logic
-      const videoUrl = 'https://youtu.be/1seS-Otr1HA';
-      const expectedVideoId = '1seS-Otr1HA';
+      const videoUrl = 'https://youtu.be/Oz8nzt2cc3Q';
+      const expectedVideoId = 'Oz8nzt2cc3Q';
       
       // Extract video ID from URL (this is what we're using in the code)
       final videoId = videoUrl.split('/').last;
