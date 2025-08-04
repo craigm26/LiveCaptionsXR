@@ -52,6 +52,37 @@ class HybridLocalizationEngine {
     }
   }
 
+  /// Feed audio direction measurement to the hybrid localization system
+  /// This method integrates audio-based speaker localization with the spatial caption system
+  Future<void> feedAudioDirection({
+    required double angle,
+    required double confidence,
+    List<double>? deviceTransform,
+  }) async {
+    try {
+      _logger.d('🎯 Feeding audio direction to hybrid localization: ${angle.toStringAsFixed(3)} rad');
+      
+      // If no device transform provided, use identity matrix
+      final transform = deviceTransform ?? List.filled(16, 0.0)..setAll(0, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+      
+      // Update the hybrid localization engine
+      await updateWithAudioMeasurement(
+        angle: angle,
+        confidence: confidence,
+        deviceTransform: transform,
+      );
+      
+      // Execute prediction step to update state
+      await predict();
+      
+      _logger.d('✅ Audio direction successfully integrated with hybrid localization');
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error feeding audio direction to hybrid localization',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
   /// Update with visual measurement (transform as 16 doubles, row-major, confidence 0-1).
   Future<void> updateWithVisualMeasurement({
     required List<double> transform,
