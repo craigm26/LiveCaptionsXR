@@ -295,8 +295,8 @@ class _TechnicalDocsPageState extends State<TechnicalDocsPage>
           ),
           _buildArchitectureComponent(
             'Speech Recognition',
-            'On-device speech-to-text using Whisper and Gemma 3n',
-            ['Whisper GGML models', 'Gemma 3n multimodal AI', 'Local processing'],
+            'On-device speech-to-text using Apple Speech Recognition and Gemma 3n',
+            ['Apple Speech Recognition (iOS)', 'Gemma 3n multimodal AI', 'Local processing'],
           ),
           _buildArchitectureComponent(
             'AR Integration',

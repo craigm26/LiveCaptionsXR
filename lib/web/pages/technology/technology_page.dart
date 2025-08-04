@@ -122,7 +122,7 @@ class _TechnologyPageState extends State<TechnologyPage>
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 80.0,
+        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -139,10 +139,10 @@ class _TechnologyPageState extends State<TechnologyPage>
         children: [
           Icon(
             Icons.memory,
-            size: isMobile ? 64 : 80,
+            size: isMobile ? 48 : 64, // Reduced icon size
             color: Theme.of(context).primaryColor,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             'Advanced Technology Stack',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
@@ -151,7 +151,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Container(
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 700),
@@ -187,9 +187,9 @@ class _TechnologyPageState extends State<TechnologyPage>
               Tab(text: 'Augmented Reality'),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           SizedBox(
-            height: 400,
+            height: 320, // Reduced height from 400
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -208,15 +208,15 @@ class _TechnologyPageState extends State<TechnologyPage>
   Widget _buildAISection() {
     final aiTechnologies = [
       {
-        'name': 'Whisper GGML',
+        'name': 'Apple Speech Recognition',
         'description':
-            'On-device speech recognition using the Whisper base model for fast, private, offline transcription.',
+            'Native iOS speech recognition framework for real-time, on-device transcription with offline support.',
         'icon': Icons.mic,
         'features': [
-          'On-device processing',
-          'Fast transcription',
-          'Privacy-first',
-          'Offline capability'
+          'Native iOS integration',
+          'Real-time processing',
+          'Offline capability',
+          'High accuracy'
         ],
       },
       {
@@ -381,24 +381,24 @@ class _TechnologyPageState extends State<TechnologyPage>
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 1,
-        childAspectRatio: 3.5,
-        mainAxisSpacing: 16,
+        childAspectRatio: 4.0, // Increased aspect ratio for more compact cards
+        mainAxisSpacing: 12, // Reduced spacing
       ),
       itemCount: technologies.length,
       itemBuilder: (context, index) {
         final tech = technologies[index];
         return Card(
-          elevation: 4,
+          elevation: 2, // Reduced elevation
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0), // Reduced padding
             child: Row(
               children: [
                 Icon(
                   tech['icon'] as IconData,
-                  size: 40,
+                  size: 32, // Reduced icon size
                   color: Theme.of(context).primaryColor,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12), // Reduced spacing
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,21 +424,21 @@ class _TechnologyPageState extends State<TechnologyPage>
                           maxLines: 2,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4), // Reduced spacing
                       Flexible(
                         child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
+                          spacing: 3, // Reduced spacing
+                          runSpacing: 3, // Reduced spacing
                           children: (tech['features'] as List<String>)
                               .take(3) // Limit to 3 features to prevent overflow
                               .map((feature) => Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
+                                        horizontal: 5, vertical: 1), // Reduced padding
                                     decoration: BoxDecoration(
                                       color: Theme.of(context)
                                           .primaryColor
                                           .withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6), // Reduced radius
                                     ),
                                     child: Text(
                                       feature,
@@ -447,7 +447,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                                           .bodySmall
                                           ?.copyWith(
                                             color: Theme.of(context).primaryColor,
-                                            fontSize: 10,
+                                            fontSize: 9, // Reduced font size
                                           ),
                                     ),
                                   ))
@@ -469,7 +469,7 @@ class _TechnologyPageState extends State<TechnologyPage>
     return Container(
       width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 48.0),
-      padding: const EdgeInsets.symmetric(vertical: 48.0),
+      padding: const EdgeInsets.symmetric(vertical: 32.0), // Reduced padding
       child: Column(
         children: [
           Text(
@@ -480,10 +480,10 @@ class _TechnologyPageState extends State<TechnologyPage>
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           Container(
             constraints: const BoxConstraints(maxWidth: 800),
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(24), // Reduced padding
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(16),
@@ -493,16 +493,16 @@ class _TechnologyPageState extends State<TechnologyPage>
               children: [
                 _buildArchitectureLayer('Input Layer',
                     'Camera • Stereo Microphone • IMU', Icons.input),
-                const SizedBox(height: 16),
-                Icon(Icons.arrow_downward, color: Colors.grey[600]),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced spacing
+                Icon(Icons.arrow_downward, color: Colors.grey[600], size: 20), // Reduced icon size
+                const SizedBox(height: 12), // Reduced spacing
                 _buildArchitectureLayer(
                     'Processing Layer',
                     'Gemma 3n • Hybrid Localization • Native Vision/Audio',
                     Icons.memory),
-                const SizedBox(height: 16),
-                Icon(Icons.arrow_downward, color: Colors.grey[600]),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced spacing
+                Icon(Icons.arrow_downward, color: Colors.grey[600], size: 20), // Reduced icon size
+                const SizedBox(height: 12), // Reduced spacing
                 _buildArchitectureLayer('Output Layer',
                     'ARKit/ARCore Overlay • Real-time Captions', Icons.output),
               ],
@@ -516,7 +516,7 @@ class _TechnologyPageState extends State<TechnologyPage>
   Widget _buildArchitectureLayer(
       String title, String components, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -524,8 +524,8 @@ class _TechnologyPageState extends State<TechnologyPage>
       ),
       child: Row(
         children: [
-          Icon(icon, color: Theme.of(context).primaryColor, size: 32),
-          const SizedBox(width: 16),
+          Icon(icon, color: Theme.of(context).primaryColor, size: 24), // Reduced icon size
+          const SizedBox(width: 12), // Reduced spacing
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,7 +536,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                         fontWeight: FontWeight.bold,
                       ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2), // Reduced spacing
                 Text(
                   components,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -567,7 +567,7 @@ class _TechnologyPageState extends State<TechnologyPage>
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 16.0 : 48.0,
-        vertical: 48.0,
+        vertical: 32.0, // Reduced padding
       ),
       color: Colors.grey[50],
       child: Column(
@@ -580,23 +580,23 @@ class _TechnologyPageState extends State<TechnologyPage>
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: isMobile ? 2 : 4,
-              childAspectRatio: 1.5,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
+              childAspectRatio: 1.8, // Increased aspect ratio for more compact cards
+              mainAxisSpacing: 12, // Reduced spacing
+              crossAxisSpacing: 12, // Reduced spacing
             ),
             itemCount: metrics.length,
             itemBuilder: (context, index) {
               final metric = metrics[index];
               return Card(
-                elevation: 2,
+                elevation: 1, // Reduced elevation
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(12.0), // Reduced padding
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -604,10 +604,10 @@ class _TechnologyPageState extends State<TechnologyPage>
                     children: [
                       Icon(
                         metric['icon'] as IconData,
-                        size: 28,
+                        size: 24, // Reduced icon size
                         color: Theme.of(context).primaryColor,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4), // Reduced spacing
                       Flexible(
                         child: Text(
                           metric['value'] as String,
@@ -621,7 +621,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                           maxLines: 1,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 2), // Reduced spacing
                       Flexible(
                         child: Text(
                           metric['metric'] as String,
@@ -649,16 +649,16 @@ class _TechnologyPageState extends State<TechnologyPage>
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: 48.0,
+        vertical: 32.0, // Reduced padding
       ),
       child: Column(
         children: [
           Icon(
             Icons.rocket_launch,
-            size: 48,
+            size: 36, // Reduced icon size
             color: Theme.of(context).primaryColor,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Text(
             'Ready to Experience the Future?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -667,7 +667,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6), // Reduced spacing
           Text(
             'Download Live Captions XR and experience real-time AR captions.',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -675,10 +675,10 @@ class _TechnologyPageState extends State<TechnologyPage>
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: 12, // Reduced spacing
+            runSpacing: 12, // Reduced spacing
             alignment: WrapAlignment.center,
             children: [
               FilledButton.icon(
@@ -695,7 +695,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
                 ),
               ),
               FilledButton.icon(
@@ -712,7 +712,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                   backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
                 ),
               ),
               OutlinedButton.icon(
@@ -723,7 +723,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                   foregroundColor: Theme.of(context).primaryColor,
                   side: BorderSide(color: Theme.of(context).primaryColor),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
                 ),
               ),
             ],
