@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/services/app_logger.dart';
 
 abstract class LocalizationState {}
 
@@ -11,7 +11,7 @@ class LocalizationLoaded extends LocalizationState {
 }
 
 class LocalizationCubit extends Cubit<LocalizationState> {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   bool _isActive = false;
 
   LocalizationCubit() : super(LocalizationInitial());

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/speech_config.dart';
 import '../models/speech_result.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 import 'model_download_manager.dart';
 
 /// Event class for Whisper STT progress and status
@@ -26,7 +26,7 @@ class WhisperSTTEvent {
 /// On web platforms, this provides demo functionality since whisper_ggml
 /// uses dart:ffi which is not available on web.
 class WhisperService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   
   bool _isInitialized = false;
   bool _isProcessing = false;

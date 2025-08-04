@@ -1,7 +1,10 @@
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/interaction_handler.dart';
+import '../../core/services/app_logger.dart';
 
 class TestFlightUtils {
+  static final AppLogger _logger = AppLogger.instance;
+  
   // TestFlight link for beta testing
   static const String testFlightUrl =
       'https://testflight.apple.com/join/pyxZEWFh';
@@ -40,7 +43,8 @@ class TestFlightUtils {
       ]);
     } catch (e) {
       // Handle error - could show a snackbar or dialog
-      print('Could not launch TestFlight or App Store: $e');
+      _logger.e('❌ Could not launch TestFlight or App Store', 
+          category: LogCategory.system, error: e);
     }
   }
 

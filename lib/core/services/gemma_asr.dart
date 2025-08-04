@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/speech_result.dart';
 import 'hybrid_localization_engine.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Placeholder for future flutter_gemma ASR integration
 class GemmaASRService {
@@ -46,7 +46,7 @@ class GemmaASRService {
 /// inference session, and exposing a `Stream<TranscriptionResult>`
 /// of partial and final transcripts.
 class GemmaASR {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   final HybridLocalizationEngine hybridLocalizationEngine;
 
   bool _initialized = false;

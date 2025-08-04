@@ -14,6 +14,7 @@ import 'debug_capturing_logger.dart';
 import 'gemma_3n_service.dart';
 import 'visual_identification_service.dart';
 import 'enhanced_speech_processor.dart';
+import 'app_logger.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
 ///
@@ -23,7 +24,7 @@ import 'enhanced_speech_processor.dart';
 /// For Google Gemma 3n Hackathon: This demonstrates the multimodal fusion
 /// that makes our accessibility solution uniquely powerful.
 class AudioService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   final Gemma3nService gemma3nService;
   final SoundDetectionCubit soundDetectionCubit;
@@ -42,15 +43,15 @@ class AudioService {
     required this.soundDetectionCubit,
     required this.visualService,
     }) {
-    _logger.i('🏗️ Initializing AudioService...');
+    _logger.i('🏗️ Initializing AudioService...', category: LogCategory.audio);
     _audioCapture = StereoAudioCapture();
     _speechLocalizer = SpeechLocalizer();
-    _logger.d('Audio capture and speech localizer initialized');
+    _logger.d('Audio capture and speech localizer initialized', category: LogCategory.audio);
     
     if (speechProcessor != null) {
-      _logger.d('🎤 Speech processor connected to AudioService');
+      _logger.d('🎤 Speech processor connected to AudioService', category: LogCategory.audio);
     } else {
-      _logger.d('⚠️ No speech processor connected - speech recognition will be limited');
+      _logger.d('⚠️ No speech processor connected - speech recognition will be limited', category: LogCategory.audio);
     }   
   }
 
@@ -61,7 +62,7 @@ class AudioService {
   /// 2. Configure for real-time audio processing
   /// 3. Set up multimodal integration pipeline
   Future<void> start() async {
-    _logger.i('🚀 Starting AudioService...');
+    _logger.i('🚀 Starting AudioService...', category: LogCategory.audio);
 
     // start the gemma3n service
     await gemma3nService.initialize();
@@ -75,7 +76,7 @@ class AudioService {
     // start the audio capture
     await _startAudioCapture(); 
 
-    _logger.i('✅ AudioService started successfully');
+    _logger.i('✅ AudioService started successfully', category: LogCategory.audio);
   }
 
   /// Start continuous audio capture and processing.
@@ -83,24 +84,24 @@ class AudioService {
   /// This sets up the [StereoAudioCapture] service and listens to the
   /// incoming audio frames.
   Future<void> _startAudioCapture() async {
-    _logger.d('🎧 Attempting to start audio capture...');
-    _logger.d('Current listening state: $_isListening');
+    _logger.d('🎧 Attempting to start audio capture...', category: LogCategory.audio);
+    _logger.d('Current listening state: $_isListening', category: LogCategory.audio);
     
     if (_isListening) {
-      _logger.w('⚠️ Audio capture already running, skipping start');
+      _logger.w('⚠️ Audio capture already running, skipping start', category: LogCategory.audio);
       return;
     }
 
     try {
       _isListening = true;
       _soundEventController = StreamController<SoundEvent>.broadcast();
-      _logger.d('Stream controller created');
+      _logger.d('Stream controller created', category: LogCategory.audio);
 
-      _logger.d('Starting stereo audio capture...');
+      _logger.d('Starting stereo audio capture...', category: LogCategory.audio);
       await _audioCapture.startRecording();
-      _logger.i('✅ Stereo audio recording started');
+      _logger.i('✅ Stereo audio recording started', category: LogCategory.audio);
       
-      _logger.d('Setting up audio frame processing...');
+      _logger.d('Setting up audio frame processing...', category: LogCategory.audio);
       _captureSub = _audioCapture.frames.listen((frame) async {
         final monoFrame = frame.toMono();
         final frameSize = monoFrame.length;
@@ -112,7 +113,7 @@ class AudioService {
         }
         rmsLevel = frameSize > 0 ? sqrt(rmsLevel / frameSize) : 0.0;
         
-        _logger.d('📊 Audio frame: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
+        _logger.d('📊 Audio frame: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}', category: LogCategory.audio);
         
         // Use advanced direction estimation
         final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
@@ -130,9 +131,9 @@ class AudioService {
         _processAudioFrame(monoFrame, angle);
       });
 
-      _logger.i('🎤 Started real-time audio processing with Gemma 3n');
+      _logger.i('🎤 Started real-time audio processing with Gemma 3n', category: LogCategory.audio);
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to start audio capture', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to start audio capture', category: LogCategory.audio, error: e, stackTrace: stackTrace);
       _isListening = false;
       rethrow;
     }
@@ -143,7 +144,7 @@ class AudioService {
   /// This demonstrates the key innovation: multimodal processing where
   /// audio events trigger combined audio+visual analysis through Gemma 3n
   void _processAudioFrame(Float32List audioFrame, double angle) async {
-    _logger.d('🎯 Processing audio frame with ${audioFrame.length} samples at angle ${angle.toStringAsFixed(1)}°');
+    _logger.d('🎯 Processing audio frame with ${audioFrame.length} samples at angle ${angle.toStringAsFixed(1)}°', category: LogCategory.audio);
     
     // Audio processing handled by Whisper, not Gemma
     // Create basic sound event for localization
@@ -158,33 +159,33 @@ class AudioService {
 
   /// Stop audio processing and cleanup resources
   Future<void> stop() async {
-    _logger.i('🛑 Stopping AudioService...');
-    _logger.d('Current state - Listening: $_isListening, Model loaded: $_modelLoaded');
+    _logger.i('🛑 Stopping AudioService...', category: LogCategory.audio);
+    _logger.d('Current state - Listening: $_isListening, Model loaded: $_modelLoaded', category: LogCategory.audio);
     
     try {
       _isListening = false;
-      _logger.d('Cancelling audio capture subscription...');
+      _logger.d('Cancelling audio capture subscription...', category: LogCategory.audio);
       await _captureSub?.cancel();
       
-      _logger.d('Stopping audio recording...');
+      _logger.d('Stopping audio recording...', category: LogCategory.audio);
       await _audioCapture.stopRecording();
       
-      _logger.d('Closing sound event controller...');
+      _logger.d('Closing sound event controller...', category: LogCategory.audio);
       await _soundEventController?.close();
       
-      _logger.d('Disposing Gemma3n service...');
+      _logger.d('Disposing Gemma3n service...', category: LogCategory.audio);
       // gemma3nService.dispose();
 
-      _logger.i('✅ Audio processing stopped successfully');
+      _logger.i('✅ Audio processing stopped successfully', category: LogCategory.audio);
     } catch (e, stackTrace) {
-      _logger.e('❌ Error during AudioService stop', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error during AudioService stop', category: LogCategory.audio, error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
 
   /// Get stream of detected sound events
   Stream<SoundEvent> get soundEventStream {
-    _logger.d('📡 Providing sound event stream');
+    _logger.d('📡 Providing sound event stream', category: LogCategory.audio);
     return _soundEventController?.stream ?? Stream.empty();
   }
 }

@@ -2,7 +2,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'stereo_audio_capture.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Simple Complex number class for FFT calculations
 class Complex {
@@ -31,7 +31,7 @@ class Complex {
 /// of a [StereoAudioFrame] and converts the normalized difference into a
 /// horizontal angle in radians (negative = left, positive = right).
 class SpeechLocalizer {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   
   /// Minimum RMS to consider a frame as valid speech (tune as needed)
   final double minRmsThreshold;

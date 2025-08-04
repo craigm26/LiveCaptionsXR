@@ -2,10 +2,13 @@ import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 import 'package:live_captions_xr/core/services/ar_anchor_manager.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
+import 'package:live_captions_xr/core/services/ar_frame_service.dart';
+import 'package:live_captions_xr/core/services/frame_capture_service.dart';
 import 'package:live_captions_xr/core/services/google_auth_service.dart';
 import 'package:live_captions_xr/core/services/hybrid_localization_engine.dart';
 import 'package:live_captions_xr/core/services/ar_session_persistence_service.dart';
 import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
+import 'package:live_captions_xr/core/services/apple_speech_service.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
 import 'package:live_captions_xr/features/live_captions/cubit/live_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
@@ -22,6 +25,7 @@ import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 final sl = GetIt.instance;
 
 void setupServiceLocator() {
+  final logger = AppLogger.instance;
 // ... existing registrations
   if (!sl.isRegistered<ModelDownloadManager>()) {
     sl.registerLazySingleton<ModelDownloadManager>(() => ModelDownloadManager());
@@ -36,13 +40,49 @@ void setupServiceLocator() {
       modelDownloadManager: sl<ModelDownloadManager>(),
     ));
   }
+  if (!sl.isRegistered<AppleSpeechService>()) {
+    logger.d('🍎 Registering AppleSpeechService in service locator', category: LogCategory.system);
+    sl.registerLazySingleton<AppleSpeechService>(() {
+      logger.d('🍎 Creating AppleSpeechService instance', category: LogCategory.system);
+      return AppleSpeechService();
+    });
+  }
   if (!sl.isRegistered<EnhancedSpeechProcessor>()) {
+    logger.d('🔧 Registering EnhancedSpeechProcessor in service locator', category: LogCategory.system);
     sl.registerLazySingleton<EnhancedSpeechProcessor>(
-      () => EnhancedSpeechProcessor(
-        gemma3nService: sl<Gemma3nService>(),
-        audioCaptureService: sl<AudioCaptureService>(),
-        whisperService: sl<WhisperService>(),
-      ),
+      () {
+        logger.d('🔧 Creating EnhancedSpeechProcessor instance', category: LogCategory.system);
+        logger.d('🍎 Getting AppleSpeechService from service locator', category: LogCategory.system);
+        final appleSpeech = sl<AppleSpeechService>();
+        logger.d('🍎 AppleSpeechService retrieved: ${appleSpeech.runtimeType}', category: LogCategory.system);
+        
+        logger.d('🔧 Getting Gemma3nService...', category: LogCategory.system);
+        final gemma = sl<Gemma3nService>();
+        logger.d('🔧 Gemma3nService OK', category: LogCategory.system);
+        
+        logger.d('🔧 Getting AudioCaptureService...', category: LogCategory.system);
+        final audio = sl<AudioCaptureService>();
+        logger.d('🔧 AudioCaptureService OK', category: LogCategory.system);
+        
+        logger.d('🔧 Getting WhisperService...', category: LogCategory.system);
+        final whisper = sl<WhisperService>();
+        logger.d('🔧 WhisperService OK', category: LogCategory.system);
+        
+        logger.d('🔧 Getting FrameCaptureService...', category: LogCategory.system);
+        final frame = sl<FrameCaptureService>();
+        logger.d('🔧 FrameCaptureService OK', category: LogCategory.system);
+        
+        logger.d('🔧 About to create EnhancedSpeechProcessor with all services...', category: LogCategory.system);
+        final processor = EnhancedSpeechProcessor(
+          gemma3nService: gemma,
+          audioCaptureService: audio,
+          whisperService: whisper,
+          appleSpeechService: appleSpeech,
+          frameCaptureService: frame,
+        );
+        logger.d('🔧 EnhancedSpeechProcessor created successfully!', category: LogCategory.system);
+        return processor;
+      },
     );
   }
   if (!sl.isRegistered<LiveCaptionsCubit>()) {
@@ -72,6 +112,12 @@ void setupServiceLocator() {
   }
   if (!sl.isRegistered<CameraService>()) {
     sl.registerLazySingleton<CameraService>(() => CameraService());
+  }
+  if (!sl.isRegistered<ARFrameService>()) {
+    sl.registerLazySingleton<ARFrameService>(() => ARFrameService());
+  }
+  if (!sl.isRegistered<FrameCaptureService>()) {
+    sl.registerLazySingleton<FrameCaptureService>(() => FrameCaptureService());
   }
   if (!sl.isRegistered<ARAnchorManager>()) {
     sl.registerLazySingleton<ARAnchorManager>(() => ARAnchorManager());
