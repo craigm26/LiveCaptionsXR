@@ -61,6 +61,9 @@ class EnhancedSpeechProcessor {
   // Visual context
   List<int>? _latestFrame;
   StreamSubscription? _frameSubscription;
+  
+  // Mutex for Gemma requests to ensure only one at a time
+  bool _gemmaProcessing = false;
 
   EnhancedSpeechProcessor({
     required this.gemma3nService,
@@ -528,31 +531,64 @@ class EnhancedSpeechProcessor {
       _logger.d('🚀 Starting Gemma 3n enhancement for: "${result.text}"', category: LogCategory.gemma);
       
       if (result.isFinal) {
-        // Use multimodal enhancement with visual context if available
-        String enhancedText;
-        List<int>? currentFrame = await _getCurrentFrame();
-        if (currentFrame != null) {
-          _logger.d('🎥 Using visual context for enhancement', category: LogCategory.gemma);
-          enhancedText = await gemma3nService.enhanceTextWithVisualContext(
-            text: result.text,
-            imageData: Uint8List.fromList(currentFrame),
-          );
-        } else {
-          _logger.d('📝 Using text-only enhancement', category: LogCategory.gemma);
-          enhancedText = await gemma3nService.enhanceText(result.text);
+        // Check if Gemma is already processing
+        if (_gemmaProcessing) {
+          _logger.w('⚠️ Gemma already processing another request, skipping: "${result.text}"', category: LogCategory.gemma);
+          // Create basic caption without enhancement
+          final basicCaption = EnhancedCaption.fromSpeechResult(result);
+          _enhancedCaptionController.add(basicCaption);
+          return;
         }
         
-        _logger.d('✨ Enhancement result: "$enhancedText"', category: LogCategory.gemma);
+        // Set mutex and block STT auto-restart during Gemma inference
+        _gemmaProcessing = true;
+        _logger.d('🔒 Gemma mutex acquired for: "${result.text}"', category: LogCategory.gemma);
         
-        final enhancedCaption = EnhancedCaption(
-          raw: result.text,
-          enhanced: enhancedText,
-          isFinal: true,
-          isEnhanced: enhancedText != result.text, // Mark as enhanced if text changed
-        );
+        // Block STT auto-restart to reduce resource contention during Gemma inference
+        _appleSpeechService.blockAutoRestart();
+        _logger.d('⏸️ STT auto-restart blocked during Gemma inference', category: LogCategory.gemma);
         
-        _enhancedCaptionController.add(enhancedCaption);
-        _logger.i('📋 Created enhanced caption: "${enhancedCaption.displayText}"', category: LogCategory.gemma);
+        try {
+          // Use multimodal enhancement with visual context if available
+          String enhancedText;
+          _logger.d('🚀 Restoring frame capture to test with images (old working behavior)...', category: LogCategory.gemma);
+          List<int>? currentFrame = await _getCurrentFrame();
+          // List<int>? currentFrame = null; // Force text-only for testing
+          if (currentFrame != null) {
+            _logger.d('🎥 Using visual context for enhancement (${currentFrame.length} bytes)', category: LogCategory.gemma);
+            _logger.d('🧠 Calling gemma3nService.enhanceTextWithVisualContext...', category: LogCategory.gemma);
+            enhancedText = await gemma3nService.enhanceTextWithVisualContext(
+              text: result.text,
+              imageData: Uint8List.fromList(currentFrame),
+            );
+            _logger.d('✅ enhanceTextWithVisualContext completed', category: LogCategory.gemma);
+          } else {
+            _logger.d('📝 Using text-only enhancement (no frame available)', category: LogCategory.gemma);
+            _logger.d('🧠 Calling gemma3nService.enhanceText...', category: LogCategory.gemma);
+            enhancedText = await gemma3nService.enhanceText(result.text);
+            _logger.d('✅ enhanceText completed', category: LogCategory.gemma);
+          }
+          
+          _logger.d('✨ Enhancement result: "$enhancedText"', category: LogCategory.gemma);
+          
+          final enhancedCaption = EnhancedCaption(
+            raw: result.text,
+            enhanced: enhancedText,
+            isFinal: true,
+            isEnhanced: enhancedText != result.text, // Mark as enhanced if text changed
+          );
+          
+          _enhancedCaptionController.add(enhancedCaption);
+          _logger.i('📋 Created enhanced caption: "${enhancedCaption.displayText}"', category: LogCategory.gemma);
+        } finally {
+          // Release mutex and unblock STT auto-restart
+          _gemmaProcessing = false;
+          _logger.d('🔓 Gemma mutex released', category: LogCategory.gemma);
+          
+          // Unblock STT auto-restart and restart if needed
+          _appleSpeechService.unblockAutoRestart(restartImmediately: true);
+          _logger.d('▶️ STT auto-restart unblocked after Gemma inference', category: LogCategory.gemma);
+        }
       } else {
         // For partial results, create a partial caption
         final partialCaption = EnhancedCaption.partial(result.text);
@@ -560,7 +596,12 @@ class EnhancedSpeechProcessor {
         _logger.d('📋 Created partial caption: "${partialCaption.displayText}"', category: LogCategory.gemma);
       }
     } catch (e, stackTrace) {
+      // Ensure mutex is released and STT is unblocked on error
+      _gemmaProcessing = false;
+      _appleSpeechService.unblockAutoRestart(restartImmediately: true);
       _logger.e('❌ Error enhancing with Gemma 3n', category: LogCategory.gemma, error: e, stackTrace: stackTrace);
+      _logger.d('▶️ STT auto-restart unblocked after Gemma error', category: LogCategory.gemma);
+      
       // Fallback to basic caption
       final fallbackCaption = EnhancedCaption.fallback(result.text);
       _enhancedCaptionController.add(fallbackCaption);
@@ -638,7 +679,14 @@ class EnhancedSpeechProcessor {
   Future<List<int>?> _getCurrentFrame() async {
     _logger.d('📸 Capturing frame via FrameCaptureService...', category: LogCategory.camera);
     try {
-      final frameData = await _frameCaptureService.captureFrame();
+      // Add timeout to frame capture to prevent hanging
+      final frameData = await _frameCaptureService.captureFrame().timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          _logger.w('⏱️ Frame capture timed out after 5 seconds', category: LogCategory.camera);
+          return null;
+        },
+      );
       if (frameData != null) {
         _logger.d('✅ Frame captured: ${frameData.length} bytes', category: LogCategory.camera);
         return frameData;

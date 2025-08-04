@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import '../services/app_logger.dart';
 
 /// Utility class to handle web-specific interactions and prevent UI freezing
 class InteractionHandler {
+  static final AppLogger _logger = AppLogger.instance;
   static Timer? _debounceTimer;
 
   /// Debounced function execution to prevent rapid-fire calls that can freeze the UI
@@ -23,9 +25,8 @@ class InteractionHandler {
     try {
       return await action().timeout(timeout);
     } catch (e) {
-      if (kDebugMode) {
-        print('SafeAsyncExecution failed: $e');
-      }
+      _logger.d('⚠️ SafeAsyncExecution failed', 
+          category: LogCategory.system, error: e);
       return defaultValue;
     }
   }
