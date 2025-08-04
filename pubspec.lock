@@ -1109,13 +1109,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
-  spatial_captions:
-    dependency: "direct main"
-    description:
-      path: "plugins/spatial_captions"
-      relative: true
-    source: path
-    version: "1.0.0"
   stack_trace:
     dependency: transitive
     description:
@@ -1285,7 +1278,7 @@ packages:
     source: hosted
     version: "3.1.4"
   vector_math:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: vector_math
       sha256: "80b3257d1492ce4d091729e3a67a60407d227c27241d6927be0130c98e741803"
