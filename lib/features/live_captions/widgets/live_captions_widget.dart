@@ -327,16 +327,66 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         color: Colors.black.withAlpha((255 * 0.8).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.grey.withAlpha((255 * 0.6).round()),
+          color: state is LiveCaptionsLoading 
+              ? Colors.orange.withAlpha((255 * 0.6).round())
+              : Colors.grey.withAlpha((255 * 0.6).round()),
           width: 2,
         ),
       ),
-      child: Text(
-        'Waiting for captions...',
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.white,
-              fontSize: 18,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (state is LiveCaptionsLoading) ...[
+            Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    state.message ?? 'Initializing...',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.orange,
+                          fontSize: 18,
+                        ),
+                  ),
+                ),
+              ],
             ),
+            if (state.progress != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: state.progress,
+                  backgroundColor: Colors.grey.withAlpha((255 * 0.3).round()),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${(state.progress! * 100).toStringAsFixed(0)}%',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.orange.withAlpha((255 * 0.7).round()),
+                    ),
+              ),
+            ],
+          ] else ...[
+            Text(
+              'Waiting for captions...',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
+            ),
+          ],
+        ],
       ),
     );
   }

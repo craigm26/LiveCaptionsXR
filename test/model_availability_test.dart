@@ -41,13 +41,13 @@ void main() {
       final whisperSize = modelManager.getModelSize('whisper-base');
       final gemmaSize = modelManager.getModelSize('gemma-3n-E4B-it-int4');
       
-      expect(whisperSize, equals(155189248)); // 147.95 MB
+      expect(whisperSize, equals(147951465)); // Actual size from server
       expect(gemmaSize, equals(4398046511)); // 4.1 GB
     });
 
     test('should calculate total model size', () {
       final totalSize = modelManager.getTotalModelsSize();
-      expect(totalSize, equals(155189248 + 4398046511));
+      expect(totalSize, equals(147951465 + 4398046511));
     });
   });
 } 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:live_captions_xr/features/ar_session/cubit/ar_session_state.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Service for persisting AR session state across app restarts
 /// 
@@ -13,7 +13,7 @@ class ARSessionPersistenceService {
   static const String _anchorDataKey = 'ar_anchor_data';
   static const String _sessionConfigKey = 'ar_session_config';
   
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   /// Save AR session state to persistent storage
   Future<void> saveSessionState(ARSessionState state) async {

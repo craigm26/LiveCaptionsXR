@@ -7,7 +7,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../models/speech_config.dart';
 import '../models/speech_result.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 import 'model_download_manager.dart';
 
 // Only import whisper_ggml on non-web platforms
@@ -30,7 +30,7 @@ class WhisperSTTEvent {
 
 /// Service for handling Whisper GGML speech-to-text processing
 class WhisperService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -66,15 +66,15 @@ class WhisperService {
     
     // Check if we're on web platform
     if (kIsWeb) {
-      _logger.w('⚠️ Web platform detected - Whisper service not available');
-      _logger.w('⚠️ Using fallback mode for web builds');
+      _logger.w('⚠️ Web platform detected - Whisper service not available', category: LogCategory.speech);
+      _logger.w('⚠️ Using fallback mode for web builds', category: LogCategory.speech);
       _isInitialized = true;
       return true;
     }
     
     try {
       _config = config ?? const SpeechConfig();
-      _logger.i('🔧 Initializing Whisper service with model: ${_config.whisperModel}');
+      _logger.i('🔧 Initializing Whisper service with model: ${_config.whisperModel}', category: LogCategory.speech);
       
       // Emit STT event for initialization start
       _sttEventController.add(const WhisperSTTEvent(
@@ -84,7 +84,7 @@ class WhisperService {
       
       // Determine the model key based on the config
       final modelKey = 'whisper-${_config.whisperModel}';
-      _logger.i('🔍 Looking for model: $modelKey');
+      _logger.i('🔍 Looking for model: $modelKey', category: LogCategory.speech);
       
       // Emit STT event for model checking
       _sttEventController.add(WhisperSTTEvent(
@@ -97,7 +97,7 @@ class WhisperService {
       final modelComplete = await _modelDownloadManager.modelIsComplete(modelKey);
       
       if (!modelExists || !modelComplete) {
-        _logger.i('📥 Model not found or incomplete, downloading: $modelKey');
+        _logger.i('📥 Model not found or incomplete, downloading: $modelKey', category: LogCategory.speech);
         
         // Emit STT event for model download start
         _sttEventController.add(WhisperSTTEvent(
@@ -107,7 +107,7 @@ class WhisperService {
         
         // Check if model is currently downloading
         if (_modelDownloadManager.isDownloading(modelKey)) {
-          _logger.i('⏳ Model is already downloading, waiting...');
+          _logger.i('⏳ Model is already downloading, waiting...', category: LogCategory.speech);
           // Wait for download to complete
           while (_modelDownloadManager.isDownloading(modelKey)) {
             await Future.delayed(const Duration(seconds: 1));
@@ -120,7 +120,7 @@ class WhisperService {
         // Check if download was successful
         if (!await _modelDownloadManager.modelIsComplete(modelKey)) {
           final error = _modelDownloadManager.getError(modelKey);
-          _logger.e('❌ Failed to download model: $error');
+          _logger.e('❌ Failed to download model: $error', category: LogCategory.speech);
           
           // Emit STT event for model download failure
           _sttEventController.add(WhisperSTTEvent(
@@ -143,12 +143,12 @@ class WhisperService {
       final modelPath = await _modelDownloadManager.getModelPath(modelKey);
       final modelDir = Directory(modelPath).parent.path;
       
-      _logger.i('📁 Using model from: $modelPath');
-      _logger.i('📁 Model directory: $modelDir');
+      _logger.i('📁 Using model from: $modelPath', category: LogCategory.speech);
+      _logger.i('📁 Model directory: $modelDir', category: LogCategory.speech);
       
       // Check if the expected model file exists
       final expectedModelFile = File('$modelDir/ggml-base.bin');
-      _logger.i('📁 Expected model file exists: ${await expectedModelFile.exists()}');
+      _logger.i('📁 Expected model file exists: ${await expectedModelFile.exists()}', category: LogCategory.speech);
       
       // Emit STT event for model loading
       _sttEventController.add(WhisperSTTEvent(
@@ -157,20 +157,38 @@ class WhisperService {
       ));
       
       // Initialize Whisper with the specified model
-      _whisper = Whisper(
-        model: WhisperModel.values.firstWhere(
-          (model) => model.name == _config.whisperModel,
-          orElse: () => WhisperModel.base,
-        ),
-        modelDir: modelDir,
-      );
-      
-      // Test the connection by getting version
-      final version = await _whisper!.getVersion();
-      _logger.i('📋 Whisper version: $version');
+      try {
+        _whisper = Whisper(
+          model: WhisperModel.values.firstWhere(
+            (model) => model.name == _config.whisperModel,
+            orElse: () => WhisperModel.base,
+          ),
+          modelDir: modelDir,
+        );
+        
+        // Test the connection by getting version
+        final version = await _whisper!.getVersion();
+        _logger.i('📋 Whisper version: $version', category: LogCategory.speech);
+      } catch (nativeError) {
+        _logger.e('❌ Native Whisper GGML initialization failed: $nativeError', category: LogCategory.speech);
+        _logger.w('⚠️ Whisper service will run in fallback mode', category: LogCategory.speech);
+        
+        // Set whisper to null but keep _isInitialized as true for fallback mode
+        _whisper = null;
+        _isInitialized = true;
+        
+        // Emit STT event for fallback mode
+        _sttEventController.add(const WhisperSTTEvent(
+          progress: 1.0,
+          message: 'Whisper service ready (fallback mode)',
+          isComplete: true,
+        ));
+        
+        return true;
+      }
       
       _isInitialized = true;
-      _logger.i('✅ Whisper service initialized successfully');
+      _logger.i('✅ Whisper service initialized successfully', category: LogCategory.speech);
       
       // Emit STT event for initialization complete
       _sttEventController.add(const WhisperSTTEvent(
@@ -181,7 +199,7 @@ class WhisperService {
       
       return true;
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to initialize Whisper service', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to initialize Whisper service', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       
       // Emit STT event for initialization failure
       _sttEventController.add(WhisperSTTEvent(
@@ -197,18 +215,18 @@ class WhisperService {
   /// Start processing audio data
   Future<bool> startProcessing() async {
     if (!_isInitialized) {
-      _logger.w('⚠️ Whisper service not initialized');
+      _logger.w('⚠️ Whisper service not initialized', category: LogCategory.speech);
       return false;
     }
     
     if (_isProcessing) {
-      _logger.i('🔄 Whisper already processing');
+      _logger.i('🔄 Whisper already processing', category: LogCategory.speech);
       return true;
     }
     
     try {
       _isProcessing = true;
-      _logger.i('🎤 Starting Whisper processing');
+      _logger.i('🎤 Starting Whisper processing', category: LogCategory.speech);
       
       // Emit STT event for processing start
       _sttEventController.add(const WhisperSTTEvent(
@@ -218,7 +236,7 @@ class WhisperService {
       
       return true;
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to start Whisper processing', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to start Whisper processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       _isProcessing = false;
       
       // Emit STT event for processing start failure
@@ -236,7 +254,7 @@ class WhisperService {
   Future<SpeechResult> processAudioBuffer(Uint8List audioData) async {
     // Handle web platform
     if (kIsWeb) {
-      _logger.w('⚠️ Web platform detected - returning demo result');
+      _logger.w('⚠️ Web platform detected - returning demo result', category: LogCategory.speech);
       return SpeechResult(
         text: 'Web Demo: Audio processing not available',
         confidence: 0.0,
@@ -245,8 +263,8 @@ class WhisperService {
       );
     }
     
-    if (!_isInitialized || _whisper == null) {
-      _logger.w('⚠️ Whisper not initialized, returning fallback result');
+    if (!_isInitialized) {
+      _logger.w('⚠️ Whisper not initialized, returning fallback result', category: LogCategory.speech);
       
       // Emit STT event for processing failure
       _sttEventController.add(const WhisperSTTEvent(
@@ -263,8 +281,46 @@ class WhisperService {
       );
     }
     
+    // If Whisper GGML native library failed to load, provide a fallback
+    if (_whisper == null) {
+      _logger.w('⚠️ Whisper GGML native library not available, using fallback', category: LogCategory.speech);
+      
+      // Emit STT event for fallback processing
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.5,
+        message: 'Processing with fallback STT...',
+      ));
+      
+      // Simple fallback: return placeholder text based on audio length
+      final String fallbackText;
+      if (audioData.length < 1000) {
+        fallbackText = "[Short audio detected]";
+      } else if (audioData.length < 5000) {
+        fallbackText = "[Speech detected - STT unavailable]";
+      } else {
+        fallbackText = "[Long speech detected - STT unavailable]";
+      }
+      
+      final fallbackResult = SpeechResult(
+        text: fallbackText,
+        confidence: 0.3,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+      
+      // Emit STT event for fallback complete
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 1.0,
+        message: 'Fallback STT complete',
+        isComplete: true,
+      ));
+      
+      _speechResultController.add(fallbackResult);
+      return fallbackResult;
+    }
+    
     try {
-      _logger.d('🎵 Processing audio buffer (${audioData.length} bytes)');
+      _logger.d('🎵 Processing audio buffer (${audioData.length} bytes)', category: LogCategory.speech);
       
       // Emit STT event for processing start
       _sttEventController.add(const WhisperSTTEvent(
@@ -276,7 +332,7 @@ class WhisperService {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File('${tempDir.path}/whisper_audio_${DateTime.now().millisecondsSinceEpoch}.wav');
       await tempFile.writeAsBytes(audioData);
-      _logger.d('💾 Saved audio to temp file: ${tempFile.path}');
+      _logger.d('💾 Saved audio to temp file: ${tempFile.path}', category: LogCategory.speech);
       
       // Emit STT event for audio preparation
       _sttEventController.add(const WhisperSTTEvent(
@@ -295,7 +351,7 @@ class WhisperService {
         isNoTimestamps: true, // We don't need timestamps for real-time
       );
       
-      _logger.d('🎤 Sending transcription request to Whisper GGML...');
+      _logger.d('🎤 Sending transcription request to Whisper GGML...', category: LogCategory.speech);
       
       // Emit STT event for transcription start
       _sttEventController.add(const WhisperSTTEvent(
@@ -309,11 +365,11 @@ class WhisperService {
         modelPath: tempFile.path, // Use the temp file path
       );
       
-      _logger.d('📝 Whisper GGML response received: "${response.text}"');
+      _logger.d('📝 Whisper GGML response received: "${response.text}"', category: LogCategory.speech);
       
       // Clean up temp file
       await tempFile.delete();
-      _logger.d('🗑️ Cleaned up temp audio file');
+      _logger.d('🗑️ Cleaned up temp audio file', category: LogCategory.speech);
       
       final speechResult = SpeechResult(
         text: response.text,
@@ -322,7 +378,7 @@ class WhisperService {
         timestamp: DateTime.now(),
       );
       
-      _logger.i('📝 Whisper result: "${speechResult.text}" (confidence: ${speechResult.confidence})');
+      _logger.i('📝 Whisper result: "${speechResult.text}" (confidence: ${speechResult.confidence})', category: LogCategory.speech);
       
       // Emit STT event for processing complete
       _sttEventController.add(const WhisperSTTEvent(
@@ -333,11 +389,11 @@ class WhisperService {
       
       // Emit the result
       _speechResultController.add(speechResult);
-      _logger.d('📤 Emitted speech result to stream');
+      _logger.d('📤 Emitted speech result to stream', category: LogCategory.speech);
       
       return speechResult;
     } catch (e, stackTrace) {
-      _logger.e('❌ Error processing audio with Whisper', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error processing audio with Whisper', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       
       // Emit STT event for processing error
       _sttEventController.add(WhisperSTTEvent(
@@ -361,7 +417,7 @@ class WhisperService {
   /// Update configuration
   Future<void> updateConfig(SpeechConfig config) async {
     _config = config;
-    _logger.i('⚙️ Updated Whisper configuration');
+    _logger.i('⚙️ Updated Whisper configuration', category: LogCategory.speech);
     
     // Reinitialize if already initialized
     if (_isInitialized) {
@@ -376,7 +432,7 @@ class WhisperService {
     
     try {
       _isProcessing = false;
-      _logger.i('🛑 Stopped Whisper processing');
+      _logger.i('🛑 Stopped Whisper processing', category: LogCategory.speech);
       
       // Emit STT event for processing stop
       _sttEventController.add(const WhisperSTTEvent(
@@ -384,7 +440,7 @@ class WhisperService {
         message: 'STT processing stopped',
       ));
     } catch (e, stackTrace) {
-      _logger.e('❌ Error stopping Whisper processing', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error stopping Whisper processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
     }
   }
   
@@ -396,9 +452,9 @@ class WhisperService {
       await _speechResultController.close();
       await _sttEventController.close();
       _isInitialized = false;
-      _logger.i('🗑️ Whisper service disposed');
+      _logger.i('🗑️ Whisper service disposed', category: LogCategory.speech);
     } catch (e, stackTrace) {
-      _logger.e('❌ Error disposing Whisper service', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error disposing Whisper service', category: LogCategory.speech, error: e, stackTrace: stackTrace);
     }
   }
 } 

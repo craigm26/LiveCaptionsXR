@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
@@ -15,7 +20,7 @@ import '../../ar_session/cubit/ar_session_state.dart';
 import '../cubit/home_cubit.dart';
 import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
-import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/services/app_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
 import '../../../shared/widgets/ar_session_status_widget.dart';
 import '../../../core/services/model_download_manager.dart';
@@ -25,6 +30,8 @@ import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
+import '../../../core/services/frame_capture_service.dart';
+import '../../../core/services/apple_speech_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,44 +41,130 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   late ModelDownloadManager _modelDownloadManager;
+  bool _isGemmaInitialized = false;
+  bool _isGemmaInitializing = false;
 
   @override
   void initState() {
     super.initState();
-    _logger.i('🏠 HomeScreen initialized');
+    _logger.i('🏠 HomeScreen initialized', category: LogCategory.ui);
     _modelDownloadManager = ModelDownloadManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptModelDownload();
+      // Initialize Gemma after model checks
+      await _initializeGemmaBeforeAR();
     });
   }
 
   Future<void> _checkAndPromptModelDownload() async {
-    _logger.d('🔍 Checking model availability on app startup...');
-    
+    _logger.d('🔍 Checking model availability on app startup...',
+        category: LogCategory.system);
+
     // Check if required models exist
-    _logger.d('🔍 Checking Gemma model availability...');
-    final gemmaExists = await _modelDownloadManager.modelExists('gemma-3n-E4B-it-int4');
-    _logger.d('📦 Gemma model exists: $gemmaExists');
+    _logger.d('🔍 Checking Gemma model availability...',
+        category: LogCategory.gemma);
+    final gemmaExists =
+        await _modelDownloadManager.modelExists('gemma-3n-E4B-it-int4');
+    _logger.d('📦 Gemma model exists: $gemmaExists',
+        category: LogCategory.gemma);
+
+    _logger.d('🔍 Checking Whisper model availability...',
+        category: LogCategory.speech);
+    final whisperExists =
+        await _modelDownloadManager.modelExists('whisper-base');
+    _logger.d('📦 Whisper model exists: $whisperExists',
+        category: LogCategory.speech);
+
+    _logger.d(
+        '📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists',
+        category: LogCategory.system);
+
+    // Determine which models are needed for this platform
+    final needsWhisper = !kIsWeb && !Platform.isIOS;
+    final needsGemma = true; // Gemma needed on all platforms
     
-    _logger.d('🔍 Checking Whisper model availability...');
-    final whisperExists = await _modelDownloadManager.modelExists('whisper-base');
-    _logger.d('📦 Whisper model exists: $whisperExists');
+    // Check if any required models are missing
+    final hasMissingModels = (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
     
-    _logger.d('📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists');
-    
-    if ((!gemmaExists || !whisperExists) && mounted) {
-      _logger.w('⚠️ Missing models detected, showing download dialog');
-      _showModelDownloadDialog(gemmaExists: gemmaExists, whisperExists: whisperExists);
+    if (hasMissingModels && mounted) {
+      _logger.w('⚠️ Missing models detected, showing download dialog. Platform needs - Gemma: $needsGemma, Whisper: $needsWhisper',
+          category: LogCategory.system);
+      _showModelDownloadDialog(
+          gemmaExists: gemmaExists, whisperExists: whisperExists);
     } else {
-      _logger.i('✅ All required models are available');
+      _logger.i('✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper)',
+          category: LogCategory.system);
     }
   }
 
-  void _showModelDownloadDialog({required bool gemmaExists, required bool whisperExists}) {
+  /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session
+  Future<void> _initializeGemmaBeforeAR() async {
+    if (_isGemmaInitialized || _isGemmaInitializing) {
+      _logger.i('🤖 Gemma already initialized or initializing, skipping',
+          category: LogCategory.gemma);
+      return;
+    }
+
+    try {
+      _isGemmaInitializing = true;
+      _logger.i('🤖 Pre-initializing Gemma 3n service before AR launch...',
+          category: LogCategory.gemma);
+
+      final gemma3nService = sl<Gemma3nService>();
+
+      if (gemma3nService.isReady) {
+        _logger.i('✅ Gemma 3n service already ready',
+            category: LogCategory.gemma);
+        _isGemmaInitialized = true;
+        return;
+      }
+
+      // Show loading state if needed
+      if (mounted) {
+        setState(() {});
+      }
+
+      // Initialize with platform-specific timeout
+      final timeout =
+          Platform.isIOS ? Duration(seconds: 90) : Duration(seconds: 120);
+      _logger.i(
+          '⏱️ Initializing Gemma with ${timeout.inSeconds}s timeout for ${Platform.isIOS ? 'iOS' : 'Android'}',
+          category: LogCategory.gemma);
+
+      await gemma3nService.initialize().timeout(timeout);
+
+      if (gemma3nService.isReady) {
+        _logger.i('✅ Gemma 3n service pre-initialized successfully!',
+            category: LogCategory.gemma);
+        _isGemmaInitialized = true;
+      } else {
+        _logger.w('⚠️ Gemma 3n service initialized but not ready',
+            category: LogCategory.gemma);
+      }
+    } on TimeoutException catch (e) {
+      _logger.e('⏱️ Gemma 3n service initialization timed out',
+          category: LogCategory.gemma, error: e);
+      _logger.w('⚠️ Continuing without Gemma enhancement',
+          category: LogCategory.gemma);
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to pre-initialize Gemma 3n service',
+          category: LogCategory.gemma, error: e, stackTrace: stackTrace);
+      _logger.w('⚠️ Continuing without Gemma enhancement',
+          category: LogCategory.gemma);
+    } finally {
+      _isGemmaInitializing = false;
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _showModelDownloadDialog(
+      {required bool gemmaExists, required bool whisperExists}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -82,30 +175,30 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, manager, _) {
               const gemmaKey = 'gemma-3n-E4B-it-int4';
               const whisperKey = 'whisper-base';
-              
+
               final gemmaDownloading = manager.isDownloading(gemmaKey);
               final gemmaProgress = manager.getProgress(gemmaKey);
               final gemmaError = manager.getError(gemmaKey);
               final gemmaCompleted = manager.isCompleted(gemmaKey);
-              
+
               final whisperDownloading = manager.isDownloading(whisperKey);
               final whisperProgress = manager.getProgress(whisperKey);
               final whisperError = manager.getError(whisperKey);
               final whisperCompleted = manager.isCompleted(whisperKey);
-              
+
               return AlertDialog(
-                title: const Text('Download Required Models'),
+                title: const Text('Required Models Setup'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'LiveCaptionsXR requires two AI models for full functionality:',
+                        'LiveCaptionsXR requires AI models to function. Please download the required models before proceeding:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Gemma Model Section
                       if (!gemmaExists || !gemmaCompleted)
                         Container(
@@ -119,26 +212,28 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.auto_awesome, color: Colors.blue.shade600),
+                                  Icon(Icons.auto_awesome,
+                                      color: Colors.blue.shade600),
                                   const SizedBox(width: 8),
-                                  Expanded(
-                                    child: const Text(
-                                      'Gemma 3n Multimodal Model',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
+                                  const Text(
+                                    'Gemma 3n Multimodal Model',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               const Text(
                                 'For caption enhancement and multimodal processing (4.1 GB)',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               const SizedBox(height: 8),
                               if (gemmaDownloading)
                                 Column(
                                   children: [
-                                    LinearProgressIndicator(value: gemmaProgress),
+                                    LinearProgressIndicator(
+                                        value: gemmaProgress),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Downloading: ${(gemmaProgress * 100).toStringAsFixed(1)}%',
@@ -151,7 +246,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     Text(
                                       'Error: $gemmaError',
-                                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                                      style: const TextStyle(
+                                          color: Colors.red, fontSize: 12),
                                     ),
                                     const SizedBox(height: 4),
                                     ElevatedButton(
@@ -165,17 +261,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                 )
                               else if (!gemmaCompleted)
                                 ElevatedButton(
-                                  onPressed: () => manager.downloadModel(gemmaKey),
+                                  onPressed: () =>
+                                      manager.downloadModel(gemmaKey),
                                   child: const Text('Download Gemma Model'),
                                 ),
-                              if (gemmaCompleted) 
-                                const Text('✅ Gemma model ready', style: TextStyle(color: Colors.green)),
+                              if (gemmaCompleted)
+                                const Text('✅ Gemma model ready',
+                                    style: TextStyle(color: Colors.green)),
                             ],
                           ),
                         ),
-                      
+
                       const SizedBox(height: 12),
-                      
+
                       // Whisper Model Section
                       if (!whisperExists || !whisperCompleted)
                         Container(
@@ -187,69 +285,99 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.mic, color: Colors.green.shade600),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: const Text(
+                              if (!kIsWeb && !Platform.isIOS) ... [
+                                Row(
+                                  children: [
+                                    Icon(Icons.mic, color: Colors.green.shade600),
+                                    const SizedBox(width: 8),
+                                    const Text(
                                       'Whisper Speech Recognition Model',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'For speech-to-text transcription (147.95 MB)',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 8),
-                              if (whisperDownloading)
-                                Column(
-                                  children: [
-                                    LinearProgressIndicator(value: whisperProgress),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(fontSize: 12),
+                                      style:
+                                          TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ],
-                                )
-                              else if (whisperError != null)
-                                Column(
-                                  children: [
-                                    Text(
-                                      'Error: $whisperError',
-                                      style: const TextStyle(color: Colors.red, fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        manager.resetModel(whisperKey);
-                                        manager.downloadModel(whisperKey);
-                                      },
-                                      child: const Text('Retry'),
-                                    ),
-                                  ],
-                                )
-                              else if (!whisperCompleted)
-                                ElevatedButton(
-                                  onPressed: () => manager.downloadModel(whisperKey),
-                                  child: const Text('Download Whisper Model'),
                                 ),
-                              if (whisperCompleted) 
-                                const Text('✅ Whisper model ready', style: TextStyle(color: Colors.green)),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'For speech-to-text transcription (147.95 MB)',
+                                  style:
+                                      TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                if (whisperDownloading)
+                                  Column(
+                                    children: [
+                                      LinearProgressIndicator(
+                                          value: whisperProgress),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  )
+                                else if (whisperError != null)
+                                  Column(
+                                    children: [
+                                      Text(
+                                        'Error: $whisperError',
+                                        style: const TextStyle(
+                                            color: Colors.red, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          manager.resetModel(whisperKey);
+                                          manager.downloadModel(whisperKey);
+                                        },
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
+                                  )
+                                else if (!whisperCompleted)
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        manager.downloadModel(whisperKey),
+                                    child: const Text('Download Whisper Model'),
+                                  ),
+                                if (whisperCompleted)
+                                  const Text('✅ Whisper model ready',
+                                      style: TextStyle(color: Colors.green)),
+                                const SizedBox(height: 16),
+                              ] else if (!kIsWeb && Platform.isIOS) ... [
+                                Row(
+                                  children: [
+                                    Icon(Icons.mic, color: Colors.blue.shade600),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Apple Speech Recognition',
+                                      style:
+                                          TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Built-in iOS speech recognition (no download required)',
+                                  style:
+                                      TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('✅ iOS Speech Recognition ready',
+                                    style: TextStyle(color: Colors.green)),
+                                const SizedBox(height: 16),
+                              ],
                             ],
                           ),
                         ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Info section
                       Row(
                         children: [
-                          Icon(Icons.info_outline, size: 16, color: Colors.blueGrey),
+                          Icon(Icons.info_outline,
+                              size: 16, color: Colors.blueGrey),
                           const SizedBox(width: 4),
                           Expanded(
                             child: const Text(
@@ -261,7 +389,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       GestureDetector(
-                        onTap: () => launchUrl(Uri.parse('https://huggingface.co/google/gemma-3n-E2B-it')),
+                        onTap: () => launchUrl(Uri.parse(
+                            'https://huggingface.co/google/gemma-3n-E2B-it')),
                         child: const Text(
                           'Learn more about the models',
                           style: TextStyle(
@@ -275,12 +404,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 actions: [
-                  if (!gemmaDownloading && !whisperDownloading && 
-                      (!gemmaCompleted || !whisperCompleted))
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
+                  Builder(
+                    builder: (context) {
+                      // Determine which models are needed for this platform
+                      final needsWhisper = !kIsWeb && !Platform.isIOS;
+                      final needsGemma = true; // Gemma needed on all platforms
+                      
+                      // Check if any required models are currently downloading
+                      final hasActiveDownloads = 
+                          (needsGemma && gemmaDownloading) || 
+                          (needsWhisper && whisperDownloading);
+                      
+                      // Check if all required models are completed
+                      final allRequiredCompleted = 
+                          (!needsGemma || gemmaCompleted) && 
+                          (!needsWhisper || whisperCompleted);
+                      
+                      // Only show Close button when all required models are completed
+                      // No Cancel option - models must be downloaded
+                      if (!hasActiveDownloads && allRequiredCompleted) {
+                        return TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        );
+                      }
+                      
+                      // No button during download or if models not completed
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ],
               );
             },
@@ -292,110 +444,178 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Start all services needed for AR mode using the ARSessionCubit
   Future<void> _startAllServicesForARMode() async {
-    if (!mounted) return;
+    _logger.i('🚀🚀🚀 [HOME] _startAllServicesForARMode STARTED!',
+        category: LogCategory.ui);
 
-    final arSessionCubit = context.read<ARSessionCubit>();
-    
-    // Get the Whisper service from the service locator
-    final whisperService = sl<WhisperService>();
-    _logger.d('🎤 Retrieved Whisper service from service locator');
-    
-    // Get the Gemma 3n service from the service locator
-    final gemma3nService = sl<Gemma3nService>();
-    _logger.d('🤖 Retrieved Gemma 3n service from service locator');
-    
-    // Start listening to Whisper STT events
-    _logger.d('👂 Setting up Whisper STT event listener...');
-    arSessionCubit.listenToWhisperSTT(whisperService);
-    _logger.i('✅ Whisper STT event listener configured');
-    
-    // Start listening to Gemma 3n enhancement events
-    _logger.d('👂 Setting up Gemma 3n enhancement event listener...');
-    arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
-    _logger.i('✅ Gemma 3n enhancement event listener configured');
+    try {
+      if (!mounted) {
+        _logger.w('⚠️ [HOME] Widget not mounted, returning',
+            category: LogCategory.ui);
+        return;
+      }
 
-    // Use the ARSessionCubit to manage starting all services
-    _logger.d('🚀 Starting all AR services through ARSessionCubit...');
-    await arSessionCubit.startAllARServices(
-      startLiveCaptions: () async {
-        final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-        if (liveCaptionsCubit.state is! LiveCaptionsActive ||
-            !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-          _logger.i('🎤 Starting live captions for AR mode...');
-          await liveCaptionsCubit.startCaptions();
-          _logger.i('✅ Live captions started for AR mode');
-        } else {
-          _logger.i('🎤 Live captions already active');
-        }
-      },
-      startSoundDetection: () async {
-        final soundDetectionCubit = context.read<SoundDetectionCubit>();
-        if (!soundDetectionCubit.isActive) {
-          _logger.i('🔊 Starting sound detection for AR mode...');
-          await soundDetectionCubit.start();
-          _logger.i('✅ Sound detection started for AR mode');
-        } else {
-          _logger.i('🔊 Sound detection already active');
-        }
-      },
-      startLocalization: () async {
-        final localizationCubit = context.read<LocalizationCubit>();
-        if (!localizationCubit.isActive) {
-          _logger.i('🧭 Starting localization for AR mode...');
-          await localizationCubit.start();
-          _logger.i('✅ Localization started for AR mode');
-        } else {
-          _logger.i('🧭 Localization already active');
-        }
-      },
-      startVisualIdentification: () async {
-        final visualIdentificationCubit =
-            context.read<VisualIdentificationCubit>();
-        if (!visualIdentificationCubit.isActive) {
-          _logger.i('👁️ Starting visual identification for AR mode...');
-          await visualIdentificationCubit.start();
-          _logger.i('✅ Visual identification started for AR mode');
-        } else {
-          _logger.i('👁️ Visual identification already active');
-        }
-      },
-      // Provide stop callbacks for proper cleanup
-      stopLiveCaptions: () async {
-        final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-        if (liveCaptionsCubit.state is LiveCaptionsActive &&
-            (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-          _logger.i('🎤 Stopping live captions...');
-          await liveCaptionsCubit.stopCaptions();
-          _logger.i('✅ Live captions stopped');
-        }
-      },
-      stopSoundDetection: () async {
-        final soundDetectionCubit = context.read<SoundDetectionCubit>();
-        if (soundDetectionCubit.isActive) {
-          _logger.i('🔊 Stopping sound detection...');
-          await soundDetectionCubit.stop();
-          _logger.i('✅ Sound detection stopped');
-        }
-      },
-      stopLocalization: () async {
-        final localizationCubit = context.read<LocalizationCubit>();
-        if (localizationCubit.isActive) {
-          _logger.i('🧭 Stopping localization...');
-          await localizationCubit.stop();
-          _logger.i('✅ Localization stopped');
-        }
-      },
-      stopVisualIdentification: () async {
-        final visualIdentificationCubit =
-            context.read<VisualIdentificationCubit>();
-        if (visualIdentificationCubit.isActive) {
-          _logger.i('👁️ Stopping visual identification...');
-          await visualIdentificationCubit.stop();
-          _logger.i('✅ Visual identification stopped');
-        }
-      },
-    );
-    _logger.i('✅ All AR services started successfully');
+      _logger.i('🔍 [HOME] Step 1: Getting ARSessionCubit...',
+          category: LogCategory.ui);
+      final arSessionCubit = context.read<ARSessionCubit>();
+      _logger.i('✅ [HOME] Step 1 complete: Got arSessionCubit',
+          category: LogCategory.ui);
+
+      _logger.i('🔍 [HOME] Step 2: Getting Whisper service...',
+          category: LogCategory.ui);
+      final whisperService = sl<WhisperService>();
+      _logger.i(
+          '✅ [HOME] Step 2 complete: Retrieved Whisper service from service locator',
+          category: LogCategory.speech);
+
+      _logger.i('🔍 [HOME] Step 3: Getting Gemma 3n service...',
+          category: LogCategory.ui);
+      final gemma3nService = sl<Gemma3nService>();
+      _logger.i(
+          '✅ [HOME] Step 3 complete: Retrieved Gemma 3n service from service locator',
+          category: LogCategory.gemma);
+
+      // Platform-specific STT setup
+      if (!kIsWeb && Platform.isIOS) {
+        _logger.i('🔍 [HOME] Step 4: Setting up Apple Speech STT event listener...',
+            category: LogCategory.ui);
+        final appleSpeechService = sl<AppleSpeechService>();
+        arSessionCubit.listenToAppleSpeechSTT(appleSpeechService);
+        _logger.i(
+            '✅ [HOME] Step 4 complete: Apple Speech STT event listener configured',
+            category: LogCategory.speech);
+      } else {
+        _logger.i('🔍 [HOME] Step 4: Setting up Whisper STT event listener...',
+            category: LogCategory.ui);
+        arSessionCubit.listenToWhisperSTT(whisperService);
+        _logger.i(
+            '✅ [HOME] Step 4 complete: Whisper STT event listener configured',
+            category: LogCategory.speech);
+      }
+
+      _logger.i(
+          '🔍 [HOME] Step 5: Setting up Gemma 3n enhancement event listener...',
+          category: LogCategory.ui);
+      arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
+      _logger.i(
+          '✅ [HOME] Step 5 complete: Gemma 3n enhancement event listener configured',
+          category: LogCategory.gemma);
+
+      _logger.i(
+          '🔍 [HOME] Step 6: Starting all AR services through ARSessionCubit...',
+          category: LogCategory.ui);
+      await arSessionCubit.startAllARServices(
+        startLiveCaptions: () async {
+          _logger.i('🔍 [HOME] Step 6a: Getting LiveCaptionsCubit...',
+              category: LogCategory.ui);
+          final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+          _logger.i('✅ [HOME] Step 6a complete: Got LiveCaptionsCubit',
+              category: LogCategory.ui);
+
+          _logger.i('🔍 [HOME] Step 6b: Checking LiveCaptions state...',
+              category: LogCategory.ui);
+          if (liveCaptionsCubit.state is! LiveCaptionsActive ||
+              !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+            _logger.i(
+                '🎤 [HOME] Step 6c: Starting live captions for AR mode...',
+                category: LogCategory.captions);
+            await liveCaptionsCubit.startCaptions();
+            _logger.i(
+                '✅ [HOME] Step 6c complete: Live captions started for AR mode',
+                category: LogCategory.captions);
+          } else {
+            _logger.i('🎤 [HOME] Step 6c: Live captions already active',
+                category: LogCategory.captions);
+          }
+        },
+        startSoundDetection: () async {
+          final soundDetectionCubit = context.read<SoundDetectionCubit>();
+          if (!soundDetectionCubit.isActive) {
+            _logger.i('🔊 Starting sound detection for AR mode...',
+                category: LogCategory.audio);
+            await soundDetectionCubit.start();
+            _logger.i('✅ Sound detection started for AR mode',
+                category: LogCategory.audio);
+          } else {
+            _logger.i('🔊 Sound detection already active',
+                category: LogCategory.audio);
+          }
+        },
+        startLocalization: () async {
+          final localizationCubit = context.read<LocalizationCubit>();
+          if (!localizationCubit.isActive) {
+            _logger.i('🧭 Starting localization for AR mode...',
+                category: LogCategory.ar);
+            await localizationCubit.start();
+            _logger.i('✅ Localization started for AR mode',
+                category: LogCategory.ar);
+          } else {
+            _logger.i('🧭 Localization already active',
+                category: LogCategory.ar);
+          }
+        },
+        startVisualIdentification: () async {
+          final visualIdentificationCubit =
+              context.read<VisualIdentificationCubit>();
+          if (!visualIdentificationCubit.isActive) {
+            _logger.i('👁️ Starting visual identification for AR mode...',
+                category: LogCategory.camera);
+            await visualIdentificationCubit.start();
+            _logger.i('✅ Visual identification started for AR mode',
+                category: LogCategory.camera);
+          } else {
+            _logger.i('👁️ Visual identification already active',
+                category: LogCategory.camera);
+          }
+        },
+        // Provide stop callbacks for proper cleanup
+        stopLiveCaptions: () async {
+          final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+          if (liveCaptionsCubit.state is LiveCaptionsActive &&
+              (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+            _logger.i('🎤 Stopping live captions...',
+                category: LogCategory.captions);
+            await liveCaptionsCubit.stopCaptions();
+            _logger.i('✅ Live captions stopped',
+                category: LogCategory.captions);
+          }
+        },
+        stopSoundDetection: () async {
+          final soundDetectionCubit = context.read<SoundDetectionCubit>();
+          if (soundDetectionCubit.isActive) {
+            _logger.i('🔊 Stopping sound detection...');
+            await soundDetectionCubit.stop();
+            _logger.i('✅ Sound detection stopped');
+          }
+        },
+        stopLocalization: () async {
+          final localizationCubit = context.read<LocalizationCubit>();
+          if (localizationCubit.isActive) {
+            _logger.i('🧭 Stopping localization...');
+            await localizationCubit.stop();
+            _logger.i('✅ Localization stopped');
+          }
+        },
+        stopVisualIdentification: () async {
+          final visualIdentificationCubit =
+              context.read<VisualIdentificationCubit>();
+          if (visualIdentificationCubit.isActive) {
+            _logger.i('👁️ Stopping visual identification...');
+            await visualIdentificationCubit.stop();
+            _logger.i('✅ Visual identification stopped');
+          }
+        },
+      );
+      _logger.i(
+          '✅ [HOME] Step 6 complete: All AR services started successfully through ARSessionCubit',
+          category: LogCategory.ui);
+      _logger.i(
+          '🎉🎉🎉 [HOME] _startAllServicesForARMode COMPLETED SUCCESSFULLY!',
+          category: LogCategory.ui);
+    } catch (e, stackTrace) {
+      _logger.e('❌ [HOME] _startAllServicesForARMode FAILED!',
+          category: LogCategory.ui, error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   @override
@@ -538,19 +758,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     BlocBuilder<ARSessionCubit, ARSessionState>(
                       builder: (context, arSessionState) {
                         final inARMode = arSessionState is ARSessionReady;
+                        // Only log significant AR state changes
                         return BlocBuilder<LiveCaptionsCubit,
                             LiveCaptionsState>(
                           builder: (context, captionsState) {
+                            // Removed verbose caption state logging
+                            // Removed verbose caption details logging
+
                             // Only show overlay when in AR mode and captions are active
                             // or when explicitly requested for fallback
                             bool showOverlay = false;
-                            if (inARMode && captionsState is LiveCaptionsActive) {
+                            if (inARMode &&
+                                captionsState is LiveCaptionsActive) {
                               showOverlay = true;
-                            } else if (inARMode && captionsState is LiveCaptionsActive &&
+                              _logger.i(
+                                  '🎯 [UI] Showing captions overlay in AR mode',
+                                  category: LogCategory.ui);
+                            } else if (inARMode &&
+                                captionsState is LiveCaptionsActive &&
                                 captionsState.showOverlayFallback) {
                               showOverlay = true;
+                              // Fallback mode
+                            } else {
+                              // Not showing captions overlay
                             }
-                            // Remove the automatic showing of LiveCaptionsWidget when not in AR mode
+
                             return showOverlay
                                 ? Positioned(
                                     bottom: 120,
@@ -707,68 +939,114 @@ class _HomeScreenState extends State<HomeScreen> {
                     } else if (state is ARSessionInitial) {
                       // AR mode was closed - ensure all services are stopped
                       _logger.i('✅ AR mode closed and all services stopped');
-                      
+
                       // Double-check that live captions are stopped
-                      final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+                      final liveCaptionsCubit =
+                          context.read<LiveCaptionsCubit>();
                       if (liveCaptionsCubit.state is LiveCaptionsActive &&
-                          (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-                        _logger.w('⚠️ Live captions still active after AR session end, stopping...');
+                          (liveCaptionsCubit.state as LiveCaptionsActive)
+                              .isListening) {
+                        _logger.w(
+                            '⚠️ Live captions still active after AR session end, stopping...');
                         liveCaptionsCubit.stopCaptions();
                       }
-                      
+
                       // Double-check that other services are stopped
-                      final soundDetectionCubit = context.read<SoundDetectionCubit>();
+                      final soundDetectionCubit =
+                          context.read<SoundDetectionCubit>();
                       if (soundDetectionCubit.isActive) {
-                        _logger.w('⚠️ Sound detection still active after AR session end, stopping...');
+                        _logger.w(
+                            '⚠️ Sound detection still active after AR session end, stopping...');
                         soundDetectionCubit.stop();
                       }
-                      
-                      final localizationCubit = context.read<LocalizationCubit>();
+
+                      final localizationCubit =
+                          context.read<LocalizationCubit>();
                       if (localizationCubit.isActive) {
-                        _logger.w('⚠️ Localization still active after AR session end, stopping...');
+                        _logger.w(
+                            '⚠️ Localization still active after AR session end, stopping...');
                         localizationCubit.stop();
                       }
-                      
-                      final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+
+                      final visualIdentificationCubit =
+                          context.read<VisualIdentificationCubit>();
                       if (visualIdentificationCubit.isActive) {
-                        _logger.w('⚠️ Visual identification still active after AR session end, stopping...');
+                        _logger.w(
+                            '⚠️ Visual identification still active after AR session end, stopping...');
                         visualIdentificationCubit.stop();
                       }
-                      
-                      _logger.i('✅ All services verified as stopped after AR session end');
+
+                      _logger.i(
+                          '✅ All services verified as stopped after AR session end');
                     }
                   },
                   child: FloatingActionButton(
                     heroTag: "ar_view_fab",
-                    onPressed: () async {
-                      _logger.i('🥽 Enter AR Mode button pressed...');
-                      final arSessionCubit = context.read<ARSessionCubit>();
+                    onPressed: _isGemmaInitializing
+                        ? null
+                        : () async {
+                            _logger.i('🥽 Enter AR Mode button pressed...',
+                                category: LogCategory.ui);
 
-                      try {
-                        // Initialize AR session
-                        await arSessionCubit.initializeARSession(
-                            restoreFromPersistence: false);
+                            final arSessionCubit =
+                                context.read<ARSessionCubit>();
+                            _logger.i('🎯 Got ARSessionCubit instance',
+                                category: LogCategory.ui);
 
-                        // Start all AR services immediately after initialization
-                        await _startAllServicesForARMode();
+                            try {
+                              // Ensure Gemma is initialized before starting AR
+                              if (!_isGemmaInitialized &&
+                                  !_isGemmaInitializing) {
+                                _logger.i(
+                                    '🤖 Gemma not yet initialized, initializing now...',
+                                    category: LogCategory.ar);
+                                await _initializeGemmaBeforeAR();
+                              }
 
-                      } catch (e, stackTrace) {
-                        _logger.e('�� Failed to enter AR mode',
-                            error: e, stackTrace: stackTrace);
+                              // Start all AR services
+                              await _startAllServicesForARMode();
+                              _logger.i(
+                                  '✅ [HOME] All AR services started successfully',
+                                  category: LogCategory.ui);
 
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '❌ Failed to enter AR mode: ${e.toString()}'),
-                            backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 5),
-                          ),
-                        );
-                      }
-                    },
-                    tooltip: 'Enter AR Mode',
-                    child: const Icon(Icons.view_in_ar),
+                              // Initialize AR session (this will block until AR view is closed)
+                              _logger.i(
+                                  '🎯 [HOME] Now calling initializeARSession...',
+                                  category: LogCategory.ui);
+                              await arSessionCubit.initializeARSession(
+                                  restoreFromPersistence: false);
+                              _logger.i('✅ [HOME] AR session completed',
+                                  category: LogCategory.ui);
+                            } catch (e, stackTrace) {
+                              _logger.e('❌ Failed to enter AR mode',
+                                  error: e, stackTrace: stackTrace);
+
+                              ScaffoldMessenger.of(context)
+                                  .hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      '❌ Failed to enter AR mode: ${e.toString()}'),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 5),
+                                ),
+                              );
+                            }
+                          },
+                    tooltip: _isGemmaInitializing
+                        ? 'Initializing Gemma...'
+                        : 'Enter AR Mode',
+                    child: _isGemmaInitializing
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.view_in_ar),
                   ),
                 ),
               ),

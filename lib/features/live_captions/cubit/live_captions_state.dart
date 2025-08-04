@@ -16,7 +16,13 @@ class LiveCaptionsInitial extends LiveCaptionsState {
 
 /// Loading state - initializing speech processing
 class LiveCaptionsLoading extends LiveCaptionsState {
-  const LiveCaptionsLoading();
+  final String? message;
+  final double? progress;
+  
+  const LiveCaptionsLoading({this.message, this.progress});
+  
+  @override
+  List<Object?> get props => [message, progress];
 }
 
 /// Active state - captions are being processed and displayed

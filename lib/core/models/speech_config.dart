@@ -20,6 +20,9 @@ class SpeechConfig extends Equatable {
   final int whisperMaxTokens;
   final double whisperTemperature;
   final bool whisperSuppressNonSpeechTokens;
+  
+  // Apple Speech specific configuration
+  final bool forceOfflineMode;
 
   const SpeechConfig({
     this.voiceActivityThreshold = 0.01,
@@ -38,6 +41,7 @@ class SpeechConfig extends Equatable {
     this.whisperMaxTokens = 448,
     this.whisperTemperature = 0.0,
     this.whisperSuppressNonSpeechTokens = true,
+    this.forceOfflineMode = false,
   });
 
   /// Create config with custom parameters
@@ -58,6 +62,7 @@ class SpeechConfig extends Equatable {
     int? whisperMaxTokens,
     double? whisperTemperature,
     bool? whisperSuppressNonSpeechTokens,
+    bool? forceOfflineMode,
   }) {
     return SpeechConfig(
       voiceActivityThreshold: voiceActivityThreshold ?? this.voiceActivityThreshold,
@@ -76,6 +81,7 @@ class SpeechConfig extends Equatable {
       whisperMaxTokens: whisperMaxTokens ?? this.whisperMaxTokens,
       whisperTemperature: whisperTemperature ?? this.whisperTemperature,
       whisperSuppressNonSpeechTokens: whisperSuppressNonSpeechTokens ?? this.whisperSuppressNonSpeechTokens,
+      forceOfflineMode: forceOfflineMode ?? this.forceOfflineMode,
     );
   }
 
@@ -169,6 +175,7 @@ class SpeechConfig extends Equatable {
         whisperMaxTokens,
         whisperTemperature,
         whisperSuppressNonSpeechTokens,
+        forceOfflineMode,
       ];
 
   @override
