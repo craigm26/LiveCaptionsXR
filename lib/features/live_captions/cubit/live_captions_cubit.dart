@@ -42,23 +42,16 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   }
 
   Future<void> startCaptions() async {
-    print('DEBUG: LiveCaptionsCubit.startCaptions() called'); // Debug print
     if (state is LiveCaptionsActive && (state as LiveCaptionsActive).isListening) {
-      print('DEBUG: Live captions already listening, skipping start'); // Debug print
       _logger.i('🎤 Live captions already listening, skipping start', category: LogCategory.captions);
       return;
     }
 
     try {
-      print('DEBUG: Starting live captions initialization'); // Debug print
       _logger.i('🎤 Starting live captions...', category: LogCategory.captions);
-      print('DEBUG: Emitting LiveCaptionsLoading state'); // Debug print
       emit(const LiveCaptionsLoading(message: 'Initializing speech processing...'));
-      print('DEBUG: LiveCaptionsLoading state emitted'); // Debug print
 
-      print('DEBUG: Checking if _speechProcessor.isReady: ${_speechProcessor.isReady}'); // Debug print
       if (!_speechProcessor.isReady) {
-        print('DEBUG: Speech processor not ready, initializing...'); // Debug print
         // Subscribe to Gemma enhancement events to show progress
         StreamSubscription? gemmaProgressSubscription;
         if (_useEnhancement) {
@@ -83,19 +76,14 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
           await gemmaProgressSubscription?.cancel();
         }
       } else {
-        print('DEBUG: Speech processor already ready, skipping initialization'); // Debug print
         if (_speechConfig != null) {
-          print('DEBUG: Updating speech processor config'); // Debug print
           // Update config if processor is already initialized
           await _speechProcessor.updateConfig(_speechConfig!);
-          print('DEBUG: Speech processor config updated'); // Debug print
         }
       }
       
       // The UI will remain in the "loading" state until the first caption is received.
-      print('DEBUG: Setting up caption subscription - _useEnhancement: $_useEnhancement, _speechProcessor.isReady: ${_speechProcessor.isReady}'); // Debug print
       if (_useEnhancement && _speechProcessor.isReady) {
-        print('DEBUG: Setting up enhanced caption subscription'); // Debug print
         _logger.i('🔍 [CAPTIONS CUBIT] Setting up enhanced caption subscription...', category: LogCategory.captions);
         _logger.i('🔍 [CAPTIONS CUBIT] _useEnhancement: $_useEnhancement, hasGemmaEnhancement: ${_speechProcessor.hasGemmaEnhancement}', category: LogCategory.captions);
         _captionSubscription = _speechProcessor.enhancedCaptions.listen(
@@ -107,10 +95,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
             _logger.w('⚠️ [CAPTIONS CUBIT] Enhanced captions stream closed', category: LogCategory.captions);
           },
         );
-        print('DEBUG: Enhanced caption subscription set up'); // Debug print
         _logger.i('✨ Subscribed to enhanced captions stream.', category: LogCategory.captions);
       } else {
-        print('DEBUG: Setting up raw speech subscription'); // Debug print
         _logger.i('🔍 [CAPTIONS CUBIT] Setting up raw speech subscription (enhancement: $_useEnhancement, ready: ${_speechProcessor.isReady})', category: LogCategory.captions);
         _captionSubscription = _speechProcessor.speechResults.listen(
           _handleRawSpeechResult,
@@ -121,18 +107,14 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
             _logger.w('⚠️ [CAPTIONS CUBIT] Speech results stream closed', category: LogCategory.captions);
           },
         );
-        print('DEBUG: Raw speech subscription set up'); // Debug print
         _logger.i('📝 Subscribed to raw speech results stream.', category: LogCategory.captions);
       }
 
       // Pass the speech config during processing start
-      print('DEBUG: About to call _speechProcessor.startProcessing()'); // Debug print
       await _speechProcessor.startProcessing(config: _speechConfig);
-      print('DEBUG: _speechProcessor.startProcessing() completed'); // Debug print
       
       // We no longer emit an "Active" state here immediately. The first
       // received caption will transition the state from Loading to Active.
-      print('DEBUG: Live captions setup completed, waiting for first result'); // Debug print
       _logger.i('✅ Live captions started successfully, waiting for first result...', category: LogCategory.captions);
     } catch (e) {
       _logger.e('❌ Failed to start live captions: $e', category: LogCategory.captions, error: e);
@@ -156,7 +138,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       final displayText = caption.displayText;
       _logger.i('🎯 [CAPTIONS CUBIT] Placing FINAL caption in AR space: "$displayText"', category: LogCategory.captions);
       
-      // Place caption in AR - catch any errors
+      // Place caption in AR
       try {
         _hybridLocalizationEngine.placeRealtimeCaption(displayText).catchError((e, stackTrace) {
           _logger.e('❌ [CAPTIONS CUBIT] Failed to place caption in AR', category: LogCategory.captions, error: e, stackTrace: stackTrace);
@@ -164,9 +146,15 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       } catch (e, stackTrace) {
         _logger.e('❌ [CAPTIONS CUBIT] Exception placing caption in AR', category: LogCategory.captions, error: e, stackTrace: stackTrace);
       }
+      _logger.d('📍 Caption placed in AR space', category: LogCategory.captions);
 
       emit(currentState.copyWith(
-        captions: List.from(_captionHistory),
+        captions: _captionHistory.map((c) => SpeechResult(
+          text: c.displayText,
+          confidence: c.confidence,
+          isFinal: c.isFinal,
+          timestamp: c.timestamp,
+        )).toList(),
         currentCaption: null,
         hasEnhancement: caption.isEnhanced,
       ));
@@ -174,9 +162,9 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     } else {
       _logger.i('⏳ [CAPTIONS CUBIT] Processing partial caption: "${caption.displayText}"', category: LogCategory.captions);
       
-      // TEMPORARY: Place partial captions in AR for testing
+      // Place partial captions in AR for real-time feedback
       if (caption.displayText.isNotEmpty && caption.displayText.length > 3) {
-        _logger.w('🧪 [CAPTIONS CUBIT] TEST MODE: Placing PARTIAL caption in AR: "${caption.displayText}"', category: LogCategory.captions);
+        _logger.d('⚡ [CAPTIONS CUBIT] Placing PARTIAL caption in AR: "${caption.displayText}"', category: LogCategory.captions);
         try {
           _hybridLocalizationEngine.placeRealtimeCaption(caption.displayText).catchError((e, stackTrace) {
             _logger.e('❌ [CAPTIONS CUBIT] Failed to place partial caption in AR', category: LogCategory.captions, error: e, stackTrace: stackTrace);

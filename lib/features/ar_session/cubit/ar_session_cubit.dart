@@ -638,10 +638,8 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     String sttBackend = 'Whisper',
     bool sttIsOnline = false,
   }) async {
-    print('DEBUG: ARSessionCubit.startAllARServices called'); // Debug print
     _logger.i('🔍 [AR_CUBIT] startAllARServices called', category: LogCategory.ar);
     final currentState = state;
-    print('DEBUG: Current AR session state: ${currentState.runtimeType}'); // Debug print
     _logger.i('🔍 [AR_CUBIT] Current AR session state: ${currentState.runtimeType}', category: LogCategory.ar);
     
     // Services can start independently of AR session state
@@ -654,16 +652,13 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     }
 
     try {
-      print('DEBUG: Inside try block, starting services'); // Debug print
       _logger.i('🚀 Starting all services for AR mode...', category: LogCategory.ar);
 
-      print('DEBUG: Storing stop callbacks'); // Debug print
       // Store stop callbacks for later cleanup
       _stopLiveCaptions = stopLiveCaptions;
       _stopSoundDetection = stopSoundDetection;
       _stopLocalization = stopLocalization;
       _stopVisualIdentification = stopVisualIdentification;
-      print('DEBUG: Stop callbacks stored'); // Debug print
 
       // Initialize service statuses
       final serviceStatuses = <String, ServiceStatus>{
@@ -704,7 +699,6 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       for (int i = 0; i < services.length; i++) {
         final (serviceKey, serviceStartFunction) = services[i];
-        print('DEBUG: Starting service $serviceKey (${i+1}/${services.length})'); // Debug print
         
         // Update service status to starting
         final updatedStatuses = Map<String, ServiceStatus>.from(serviceStatuses);
@@ -714,17 +708,14 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           progress: 0.0,
         );
         
-        print('DEBUG: Emitting ARSessionStartingServices for $serviceKey'); // Debug print
         emit(ARSessionStartingServices(
           serviceStatuses: updatedStatuses,
           overallProgress: i / services.length,
         ));
 
         try {
-          print('DEBUG: About to call serviceStartFunction for $serviceKey'); // Debug print
           // Start the service
           await serviceStartFunction();
-          print('DEBUG: serviceStartFunction completed for $serviceKey'); // Debug print
           
           // Update service status to running
           updatedStatuses[serviceKey] = updatedStatuses[serviceKey]!.copyWith(

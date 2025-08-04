@@ -11,7 +11,6 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        print("🏗️ ARViewController.viewDidLoad() called")
         NSLog("🏗️ [NATIVE] ARViewController.viewDidLoad() called")
         
         // Check if ARKit is available before setting up ARSCNView
@@ -26,8 +25,9 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         sceneView = ARSCNView(frame: view.bounds)
         sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         sceneView.backgroundColor = .clear
-        sceneView.automaticallyUpdatesLighting = true
-        sceneView.autoenablesDefaultLighting = true
+        // Lighting features disabled for optimal performance with AI processing
+        // sceneView.automaticallyUpdatesLighting = true
+        // sceneView.autoenablesDefaultLighting = true
         view.addSubview(sceneView)
         sceneView.delegate = self
         sceneView.session = ARSession()
@@ -44,9 +44,6 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         print("▶️ ARSession.run() called")
         NSLog("▶️ [NATIVE] ARSession.run() called - session running: %@", sceneView.session.configuration != nil ? "YES" : "NO")
         
-        // Add a test sphere to verify AR is working
-        addTestSphere()
-        
         // NOTE: Test caption removed, focusing on real caption placement via method channel
         
         // Notify that the session is ready after ensuring proper initialization
@@ -54,33 +51,6 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             print("🕐 First session readiness check (after 1.5s)...")
             self?.checkSessionReadiness(attempt: 1)
-        }
-    }
-    
-    // Add a test sphere to verify AR is working
-    private func addTestSphere() {
-        print("🔵 [NATIVE] Adding test sphere to verify AR is working...")
-        NSLog("🔵 [NATIVE] Adding test sphere to verify AR is working...")
-        
-        // Create a sphere geometry
-        let sphere = SCNSphere(radius: 0.1) // 10cm radius
-        sphere.firstMaterial?.diffuse.contents = UIColor.red
-        sphere.firstMaterial?.emission.contents = UIColor.red.withAlphaComponent(0.3)
-        
-        // Create a node for the sphere
-        let sphereNode = SCNNode(geometry: sphere)
-        sphereNode.position = SCNVector3(x: 0, y: 0, z: -1) // 1 meter in front of camera
-        sphereNode.name = "test_sphere"
-        
-        // Add to scene
-        sceneView.scene.rootNode.addChildNode(sphereNode)
-        print("✅ [NATIVE] Test sphere added at position (0, 0, -1)")
-        NSLog("✅ [NATIVE] Test sphere added to scene. Total nodes: %d", sceneView.scene.rootNode.childNodes.count)
-        
-        // Remove after 30 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) { [weak sphereNode] in
-            sphereNode?.removeFromParentNode()
-            print("🔵 [NATIVE] Test sphere removed")
         }
     }
     
@@ -173,34 +143,32 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
            let controller = appDelegate.window?.rootViewController as? FlutterViewController {
             // Caption method channel
             captionChannel = FlutterMethodChannel(name: "live_captions_xr/caption_methods", binaryMessenger: controller.binaryMessenger)
-            print("📡 [NATIVE] Setting up caption method channel handler")
             NSLog("📡 [NATIVE] Caption method channel created with name: live_captions_xr/caption_methods")
             captionChannel?.setMethodCallHandler { [weak self] (call, result) in
-                print("📨 [NATIVE] Received method call: \(call.method)")
                 NSLog("📨 [NATIVE] Method channel received call: %@", call.method)
                 if call.method == "placeCaption" {
                     guard let args = call.arguments as? [String: Any] else {
-                        print("❌ [NATIVE] Failed to cast arguments to dictionary")
+                        NSLog("❌ [NATIVE] Failed to cast arguments to dictionary")
                         result(FlutterError(code: "BAD_ARGS", message: "Arguments not a dictionary", details: nil))
                         return
                     }
                     
-                    print("📦 [NATIVE] Arguments: \(args)")
+                    NSLog("📦 [NATIVE] Arguments: %@", args)
                     
                     guard let transform = args["transform"] as? [Double],
                           let text = args["text"] as? String else {
-                        print("❌ [NATIVE] Missing required arguments - transform: \(args["transform"] != nil), text: \(args["text"] != nil)")
+                        NSLog("❌ [NATIVE] Missing required arguments - transform: %@, text: %@", args["transform"] != nil ? "YES" : "NO", args["text"] != nil ? "YES" : "NO")
                         result(FlutterError(code: "BAD_ARGS", message: "Missing transform or text", details: nil))
                         return
                     }
                     
                     guard transform.count == 16 else {
-                        print("❌ [NATIVE] Transform array has wrong size: \(transform.count), expected 16")
+                        NSLog("❌ [NATIVE] Transform array has wrong size: %ld, expected 16", transform.count)
                         result(FlutterError(code: "BAD_ARGS", message: "Transform must have 16 elements", details: nil))
                         return
                     }
                     
-                    print("✅ [NATIVE] Valid arguments received - text: \"\(text)\", transform count: \(transform.count)")
+                    NSLog("✅ [NATIVE] Valid arguments received - text: \"%@\", transform count: %ld", text, transform.count)
                     
                     var matrix = matrix_identity_float4x4
                     for row in 0..<4 {
@@ -211,7 +179,7 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
                     self?.placeCaption(at: matrix, text: text)
                     result(nil)
                 } else {
-                    print("❌ [NATIVE] Unhandled method: \(call.method)")
+                    NSLog("❌ [NATIVE] Unhandled method: %@", call.method)
                     result(FlutterMethodNotImplemented)
                 }
             }

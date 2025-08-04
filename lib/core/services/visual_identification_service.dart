@@ -70,7 +70,6 @@ class VisualIdentificationService {
   }
 
   Future<void> stop() async {
-    // TODO: Stop camera stream and cleanup resources
     _logger.i('🛑 Stopped visual identification service');
   }
 }

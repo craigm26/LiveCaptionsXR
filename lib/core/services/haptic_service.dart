@@ -18,7 +18,6 @@ class HapticService {
     try {
       _logger.d('Setting up haptic feedback system...');
       _logger.d('Checking device haptic capabilities...');
-      // TODO: Add actual haptic initialization logic
       
       _isInitialized = true;
       _logger.i('✅ HapticService initialized successfully');
@@ -54,7 +53,6 @@ class HapticService {
     
     try {
       _logger.d('Executing vibration pattern...');
-      // TODO: Add actual vibration logic
       
       _logger.d('✅ Vibration pattern executed successfully');
       

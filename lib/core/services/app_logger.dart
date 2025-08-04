@@ -57,7 +57,7 @@ class LogConfig {
 
   const LogConfig({
     this.categoryLevels = const {},
-    this.globalLevel = LogLevel.info,
+    this.globalLevel = LogLevel.debug,
     this.enableConsoleOutput = true,
     this.enableFileOutput = false,
   });

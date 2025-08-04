@@ -448,6 +448,21 @@ AppLogger.instance.setCategoryLevel(LogCategory.ar, LogLevel.debug);
 - **Memory Usage**: Efficient memory management
 - **Battery Life**: Minimizes battery consumption
 
+### ARKit Optimization
+LiveCaptionsXR disables certain ARKit features to maximize performance for AI processing:
+
+```swift
+// Lighting features disabled for optimal performance with AI processing
+// sceneView.automaticallyUpdatesLighting = true
+// sceneView.autoenablesDefaultLighting = true
+```
+
+**Rationale:**
+- **GPU Resources**: Frees GPU resources for Gemma 3n multimodal inference
+- **CPU Resources**: Reduces CPU overhead from lighting calculations
+- **Battery Life**: Improves battery efficiency during extended use
+- **Trade-off**: Slightly less realistic lighting in favor of AI performance
+
 ---
 
 ## Testing & Debugging

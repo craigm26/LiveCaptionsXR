@@ -17,11 +17,13 @@ import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_
 import 'package:live_captions_xr/features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
+import 'package:live_captions_xr/core/services/app_logger.dart';
 // ... imports
 
 final sl = GetIt.instance;
 
 void setupServiceLocator() {
+  final logger = AppLogger.instance;
 // ... existing registrations
   if (!sl.isRegistered<ModelDownloadManager>()) {
     sl.registerLazySingleton<ModelDownloadManager>(() => ModelDownloadManager());
@@ -37,38 +39,38 @@ void setupServiceLocator() {
     ));
   }
   if (!sl.isRegistered<AppleSpeechService>()) {
-    print('🍎 [DEBUG] Registering AppleSpeechService in service locator');
+    logger.d('🍎 Registering AppleSpeechService in service locator', category: LogCategory.system);
     sl.registerLazySingleton<AppleSpeechService>(() {
-      print('🍎 [DEBUG] Creating AppleSpeechService instance');
+      logger.d('🍎 Creating AppleSpeechService instance', category: LogCategory.system);
       return AppleSpeechService();
     });
   }
   if (!sl.isRegistered<EnhancedSpeechProcessor>()) {
-    print('🔧 [DEBUG] Registering EnhancedSpeechProcessor in service locator');
+    logger.d('🔧 Registering EnhancedSpeechProcessor in service locator', category: LogCategory.system);
     sl.registerLazySingleton<EnhancedSpeechProcessor>(
       () {
-        print('🔧 [DEBUG] Creating EnhancedSpeechProcessor instance');
-        print('🍎 [DEBUG] Getting AppleSpeechService from service locator');
+        logger.d('🔧 Creating EnhancedSpeechProcessor instance', category: LogCategory.system);
+        logger.d('🍎 Getting AppleSpeechService from service locator', category: LogCategory.system);
         final appleSpeech = sl<AppleSpeechService>();
-        print('🍎 [DEBUG] AppleSpeechService retrieved: ${appleSpeech.runtimeType}');
+        logger.d('🍎 AppleSpeechService retrieved: ${appleSpeech.runtimeType}', category: LogCategory.system);
         
-        print('🔧 [DEBUG] Getting Gemma3nService...');
+        logger.d('🔧 Getting Gemma3nService...', category: LogCategory.system);
         final gemma = sl<Gemma3nService>();
-        print('🔧 [DEBUG] Gemma3nService OK');
+        logger.d('🔧 Gemma3nService OK', category: LogCategory.system);
         
-        print('🔧 [DEBUG] Getting AudioCaptureService...');
+        logger.d('🔧 Getting AudioCaptureService...', category: LogCategory.system);
         final audio = sl<AudioCaptureService>();
-        print('🔧 [DEBUG] AudioCaptureService OK');
+        logger.d('🔧 AudioCaptureService OK', category: LogCategory.system);
         
-        print('🔧 [DEBUG] Getting WhisperService...');
+        logger.d('🔧 Getting WhisperService...', category: LogCategory.system);
         final whisper = sl<WhisperService>();
-        print('🔧 [DEBUG] WhisperService OK');
+        logger.d('🔧 WhisperService OK', category: LogCategory.system);
         
-        print('🔧 [DEBUG] Getting FrameCaptureService...');
+        logger.d('🔧 Getting FrameCaptureService...', category: LogCategory.system);
         final frame = sl<FrameCaptureService>();
-        print('🔧 [DEBUG] FrameCaptureService OK');
+        logger.d('🔧 FrameCaptureService OK', category: LogCategory.system);
         
-        print('🔧 [DEBUG] About to create EnhancedSpeechProcessor with all services...');
+        logger.d('🔧 About to create EnhancedSpeechProcessor with all services...', category: LogCategory.system);
         final processor = EnhancedSpeechProcessor(
           gemma3nService: gemma,
           audioCaptureService: audio,
@@ -76,7 +78,7 @@ void setupServiceLocator() {
           appleSpeechService: appleSpeech,
           frameCaptureService: frame,
         );
-        print('🔧 [DEBUG] EnhancedSpeechProcessor created successfully!');
+        logger.d('🔧 EnhancedSpeechProcessor created successfully!', category: LogCategory.system);
         return processor;
       },
     );

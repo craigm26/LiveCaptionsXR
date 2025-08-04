@@ -94,14 +94,13 @@ class _AppBootstrapState extends State<AppBootstrap> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       _appLogger.d('⏳ Waiting for onboarding status check...');
-      print('DEBUG: AppBootstrap is loading (onboarding check)');
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     // The router now handles whether to show the onboarding screen or the main app
-    print('DEBUG: AppBootstrap finished loading, showing app content');
+    _appLogger.d('✅ AppBootstrap finished loading, showing app content');
     return widget.child ?? const Center(child: Text('App loaded!'));
   }
 }

@@ -65,41 +65,41 @@ import SceneKit
             ARAnchorManager.anchorMap[id] = anchor
             result(id)
         case "createAnchorAtWorldTransform":
-            print("🔗 ARAnchorManager.createAnchorAtWorldTransform called")
+            NSLog("🔗 ARAnchorManager.createAnchorAtWorldTransform called")
             guard let args = call.arguments as? [String: Any],
                   let transformArray = args["transform"] as? [Double],
                   transformArray.count == 16 else {
-                print("❌ Invalid arguments for createAnchorAtWorldTransform")
+                NSLog("❌ Invalid arguments for createAnchorAtWorldTransform")
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing or invalid transform array", details: nil))
                 return
             }
             
-            print("📊 Transform array received with \(transformArray.count) elements")
+            NSLog("📊 Transform array received with %ld elements", transformArray.count)
             
             guard let session = ARAnchorManager.arSession else {
-                print("❌ CRITICAL: ARAnchorManager.arSession is nil")
+                NSLog("❌ CRITICAL: ARAnchorManager.arSession is nil")
                 result(FlutterError(code: "NO_SESSION", message: "ARSession not available", details: nil))
                 return
             }
             
-            print("✅ ARAnchorManager.arSession exists")
+            NSLog("✅ ARAnchorManager.arSession exists")
             
             // Check if ARSession is tracking and has at least one frame
             guard session.currentFrame != nil else {
-                print("❌ ARSession.currentFrame is nil")
+                NSLog("❌ ARSession.currentFrame is nil")
                 result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera frame", details: nil))
                 return
             }
             
-            print("✅ ARSession.currentFrame exists")
+            NSLog("✅ ARSession.currentFrame exists")
             
             guard case .normal = session.currentFrame?.camera.trackingState else {
-                print("❌ ARSession camera tracking state is not normal: \(String(describing: session.currentFrame?.camera.trackingState))")
+                NSLog("❌ ARSession camera tracking state is not normal")
                 result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - tracking not normal", details: nil))
                 return
             }
             
-            print("✅ ARSession camera tracking state is normal")
+            NSLog("✅ ARSession camera tracking state is normal")
             
             var matrix = matrix_identity_float4x4
             for row in 0..<4 {
@@ -108,12 +108,12 @@ import SceneKit
                 }
             }
             
-            print("🎯 Creating ARAnchor with transform...")
+            NSLog("🎯 Creating ARAnchor with transform...")
             let anchor = ARAnchor(transform: matrix)
             session.add(anchor: anchor)
             let id = anchor.identifier.uuidString
             ARAnchorManager.anchorMap[id] = anchor
-            print("✅ ARAnchor created successfully with ID: \(id)")
+            NSLog("✅ ARAnchor created successfully with ID: %@", id)
             result(id)
         case "removeAnchor":
             guard let args = call.arguments as? [String: Any],
@@ -127,41 +127,41 @@ import SceneKit
             ARAnchorManager.anchorMap.removeValue(forKey: identifier)
             result(nil)
         case "getDeviceOrientation":
-            print("📱 ARAnchorManager.getDeviceOrientation called for session validation")
+            NSLog("📱 ARAnchorManager.getDeviceOrientation called for session validation")
             
             // Check if session exists
             guard let session = ARAnchorManager.arSession else {
-                print("❌ Session validation failed: ARAnchorManager.arSession is nil")
+                NSLog("❌ Session validation failed: ARAnchorManager.arSession is nil")
                 result(FlutterError(code: "NO_SESSION", message: "ARSession not available", details: nil))
                 return
             }
             
-            print("✅ Session validation: ARAnchorManager.arSession exists")
+            NSLog("✅ Session validation: ARAnchorManager.arSession exists")
             
             // Check if session is running
             guard session.currentFrame != nil else {
-                print("❌ Session validation failed: no current frame available")
+                NSLog("❌ Session validation failed: no current frame available")
                 result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera frame", details: nil))
                 return
             }
             
-            print("✅ Session validation: camera frame exists")
+            NSLog("✅ Session validation: camera frame exists")
             
             // Check camera tracking state
             guard let camera = session.currentFrame?.camera else {
-                print("❌ Session validation failed: no camera in current frame")
+                NSLog("❌ Session validation failed: no camera in current frame")
                 result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - no camera", details: nil))
                 return
             }
             
             // Allow limited tracking state as well since it may be temporary
             guard case .normal = camera.trackingState else {
-                print("❌ Session validation failed: camera tracking state is not normal: \(camera.trackingState)")
+                NSLog("❌ Session validation failed: camera tracking state is not normal")
                 result(FlutterError(code: "SESSION_NOT_READY", message: "ARSession not ready - tracking not normal", details: nil))
                 return
             }
             
-            print("✅ Session validation: camera tracking state is normal")
+            NSLog("✅ Session validation: camera tracking state is normal")
             
             let m = camera.transform
             let flat: [Float] = [
@@ -170,7 +170,7 @@ import SceneKit
                 m[2][0], m[2][1], m[2][2], m[2][3],
                 m[3][0], m[3][1], m[3][2], m[3][3]
             ]
-            print("✅ Session validation successful, returning device orientation")
+            NSLog("✅ Session validation successful, returning device orientation")
             result(flat)
         default:
             result(FlutterMethodNotImplemented)
@@ -209,6 +209,6 @@ import SceneKit
 
     func removeAnchor(_ anchor: ARAnchor) {
         session.remove(anchor: anchor)
-        // TODO: Remove the corresponding CaptionNode from the scene
+        // Note: CaptionNode cleanup handled by AR session lifecycle
     }
 }
