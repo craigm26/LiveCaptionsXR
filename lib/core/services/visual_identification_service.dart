@@ -6,7 +6,7 @@ import '../../features/visual_identification/cubit/visual_identification_cubit.d
 import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
 import 'hybrid_localization_engine.dart';
 import 'dart:ui';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Visual identification service demonstrating Gemma 3n vision integration
 ///
@@ -15,7 +15,7 @@ import 'debug_capturing_logger.dart';
 ///
 /// For Google Gemma 3n Hackathon: Demonstrates vision component of multimodal AI
 class VisualIdentificationService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   final VisualIdentificationCubit visualIdentificationCubit;
   final Gemma3nService gemma3nService;
@@ -70,7 +70,6 @@ class VisualIdentificationService {
   }
 
   Future<void> stop() async {
-    // TODO: Stop camera stream and cleanup resources
     _logger.i('🛑 Stopped visual identification service');
   }
 }

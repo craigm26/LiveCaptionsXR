@@ -1,8 +1,8 @@
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:live_captions_xr/core/services/debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 class GoogleAuthService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [

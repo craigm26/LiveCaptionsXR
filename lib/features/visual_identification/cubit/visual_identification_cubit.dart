@@ -2,7 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import '../../../core/models/visual_object.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
-import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/services/app_logger.dart';
 
 abstract class VisualIdentificationState {}
 
@@ -14,7 +14,7 @@ class VisualIdentificationLoaded extends VisualIdentificationState {
 }
 
 class VisualIdentificationCubit extends Cubit<VisualIdentificationState> {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   static const MethodChannel _channel =
       MethodChannel('live_captions_xr/visual_object_methods');
   final HybridLocalizationEngine hybridLocalizationEngine;
