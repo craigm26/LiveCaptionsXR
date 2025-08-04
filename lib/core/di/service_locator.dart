@@ -16,7 +16,7 @@ import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
 import 'package:live_captions_xr/core/services/speech_localizer.dart';
 import 'package:live_captions_xr/core/services/spatial_caption_integration_service.dart';
-import 'package:live_captions_xr/plugins/spatial_captions/lib/cubit/spatial_captions_cubit.dart';
+import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -50,6 +50,7 @@ void setupServiceLocator() {
       () => LiveCaptionsCubit(
         speechProcessor: sl<EnhancedSpeechProcessor>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+        spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
         useEnhancement: true,
         speechConfig: const SpeechConfig(), // Pass default config with whisper settings
       ),
@@ -96,6 +97,7 @@ void setupServiceLocator() {
         spatialCaptionsCubit: sl<SpatialCaptionsCubit>(),
         speechLocalizer: sl<SpeechLocalizer>(),
         gemmaService: sl<Gemma3nService>(),
+        hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
       ),
     );
   }

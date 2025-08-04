@@ -4,8 +4,8 @@ import 'package:vector_math/vector_math_64.dart' as vec;
 import 'package:get_it/get_it.dart';
 import 'dart:math' as math;
 
-import 'package:live_captions_xr/plugins/spatial_captions/lib/cubit/spatial_captions_cubit.dart';
-import 'package:live_captions_xr/plugins/spatial_captions/lib/cubit/spatial_captions_state.dart';
+import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
+import 'package:spatial_captions/cubit/spatial_captions_state.dart';
 import 'package:live_captions_xr/core/services/spatial_caption_integration_service.dart';
 import 'package:live_captions_xr/core/models/speech_result.dart';
 import 'package:live_captions_xr/features/ar_session/cubit/ar_session_cubit.dart';

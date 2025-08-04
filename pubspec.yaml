@@ -36,6 +36,8 @@ dependencies:
   dart_openai: ^5.1.0
   flutter_dotenv: ^5.1.0
   vector_math: ^2.1.4
+  spatial_captions:
+    path: plugins/spatial_captions
   
   google_sign_in: ^6.2.1
   audio_streamer: ^4.2.2

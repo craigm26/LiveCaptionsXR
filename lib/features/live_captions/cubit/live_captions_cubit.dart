@@ -7,6 +7,7 @@ import '../../../core/models/speech_result.dart';
 import '../../../core/models/speech_config.dart';
 import '../../../core/services/enhanced_speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
+import '../../../core/services/spatial_caption_integration_service.dart';
 import 'live_captions_state.dart';
 
 /// A unified Cubit for managing live captions, with optional enhancement.
@@ -17,6 +18,7 @@ import 'live_captions_state.dart';
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final EnhancedSpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
+  final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
   final Logger _logger = Logger();
 
   StreamSubscription? _captionSubscription;
@@ -27,10 +29,12 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   LiveCaptionsCubit({
     required EnhancedSpeechProcessor speechProcessor,
     required HybridLocalizationEngine hybridLocalizationEngine,
+    required SpatialCaptionIntegrationService spatialCaptionIntegrationService,
     bool useEnhancement = true,
     SpeechConfig? speechConfig,
   })  : _speechProcessor = speechProcessor,
         _hybridLocalizationEngine = hybridLocalizationEngine,
+        _spatialCaptionIntegrationService = spatialCaptionIntegrationService,
         _useEnhancement = useEnhancement,
         _speechConfig = speechConfig,
         super(const LiveCaptionsInitial());
@@ -84,7 +88,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     }
   }
 
-  void _handleEnhancedCaption(EnhancedCaption caption) {
+  void _handleEnhancedCaption(EnhancedCaption caption) async {
     _logger.d('📋 Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})');
     
     final currentState = state is LiveCaptionsActive
@@ -97,8 +101,18 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       _logger.i('📚 Added final caption to history (${_captionHistory.length} total)');
 
       final displayText = caption.displayText;
-      _logger.d('🎯 Placing caption in AR space: "$displayText"');
-      _hybridLocalizationEngine.placeRealtimeCaption(displayText);
+      _logger.d('🎯 Processing final caption through spatial integration: "$displayText"');
+      
+      // Create speech result for spatial caption integration
+      final speechResult = SpeechResult(
+        text: displayText,
+        confidence: caption.confidence,
+        isFinal: true,
+        timestamp: caption.timestamp,
+      );
+      
+      // Process through spatial caption integration service
+      await _spatialCaptionIntegrationService.processFinalResult(speechResult);
 
       emit(currentState.copyWith(
         captions: List.from(_captionHistory),
