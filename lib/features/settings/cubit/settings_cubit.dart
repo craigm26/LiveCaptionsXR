@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/debug_logger_service.dart';
-import '../../../core/services/debug_capturing_logger.dart';
+import '../../../core/services/app_logger.dart';
 import '../../../core/models/user_settings.dart';
  
   
@@ -18,7 +18,7 @@ class SettingsCubit extends Cubit<UserSettings> {
     _loadSettings();
   }
 
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   final DebugLoggerService _debugLogger = DebugLoggerService();
 
   void toggleLedAlerts(bool value) {

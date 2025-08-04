@@ -5,12 +5,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/settings/cubit/settings_cubit.dart';
 import '../../core/models/user_settings.dart';
 import 'enhanced_speech_processor.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// A service that routes audio to the correct speech-to-text engine
 /// based on user settings.
 class AudioRouterService {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   final EnhancedSpeechProcessor _speechProcessor;
   final SettingsCubit _settingsCubit;

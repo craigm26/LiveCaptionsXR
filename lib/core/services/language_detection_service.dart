@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import '../models/speech_config.dart';
-import 'debug_capturing_logger.dart';
+import 'app_logger.dart';
 
 /// Language detection result
 class LanguageDetectionResult {
@@ -23,7 +23,7 @@ class LanguageDetectionResult {
 /// Service for detecting language from speech audio using Gemma 3
 class LanguageDetectionService {
   
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
 
   /// Detect language from audio buffer
   static Future<LanguageDetectionResult?> detectLanguage(

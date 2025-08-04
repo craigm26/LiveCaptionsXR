@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:live_captions_xr/core/services/model_download_manager.dart';
-import 'package:live_captions_xr/core/services/debug_capturing_logger.dart';
+import '../../../core/services/app_logger.dart';
 
 class ModelStatusPage extends StatefulWidget {
   const ModelStatusPage({super.key});
@@ -10,7 +10,7 @@ class ModelStatusPage extends StatefulWidget {
 }
 
 class _ModelStatusPageState extends State<ModelStatusPage> {
-  static final DebugCapturingLogger _logger = DebugCapturingLogger();
+  static final AppLogger _logger = AppLogger.instance;
   late ModelDownloadManager _modelDownloadManager;
   Map<String, Map<String, dynamic>> _modelStatus = {};
 
