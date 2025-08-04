@@ -35,7 +35,7 @@ class CaptionNode: SCNNode {
         
         let backgroundGeometry = SCNPlane(width: backgroundWidth, height: backgroundHeight)
         backgroundGeometry.cornerRadius = backgroundHeight * 0.3
-        backgroundGeometry.firstMaterial?.diffuse.contents = UIColor.yellow.withAlphaComponent(0.8) // BRIGHT YELLOW background
+        backgroundGeometry.firstMaterial?.diffuse.contents = UIColor.black.withAlphaComponent(0.8) // Dark semi-transparent background
         backgroundGeometry.firstMaterial?.isDoubleSided = true
         backgroundNode.geometry = backgroundGeometry
         backgroundNode.position = SCNVector3(x: 0, y: 0, z: 0)
