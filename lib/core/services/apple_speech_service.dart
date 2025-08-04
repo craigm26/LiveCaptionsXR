@@ -103,7 +103,7 @@ class AppleSpeechService {
       _logger.i('🍎 [DEBUG] About to call _speechToText.initialize()', category: LogCategory.speech);
       bool available = await _speechToText.initialize(
         onError: (error) {
-          _logger.e('❌ Apple Speech error: ${error.errorMsg}', category: LogCategory.speech);
+        //  _logger.e('❌ Apple Speech error: ${error.errorMsg}', category: LogCategory.speech);
           
           // Handle error_no_match by using last partial result as final
           if (error.errorMsg == 'error_no_match' && _lastPartialResult.isNotEmpty) {
@@ -132,7 +132,7 @@ class AppleSpeechService {
             ));
           } else {
             // Log error but DON'T restart in onError (best practice)
-            _logger.w('⚠️ [APPLE STT] Error will be handled by onStatus callback, not restarting here', category: LogCategory.speech);
+            //_logger.w('⚠️ [APPLE STT] Error will be handled by onStatus callback, not restarting here', category: LogCategory.speech);
             _sttEventController.add(AppleSpeechEvent(
               progress: 0.0,
               message: 'Speech recognition error',

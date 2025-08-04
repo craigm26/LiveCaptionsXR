@@ -10,7 +10,7 @@ void main() {
       arAnchorManager = ARAnchorManager();
     });
 
-    testWidgets('should retry when ARSession is not available', (tester) async {
+    test('should retry when ARSession is not available', () async {
       // Mock the method channel to simulate NO_SESSION error followed by success
       int callCount = 0;
       
@@ -36,15 +36,15 @@ void main() {
         },
       );
 
-      // This should succeed after retry
-      final result = await arAnchorManager.getDeviceOrientation();
+      // This should succeed after retry (with timeout)
+      final result = await arAnchorManager.getDeviceOrientation().timeout(Duration(seconds: 5));
       
       expect(result, isNotNull);
       expect(result.length, equals(16));
       expect(callCount, equals(2)); // Should have retried once
     });
 
-    testWidgets('should fail after max retries', (tester) async {
+    test('should fail after max retries', () async {
       // Mock the method channel to always return NO_SESSION error
       int callCount = 0;
       
@@ -64,9 +64,9 @@ void main() {
         },
       );
 
-      // This should fail after max retries
-      expect(
-        () => arAnchorManager.getDeviceOrientation(maxRetries: 2),
+      // This should fail after max retries (with timeout)
+      await expectLater(
+        arAnchorManager.getDeviceOrientation(maxRetries: 2).timeout(Duration(seconds: 5)),
         throwsA(isA<PlatformException>().having(
           (e) => e.code,
           'code',
@@ -74,10 +74,10 @@ void main() {
         )),
       );
       
-      expect(callCount, equals(2)); // Should have tried twice
+      expect(callCount, equals(2)); // maxRetries=2 means 2 total attempts
     });
 
-    testWidgets('should succeed immediately if session is ready', (tester) async {
+    test('should succeed immediately if session is ready', () async {
       // Mock the method channel to return success immediately
       int callCount = 0;
       
