@@ -8,6 +8,7 @@ import Foundation
 @main
 @objc class AppDelegate: FlutterAppDelegate {
     private var hybridLocalizationEngine: HybridLocalizationEngine?
+    var orientationLock = UIInterfaceOrientationMask.all
     
     override func application(
         _ application: UIApplication,
@@ -36,6 +37,12 @@ import Foundation
         
         if let registrar = self.registrar(forPlugin: "SpeechLocalizerPlugin") {
             SpeechLocalizerPlugin.register(with: registrar)
+        }
+        
+        if #available(iOS 14.0, *) {
+            if let registrar = self.registrar(forPlugin: "SpatialCaptionsPlugin") {
+                SpatialCaptionsPlugin.register(with: registrar)
+            }
         }
         
         // Set up AR navigation method channel
@@ -105,6 +112,10 @@ import Foundation
         }
         
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+    
+    override func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        return orientationLock
     }
     
     private func handleAudioMeasurementUpdate(call: FlutterMethodCall, result: @escaping FlutterResult, engine: HybridLocalizationEngine) {

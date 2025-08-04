@@ -5,9 +5,46 @@ import 'package:live_captions_xr/features/home/view/home_screen.dart';
 import 'package:live_captions_xr/features/settings/view/settings_screen.dart';
 import 'package:live_captions_xr/app.dart';
 import 'package:live_captions_xr/features/model_status/view/model_status_page.dart';
+import 'package:live_captions_xr/features/spatial_captions_demo/view/spatial_captions_demo_page.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/home',
+  debugLogDiagnostics: true,
+  redirect: (context, state) {
+    print('🔄 Router redirect called for: ${state.uri}');
+    print('🗺️ Available routes: /home, /settings, /about, /model-status, /spatial-captions-demo');
+    return null;
+  },
+  errorBuilder: (context, state) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Page Not Found'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Page not found: ${state.uri}',
+              style: const TextStyle(fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              child: const Text('Go Home'),
+            ),
+          ],
+        ),
+      ),
+    );
+  },
   routes: <RouteBase>[
     // Shell routes with navigation
     ShellRoute(
@@ -37,6 +74,13 @@ final GoRouter router = GoRouter(
           path: '/model-status',
           builder: (BuildContext context, GoRouterState state) {
             return const ModelStatusPage();
+          },
+        ),
+        GoRoute(
+          path: '/spatial-captions-demo',
+          builder: (BuildContext context, GoRouterState state) {
+            print('🗺️ Building SpatialCaptionsDemoPage route');
+            return const SpatialCaptionsDemoPage();
           },
         ),
       ],
