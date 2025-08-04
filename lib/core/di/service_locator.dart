@@ -17,7 +17,9 @@ import 'package:live_captions_xr/features/sound_detection/cubit/sound_detection_
 import 'package:live_captions_xr/features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
-import 'package:live_captions_xr/core/services/app_logger.dart';
+import 'package:live_captions_xr/core/services/speech_localizer.dart';
+import 'package:live_captions_xr/core/services/spatial_caption_integration_service.dart';
+import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -88,6 +90,7 @@ void setupServiceLocator() {
       () => LiveCaptionsCubit(
         speechProcessor: sl<EnhancedSpeechProcessor>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+        spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
         useEnhancement: true,
         speechConfig: const SpeechConfig(), // Pass default config with whisper settings
       ),
@@ -124,6 +127,25 @@ void setupServiceLocator() {
   }
   if (!sl.isRegistered<ARSessionPersistenceService>()) {
     sl.registerLazySingleton<ARSessionPersistenceService>(() => ARSessionPersistenceService());
+  }
+  // Register SpeechLocalizer
+  if (!sl.isRegistered<SpeechLocalizer>()) {
+    sl.registerLazySingleton<SpeechLocalizer>(() => SpeechLocalizer());
+  }
+  // Register SpatialCaptionsCubit
+  if (!sl.isRegistered<SpatialCaptionsCubit>()) {
+    sl.registerLazySingleton<SpatialCaptionsCubit>(() => SpatialCaptionsCubit());
+  }
+  // Register SpatialCaptionIntegrationService
+  if (!sl.isRegistered<SpatialCaptionIntegrationService>()) {
+    sl.registerLazySingleton<SpatialCaptionIntegrationService>(
+      () => SpatialCaptionIntegrationService(
+        spatialCaptionsCubit: sl<SpatialCaptionsCubit>(),
+        speechLocalizer: sl<SpeechLocalizer>(),
+        gemmaService: sl<Gemma3nService>(),
+        hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+      ),
+    );
   }
   // Register SettingsCubit
   if (!sl.isRegistered<SettingsCubit>()) {

@@ -7,6 +7,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
@@ -927,7 +929,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                floatingActionButton:
+                floatingActionButton: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Spatial Captions Demo Button
+                    FloatingActionButton(
+                      heroTag: "spatial_demo_fab",
+                      onPressed: () {
+                        _logger.i('🗨️ Spatial Captions Demo button pressed...');
+                        context.go('/spatial-captions-demo');
+                      },
+                      tooltip: 'Spatial Captions Demo',
+                      backgroundColor: Colors.green,
+                      child: const Icon(Icons.closed_caption),
+                    ),
+                    const SizedBox(height: 16),
+                    // AR Mode Button
                     BlocListener<ARSessionCubit, ARSessionState>(
                   listener: (context, state) {
                     if (state is ARSessionReady) {

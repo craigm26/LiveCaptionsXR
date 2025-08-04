@@ -218,6 +218,13 @@ class _AppShellState extends State<AppShell> {
             title: 'Model Status',
             route: '/model-status',
           ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.view_in_ar,
+            title: 'Spatial Captions Demo',
+            subtitle: 'Test AR caption placement',
+            route: '/spatial-captions-demo',
+          ),
         ],
       ),
     );

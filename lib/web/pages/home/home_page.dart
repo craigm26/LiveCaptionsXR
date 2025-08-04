@@ -211,8 +211,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 SizedBox(height: isMobile ? 32 : 48),
 
                 // CTA Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  spacing: isMobile ? 16 : 24,
+                  runSpacing: 16,
+                  alignment: WrapAlignment.center,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => context.go('/features'),
@@ -233,7 +235,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    SizedBox(width: isMobile ? 16 : 24),
                     OutlinedButton.icon(
                       onPressed: () => context.go('/technology'),
                       icon: const Icon(Icons.psychology),
@@ -253,6 +254,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
+
                   ],
                 ),
               ],

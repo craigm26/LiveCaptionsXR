@@ -356,7 +356,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                           horizontal: 24, vertical: 12),
                     ),
                   ),
-                  // contact should go to email: aleks@denisov.com (this is a fake email)
+                  /* contact should go to email: aleks@denisov.com (this is a fake email)
                   OutlinedButton.icon(
                     onPressed: () async {
                       await InteractionHandler.safeAsyncExecution(
@@ -373,6 +373,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                           horizontal: 24, vertical: 12),
                     ),
                   ),
+                */
                 ],
               ),
             ],
