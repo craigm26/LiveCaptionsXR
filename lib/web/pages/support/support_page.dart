@@ -906,9 +906,7 @@ class _SupportPageState extends State<SupportPage>
             ),
           ),
           const SizedBox(height: 24),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
+          Row(
             children: [
               Expanded(
                 child: Container(
@@ -945,6 +943,7 @@ class _SupportPageState extends State<SupportPage>
                   ),
                 ),
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),
@@ -980,6 +979,7 @@ class _SupportPageState extends State<SupportPage>
                   ),
                 ),
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),
