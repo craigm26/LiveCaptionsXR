@@ -19,7 +19,6 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final EnhancedSpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
-  final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
   final AppLogger _logger = AppLogger.instance;
 
   StreamSubscription? _captionSubscription;
@@ -128,7 +127,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     }
   }
 
-  void _handleEnhancedCaption(EnhancedCaption caption) async async {
+  void _handleEnhancedCaption(EnhancedCaption caption) async {
     _logger.i('📋📥 [CAPTIONS CUBIT] Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})', category: LogCategory.captions);
     
     final currentState = state is LiveCaptionsActive
@@ -141,18 +140,6 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       _logger.i('📚 [CAPTIONS CUBIT] Added FINAL caption to history (${_captionHistory.length} total)', category: LogCategory.captions);
 
       final displayText = caption.displayText;
-      _logger.d('🎯 Processing final caption through spatial integration: "$displayText"');
-      
-      // Create speech result for spatial caption integration
-      final speechResult = SpeechResult(
-        text: displayText,
-        confidence: caption.confidence,
-        isFinal: true,
-        timestamp: caption.timestamp,
-      );
-      
-      // Process through spatial caption integration service
-      await _spatialCaptionIntegrationService.processFinalResult(speechResult);
       _logger.d('🎯 Processing final caption through spatial integration: "$displayText"');
       
       // Create speech result for spatial caption integration

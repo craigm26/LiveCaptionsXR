@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:go_router/go_router.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
@@ -32,7 +27,6 @@ import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
-import '../../../core/services/frame_capture_service.dart';
 import '../../../core/services/apple_speech_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -88,17 +82,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // Determine which models are needed for this platform
     final needsWhisper = !kIsWeb && !Platform.isIOS;
     final needsGemma = true; // Gemma needed on all platforms
-    
+
     // Check if any required models are missing
-    final hasMissingModels = (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
-    
+    final hasMissingModels =
+        (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
+
     if (hasMissingModels && mounted) {
-      _logger.w('⚠️ Missing models detected, showing download dialog. Platform needs - Gemma: $needsGemma, Whisper: $needsWhisper',
+      _logger.w(
+          '⚠️ Missing models detected, showing download dialog. Platform needs - Gemma: $needsGemma, Whisper: $needsWhisper',
           category: LogCategory.system);
       _showModelDownloadDialog(
           gemmaExists: gemmaExists, whisperExists: whisperExists);
     } else {
-      _logger.i('✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper)',
+      _logger.i(
+          '✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper)',
           category: LogCategory.system);
     }
   }
@@ -287,23 +284,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (!kIsWeb && !Platform.isIOS) ... [
+                              if (!kIsWeb && !Platform.isIOS) ...[
                                 Row(
                                   children: [
-                                    Icon(Icons.mic, color: Colors.green.shade600),
+                                    Icon(Icons.mic,
+                                        color: Colors.green.shade600),
                                     const SizedBox(width: 8),
                                     const Text(
                                       'Whisper Speech Recognition Model',
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
                                   'For speech-to-text transcription (147.95 MB)',
-                                  style:
-                                      TextStyle(fontSize: 12, color: Colors.grey),
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
                                 ),
                                 const SizedBox(height: 8),
                                 if (whisperDownloading)
@@ -346,23 +344,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Text('✅ Whisper model ready',
                                       style: TextStyle(color: Colors.green)),
                                 const SizedBox(height: 16),
-                              ] else if (!kIsWeb && Platform.isIOS) ... [
+                              ] else if (!kIsWeb && Platform.isIOS) ...[
                                 Row(
                                   children: [
-                                    Icon(Icons.mic, color: Colors.blue.shade600),
+                                    Icon(Icons.mic,
+                                        color: Colors.blue.shade600),
                                     const SizedBox(width: 8),
                                     const Text(
                                       'Apple Speech Recognition',
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
                                   'Built-in iOS speech recognition (no download required)',
-                                  style:
-                                      TextStyle(fontSize: 12, color: Colors.grey),
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
                                 ),
                                 const SizedBox(height: 8),
                                 const Text('✅ iOS Speech Recognition ready',
@@ -384,7 +383,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           Expanded(
                             child: const Text(
                               'Estimated total download time: ~20-45 min on a 50 Mbps connection',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                           ),
                         ],
@@ -411,17 +411,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Determine which models are needed for this platform
                       final needsWhisper = !kIsWeb && !Platform.isIOS;
                       final needsGemma = true; // Gemma needed on all platforms
-                      
+
                       // Check if any required models are currently downloading
-                      final hasActiveDownloads = 
-                          (needsGemma && gemmaDownloading) || 
-                          (needsWhisper && whisperDownloading);
-                      
+                      final hasActiveDownloads =
+                          (needsGemma && gemmaDownloading) ||
+                              (needsWhisper && whisperDownloading);
+
                       // Check if all required models are completed
-                      final allRequiredCompleted = 
-                          (!needsGemma || gemmaCompleted) && 
-                          (!needsWhisper || whisperCompleted);
-                      
+                      final allRequiredCompleted =
+                          (!needsGemma || gemmaCompleted) &&
+                              (!needsWhisper || whisperCompleted);
+
                       // Only show Close button when all required models are completed
                       // No Cancel option - models must be downloaded
                       if (!hasActiveDownloads && allRequiredCompleted) {
@@ -430,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: const Text('Close'),
                         );
                       }
-                      
+
                       // No button during download or if models not completed
                       return const SizedBox.shrink();
                     },
@@ -478,7 +478,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Platform-specific STT setup
       if (!kIsWeb && Platform.isIOS) {
-        _logger.i('🔍 [HOME] Step 4: Setting up Apple Speech STT event listener...',
+        _logger.i(
+            '🔍 [HOME] Step 4: Setting up Apple Speech STT event listener...',
             category: LogCategory.ui);
         final appleSpeechService = sl<AppleSpeechService>();
         arSessionCubit.listenToAppleSpeechSTT(appleSpeechService);
@@ -719,358 +720,350 @@ class _HomeScreenState extends State<HomeScreen> {
     _logger.d('🏗️ Building HomeScreen UI');
 
     return BlocBuilder<SettingsCubit, dynamic>(
-        builder: (context, settingsState) {
-      final debugOverlayEnabled = (settingsState != null &&
-              settingsState.debugLoggingOverlayEnabled != null)
-          ? settingsState.debugLoggingOverlayEnabled
-          : false;
-      return BlocBuilder<HomeCubit, HomeState>(
-        builder: (context, homeState) {
-          return DebugLoggingOverlay(
-            isEnabled: debugOverlayEnabled,
-            child: BlocListener<HomeCubit, HomeState>(
-              listener: (context, state) {},
-              child: Scaffold(
-                body: Stack(
-                  children: [
-                    // Camera preview background with instruction overlay
-                    Container(
-                      color: Colors.black,
-                      child: _buildCameraOrFallback(),
-                    ),
+      builder: (context, settingsState) {
+        final debugOverlayEnabled = (settingsState != null &&
+                settingsState.debugLoggingOverlayEnabled != null)
+            ? settingsState.debugLoggingOverlayEnabled
+            : false;
+        return BlocBuilder<HomeCubit, HomeState>(
+          builder: (context, homeState) {
+            return DebugLoggingOverlay(
+              isEnabled: debugOverlayEnabled,
+              child: BlocListener<HomeCubit, HomeState>(
+                listener: (context, state) {},
+                child: Scaffold(
+                  body: Stack(
+                    children: [
+                      // Camera preview background with instruction overlay
+                      Container(
+                        color: Colors.black,
+                        child: _buildCameraOrFallback(),
+                      ),
 
-                    // AR Session Status Widget (top of screen)
-                    BlocBuilder<ARSessionCubit, ARSessionState>(
-                      builder: (context, arSessionState) {
-                        // Show status widget when AR session is not in initial state
-                        if (arSessionState is! ARSessionInitial) {
-                          return Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: ARSessionStatusWidget(
-                              showCloseButton: arSessionState is ARSessionReady,
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-
-                    BlocBuilder<ARSessionCubit, ARSessionState>(
-                      builder: (context, arSessionState) {
-                        final inARMode = arSessionState is ARSessionReady;
-                        // Only log significant AR state changes
-                        return BlocBuilder<LiveCaptionsCubit,
-                            LiveCaptionsState>(
-                          builder: (context, captionsState) {
-                            // Removed verbose caption state logging
-                            // Removed verbose caption details logging
-
-                            // Only show overlay when in AR mode and captions are active
-                            // or when explicitly requested for fallback
-                            bool showOverlay = false;
-                            if (inARMode &&
-                                captionsState is LiveCaptionsActive) {
-                              showOverlay = true;
-                              _logger.i(
-                                  '🎯 [UI] Showing captions overlay in AR mode',
-                                  category: LogCategory.ui);
-                            } else if (inARMode &&
-                                captionsState is LiveCaptionsActive &&
-                                captionsState.showOverlayFallback) {
-                              showOverlay = true;
-                              // Fallback mode
-                            } else {
-                              // Not showing captions overlay
-                            }
-
-                            return showOverlay
-                                ? Positioned(
-                                    bottom: 120,
-                                    left: 16,
-                                    right: 16,
-                                    child: LiveCaptionsWidget(
-                                      onToggle: () {
-                                        final cubit =
-                                            context.read<LiveCaptionsCubit>();
-                                        if (cubit.state is LiveCaptionsActive &&
-                                            (cubit.state as LiveCaptionsActive)
-                                                .isListening) {
-                                          cubit.stopCaptions();
-                                        } else {
-                                          cubit.startCaptions();
-                                        }
-                                      },
-                                      onClear: () {
-                                        context
-                                            .read<LiveCaptionsCubit>()
-                                            .clearCaptions();
-                                      },
-                                      maxWidth: 600,
-                                      showHistory: false,
-                                    ),
-                                  )
-                                : const SizedBox.shrink();
-                          },
-                        );
-                      },
-                    ),
-                    // Sound event overlay (top left)
-                    Positioned(
-                      top: 32,
-                      left: 16,
-                      child:
-                          BlocBuilder<SoundDetectionCubit, SoundDetectionState>(
-                        builder: (context, state) {
-                          if (state is SoundDetectionLoaded &&
-                              state.events.isNotEmpty) {
-                            final SoundEvent event = state.events.last;
-                            return Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color:
-                                    Colors.blue.withAlpha((255 * 0.8).round()),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.hearing,
-                                      color: Colors.white),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
+                      // AR Session Status Widget (top of screen)
+                      BlocBuilder<ARSessionCubit, ARSessionState>(
+                        builder: (context, arSessionState) {
+                          // Show status widget when AR session is not in initial state
+                          if (arSessionState is! ARSessionInitial) {
+                            return Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: ARSessionStatusWidget(
+                                showCloseButton:
+                                    arSessionState is ARSessionReady,
                               ),
                             );
                           }
                           return const SizedBox.shrink();
                         },
                       ),
-                    ),
-                    // Directional cue overlay (center)
-                    Center(
-                      child: BlocBuilder<LocalizationCubit, LocalizationState>(
-                        builder: (context, state) {
-                          if (state is LocalizationLoaded) {
-                            IconData arrowIcon;
-                            switch (state.direction) {
-                              case 'left':
-                                arrowIcon = Icons.arrow_back;
-                                break;
-                              case 'right':
-                                arrowIcon = Icons.arrow_forward;
-                                break;
-                              case 'center':
-                                arrowIcon = Icons.arrow_upward;
-                                break;
-                              default:
-                                arrowIcon = Icons.navigation;
-                            }
-                            return Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(arrowIcon, color: Colors.orange, size: 64),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Sound from ${state.direction} (${(state.confidence * 100).toStringAsFixed(0)}%)',
-                                  style: const TextStyle(
-                                      color: Colors.orange, fontSize: 18),
-                                ),
-                              ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                    // Visual object highlight overlay (bottom right)
-                    BlocBuilder<VisualIdentificationCubit,
-                        VisualIdentificationState>(
-                      builder: (context, state) {
-                        if (state is VisualIdentificationLoaded &&
-                            state.objects.isNotEmpty) {
-                          final VisualObject obj = state.objects.first;
-                          return Positioned(
-                            bottom: 48,
-                            right: 24,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                    color: Colors.greenAccent, width: 3),
-                                borderRadius: BorderRadius.circular(12),
-                                color:
-                                    Colors.black.withAlpha((255 * 0.3).round()),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.visibility,
-                                      color: Colors.greenAccent),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
-                                      style: const TextStyle(
-                                          color: Colors.greenAccent),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ],
-                ),
-                floatingActionButton: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Spatial Captions Demo Button
-                    FloatingActionButton(
-                      heroTag: "spatial_demo_fab",
-                      onPressed: () {
-                        _logger.i('🗨️ Spatial Captions Demo button pressed...');
-                        context.go('/spatial-captions-demo');
-                      },
-                      tooltip: 'Spatial Captions Demo',
-                      backgroundColor: Colors.green,
-                      child: const Icon(Icons.closed_caption),
-                    ),
-                    const SizedBox(height: 16),
-                    // AR Mode Button
-                    BlocListener<ARSessionCubit, ARSessionState>(
-                  listener: (context, state) {
-                    if (state is ARSessionReady) {
-                      // AR session is ready. No need to start services here anymore.
-                      _logger.i(
-                          '🔄 AR session ready. Services should already be started.');
-                    } else if (state is ARSessionError) {
-                      _logger.e('❌ AR session error: ${state.message}');
-                    } else if (state is ARSessionInitial) {
-                      // AR mode was closed - ensure all services are stopped
-                      _logger.i('✅ AR mode closed and all services stopped');
 
-                      // Double-check that live captions are stopped
-                      final liveCaptionsCubit =
-                          context.read<LiveCaptionsCubit>();
-                      if (liveCaptionsCubit.state is LiveCaptionsActive &&
-                          (liveCaptionsCubit.state as LiveCaptionsActive)
-                              .isListening) {
-                        _logger.w(
-                            '⚠️ Live captions still active after AR session end, stopping...');
-                        liveCaptionsCubit.stopCaptions();
-                      }
+                      BlocBuilder<ARSessionCubit, ARSessionState>(
+                        builder: (context, arSessionState) {
+                          final inARMode = arSessionState is ARSessionReady;
+                          // Only log significant AR state changes
+                          return BlocBuilder<LiveCaptionsCubit,
+                              LiveCaptionsState>(
+                            builder: (context, captionsState) {
+                              // Removed verbose caption state logging
+                              // Removed verbose caption details logging
 
-                      // Double-check that other services are stopped
-                      final soundDetectionCubit =
-                          context.read<SoundDetectionCubit>();
-                      if (soundDetectionCubit.isActive) {
-                        _logger.w(
-                            '⚠️ Sound detection still active after AR session end, stopping...');
-                        soundDetectionCubit.stop();
-                      }
-
-                      final localizationCubit =
-                          context.read<LocalizationCubit>();
-                      if (localizationCubit.isActive) {
-                        _logger.w(
-                            '⚠️ Localization still active after AR session end, stopping...');
-                        localizationCubit.stop();
-                      }
-
-                      final visualIdentificationCubit =
-                          context.read<VisualIdentificationCubit>();
-                      if (visualIdentificationCubit.isActive) {
-                        _logger.w(
-                            '⚠️ Visual identification still active after AR session end, stopping...');
-                        visualIdentificationCubit.stop();
-                      }
-
-                      _logger.i(
-                          '✅ All services verified as stopped after AR session end');
-                    }
-                  },
-                  child: FloatingActionButton(
-                    heroTag: "ar_view_fab",
-                    onPressed: _isGemmaInitializing
-                        ? null
-                        : () async {
-                            _logger.i('🥽 Enter AR Mode button pressed...',
-                                category: LogCategory.ui);
-
-                            final arSessionCubit =
-                                context.read<ARSessionCubit>();
-                            _logger.i('🎯 Got ARSessionCubit instance',
-                                category: LogCategory.ui);
-
-                            try {
-                              // Ensure Gemma is initialized before starting AR
-                              if (!_isGemmaInitialized &&
-                                  !_isGemmaInitializing) {
+                              // Only show overlay when in AR mode and captions are active
+                              // or when explicitly requested for fallback
+                              bool showOverlay = false;
+                              if (inARMode &&
+                                  captionsState is LiveCaptionsActive) {
+                                showOverlay = true;
                                 _logger.i(
-                                    '🤖 Gemma not yet initialized, initializing now...',
-                                    category: LogCategory.ar);
-                                await _initializeGemmaBeforeAR();
+                                    '🎯 [UI] Showing captions overlay in AR mode',
+                                    category: LogCategory.ui);
+                              } else if (inARMode &&
+                                  captionsState is LiveCaptionsActive &&
+                                  captionsState.showOverlayFallback) {
+                                showOverlay = true;
+                                // Fallback mode
+                              } else {
+                                // Not showing captions overlay
                               }
 
-                              // Start all AR services
-                              await _startAllServicesForARMode();
-                              _logger.i(
-                                  '✅ [HOME] All AR services started successfully',
-                                  category: LogCategory.ui);
-
-                              // Initialize AR session (this will block until AR view is closed)
-                              _logger.i(
-                                  '🎯 [HOME] Now calling initializeARSession...',
-                                  category: LogCategory.ui);
-                              await arSessionCubit.initializeARSession(
-                                  restoreFromPersistence: false);
-                              _logger.i('✅ [HOME] AR session completed',
-                                  category: LogCategory.ui);
-                            } catch (e, stackTrace) {
-                              _logger.e('❌ Failed to enter AR mode',
-                                  error: e, stackTrace: stackTrace);
-
-                              ScaffoldMessenger.of(context)
-                                  .hideCurrentSnackBar();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      '❌ Failed to enter AR mode: ${e.toString()}'),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 5),
+                              return showOverlay
+                                  ? Positioned(
+                                      bottom: 120,
+                                      left: 16,
+                                      right: 16,
+                                      child: LiveCaptionsWidget(
+                                        onToggle: () {
+                                          final cubit =
+                                              context.read<LiveCaptionsCubit>();
+                                          if (cubit.state
+                                                  is LiveCaptionsActive &&
+                                              (cubit.state
+                                                      as LiveCaptionsActive)
+                                                  .isListening) {
+                                            cubit.stopCaptions();
+                                          } else {
+                                            cubit.startCaptions();
+                                          }
+                                        },
+                                        onClear: () {
+                                          context
+                                              .read<LiveCaptionsCubit>()
+                                              .clearCaptions();
+                                        },
+                                        maxWidth: 600,
+                                        showHistory: false,
+                                      ),
+                                    )
+                                  : const SizedBox.shrink();
+                            },
+                          );
+                        },
+                      ),
+                      // Sound event overlay (top left)
+                      Positioned(
+                        top: 32,
+                        left: 16,
+                        child: BlocBuilder<SoundDetectionCubit,
+                            SoundDetectionState>(
+                          builder: (context, state) {
+                            if (state is SoundDetectionLoaded &&
+                                state.events.isNotEmpty) {
+                              final SoundEvent event = state.events.last;
+                              return Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue
+                                      .withAlpha((255 * 0.8).round()),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.hearing,
+                                        color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               );
                             }
+                            return const SizedBox.shrink();
                           },
-                    tooltip: _isGemmaInitializing
-                        ? 'Initializing Gemma...'
-                        : 'Enter AR Mode',
-                    child: _isGemmaInitializing
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.view_in_ar),
+                        ),
+                      ),
+                      // Directional cue overlay (center)
+                      Center(
+                        child:
+                            BlocBuilder<LocalizationCubit, LocalizationState>(
+                          builder: (context, state) {
+                            if (state is LocalizationLoaded) {
+                              IconData arrowIcon;
+                              switch (state.direction) {
+                                case 'left':
+                                  arrowIcon = Icons.arrow_back;
+                                  break;
+                                case 'right':
+                                  arrowIcon = Icons.arrow_forward;
+                                  break;
+                                case 'center':
+                                  arrowIcon = Icons.arrow_upward;
+                                  break;
+                                default:
+                                  arrowIcon = Icons.navigation;
+                              }
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(arrowIcon,
+                                      color: Colors.orange, size: 64),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Sound from ${state.direction} (${(state.confidence * 100).toStringAsFixed(0)}%)',
+                                    style: const TextStyle(
+                                        color: Colors.orange, fontSize: 18),
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+                      // Visual object highlight overlay (bottom right)
+                      BlocBuilder<VisualIdentificationCubit,
+                          VisualIdentificationState>(
+                        builder: (context, state) {
+                          if (state is VisualIdentificationLoaded &&
+                              state.objects.isNotEmpty) {
+                            final VisualObject obj = state.objects.first;
+                            return Positioned(
+                              bottom: 48,
+                              right: 24,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.greenAccent, width: 3),
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.black
+                                      .withAlpha((255 * 0.3).round()),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.visibility,
+                                        color: Colors.greenAccent),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
+                                        style: const TextStyle(
+                                            color: Colors.greenAccent),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ],
+                  ),
+                  floatingActionButton:
+                      BlocListener<ARSessionCubit, ARSessionState>(
+                    listener: (context, state) {
+                      if (state is ARSessionReady) {
+                        // AR session is ready. No need to start services here anymore.
+                        _logger.i(
+                            '🔄 AR session ready. Services should already be started.');
+                      } else if (state is ARSessionError) {
+                        _logger.e('❌ AR session error: ${state.message}');
+                      } else if (state is ARSessionInitial) {
+                        // AR mode was closed - ensure all services are stopped
+                        _logger.i('✅ AR mode closed and all services stopped');
+
+                        // Double-check that live captions are stopped
+                        final liveCaptionsCubit =
+                            context.read<LiveCaptionsCubit>();
+                        if (liveCaptionsCubit.state is LiveCaptionsActive &&
+                            (liveCaptionsCubit.state as LiveCaptionsActive)
+                                .isListening) {
+                          _logger.w(
+                              '⚠️ Live captions still active after AR session end, stopping...');
+                          liveCaptionsCubit.stopCaptions();
+                        }
+
+                        // Double-check that other services are stopped
+                        final soundDetectionCubit =
+                            context.read<SoundDetectionCubit>();
+                        if (soundDetectionCubit.isActive) {
+                          _logger.w(
+                              '⚠️ Sound detection still active after AR session end, stopping...');
+                          soundDetectionCubit.stop();
+                        }
+
+                        final localizationCubit =
+                            context.read<LocalizationCubit>();
+                        if (localizationCubit.isActive) {
+                          _logger.w(
+                              '⚠️ Localization still active after AR session end, stopping...');
+                          localizationCubit.stop();
+                        }
+
+                        final visualIdentificationCubit =
+                            context.read<VisualIdentificationCubit>();
+                        if (visualIdentificationCubit.isActive) {
+                          _logger.w(
+                              '⚠️ Visual identification still active after AR session end, stopping...');
+                          visualIdentificationCubit.stop();
+                        }
+
+                        _logger.i(
+                            '✅ All services verified as stopped after AR session end');
+                      }
+                    },
+                    child: FloatingActionButton(
+                      heroTag: "ar_view_fab",
+                      onPressed: _isGemmaInitializing
+                          ? null
+                          : () async {
+                              _logger.i('🥽 Enter AR Mode button pressed...',
+                                  category: LogCategory.ui);
+
+                              final arSessionCubit =
+                                  context.read<ARSessionCubit>();
+                              _logger.i('🎯 Got ARSessionCubit instance',
+                                  category: LogCategory.ui);
+
+                              try {
+                                // Ensure Gemma is initialized before starting AR
+                                if (!_isGemmaInitialized &&
+                                    !_isGemmaInitializing) {
+                                  _logger.i(
+                                      '🤖 Gemma not yet initialized, initializing now...',
+                                      category: LogCategory.ar);
+                                  await _initializeGemmaBeforeAR();
+                                }
+
+                                // Start all AR services
+                                await _startAllServicesForARMode();
+                                _logger.i(
+                                    '✅ [HOME] All AR services started successfully',
+                                    category: LogCategory.ui);
+
+                                // Initialize AR session (this will block until AR view is closed)
+                                _logger.i(
+                                    '🎯 [HOME] Now calling initializeARSession...',
+                                    category: LogCategory.ui);
+                                await arSessionCubit.initializeARSession(
+                                    restoreFromPersistence: false);
+                                _logger.i('✅ [HOME] AR session completed',
+                                    category: LogCategory.ui);
+                              } catch (e, stackTrace) {
+                                _logger.e('❌ Failed to enter AR mode',
+                                    error: e, stackTrace: stackTrace);
+
+                                ScaffoldMessenger.of(context)
+                                    .hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        '❌ Failed to enter AR mode: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                    duration: const Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            },
+                      tooltip: _isGemmaInitializing
+                          ? 'Initializing Gemma...'
+                          : 'Enter AR Mode',
+                      child: _isGemmaInitializing
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.view_in_ar),
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
-      );
-    });
+            );
+          },
+        );
+      },
+    );
   }
 }

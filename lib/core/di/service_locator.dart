@@ -20,6 +20,7 @@ import 'package:live_captions_xr/core/models/speech_config.dart';
 import 'package:live_captions_xr/core/services/speech_localizer.dart';
 import 'package:live_captions_xr/core/services/spatial_caption_integration_service.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
+import 'package:live_captions_xr/core/services/app_logger.dart';
 // ... imports
 
 final sl = GetIt.instance;
