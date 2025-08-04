@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/web/app/app_web.dart';
@@ -35,6 +36,15 @@ void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     _logger.d('✅ Flutter widgets binding initialized', category: LogCategory.system);
+
+    // Force landscape orientation
+    if (!kIsWeb) {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      _logger.d('🔄 Forced landscape orientation', category: LogCategory.system);
+    }
 
     // Load environment variables (optional, skip if file not found)
     try {

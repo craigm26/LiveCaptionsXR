@@ -544,9 +544,9 @@ class EnhancedSpeechProcessor {
         _gemmaProcessing = true;
         _logger.d('🔒 Gemma mutex acquired for: "${result.text}"', category: LogCategory.gemma);
         
-        // Block STT auto-restart to reduce resource contention during Gemma inference
-        _appleSpeechService.blockAutoRestart();
-        _logger.d('⏸️ STT auto-restart blocked during Gemma inference', category: LogCategory.gemma);
+        // Allow STT to continue running during Gemma inference - no blocking
+        // _appleSpeechService.blockAutoRestart();
+        _logger.d('▶️ STT continues running during Gemma inference (no blocking)', category: LogCategory.gemma);
         
         try {
           // Use multimodal enhancement with visual context if available
@@ -585,9 +585,9 @@ class EnhancedSpeechProcessor {
           _gemmaProcessing = false;
           _logger.d('🔓 Gemma mutex released', category: LogCategory.gemma);
           
-          // Unblock STT auto-restart and restart if needed
-          _appleSpeechService.unblockAutoRestart(restartImmediately: true);
-          _logger.d('▶️ STT auto-restart unblocked after Gemma inference', category: LogCategory.gemma);
+          // STT was never blocked, so no need to unblock
+          // _appleSpeechService.unblockAutoRestart(restartImmediately: true);
+          _logger.d('▶️ STT was running continuously during Gemma inference', category: LogCategory.gemma);
         }
       } else {
         // For partial results, create a partial caption
@@ -596,11 +596,11 @@ class EnhancedSpeechProcessor {
         _logger.d('📋 Created partial caption: "${partialCaption.displayText}"', category: LogCategory.gemma);
       }
     } catch (e, stackTrace) {
-      // Ensure mutex is released and STT is unblocked on error
+      // Ensure mutex is released on error (STT was never blocked)
       _gemmaProcessing = false;
-      _appleSpeechService.unblockAutoRestart(restartImmediately: true);
+      // _appleSpeechService.unblockAutoRestart(restartImmediately: true);
       _logger.e('❌ Error enhancing with Gemma 3n', category: LogCategory.gemma, error: e, stackTrace: stackTrace);
-      _logger.d('▶️ STT auto-restart unblocked after Gemma error', category: LogCategory.gemma);
+      _logger.d('▶️ STT was running continuously during Gemma error', category: LogCategory.gemma);
       
       // Fallback to basic caption
       final fallbackCaption = EnhancedCaption.fallback(result.text);

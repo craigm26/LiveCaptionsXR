@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,6 +8,7 @@ import '../../../core/services/ar_anchor_manager.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/ar_session_persistence_service.dart';
 import '../../../core/services/whisper_service_impl.dart';
+import '../../../core/services/apple_speech_service.dart';
 import '../../../core/services/gemma_3n_service.dart';
 import '../../../core/services/app_logger.dart';
 import 'ar_session_state.dart';
@@ -62,9 +65,11 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           errorCode: 'STT_ERROR',
         ));
       } else {
+        // Use platform-appropriate backend name
+        final backendName = (!kIsWeb && Platform.isIOS) ? 'Apple Speech' : 'Whisper';
         emit(ARSessionSTTProcessing(
-          backend: 'Whisper',
-          isOnline: false, // Always on-device for Whisper
+          backend: backendName,
+          isOnline: false, // Always on-device
           progress: event.progress,
           message: event.message,
         ));
@@ -84,6 +89,30 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     _whisperSTTSubscription?.cancel();
     _whisperSTTSubscription = null;
     _whisperService = null;
+  }
+
+  /// Listen to Apple Speech events and emit AR session states (iOS only)
+  void listenToAppleSpeechSTT(AppleSpeechService appleSpeechService) {
+    if (kIsWeb || !Platform.isIOS) {
+      _logger.w('⚠️ Apple Speech service only available on iOS', category: LogCategory.speech);
+      return;
+    }
+    
+    // Apple Speech events would be handled here if implemented
+    // For now, we'll emit a ready state since Apple Speech is built-in
+    _logger.d('🍎 Apple Speech Recognition ready (built-in iOS service)', category: LogCategory.speech);
+    emit(ARSessionSTTProcessing(
+      backend: 'Apple Speech',
+      isOnline: false, // On-device
+      progress: 1.0, // Always ready
+      message: 'Apple Speech Recognition ready',
+    ));
+  }
+
+  /// Stop listening to Apple Speech events
+  void stopListeningToAppleSpeechSTT() {
+    // No subscription to cancel for Apple Speech currently
+    _logger.d('🍎 Apple Speech Recognition cleanup completed', category: LogCategory.speech);
   }
 
   /// Listen to Gemma 3n enhancement events and emit AR session states
@@ -635,12 +664,16 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     Future<void> Function()? stopLocalization,
     Future<void> Function()? stopVisualIdentification,
     // New: Optionally specify STT backend and online/offline
-    String sttBackend = 'Whisper',
+    String? sttBackend,
     bool sttIsOnline = false,
   }) async {
     _logger.i('🔍 [AR_CUBIT] startAllARServices called', category: LogCategory.ar);
     final currentState = state;
     _logger.i('🔍 [AR_CUBIT] Current AR session state: ${currentState.runtimeType}', category: LogCategory.ar);
+    
+    // Auto-detect STT backend based on platform if not specified
+    final actualSttBackend = sttBackend ?? ((!kIsWeb && Platform.isIOS) ? 'Apple Speech' : 'Whisper');
+    _logger.i('🔍 [AR_CUBIT] Using STT backend: $actualSttBackend', category: LogCategory.ar);
     
     // Services can start independently of AR session state
     _logger.i('✅ [AR_CUBIT] Starting services regardless of AR session state (services work independently)', category: LogCategory.ar);
@@ -821,9 +854,14 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       _logger.i('🛑 Stopping AR session and all services...', category: LogCategory.ar);
       emit(const ARSessionStopping());
 
-      // Stop listening to Whisper STT events
-      stopListeningToWhisperSTT();
-      _logger.d('🎤 Whisper STT event listening stopped', category: LogCategory.speech);
+      // Stop listening to STT events (platform-specific)
+      if (!kIsWeb && Platform.isIOS) {
+        stopListeningToAppleSpeechSTT();
+        _logger.d('🍎 Apple Speech STT event listening stopped', category: LogCategory.speech);
+      } else {
+        stopListeningToWhisperSTT();
+        _logger.d('🎤 Whisper STT event listening stopped', category: LogCategory.speech);
+      }
 
       // Stop listening to Gemma 3n enhancement events
       stopListeningToGemma3nEnhancement();
@@ -957,8 +995,12 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   Future<void> close() async {
     _logger.i('🗑️ Disposing ARSessionCubit...', category: LogCategory.ar);
     
-    // Stop listening to Whisper STT events
-    stopListeningToWhisperSTT();
+    // Stop listening to STT events (platform-specific)
+    if (!kIsWeb && Platform.isIOS) {
+      stopListeningToAppleSpeechSTT();
+    } else {
+      stopListeningToWhisperSTT();
+    }
     
     // Stop listening to Gemma 3n enhancement events
     stopListeningToGemma3nEnhancement();

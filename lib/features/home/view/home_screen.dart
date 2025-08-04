@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
@@ -82,13 +83,20 @@ class _HomeScreenState extends State<HomeScreen> {
         '📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists',
         category: LogCategory.system);
 
-    if ((!gemmaExists || !whisperExists) && mounted) {
-      _logger.w('⚠️ Missing models detected, showing download dialog',
+    // Determine which models are needed for this platform
+    final needsWhisper = !kIsWeb && !Platform.isIOS;
+    final needsGemma = true; // Gemma needed on all platforms
+    
+    // Check if any required models are missing
+    final hasMissingModels = (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
+    
+    if (hasMissingModels && mounted) {
+      _logger.w('⚠️ Missing models detected, showing download dialog. Platform needs - Gemma: $needsGemma, Whisper: $needsWhisper',
           category: LogCategory.system);
       _showModelDownloadDialog(
           gemmaExists: gemmaExists, whisperExists: whisperExists);
     } else {
-      _logger.i('✅ All required models are available',
+      _logger.i('✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper)',
           category: LogCategory.system);
     }
   }
@@ -179,14 +187,14 @@ class _HomeScreenState extends State<HomeScreen> {
               final whisperCompleted = manager.isCompleted(whisperKey);
 
               return AlertDialog(
-                title: const Text('Download Required Models'),
+                title: const Text('Required Models Setup'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'LiveCaptionsXR requires two AI models for full functionality:',
+                        'LiveCaptionsXR requires AI models to function. Please download the required models before proceeding:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
@@ -277,63 +285,88 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.mic, color: Colors.green.shade600),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Whisper Speech Recognition Model',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'For speech-to-text transcription (147.95 MB)',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 8),
-                              if (whisperDownloading)
-                                Column(
+                              if (!kIsWeb && !Platform.isIOS) ... [
+                                Row(
                                   children: [
-                                    LinearProgressIndicator(
-                                        value: whisperProgress),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(fontSize: 12),
+                                    Icon(Icons.mic, color: Colors.green.shade600),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Whisper Speech Recognition Model',
+                                      style:
+                                          TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ],
-                                )
-                              else if (whisperError != null)
-                                Column(
-                                  children: [
-                                    Text(
-                                      'Error: $whisperError',
-                                      style: const TextStyle(
-                                          color: Colors.red, fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        manager.resetModel(whisperKey);
-                                        manager.downloadModel(whisperKey);
-                                      },
-                                      child: const Text('Retry'),
-                                    ),
-                                  ],
-                                )
-                              else if (!whisperCompleted)
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      manager.downloadModel(whisperKey),
-                                  child: const Text('Download Whisper Model'),
                                 ),
-                              if (whisperCompleted)
-                                const Text('✅ Whisper model ready',
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'For speech-to-text transcription (147.95 MB)',
+                                  style:
+                                      TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                if (whisperDownloading)
+                                  Column(
+                                    children: [
+                                      LinearProgressIndicator(
+                                          value: whisperProgress),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  )
+                                else if (whisperError != null)
+                                  Column(
+                                    children: [
+                                      Text(
+                                        'Error: $whisperError',
+                                        style: const TextStyle(
+                                            color: Colors.red, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          manager.resetModel(whisperKey);
+                                          manager.downloadModel(whisperKey);
+                                        },
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
+                                  )
+                                else if (!whisperCompleted)
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        manager.downloadModel(whisperKey),
+                                    child: const Text('Download Whisper Model'),
+                                  ),
+                                if (whisperCompleted)
+                                  const Text('✅ Whisper model ready',
+                                      style: TextStyle(color: Colors.green)),
+                                const SizedBox(height: 16),
+                              ] else if (!kIsWeb && Platform.isIOS) ... [
+                                Row(
+                                  children: [
+                                    Icon(Icons.mic, color: Colors.blue.shade600),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Apple Speech Recognition',
+                                      style:
+                                          TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Built-in iOS speech recognition (no download required)',
+                                  style:
+                                      TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('✅ iOS Speech Recognition ready',
                                     style: TextStyle(color: Colors.green)),
+                                const SizedBox(height: 16),
+                              ],
                             ],
                           ),
                         ),
@@ -369,13 +402,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 actions: [
-                  if (!gemmaDownloading &&
-                      !whisperDownloading &&
-                      (!gemmaCompleted || !whisperCompleted))
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
+                  Builder(
+                    builder: (context) {
+                      // Determine which models are needed for this platform
+                      final needsWhisper = !kIsWeb && !Platform.isIOS;
+                      final needsGemma = true; // Gemma needed on all platforms
+                      
+                      // Check if any required models are currently downloading
+                      final hasActiveDownloads = 
+                          (needsGemma && gemmaDownloading) || 
+                          (needsWhisper && whisperDownloading);
+                      
+                      // Check if all required models are completed
+                      final allRequiredCompleted = 
+                          (!needsGemma || gemmaCompleted) && 
+                          (!needsWhisper || whisperCompleted);
+                      
+                      // Only show Close button when all required models are completed
+                      // No Cancel option - models must be downloaded
+                      if (!hasActiveDownloads && allRequiredCompleted) {
+                        return TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        );
+                      }
+                      
+                      // No button during download or if models not completed
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ],
               );
             },
@@ -417,12 +472,23 @@ class _HomeScreenState extends State<HomeScreen> {
           '✅ [HOME] Step 3 complete: Retrieved Gemma 3n service from service locator',
           category: LogCategory.gemma);
 
-      _logger.i('🔍 [HOME] Step 4: Setting up Whisper STT event listener...',
-          category: LogCategory.ui);
-      arSessionCubit.listenToWhisperSTT(whisperService);
-      _logger.i(
-          '✅ [HOME] Step 4 complete: Whisper STT event listener configured',
-          category: LogCategory.speech);
+      // Platform-specific STT setup
+      if (!kIsWeb && Platform.isIOS) {
+        _logger.i('🔍 [HOME] Step 4: Setting up Apple Speech STT event listener...',
+            category: LogCategory.ui);
+        final appleSpeechService = sl<AppleSpeechService>();
+        arSessionCubit.listenToAppleSpeechSTT(appleSpeechService);
+        _logger.i(
+            '✅ [HOME] Step 4 complete: Apple Speech STT event listener configured',
+            category: LogCategory.speech);
+      } else {
+        _logger.i('🔍 [HOME] Step 4: Setting up Whisper STT event listener...',
+            category: LogCategory.ui);
+        arSessionCubit.listenToWhisperSTT(whisperService);
+        _logger.i(
+            '✅ [HOME] Step 4 complete: Whisper STT event listener configured',
+            category: LogCategory.speech);
+      }
 
       _logger.i(
           '🔍 [HOME] Step 5: Setting up Gemma 3n enhancement event listener...',
