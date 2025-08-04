@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveCaptionsXR - Model Downloads</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .model-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .model-card.recommended {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%);
+        }
+
+        .recommended-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #28a745;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .model-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .model-description {
+            color: #6c757d;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .model-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .model-size {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .model-version {
+            background: #e9ecef;
+            color: #6c757d;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            text-align: center;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .direct-link {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #495057;
+            word-break: break-all;
+            border: 1px solid #dee2e6;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .footer p {
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .code-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+            border: 1px solid #dee2e6;
+        }
+
+        .code-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .code-block .language {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #4a5568;
+            color: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5a67d8;
+        }
+
+        .usage-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .curl-commands {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .curl-command {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .curl-command .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .models-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .usage-tabs {
+                flex-direction: column;
+            }
+
+            .tab-btn {
+                text-align: left;
+                border-bottom: 1px solid #e9ecef;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 LiveCaptionsXR</h1>
+            <p>Download AI Models for Enhanced Speech Recognition</p>
+        </div>
+
+        <div class="content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Available Models</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">7.2 GB</div>
+                    <div class="stat-label">Total Size</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Downloads</div>
+                </div>
+            </div>
+
+            <div class="models-grid">
+                <div class="model-card recommended">
+                    <div class="recommended-badge">⭐ Recommended</div>
+                    <div class="model-name">Whisper Base Model</div>
+                    <div class="model-description">
+                        Fast and efficient speech recognition model optimized for real-time transcription. 
+                        Perfect for live captioning applications with low latency requirements.
+                    </div>
+                    <div class="model-details">
+                        <span class="model-size">141 MB</span>
+                        <span class="model-version">v1.0.0</span>
+                    </div>
+                    <button class="download-btn" onclick="downloadModel('whisper_base.bin', 'Whisper Base Model')">
+                        📥 Download Whisper Base
+                    </button>
+                    <div class="direct-link">
+                        https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin
+                    </div>
+                </div>
+
+                <div class="model-card">
+                    <div class="model-name">Gemma 3N E2B Model</div>
+                    <div class="model-description">
+                        Advanced language model for enhanced text processing and generation. 
+                        Provides superior performance for complex language tasks.
+                    </div>
+                    <div class="model-details">
+                        <span class="model-size">2.92 GB</span>
+                        <span class="model-version">v3.0.0</span>
+                    </div>
+                    <button class="download-btn" onclick="downloadModel('gemma-3n-E2B-it-int4.task', 'Gemma 3N E2B Model')">
+                        📥 Download E2B Model
+                    </button>
+                    <div class="direct-link">
+                        https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E2B-it-int4.task
+                    </div>
+                </div>
+
+                <div class="model-card">
+                    <div class="model-name">Gemma 3N E4B Model</div>
+                    <div class="model-description">
+                        Large-scale language model for maximum performance and accuracy. 
+                        Ideal for enterprise applications requiring the highest quality output.
+                    </div>
+                    <div class="model-details">
+                        <span class="model-size">4.11 GB</span>
+                        <span class="model-version">v3.0.0</span>
+                    </div>
+                    <button class="download-btn" onclick="downloadModel('gemma-3n-E4B-it-int4.task', 'Gemma 3N E4B Model')">
+                        📥 Download E4B Model
+                    </button>
+                    <div class="direct-link">
+                        https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E4B-it-int4.task
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Preparing download...</p>
+            </div>
+
+            <!-- Usage Examples Section -->
+            <div class="code-section">
+                <h3>🚀 How to Use These Models</h3>
+                
+                <div class="usage-tabs">
+                    <button class="tab-btn active" onclick="showTab('flutter')">Flutter App</button>
+                    <button class="tab-btn" onclick="showTab('non-flutter')">Non-Flutter</button>
+                    <button class="tab-btn" onclick="showTab('curl')">Curl Commands</button>
+                </div>
+
+                <!-- Flutter Tab -->
+                <div id="flutter-tab" class="tab-content active">
+                    <h4>📱 Flutter Integration</h4>
+                    
+                    <p>Add these dependencies to your <code>pubspec.yaml</code>:</p>
+                    <div class="code-block">
+                        <span class="language">yaml</span>
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.3
+  http: ^1.1.0
+  path_provider: ^2.1.1
+  permission_handler: ^11.0.1
+  url_launcher: ^6.2.1
+                    </div>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+
+                    <p>Navigate to the downloads page in your app:</p>
+                    <div class="code-block">
+                        <span class="language">dart</span>
+// Navigate to downloads page
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => const ModelDownloadsPage()),
+);
+
+// Check if model is downloaded
+final isDownloaded = await ModelDownloadService.isModelDownloaded('whisper_base.bin');
+                    </div>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+
+                    <p>Complete Flutter implementation available in the <code>flutter/</code> folder.</p>
+                </div>
+
+                <!-- Non-Flutter Tab -->
+                <div id="non-flutter-tab" class="tab-content">
+                    <h4>💻 Non-Flutter Usage</h4>
+                    
+                    <p><strong>Python Example:</strong></p>
+                    <div class="code-block">
+                        <span class="language">python</span>
+import requests
+import os
+
+def download_model(model_name, url):
+    print(f"Downloading {model_name}...")
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    
+    with open(model_name, 'wb') as f:
+        downloaded = 0
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+                downloaded += len(chunk)
+                progress = (downloaded / total_size) * 100
+                print(f"Progress: {progress:.1f}%")
+    
+    print(f"Downloaded {model_name} successfully!")
+
+# Download Whisper model
+whisper_url = "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin"
+download_model("whisper_base.bin", whisper_url)
+                    </div>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+
+                    <p><strong>JavaScript/Node.js Example:</strong></p>
+                    <div class="code-block">
+                        <span class="language">javascript</span>
+const https = require('https');
+const fs = require('fs');
+
+function downloadModel(modelName, url) {
+    console.log(`Downloading ${modelName}...`);
+    
+    const file = fs.createWriteStream(modelName);
+    https.get(url, (response) => {
+        const totalSize = parseInt(response.headers['content-length'], 10);
+        let downloaded = 0;
+        
+        response.on('data', (chunk) => {
+            downloaded += chunk.length;
+            const progress = (downloaded / totalSize) * 100;
+            process.stdout.write(`\rProgress: ${progress.toFixed(1)}%`);
+        });
+        
+        response.pipe(file);
+        file.on('finish', () => {
+            file.close();
+            console.log(`\nDownloaded ${modelName} successfully!`);
+        });
+    });
+}
+
+// Download Whisper model
+const whisperUrl = "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin";
+downloadModel("whisper_base.bin", whisperUrl);
+                    </div>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
+                </div>
+
+                <!-- Curl Tab -->
+                <div id="curl-tab" class="tab-content">
+                    <h4>🔧 Curl Commands</h4>
+                    
+                    <p><strong>Test if files are accessible:</strong></p>
+                    <div class="curl-commands">
+                        <div class="curl-command">
+                            <span class="language">bash</span>
+                            curl -I "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin"
+                            <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                        </div>
+                        <div class="curl-command">
+                            <span class="language">bash</span>
+                            curl -I "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E2B-it-int4.task"
+                            <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                        </div>
+                        <div class="curl-command">
+                            <span class="language">bash</span>
+                            curl -I "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E4B-it-int4.task"
+                            <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                        </div>
+                    </div>
+
+                    <p><strong>Download files:</strong></p>
+                    <div class="curl-commands">
+                        <div class="curl-command">
+                            <span class="language">bash</span>
+                            curl -L -o "whisper_base.bin" "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin"
+                            <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                        </div>
+                        <div class="curl-command">
+                            <span class="language">bash</span>
+                            curl -L -o "gemma-3n-E2B-it-int4.task" "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E2B-it-int4.task"
+                            <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                        </div>
+                        <div class="curl-command">
+                            <span class="language">bash</span>
+                            curl -L -o "gemma-3n-E4B-it-int4.task" "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E4B-it-int4.task"
+                            <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                        </div>
+                    </div>
+
+                    <p><strong>Download with progress:</strong></p>
+                    <div class="curl-command">
+                        <span class="language">bash</span>
+                        curl -L -# -o "whisper_base.bin" "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin"
+                        <button class="copy-btn" onclick="copyCurl(this)">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2024 LiveCaptionsXR. All models are optimized for mobile and desktop applications.</p>
+            <p>For support, visit <a href="https://github.com/LiveCaptionsXR" target="_blank" rel="noopener">GitHub</a> or contact our team.</p>
+        </div>
+    </div>
+
+    <script>
+        function downloadModel(fileName, modelName) {
+            const loading = document.getElementById('loading');
+            const baseUrl = 'https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr';
+            const downloadUrl = `${baseUrl}/${fileName}`;
+            
+            // Show loading
+            loading.style.display = 'block';
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName;
+            link.style.display = 'none';
+            
+            // Add to page and trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Hide loading after a short delay
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 2000);
+            
+            // Track download (optional)
+            console.log(`Downloading ${modelName}: ${downloadUrl}`);
+        }
+
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Copy code functionality
+        function copyCode(button) {
+            const codeBlock = button.previousElementSibling;
+            const code = codeBlock.textContent.replace(/^\s*\w+\s*/, ''); // Remove language label
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#28a745';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#667eea';
+                }, 2000);
+            });
+        }
+
+        // Copy curl command functionality
+        function copyCurl(button) {
+            const curlCommand = button.previousElementSibling.textContent.replace(/^\s*bash\s*/, ''); // Remove language label
+            
+            navigator.clipboard.writeText(curlCommand).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#28a745';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#667eea';
+                }, 2000);
+            });
+        }
+
+        // Add click tracking for analytics
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadButtons = document.querySelectorAll('.download-btn');
+            downloadButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // You can add analytics tracking here
+                    console.log('Download button clicked:', this.textContent.trim());
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
