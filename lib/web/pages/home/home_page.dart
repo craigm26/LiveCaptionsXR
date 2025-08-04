@@ -305,24 +305,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               _buildTechCard(
                 context,
-                'Whisper GGML',
-                'On-device speech recognition using the Whisper base model for fast, private, offline transcription.',
+                'Native Speech Recognition',
+                'Platform-optimized speech recognition using Apple Speech (iOS) and advanced audio processing for real-time transcription.',
                 Icons.mic,
                 Colors.blue,
                 isMobile,
               ),
               _buildTechCard(
                 context,
-                'Gemma 3n',
-                'Google\'s state-of-the-art multimodal AI for contextual enhancement and understanding.',
+                'Gemma 3n AI',
+                'Google\'s state-of-the-art multimodal AI for contextual enhancement, visual understanding, and intelligent caption generation.',
                 Icons.psychology,
                 Colors.green,
                 isMobile,
               ),
               _buildTechCard(
                 context,
-                'Spatial Audio',
-                'Advanced stereo audio processing with directional awareness and speaker localization.',
+                'Spatial Audio Processing',
+                'Advanced stereo audio with GCC-PHAT direction estimation and hybrid localization for precise speaker positioning.',
                 Icons.hearing,
                 Colors.purple,
                 isMobile,
@@ -330,7 +330,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               _buildTechCard(
                 context,
                 'Computer Vision',
-                'Real-time face detection and speaker identification using on-device AI.',
+                'Real-time face detection and speaker identification using ARKit/ARCore for visual speaker tracking.',
                 Icons.visibility,
                 Colors.orange,
                 isMobile,
@@ -403,19 +403,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       {
         'icon': Icons.hearing,
         'title': 'Real-Time Audio',
-        'desc': 'Instant speech recognition with directional awareness',
+        'desc': 'Platform-native speech recognition with advanced spatial audio processing and direction estimation',
         'color': Colors.blue,
       },
       {
         'icon': Icons.visibility,
         'title': 'Visual Recognition',
-        'desc': 'Face detection and speaker identification',
+        'desc': 'ARKit/ARCore-powered face detection and speaker identification for precise visual tracking',
         'color': Colors.green,
       },
       {
         'icon': Icons.psychology,
-        'title': 'AI Powered',
-        'desc': 'Gemma 3n multimodal AI for context understanding',
+        'title': 'Multimodal AI',
+        'desc': 'Gemma 3n multimodal AI for contextual enhancement and intelligent caption generation',
         'color': Colors.purple,
       },
     ];
