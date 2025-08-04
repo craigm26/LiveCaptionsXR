@@ -24,6 +24,26 @@ class Complex {
   double abs() => sqrt(real * real + imag * imag);
 }
 
+/// Simple Complex number class for FFT calculations
+class Complex {
+  final double real;
+  final double imag;
+  
+  Complex(this.real, this.imag);
+  
+  Complex operator *(Complex other) => Complex(
+    real * other.real - imag * other.imag,
+    real * other.imag + imag * other.real,
+  );
+  
+  Complex operator +(Complex other) => Complex(real + other.real, imag + other.imag);
+  Complex operator -(Complex other) => Complex(real - other.real, imag - other.imag);
+  Complex operator /(double scalar) => Complex(real / scalar, imag / scalar);
+  
+  Complex conjugate() => Complex(real, -imag);
+  double abs() => sqrt(real * real + imag * imag);
+}
+
 /// Basic audio direction estimation using RMS amplitude comparison.
 ///
 /// This implements the algorithm described in `prd/02_basic_audio_direction_estimation.md`.

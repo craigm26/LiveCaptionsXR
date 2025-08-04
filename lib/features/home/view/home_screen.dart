@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
