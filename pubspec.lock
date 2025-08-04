@@ -1077,6 +1077,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
+  spatial_captions:
+    dependency: "direct main"
+    description:
+      path: "plugins/spatial_captions"
+      relative: true
+    source: path
+    version: "1.0.0"
   stack_trace:
     dependency: transitive
     description:

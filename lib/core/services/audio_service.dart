@@ -1,16 +1,19 @@
-import 'dart:typed_data';
 import 'dart:async';
-import 'dart:math' show sqrt;
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
+import 'package:get_it/get_it.dart';
 
 import '../models/sound_event.dart';
 import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
-import 'gemma_3n_service.dart';
-import 'hybrid_localization_engine.dart';
-import 'visual_identification_service.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
-import 'enhanced_speech_processor.dart';
+import 'spatial_caption_integration_service.dart';
 import 'debug_capturing_logger.dart';
+import 'gemma_3n_service.dart';
+import 'visual_identification_service.dart';
+import 'enhanced_speech_processor.dart';
 
 /// Audio processing service demonstrating Gemma 3n multimodal integration
 ///
@@ -111,10 +114,18 @@ class AudioService {
         
         _logger.d('📊 Audio frame: ${frameSize} samples, RMS: ${rmsLevel.toStringAsFixed(4)}');
         
+        // Use advanced direction estimation
         final angle = _speechLocalizer.estimateDirectionAdvanced(frame);
-        _logger.d('🧭 Estimated direction: ${angle.toStringAsFixed(1)}°');
+        _logger.d('🧭 Estimated direction: ${angle.toStringAsFixed(3)} radians');
         
-        _logger.d('⚠️ Speech processor not available or not processing');
+        // Feed audio frame to spatial caption integration service
+        try {
+          final spatialService = GetIt.I<SpatialCaptionIntegrationService>();
+          spatialService.updateAudioFrame(frame);
+          _logger.d('📍 Audio frame sent to spatial caption integration');
+        } catch (e) {
+          _logger.w('⚠️ Could not update spatial caption service: $e');
+        }
         
         _processAudioFrame(monoFrame, angle);
       });

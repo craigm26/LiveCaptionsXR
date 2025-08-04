@@ -1,20 +1,22 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:vector_math/vector_math_64.dart';
-import '../../plugins/spatial_captions/lib/spatial_captions.dart';
-import '../../plugins/spatial_captions/lib/cubit/spatial_captions_cubit.dart';
+import 'package:spatial_captions/spatial_captions.dart';
+import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import '../models/speech_result.dart';
 import '../models/enhanced_caption.dart';
 import 'speech_localizer.dart';
 import 'stereo_audio_capture.dart';
 import 'gemma_3n_service.dart';
 import 'debug_capturing_logger.dart';
+import 'hybrid_localization_engine.dart';
 
 /// Service that integrates live captions with spatial positioning in AR
 class SpatialCaptionIntegrationService {
   final SpatialCaptionsCubit _spatialCaptionsCubit;
   final SpeechLocalizer _speechLocalizer;
   final Gemma3nService _gemmaService;
+  final HybridLocalizationEngine _hybridLocalizationEngine;
   final DebugCapturingLogger _logger = DebugCapturingLogger();
 
   // Configuration
@@ -31,9 +33,11 @@ class SpatialCaptionIntegrationService {
     required SpatialCaptionsCubit spatialCaptionsCubit,
     required SpeechLocalizer speechLocalizer,
     required Gemma3nService gemmaService,
+    required HybridLocalizationEngine hybridLocalizationEngine,
   })  : _spatialCaptionsCubit = spatialCaptionsCubit,
         _speechLocalizer = speechLocalizer,
-        _gemmaService = gemmaService;
+        _gemmaService = gemmaService,
+        _hybridLocalizationEngine = hybridLocalizationEngine;
 
   /// Initialize the service and set landscape orientation
   Future<void> initialize() async {
@@ -106,9 +110,25 @@ class SpatialCaptionIntegrationService {
     }
   }
 
-  /// Calculate caption position based on audio direction
+  /// Calculate caption position based on audio direction and hybrid localization
   Future<Vector3> _calculateCaptionPosition(SpeechResult result) async {
-    // Check if we have speaker direction information
+    try {
+      // First, try to get position from hybrid localization engine
+      final fusedTransform = await _hybridLocalizationEngine.getFusedTransform();
+      if (fusedTransform.length == 16) {
+        // Extract position from 4x4 transform matrix (last column)
+        final x = fusedTransform[12];
+        final y = fusedTransform[13];
+        final z = fusedTransform[14];
+        
+        _logger.d('🎯 Using hybrid localization position: ($x, $y, $z)');
+        return Vector3(x, y, z);
+      }
+    } catch (e) {
+      _logger.w('⚠️ Hybrid localization failed, falling back to audio-only: $e');
+    }
+    
+    // Fallback: Check if we have speaker direction information
     if (result.speakerDirection != null) {
       _logger.d('📍 Using speaker direction: ${result.speakerDirection}');
       
@@ -136,8 +156,14 @@ class SpatialCaptionIntegrationService {
     // Try to estimate from audio if we have a recent frame
     if (_lastAudioFrame != null) {
       try {
-        final direction = _speechLocalizer.estimateDirection(_lastAudioFrame!);
-        _logger.d('🔊 Audio direction estimated: ${direction.toStringAsFixed(2)} radians');
+        final direction = _speechLocalizer.estimateDirectionAdvanced(_lastAudioFrame!);
+        _logger.d('🔊 Advanced audio direction estimated: ${direction.toStringAsFixed(3)} radians');
+        
+        // Feed the audio direction to hybrid localization for future use
+        await _hybridLocalizationEngine.feedAudioDirection(
+          angle: direction,
+          confidence: result.confidence,
+        );
         
         return Vector3(
           defaultCaptionDistance * sin(direction),
