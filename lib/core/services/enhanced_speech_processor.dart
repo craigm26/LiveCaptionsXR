@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:get_it/get_it.dart';
 import '../models/speech_result.dart';
 import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
@@ -11,6 +12,8 @@ import 'gemma_3n_service.dart';
 import 'whisper_service_impl.dart';
 import 'apple_speech_service.dart';
 import 'frame_capture_service.dart';
+import 'stereo_audio_capture.dart';
+import 'spatial_caption_integration_service.dart';
 import 'app_logger.dart';
 
 /// Speech processing engine types
@@ -32,6 +35,10 @@ class EnhancedSpeechProcessor {
   final WhisperService _whisperService;
   final AppleSpeechService _appleSpeechService;
   final FrameCaptureService _frameCaptureService;
+  
+  // Stereo audio capture for spatial positioning
+  late final StereoAudioCapture _stereoAudioCapture;
+  StreamSubscription<StereoAudioFrame>? _stereoAudioSubscription;
 
   SpeechEngine _activeEngine;
   SpeechConfig _config = const SpeechConfig();
@@ -81,6 +88,10 @@ class EnhancedSpeechProcessor {
     _logger.i('🎤 [DEBUG] AppleSpeechService instance: ${_appleSpeechService.runtimeType}', category: LogCategory.speech);
     _logger.i('🔧 [DEBUG] Active engine set to: $_activeEngine', category: LogCategory.speech);
     _logger.i('🍎 [DEBUG] Platform.isIOS: ${Platform.isIOS}', category: LogCategory.speech);
+    
+    // Initialize stereo audio capture for spatial positioning
+    _stereoAudioCapture = StereoAudioCapture();
+    _logger.i('🎧 [DEBUG] StereoAudioCapture initialized for spatial positioning', category: LogCategory.speech);
   }
 
   /// Get default engine based on platform
@@ -295,6 +306,10 @@ class EnhancedSpeechProcessor {
 
       await _audioCaptureService.start();
       await _frameCaptureService.start();
+      
+      // Start stereo audio capture for spatial positioning
+      _logger.i('🎧 [SPATIAL] Starting stereo audio capture for spatial positioning...', category: LogCategory.speech);
+      await _startStereoAudioCapture();
 
       switch (_activeEngine) {
         case SpeechEngine.flutter_sound:
@@ -468,6 +483,52 @@ class EnhancedSpeechProcessor {
     }
   }
   
+  /// Start stereo audio capture for spatial positioning
+  Future<void> _startStereoAudioCapture() async {
+    try {
+      _logger.i('🎧 [SPATIAL] Starting stereo audio recording...', category: LogCategory.speech);
+      await _stereoAudioCapture.startRecording();
+      _logger.i('✅ [SPATIAL] Stereo audio recording started', category: LogCategory.speech);
+      
+      // Listen to stereo audio frames and feed them to spatial caption service
+      _stereoAudioSubscription = _stereoAudioCapture.frames.listen((frame) {
+        try {
+          _logger.d('🎧 [SPATIAL] Received stereo frame: L=${frame.left.length}, R=${frame.right.length} samples', category: LogCategory.speech);
+          
+          // Feed audio frame to spatial caption integration service
+          final spatialService = GetIt.I<SpatialCaptionIntegrationService>();
+          spatialService.updateAudioFrame(frame);
+          _logger.d('📍 [SPATIAL] Audio frame sent to spatial caption integration', category: LogCategory.speech);
+        } catch (e) {
+          _logger.w('⚠️ [SPATIAL] Could not update spatial caption service: $e', category: LogCategory.speech);
+        }
+      });
+      
+      _logger.i('🎧 [SPATIAL] Stereo audio processing setup complete', category: LogCategory.speech);
+    } catch (e, stackTrace) {
+      _logger.e('❌ [SPATIAL] Failed to start stereo audio capture', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+      // Don't rethrow - spatial audio is optional, main speech processing should continue
+    }
+  }
+  
+  /// Stop stereo audio capture
+  Future<void> _stopStereoAudioCapture() async {
+    try {
+      _logger.i('🛑 [SPATIAL] Stopping stereo audio capture...', category: LogCategory.speech);
+      
+      // Cancel subscription
+      await _stereoAudioSubscription?.cancel();
+      _stereoAudioSubscription = null;
+      
+      // Stop recording
+      await _stereoAudioCapture.stopRecording();
+      
+      _logger.i('✅ [SPATIAL] Stereo audio capture stopped', category: LogCategory.speech);
+    } catch (e, stackTrace) {
+      _logger.e('❌ [SPATIAL] Error stopping stereo audio capture', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+    }
+  }
+  
   /// Check if device has internet connection
   Future<bool> _hasInternetConnection() async {
     try {
@@ -634,6 +695,9 @@ class EnhancedSpeechProcessor {
           break;
       }
 
+      // Stop stereo audio capture
+      await _stopStereoAudioCapture();
+      
       await _frameCaptureService.stop();
       _isProcessing = false;
       _logger.i('✅ Speech processing stopped', category: LogCategory.speech);
