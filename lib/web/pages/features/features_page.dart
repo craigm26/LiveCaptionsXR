@@ -56,53 +56,53 @@ class _FeaturesPageState extends State<FeaturesPage>
     final features = [
       {
         'icon': Icons.hearing,
-        'title': 'Advanced Sound Detection',
+        'title': 'Platform Speech Recognition',
         'desc':
-            'Real-time audio analysis with directional awareness using spatial audio processing and machine learning algorithms.',
+            'Platform-specific speech recognition optimized for each operating system: Apple Speech Recognition (iOS) and whisper_ggml (Android).',
         'details': [
-          '360° spatial audio detection',
-          'Multi-speaker identification',
-          'Background noise filtering',
-          'Real-time frequency analysis'
+          'Apple Speech Recognition (iOS)',
+          'whisper_ggml with Whisper base model (Android)',
+          'Real-time transcription',
+          'Offline processing capability'
         ],
         'color': Colors.blue,
       },
       {
         'icon': Icons.visibility,
-        'title': 'Computer Vision',
+        'title': 'AR Spatial Captions',
         'desc':
-            'On-device face detection and speaker identification using advanced computer vision and facial recognition.',
+            'ARKit/ARCore-powered face detection and speaker identification for 3D spatial caption placement and visual tracking.',
         'details': [
           'Real-time face detection',
-          'Speaker lip-sync correlation',
-          'Multi-person tracking',
+          'Speaker identification',
+          '3D spatial caption placement',
           'Privacy-first on-device processing'
         ],
         'color': Colors.green,
       },
       {
         'icon': Icons.navigation,
-        'title': 'Spatial Localization',
+        'title': 'Hybrid Localization',
         'desc':
-            'Precise 3D positioning of sounds using advanced sensor fusion combining audio, visual, and IMU data.',
+            'Advanced stereo audio with GCC-PHAT direction estimation and Kalman filter fusion for precise speaker positioning.',
         'details': [
-          'IMU sensor integration',
-          'Audio-visual correlation',
-          '3D spatial mapping',
-          'Dynamic position tracking'
+          'GCC-PHAT direction estimation',
+          'Stereo audio processing',
+          'Kalman filter fusion',
+          'Real-time spatial mapping'
         ],
         'color': Colors.purple,
       },
       {
         'icon': Icons.psychology,
-        'title': 'Contextual AI',
+        'title': 'Gemma 3n Multimodal AI',
         'desc':
-            'Intelligent context understanding using Gemma 3n multimodal AI for enhanced accuracy and relevance.',
+            'Google\'s state-of-the-art multimodal AI for contextual enhancement, visual understanding, and intelligent caption generation.',
         'details': [
           'Multimodal data fusion',
-          'Context-aware processing',
-          'Intelligent noise reduction',
-          'Adaptive learning algorithms'
+          'Contextual text enhancement',
+          'Visual scene understanding',
+          'On-device processing'
         ],
         'color': Colors.orange,
       },
@@ -121,14 +121,14 @@ class _FeaturesPageState extends State<FeaturesPage>
       },
       {
         'icon': Icons.language,
-        'title': 'Multilingual ASR',
+        'title': 'Privacy-First Design',
         'desc':
-            'Advanced Automatic Speech Recognition supporting 100+ languages with streaming real-time processing.',
+            'All processing happens on-device with no data sent to external servers, ensuring complete privacy and offline functionality.',
         'details': [
-          'Real-time streaming ASR',
-          '100+ language support',
-          'Dialect recognition',
-          'Code-switching detection'
+          '100% on-device processing',
+          'No cloud data transmission',
+          'Offline functionality',
+          'Complete privacy protection'
         ],
         'color': Colors.teal,
       },
@@ -191,7 +191,7 @@ class _FeaturesPageState extends State<FeaturesPage>
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
             child: Text(
-              'Discover the advanced technologies and features that make Live Captions XR the most comprehensive accessibility solution available.',
+              'Discover the advanced technologies and features that make Live Captions XR a comprehensive accessibility solution with platform-specific speech recognition and on-device AI processing.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,

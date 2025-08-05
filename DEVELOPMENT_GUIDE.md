@@ -101,7 +101,7 @@ LiveCaptionsXR/
 
 #### Core Dependencies
 - **flutter_bloc**: State management
-- **whisper_ggml**: On-device speech recognition
+- **Platform-specific speech recognition**: Android (whisper_ggml), iOS (Apple Speech Recognition)
 - **flutter_gemma**: Gemma 3n multimodal model
 - **get_it**: Dependency injection
 - **logger**: Logging framework

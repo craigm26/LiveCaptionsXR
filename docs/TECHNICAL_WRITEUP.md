@@ -16,7 +16,7 @@
 
 ### System Architecture
 
-The system employs a layered architecture centered around `whisper_ggml` for efficient, on-device speech recognition, enhanced by `flutter_gemma` for contextual understanding.
+The system employs a layered architecture centered around platform-specific speech recognition for efficient, on-device processing, enhanced by `flutter_gemma` for contextual understanding.
 
 ```
 [Microphone Array] ──┐
@@ -25,7 +25,7 @@ The system employs a layered architecture centered around `whisper_ggml` for eff
                     │
 [IMU] ──────────────┘
 
-[Audio Stream] ──► [whisper_ggml] ──► [Raw Transcript] ──► [flutter_gemma/Gemma3n] ──► [Enhanced Caption]
+[Audio Stream] ──► [Platform Speech Recognition] ──► [Raw Transcript] ──► [flutter_gemma/Gemma3n] ──► [Enhanced Caption]
 ```
 
 ### Technical Stack Selection
@@ -33,7 +33,7 @@ The system employs a layered architecture centered around `whisper_ggml` for eff
 | **Component** | **Technology Choice** | **Rationale** |
 | --- | --- | --- |
 | **Frontend Framework** | Flutter 3.x with Dart 3 | Single codebase for iOS/Android, native performance, excellent accessibility support. |
-| **Speech Recognition**| `whisper_ggml` | High-quality, real-time, on-device speech recognition with offline capabilities. |
+| **Speech Recognition**| **Platform-specific** | **Android**: `whisper_ggml` (on-device Whisper), **iOS**: Apple Speech Recognition (native) |
 | **Text Enhancement** | `flutter_gemma` | On-device contextual enhancement using Gemma 3n model. |
 | **State Management** | flutter_bloc (Cubit pattern) | Predictable state management for complex AI workflows. |
 | **Service Architecture** | Dependency Injection (get_it) | Clean separation of concerns and a testable service layer. |
@@ -44,11 +44,11 @@ The system employs a layered architecture centered around `whisper_ggml` for eff
 
 ---
 
-## `whisper_ggml` Integration: A Technical Deep Dive
+## Platform-Specific Speech Recognition: A Technical Deep Dive
 
-### Why `whisper_ggml` is the Right Choice
+### Android: `whisper_ggml` Integration
 
-The core of our technical strategy is the use of **the `whisper_ggml` package** as the speech recognition engine.
+For Android devices, the core of our technical strategy is the use of **the `whisper_ggml` package** as the speech recognition engine.
 
 *   **Performance:** `whisper_ggml` is specifically designed for high-performance, on-device speech recognition. It provides optimized inference using GGML (Graphical Language Model) format, making it perfect for mobile devices.
 *   **Offline Capability:** Unlike cloud-based solutions, `whisper_ggml` operates entirely on-device, ensuring privacy and reliability even without internet connectivity.
@@ -61,8 +61,9 @@ The core of our technical strategy is the use of **the `whisper_ggml` package** 
     *   Continuous audio capture from the device's stereo microphones using `flutter_sound`.
     *   The audio stream is fed into the `WhisperService` for real-time processing.
 
-2.  **Speech Recognition with `whisper_ggml`:**
-    *   The `WhisperService` initializes the `whisper_ggml` plugin with the appropriate model.
+2.  **Speech Recognition (Platform-Specific):**
+*   **Android**: The `WhisperService` initializes the `whisper_ggml` plugin with the appropriate model.
+*   **iOS**: The `AppleSpeechService` uses the native Apple Speech Recognition framework.
     *   It processes audio chunks in real-time and provides streaming transcription results.
 
 ### Example Dart Implementation
@@ -106,7 +107,7 @@ We use **`flutter_gemma`** with the Gemma 3n model to enhance raw transcriptions
 
 ### Enhancement Workflow
 
-1. **Raw Transcription:** `whisper_ggml` provides initial transcription
+1. **Raw Transcription:** Platform-specific speech recognition provides initial transcription
 2. **Contextual Enhancement:** `flutter_gemma` processes the text to improve readability
 3. **Spatial Placement:** Enhanced captions are placed in 3D space using the Hybrid Localization Engine
 
@@ -139,7 +140,8 @@ The application follows a clean architecture pattern with a clear separation bet
 
 *   **Dart Services:**
     *   `AudioCaptureService`: Manages audio capture using `flutter_sound`.
-    *   `WhisperService`: Handles speech recognition using `whisper_ggml`.
+    *   `WhisperService`: Handles speech recognition on Android using `whisper_ggml`.
+*   `AppleSpeechService`: Handles speech recognition on iOS using Apple Speech Recognition.
     *   `Gemma3nService`: Manages text enhancement using `flutter_gemma`.
     *   `EnhancedSpeechProcessor`: Orchestrates the complete speech processing pipeline.
     *   `VisualService`: Manages the camera and face detection in Dart.
@@ -181,7 +183,7 @@ The core challenge is to accurately place captions in 3D space corresponding to 
 
 ## On-Device AI & Speech Recognition
 
-- **Speech-to-Text:** The app uses the `whisper_ggml` package for streaming, on-device Automatic Speech Recognition (ASR).
+- **Speech-to-Text:** The app uses platform-specific speech recognition - **Android**: `whisper_ggml` package, **iOS**: Apple Speech Recognition framework.
 - **Text Enhancement:** The app uses `flutter_gemma` with Gemma 3n for contextual text enhancement.
 - **Privacy:** A key design principle is **privacy**. All sensor data (camera, microphone) is processed locally on the device and is not sent to the cloud.
 
@@ -200,7 +202,7 @@ The following MethodChannels are critical for the app's functionality.
 
 ## Conclusion
 
-`Live Captions XR` demonstrates a robust, production-ready approach to deploying advanced on-device AI on mobile devices. By using `whisper_ggml` for speech recognition and `flutter_gemma` for enhancement, we achieve the performance and stability necessary for a real-time accessibility application, while our layered architecture ensures the system is maintainable and scalable.
+`Live Captions XR` demonstrates a robust, production-ready approach to deploying advanced on-device AI on mobile devices. By using platform-specific speech recognition and `flutter_gemma` for enhancement, we achieve the performance and stability necessary for a real-time accessibility application, while our layered architecture ensures the system is maintainable and scalable.
 
 **Technical Achievement**: Successfully implementing a high-performance, on-device, multimodal AI pipeline that solves a real-world accessibility problem using cutting-edge on-device AI technologies.
 
