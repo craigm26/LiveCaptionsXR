@@ -1,4 +1,4 @@
-# Hybrid AI Architecture: Vosk + Gemma 3n Integration
+# Hybrid AI Architecture: Platform-Optimized STT + Gemma 3n Integration
 
 **A realistic and efficient approach for real-time spatial captioning**
 
@@ -6,21 +6,22 @@
 
 ## 🎯 Overview
 
-This document describes a **hybrid AI architecture** that combines the strengths of specialized tools to achieve LiveCaptionsXR's vision of spatial, contextual captions. Instead of trying to make Gemma 3n handle real-time video streams (which it cannot do), we use a two-stage approach that is both more realistic and more efficient.
+This document describes a **hybrid AI architecture** that combines the strengths of platform-optimized speech recognition with Gemma 3n's multimodal capabilities to achieve LiveCaptionsXR's vision of spatial, contextual captions. Instead of trying to make Gemma 3n handle real-time audio streams (which it cannot do efficiently), we use a two-stage approach that is both more realistic and more efficient.
 
 ## 🏗️ Architecture Design
 
 ### **Core Pipeline**
 
 ```
-🎤 Audio Stream → 📝 Vosk STT (Real-time) → 💬 Text Accumulator
-                                                      ↓
-📸 Periodic Snapshot + 🤖 Gemma 3n → ✨ Enhanced Contextual Caption
+🎤 Audio Stream → 📝 Platform STT (Real-time) → 💬 Text Accumulator
+                      ↓                              ↓
+iOS: Apple Speech Recognition    📸 Periodic Snapshot + 🤖 Gemma 3n → ✨ Enhanced Contextual Caption
+Android: Whisper GGML
 ```
 
 ### **Component Breakdown**
 
-1. **Real-time Speech Recognition**: Vosk (On-device, Fast)
+1. **Real-time Speech Recognition**: Platform-optimized (Apple Speech on iOS, Whisper GGML on Android)
 2. **Text Accumulation**: 3-5 second text buffers
 3. **Visual Context**: Periodic camera snapshots
 4. **Contextual Enhancement**: Gemma 3n multimodal processing
@@ -30,38 +31,55 @@ This document describes a **hybrid AI architecture** that combines the strengths
 
 ## 🔧 Technical Implementation
 
-### **1. Vosk Integration for Real-time STT**
+### **1. Platform-Optimized STT Implementation**
 
-**Why Vosk?**
-- ✅ **Completely offline** (privacy-first)
-- ✅ **Real-time streaming** capabilities
-- ✅ **Lightweight models** (20-50MB)
+**iOS: Apple Speech Recognition**
+- ✅ **Native iOS integration** with `speech_to_text`
+- ✅ **Real-time streaming** capabilities  
+- ✅ **On-device processing** (privacy-first)
+- ✅ **Excellent accuracy** for English
+- ✅ **System-level optimization**
+- ✅ **No additional model downloads**
+
+**Android: Whisper GGML**
+- ✅ **High-quality transcription** with Whisper models
+- ✅ **On-device processing** (141MB model)
 - ✅ **Multiple languages** supported
-- ✅ **Open source** and free
-- ✅ **Flutter plugin available**
+- ✅ **Consistent quality** across devices
+- ✅ **Open source** implementation
 
 **Dependencies:**
 ```yaml
 dependencies:
-  vosk_flutter: ^1.0.0
-  path_provider: ^2.0.0
+  speech_to_text: ^6.6.0      # iOS Apple Speech
+  whisper_ggml: 1.3.0         # Android Whisper
+  flutter_gemma: ^0.10.0      # Gemma 3n
 ```
 
 **Service Implementation:**
 ```dart
-class VoskSTTService {
-  late VoskFlutterPlugin vosk;
-  bool _isInitialized = false;
+class EnhancedSpeechProcessor {
+  final AppleSpeechService _appleSpeechService;
+  final WhisperService _whisperService;
+  SpeechEngine _activeEngine;
   
-  Future<bool> initialize() async {
-    vosk = VoskFlutterPlugin.instance();
-    await vosk.setModel('assets/models/vosk-model-small-en-us-0.15.zip');
-    _isInitialized = true;
-    return true;
+  // Platform-specific engine selection
+  static SpeechEngine _getDefaultEngine() {
+    if (Platform.isIOS) {
+      return SpeechEngine.apple_speech;  // iOS: Apple Speech
+    } else if (Platform.isAndroid) {
+      return SpeechEngine.whisper_ggml;  // Android: Whisper GGML
+    }
+    return SpeechEngine.flutter_sound;   // Fallback
   }
   
-  Stream<String> recognizeStream(Stream<List<int>> audioStream) {
-    return vosk.recognizeWaveForm(audioStream);
+  Future<bool> initialize() async {
+    if (_activeEngine == SpeechEngine.apple_speech) {
+      return await _appleSpeechService.initialize();
+    } else if (_activeEngine == SpeechEngine.whisper_ggml) {
+      return await _whisperService.initialize();
+    }
+    return false;
   }
 }
 ```

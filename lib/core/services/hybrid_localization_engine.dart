@@ -141,43 +141,6 @@ class HybridLocalizationEngine {
     }
   }
 
-  /// Place a real-time caption at the current fused transform in AR.
-  Future<void> placeRealtimeCaption(String text) async {
-    try {
-      _logger.i('🎯 [CAPTION PLACEMENT] Starting to place real-time caption in AR: "$text"', category: LogCategory.captions);
-      
-      // For debugging, use the SAME position as the red sphere
-      // final transform = await getFusedTransform();
-      final transform = [
-        1.0, 0.0, 0.0, 0.0,  // Column 1 
-        0.0, 1.0, 0.0, 0.0,  // Column 2
-        0.0, 0.0, 1.0, 0.0,  // Column 3
-        0.0, 0.3, -1.0, 1.0  // Column 4 (same as sphere but 0.3m above)
-      ];
-      _logger.i('🧮 [CAPTION PLACEMENT] Using fixed transform for testing: ${transform.take(4).join(", ")}...', category: LogCategory.captions);
-      
-      _logger.i('📞 [CAPTION PLACEMENT] About to call native method channel...', category: LogCategory.captions);
-      _logger.i('📞 [CAPTION PLACEMENT] Channel: live_captions_xr/caption_methods, Method: placeCaption', category: LogCategory.captions);
-      _logger.i('📞 [CAPTION PLACEMENT] Arguments: transform length=${transform.length}, text="$text"', category: LogCategory.captions);
-      
-      final result = await const MethodChannel('live_captions_xr/caption_methods')
-          .invokeMethod('placeCaption', {
-        'transform': transform,
-        'text': text,
-        'isSummary': false,
-      });
-      
-      _logger.i('📱 [CAPTION PLACEMENT] Native method returned: $result', category: LogCategory.captions);
-      _logger.i('✅ [CAPTION PLACEMENT] Real-time caption placed successfully in AR view', category: LogCategory.captions);
-    } on PlatformException catch (e) {
-      _logger.e('❌ [CAPTION PLACEMENT] Platform error placing real-time caption: ${e.message}', category: LogCategory.captions);
-      _logger.e('❌ [CAPTION PLACEMENT] Error code: ${e.code}, details: ${e.details}', category: LogCategory.captions);
-      throw Exception('Failed to place real-time caption: ${e.message}');
-    } catch (e, stackTrace) {
-      _logger.e('❌ [CAPTION PLACEMENT] Unexpected error placing caption', category: LogCategory.captions, error: e, stackTrace: stackTrace);
-      rethrow;
-    }
-  }
 
   /// Place a contextual summary at a stable, centered position.
   Future<void> placeContextualSummary(String text) async {

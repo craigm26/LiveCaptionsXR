@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:logger/logger.dart';
+import '../../../core/services/app_logger.dart';
 
 class HomeState {
   final bool arMode;
@@ -12,20 +12,11 @@ class HomeState {
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit() : super(HomeState());
 
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  final AppLogger _logger = AppLogger.instance;
 
   void toggleArMode() {
     final newMode = !state.arMode;
-    _logger.i('🥽 Toggling AR mode: ${state.arMode} -> $newMode');
+    _logger.i('🥽 Toggling AR mode: ${state.arMode} -> $newMode', category: LogCategory.ui);
     emit(state.copyWith(arMode: newMode));
   }
 }

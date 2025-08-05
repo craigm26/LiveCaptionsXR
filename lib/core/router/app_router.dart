@@ -6,13 +6,16 @@ import 'package:live_captions_xr/features/settings/view/settings_screen.dart';
 import 'package:live_captions_xr/app.dart';
 import 'package:live_captions_xr/features/model_status/view/model_status_page.dart';
 import 'package:live_captions_xr/features/spatial_captions_demo/view/spatial_captions_demo_page.dart';
+import '../services/app_logger.dart';
+
+final AppLogger _routerLogger = AppLogger.instance;
 
 final GoRouter router = GoRouter(
   initialLocation: '/home',
   debugLogDiagnostics: true,
   redirect: (context, state) {
-    print('🔄 Router redirect called for: ${state.uri}');
-    print('🗺️ Available routes: /home, /settings, /about, /model-status, /spatial-captions-demo');
+    _routerLogger.d('🔄 Router redirect called for: ${state.uri}', category: LogCategory.system);
+    _routerLogger.d('🗺️ Available routes: /home, /settings, /about, /model-status, /spatial-captions-demo', category: LogCategory.system);
     return null;
   },
   errorBuilder: (context, state) {
@@ -79,7 +82,7 @@ final GoRouter router = GoRouter(
         GoRoute(
           path: '/spatial-captions-demo',
           builder: (BuildContext context, GoRouterState state) {
-            print('🗺️ Building SpatialCaptionsDemoPage route');
+            _routerLogger.d('🗺️ Building SpatialCaptionsDemoPage route', category: LogCategory.system);
             return const SpatialCaptionsDemoPage();
           },
         ),

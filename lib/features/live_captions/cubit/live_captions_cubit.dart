@@ -53,6 +53,12 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
     try {
       _logger.i('🎤 Starting live captions...', category: LogCategory.captions);
+      emit(const LiveCaptionsLoading(message: 'Initializing spatial caption system...'));
+
+      // Note: Spatial caption integration service should be initialized 
+      // when AR services start, not when captions start
+      _logger.i('ℹ️ [CAPTIONS CUBIT] Spatial caption integration service should already be initialized by AR services', category: LogCategory.captions);
+
       emit(const LiveCaptionsLoading(message: 'Initializing speech processing...'));
 
       if (!_speechProcessor.isReady) {
@@ -167,15 +173,24 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     } else {
       _logger.i('⏳ [CAPTIONS CUBIT] Processing partial caption: "${caption.displayText}"', category: LogCategory.captions);
       
-      // Place partial captions in AR for real-time feedback
+      // Use spatial_captions plugin for partial results (consistent with final results)
       if (caption.displayText.isNotEmpty && caption.displayText.length > 3) {
-        _logger.d('⚡ [CAPTIONS CUBIT] Placing PARTIAL caption in AR: "${caption.displayText}"', category: LogCategory.captions);
+        _logger.d('⚡ [CAPTIONS CUBIT] Processing PARTIAL caption with spatial plugin: "${caption.displayText}"', category: LogCategory.captions);
         try {
-          _hybridLocalizationEngine.placeRealtimeCaption(caption.displayText).catchError((e, stackTrace) {
-            _logger.e('❌ [CAPTIONS CUBIT] Failed to place partial caption in AR', category: LogCategory.captions, error: e, stackTrace: stackTrace);
-          });
+          // Create SpeechResult for spatial processing
+          final speechResult = SpeechResult(
+            text: caption.displayText,
+            confidence: caption.confidence,
+            isFinal: caption.isFinal,
+            timestamp: caption.timestamp,
+          );
+          
+          // Process through spatial plugin (same as final results)
+          await _spatialCaptionIntegrationService.processPartialResult(speechResult);
+          _logger.d('✅ [CAPTIONS CUBIT] Partial caption processed through spatial plugin', category: LogCategory.captions);
         } catch (e, stackTrace) {
-          _logger.e('❌ [CAPTIONS CUBIT] Exception placing partial caption in AR', category: LogCategory.captions, error: e, stackTrace: stackTrace);
+          _logger.e('❌ [CAPTIONS CUBIT] Failed to process partial caption through spatial plugin', category: LogCategory.captions, error: e, stackTrace: stackTrace);
+          // Note: No fallback - spatial plugin is the only caption system now
         }
       }
       

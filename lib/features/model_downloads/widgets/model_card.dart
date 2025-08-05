@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/model_info.dart';
 import '../services/model_download_service.dart';
+import '../../../core/services/app_logger.dart';
 
 class ModelCard extends StatelessWidget {
   final ModelInfo model;
@@ -226,7 +227,7 @@ class ModelCard extends StatelessWidget {
 
   void _openInBrowser(String url) {
     // This would typically use url_launcher package
-    // For now, just print the URL
-    print('Opening URL: $url');
+    // For now, just log the URL
+    AppLogger.instance.d('Opening URL: $url', category: LogCategory.system);
   }
 } 
