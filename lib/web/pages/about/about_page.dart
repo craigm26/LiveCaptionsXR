@@ -80,7 +80,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Coming Soon: Android & Android XR Support!',
+                          'Cross-Platform Accessibility',
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -90,7 +90,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases! ',
+                          'Live Captions XR provides advanced accessibility features across iOS and Android platforms with platform-specific speech recognition and on-device AI processing.',
                           style:
                               Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: Colors.blueGrey[800],

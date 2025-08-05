@@ -412,7 +412,7 @@ class _SupportPageState extends State<SupportPage>
           ),
           _buildFAQItem(
             'What technologies does Live Captions XR use?',
-            'We use Flutter for cross-platform development, ARKit for iOS AR features, Apple Speech Recognition for speech processing, Gemma 3n for AI processing, and various native plugins for audio processing.',
+            'We use Flutter for cross-platform development, ARKit/ARCore for AR features, platform-specific speech recognition (Apple Speech Recognition on iOS, whisper_ggml on Android), Gemma 3n for AI processing, and various native plugins for audio processing.',
           ),
           _buildFAQItem(
             'How do I set up the development environment?',

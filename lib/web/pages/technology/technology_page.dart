@@ -83,7 +83,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Coming Soon: Android & Android XR Support!',
+                          'Cross-Platform Support',
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -93,7 +93,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases!',
+                          'Live Captions XR supports both iOS and Android platforms with platform-specific speech recognition: Apple Speech Recognition on iOS and whisper_ggml on Android.',
                           style:
                               Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: Colors.blueGrey[800],

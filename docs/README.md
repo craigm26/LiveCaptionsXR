@@ -50,7 +50,7 @@ LiveCaptionsXR is an AR-powered accessibility application that provides real-tim
 ### Core Technologies
 
 - **Flutter/Dart** - Cross-platform mobile development
-- **whisper_ggml** - On-device speech recognition
+- **Platform-specific Speech Recognition** - **Android**: whisper_ggml (on-device Whisper), **iOS**: Apple Speech Recognition (native)
 - **flutter_gemma** - Gemma 3n integration for text enhancement
 - **ARKit/ARCore** - Augmented reality functionality
 - **flutter_sound** - Audio capture and processing

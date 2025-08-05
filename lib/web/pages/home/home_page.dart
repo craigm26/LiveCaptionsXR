@@ -199,7 +199,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     maxWidth: isMobile ? double.infinity : 600,
                   ),
                   child: Text(
-                    'Revolutionary AR-powered live captioning with on-device AI, spatial audio, and contextual understanding.',
+                    'Advanced accessibility application providing real-time, spatially-aware closed captioning with platform-specific speech recognition and on-device AI.',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.grey[600],
                           height: 1.5,
@@ -305,15 +305,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               _buildTechCard(
                 context,
-                'Native Speech Recognition',
-                'Platform-optimized speech recognition using Apple Speech (iOS) and advanced audio processing for real-time transcription.',
+                'Platform Speech Recognition',
+                'Android: whisper_ggml with Whisper base model. iOS: Native Apple Speech Recognition framework for optimal performance.',
                 Icons.mic,
                 Colors.blue,
                 isMobile,
               ),
               _buildTechCard(
                 context,
-                'Gemma 3n AI',
+                'Gemma 3n Multimodal AI',
                 'Google\'s state-of-the-art multimodal AI for contextual enhancement, visual understanding, and intelligent caption generation.',
                 Icons.psychology,
                 Colors.green,
@@ -321,16 +321,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               _buildTechCard(
                 context,
-                'Spatial Audio Processing',
-                'Advanced stereo audio with GCC-PHAT direction estimation and hybrid localization for precise speaker positioning.',
+                'Hybrid Localization',
+                'Advanced stereo audio with GCC-PHAT direction estimation and Kalman filter fusion for precise speaker positioning.',
                 Icons.hearing,
                 Colors.purple,
                 isMobile,
               ),
               _buildTechCard(
                 context,
-                'Computer Vision',
-                'Real-time face detection and speaker identification using ARKit/ARCore for visual speaker tracking.',
+                'AR Spatial Captions',
+                'Real-time face detection and speaker identification using ARKit/ARCore for 3D spatial caption placement.',
                 Icons.visibility,
                 Colors.orange,
                 isMobile,

@@ -56,39 +56,39 @@ class _FeaturesPageState extends State<FeaturesPage>
     final features = [
       {
         'icon': Icons.hearing,
-        'title': 'Native Speech Recognition',
+        'title': 'Platform Speech Recognition',
         'desc':
-            'Platform-optimized speech recognition using Apple Speech framework with real-time processing and offline support.',
+            'Platform-specific speech recognition optimized for each operating system: Apple Speech Recognition (iOS) and whisper_ggml (Android).',
         'details': [
           'Apple Speech Recognition (iOS)',
+          'whisper_ggml with Whisper base model (Android)',
           'Real-time transcription',
-          'Offline processing capability',
-          'High accuracy with noise reduction'
+          'Offline processing capability'
         ],
         'color': Colors.blue,
       },
       {
         'icon': Icons.visibility,
-        'title': 'Computer Vision',
+        'title': 'AR Spatial Captions',
         'desc':
-            'ARKit/ARCore-powered face detection and speaker identification for precise visual tracking and spatial awareness.',
+            'ARKit/ARCore-powered face detection and speaker identification for 3D spatial caption placement and visual tracking.',
         'details': [
           'Real-time face detection',
           'Speaker identification',
-          'Multi-person tracking',
+          '3D spatial caption placement',
           'Privacy-first on-device processing'
         ],
         'color': Colors.green,
       },
       {
         'icon': Icons.navigation,
-        'title': 'Spatial Audio Processing',
+        'title': 'Hybrid Localization',
         'desc':
-            'Advanced stereo audio with GCC-PHAT direction estimation and hybrid localization for precise speaker positioning.',
+            'Advanced stereo audio with GCC-PHAT direction estimation and Kalman filter fusion for precise speaker positioning.',
         'details': [
           'GCC-PHAT direction estimation',
           'Stereo audio processing',
-          'Hybrid audio-visual fusion',
+          'Kalman filter fusion',
           'Real-time spatial mapping'
         ],
         'color': Colors.purple,
@@ -100,9 +100,9 @@ class _FeaturesPageState extends State<FeaturesPage>
             'Google\'s state-of-the-art multimodal AI for contextual enhancement, visual understanding, and intelligent caption generation.',
         'details': [
           'Multimodal data fusion',
-          'Contextual enhancement',
+          'Contextual text enhancement',
           'Visual scene understanding',
-          'Intelligent caption generation'
+          'On-device processing'
         ],
         'color': Colors.orange,
       },
@@ -121,14 +121,14 @@ class _FeaturesPageState extends State<FeaturesPage>
       },
       {
         'icon': Icons.language,
-        'title': 'Multilingual Support',
+        'title': 'Privacy-First Design',
         'desc':
-            'Advanced speech recognition supporting multiple languages with platform-native processing capabilities.',
+            'All processing happens on-device with no data sent to external servers, ensuring complete privacy and offline functionality.',
         'details': [
-          'Platform-native ASR',
-          'Multi-language support',
-          'Real-time processing',
-          'Context-aware language detection'
+          '100% on-device processing',
+          'No cloud data transmission',
+          'Offline functionality',
+          'Complete privacy protection'
         ],
         'color': Colors.teal,
       },
@@ -191,7 +191,7 @@ class _FeaturesPageState extends State<FeaturesPage>
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
             child: Text(
-              'Discover the advanced technologies and features that make Live Captions XR the most comprehensive accessibility solution available.',
+              'Discover the advanced technologies and features that make Live Captions XR a comprehensive accessibility solution with platform-specific speech recognition and on-device AI processing.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,
