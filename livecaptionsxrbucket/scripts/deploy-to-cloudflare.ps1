@@ -86,7 +86,7 @@ switch ($DeployMethod.ToLower()) {
     }
     
     "wrangler" {
-        Write-Host "🔧 Deploying via Wrangler CLI..." -ForegroundColor Yellow
+        Write-Host "🔧 Deploying via Cloudflare Workers Sites..." -ForegroundColor Yellow
         
         # Check if wrangler is installed
         try {
@@ -97,28 +97,38 @@ switch ($DeployMethod.ToLower()) {
             npm install -g wrangler
         }
         
-        # Create wrangler.toml if it doesn't exist
-        if (-not (Test-Path "wrangler.toml")) {
-            Write-Host "📝 Creating wrangler.toml configuration..." -ForegroundColor Yellow
-            @"
-name = "$ProjectName"
-type = "webpack"
-account_id = "your-account-id"
-workers_dev = true
-route = ""
-zone_id = ""
-
-[site]
-bucket = "."
-entry-point = "workers-site"
-"@ | Out-File -FilePath "wrangler.toml" -Encoding UTF8
-            
-            Write-Host "⚠️  Please edit wrangler.toml and add your account_id" -ForegroundColor Yellow
-            Write-Host "   You can find your account_id in the Cloudflare dashboard" -ForegroundColor Cyan
+        # Check if user is logged in
+        try {
+            $accountInfo = wrangler whoami
+            Write-Host "✅ Logged in to Cloudflare" -ForegroundColor Green
+        } catch {
+            Write-Host "🔐 Please login to Cloudflare..." -ForegroundColor Yellow
+            wrangler login
         }
         
-        Write-Host "🚀 Deploying with Wrangler..." -ForegroundColor Yellow
-        wrangler publish
+        # Check if wrangler.toml exists and is properly configured
+        if (Test-Path "wrangler.toml") {
+            Write-Host "✅ Found wrangler.toml configuration" -ForegroundColor Green
+        } else {
+            Write-Host "❌ wrangler.toml not found. Please ensure it exists in the current directory." -ForegroundColor Red
+            Write-Host "   See workers-deploy-guide.md for configuration details." -ForegroundColor Cyan
+            exit 1
+        }
+        
+        # Check if src/index.js exists
+        if (-not (Test-Path "src/index.js")) {
+            Write-Host "❌ src/index.js not found. Please ensure the Worker script exists." -ForegroundColor Red
+            exit 1
+        }
+        
+        Write-Host "🚀 Deploying to Cloudflare Workers Sites..." -ForegroundColor Yellow
+        Write-Host "📋 This will deploy both static assets and Worker code together." -ForegroundColor Cyan
+        
+        wrangler deploy
+        
+        Write-Host ""
+        Write-Host "🎉 Deployment complete!" -ForegroundColor Green
+        Write-Host "📖 For detailed information, see: workers-deploy-guide.md" -ForegroundColor Cyan
     }
     
     default {
