@@ -113,7 +113,7 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
             child: Text(
-              'Experience the future of accessibility with cutting-edge AI, spatial audio, and augmented reality technologies.',
+              'Experience advanced accessibility with platform-specific speech recognition, on-device AI, and spatial captioning technologies.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,
@@ -129,13 +129,13 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
   Widget _buildTechnologyShowcase(BuildContext context, bool isMobile) {
     final demos = [
       {
-        'title': 'Apple Speech Recognition',
-        'description': 'Native iOS speech recognition framework for real-time, on-device transcription with offline support and high accuracy.',
+        'title': 'Platform Speech Recognition',
+        'description': 'Platform-specific speech recognition: Apple Speech Recognition (iOS) and whisper_ggml (Android) for optimal performance.',
         'icon': Icons.mic,
         'color': Colors.blue,
         'features': [
-          'On-device processing',
-          'Fast transcription',
+          'Platform-optimized',
+          'Real-time transcription',
           'Privacy-first',
           'Offline capability'
         ],
@@ -155,27 +155,27 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
         'onTap': () => context.go('/technology'),
       },
       {
-        'title': 'Spatial Audio Processing',
-        'description': 'Advanced stereo audio processing with directional awareness and real-time speaker localization.',
+        'title': 'Hybrid Localization',
+        'description': 'Advanced stereo audio with GCC-PHAT direction estimation and Kalman filter fusion for precise speaker positioning.',
         'icon': Icons.hearing,
         'color': Colors.purple,
         'features': [
-          '360° audio detection',
-          'Directional awareness',
+          'GCC-PHAT direction estimation',
+          'Kalman filter fusion',
           'Real-time processing',
           'Multi-speaker support'
         ],
         'onTap': () => context.go('/technology'),
       },
       {
-        'title': 'Computer Vision & Face Detection',
-        'description': 'Real-time face detection and speaker identification using on-device AI for enhanced accuracy.',
+        'title': 'AR Spatial Captions',
+        'description': 'Real-time face detection and speaker identification using ARKit/ARCore for 3D spatial caption placement.',
         'icon': Icons.visibility,
         'color': Colors.orange,
         'features': [
           'Face detection',
           'Speaker identification',
-          'Real-time processing',
+          '3D spatial placement',
           'Privacy-focused'
         ],
         'onTap': () => context.go('/technology'),
@@ -192,14 +192,14 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
     final features = [
       {
         'icon': Icons.hearing,
-        'title': 'Native Speech Recognition',
+        'title': 'Platform Speech Recognition',
         'desc':
-            'Platform-optimized speech recognition using Apple Speech framework with real-time processing and offline support.',
+            'Platform-specific speech recognition optimized for each operating system: Apple Speech Recognition (iOS) and whisper_ggml (Android).',
         'details': [
           'Apple Speech Recognition (iOS)',
+          'whisper_ggml with Whisper base model (Android)',
           'Real-time transcription',
-          'Offline processing capability',
-          'High accuracy with noise reduction'
+          'Offline processing capability'
         ],
         'color': Colors.blue,
       },
@@ -257,14 +257,14 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
       },
       {
         'icon': Icons.language,
-        'title': 'Multilingual Support',
+        'title': 'Privacy-First Design',
         'desc':
-            'Advanced speech recognition supporting multiple languages with platform-native processing capabilities.',
+            'All processing happens on-device with no data sent to external servers, ensuring complete privacy and offline functionality.',
         'details': [
-          'Platform-native ASR',
-          'Multi-language support',
-          'Real-time processing',
-          'Context-aware language detection'
+          '100% on-device processing',
+          'No cloud data transmission',
+          'Offline functionality',
+          'Complete privacy protection'
         ],
         'color': Colors.teal,
       },
@@ -451,7 +451,7 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
             alignment: WrapAlignment.center,
             children: [
               _buildTechStackItem(context, 'Flutter', 'Cross-platform UI framework', Icons.flutter_dash, Colors.blue),
-              _buildTechStackItem(context, 'Apple Speech Recognition', 'Native iOS speech recognition', Icons.mic, Colors.green),
+              _buildTechStackItem(context, 'Platform Speech Recognition', 'iOS: Apple Speech, Android: whisper_ggml', Icons.mic, Colors.green),
               _buildTechStackItem(context, 'Gemma 3n', 'Multimodal AI model', Icons.psychology, Colors.purple),
               _buildTechStackItem(context, 'ARKit/ARCore', 'Augmented Reality frameworks', Icons.view_in_ar, Colors.orange),
               _buildTechStackItem(context, 'Dart', 'Programming language', Icons.code, Colors.cyan),
