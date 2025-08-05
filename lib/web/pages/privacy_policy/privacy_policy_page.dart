@@ -199,10 +199,10 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     ),
                     _buildSection(
                       'Local Data Processing',
-                      'All audio processing and speech recognition occurs entirely on your device using Apple\'s on-device Speech Recognition framework. This means:\n\n'
+                      'All audio processing and speech recognition occurs entirely on your device using platform-specific speech recognition frameworks. This means:\n\n'
                           '• Your voice data never leaves your device\n'
                           '• No internet connection is required for core functionality\n'
-                          '• Speech recognition models are downloaded and run locally\n'
+                          '• Speech recognition uses platform-native frameworks (Apple Speech Recognition on iOS, whisper_ggml on Android)\n'
                           '• Captions are generated in real-time on your device',
                       isMobile,
                     ),
@@ -211,7 +211,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                       'Live Captions XR requires certain permissions to function:\n\n'
                           '• **Microphone Access**: Required to capture audio for real-time transcription\n'
                           '• **Camera Access**: Required for AR functionality and spatial audio mapping\n'
-                          '• **Speech Recognition**: Uses Apple\'s on-device Speech Recognition framework\n\n'
+                          '• **Speech Recognition**: Uses platform-specific frameworks (Apple Speech Recognition on iOS, whisper_ggml on Android)\n\n'
                           'These permissions are used solely for the app\'s core functionality and are processed locally on your device.',
                       isMobile,
                     ),
@@ -246,7 +246,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     _buildSection(
                       'Third-Party Services',
                       'Live Captions XR uses minimal third-party services:\n\n'
-                          '• **Apple Speech Recognition**: Processes audio locally on device\n'
+                          '• **Platform Speech Recognition**: Processes audio locally on device (Apple Speech Recognition on iOS, whisper_ggml on Android)\n'
                           '• **ARKit**: Provides augmented reality features locally\n'
                           '• **Core ML**: Runs machine learning models locally\n\n'
                           'All processing occurs on-device without data transmission.',

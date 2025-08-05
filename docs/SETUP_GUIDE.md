@@ -91,7 +91,7 @@ LiveCaptionsXR/
 
 ### Core Dependencies
 
-- **whisper_ggml**: On-device speech recognition
+- **Platform-specific speech recognition**: Android (whisper_ggml), iOS (Apple Speech Recognition)
 - **flutter_gemma**: Gemma 3n integration for text enhancement
 - **flutter_sound**: Audio capture and processing
 - **camera**: Camera access for AR features

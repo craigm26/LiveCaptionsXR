@@ -1,7 +1,7 @@
 # 📣 Project Description: LiveCaptionsXR
 
 **Subtitle:**
-*"On-device, real-time captioning and sound awareness for XR—built by a deaf developer using whisper_ggml and Gemma 3n to unlock spatial hearing for everyone."*
+*"On-device, real-time captioning and sound awareness for XR—built by a deaf developer using platform-specific speech recognition and Gemma 3n to unlock spatial hearing for everyone."*
 
 ---
 
@@ -23,7 +23,7 @@ LiveCaptionsXR addresses a real problem: traditional captioning systems flatten 
 
 This is not just a demo. It's a serious technical showcase of what **on-device AI** can do:
 
-* **whisper_ggml** for private, offline speech recognition
+* **Platform-specific speech recognition** (Android: whisper_ggml, iOS: Apple Speech Recognition) for private, offline speech recognition
 * **flutter_gemma** with Gemma 3n for contextual text enhancement
 * **Live caption rendering** in 3D space (ARKit/ARCore)
 * **Hybrid localization** combining audio, vision, and IMU data
@@ -52,7 +52,7 @@ A fusion pipeline combines:
 
 LiveCaptionsXR implements a sophisticated on-device AI pipeline:
 
-* **whisper_ggml** for high-performance, offline speech recognition
+* **Platform-specific speech recognition** for high-performance, offline speech recognition
 * **flutter_gemma** with Gemma 3n for contextual text enhancement
 * **Flutter/Dart MethodChannels** for seamless integration
 * **Native AR rendering** via ARKit/ARCore for spatial caption placement
