@@ -13,7 +13,6 @@
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		74858FB81ED2DC5600515819 /* ARAnchorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB01ED2DC5600515811 /* ARAnchorManager.swift */; };
 		74858FB91ED2DC5600515820 /* ARViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB11ED2DC5600515812 /* ARViewController.swift */; };
-		74858FBA1ED2DC5600515821 /* CaptionNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB21ED2DC5600515813 /* CaptionNode.swift */; };
 		74858FBB1ED2DC5600515822 /* HybridLocalizationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB31ED2DC5600515814 /* HybridLocalizationEngine.swift */; };
 		74858FBC1ED2DC5600515823 /* SpeechLocalizerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB41ED2DC5600515815 /* SpeechLocalizerPlugin.swift */; };
 		74858FBD1ED2DC5600515824 /* StereoAudioCapturePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB51ED2DC5600515816 /* StereoAudioCapturePlugin.swift */; };
@@ -64,7 +63,6 @@
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		74858FB01ED2DC5600515811 /* ARAnchorManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ARAnchorManager.swift; sourceTree = "<group>"; };
 		74858FB11ED2DC5600515812 /* ARViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ARViewController.swift; sourceTree = "<group>"; };
-		74858FB21ED2DC5600515813 /* CaptionNode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaptionNode.swift; sourceTree = "<group>"; };
 		74858FB31ED2DC5600515814 /* HybridLocalizationEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HybridLocalizationEngine.swift; sourceTree = "<group>"; };
 		74858FB41ED2DC5600515815 /* SpeechLocalizerPlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeechLocalizerPlugin.swift; sourceTree = "<group>"; };
 		74858FB51ED2DC5600515816 /* StereoAudioCapturePlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StereoAudioCapturePlugin.swift; sourceTree = "<group>"; };
@@ -179,7 +177,6 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FB01ED2DC5600515811 /* ARAnchorManager.swift */,
 				74858FB11ED2DC5600515812 /* ARViewController.swift */,
-				74858FB21ED2DC5600515813 /* CaptionNode.swift */,
 				74858FB31ED2DC5600515814 /* HybridLocalizationEngine.swift */,
 				74858FB41ED2DC5600515815 /* SpeechLocalizerPlugin.swift */,
 				74858FB51ED2DC5600515816 /* StereoAudioCapturePlugin.swift */,
@@ -423,7 +420,6 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				74858FB81ED2DC5600515819 /* ARAnchorManager.swift in Sources */,
 				74858FB91ED2DC5600515820 /* ARViewController.swift in Sources */,
-				74858FBA1ED2DC5600515821 /* CaptionNode.swift in Sources */,
 				74858FBB1ED2DC5600515822 /* HybridLocalizationEngine.swift in Sources */,
 				74858FBC1ED2DC5600515823 /* SpeechLocalizerPlugin.swift in Sources */,
 				74858FBD1ED2DC5600515824 /* StereoAudioCapturePlugin.swift in Sources */,

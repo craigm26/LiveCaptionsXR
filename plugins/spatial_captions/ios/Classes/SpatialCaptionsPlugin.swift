@@ -23,12 +23,12 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
     // Caption node wrapper to track metadata
     class CaptionNodeWrapper {
         let node: SCNNode
-        let captionNode: CaptionNode
+        let captionNode: SpatialCaptionNode
         let type: CaptionType
         let speakerId: String?
         let timestamp: Date
         
-        init(node: SCNNode, captionNode: CaptionNode, type: CaptionType, speakerId: String?) {
+        init(node: SCNNode, captionNode: SpatialCaptionNode, type: CaptionType, speakerId: String?) {
             self.node = node
             self.captionNode = captionNode
             self.type = type
@@ -45,6 +45,8 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "initializeWithSceneView":
+            handleInitializeWithSceneView(result: result)
         case "addCaption":
             handleAddCaption(call, result: result)
         case "updateCaption":
@@ -59,12 +61,101 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
             handleSetCaptionDuration(call, result: result)
         case "setOrientationLock":
             handleSetOrientationLock(call, result: result)
+        case "testConnection":
+            handleTestConnection(result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
     }
     
     // MARK: - Method Handlers
+    
+    private func handleInitializeWithSceneView(result: @escaping FlutterResult) {
+        // Try to get the current AR scene view from the app
+        DispatchQueue.main.async {
+            print("🔍 ========== SPATIAL CAPTIONS PLUGIN INITIALIZATION ==========")
+            print("🔍 [SpatialCaptionsPlugin] NEW FLOW: Looking for ARSCNView (should be available now)")
+            print("🔍 [SpatialCaptionsPlugin] Starting ARSCNView search...")
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootViewController = window.rootViewController {
+                
+                print("🔍 [SpatialCaptionsPlugin] Root view controller found: \(type(of: rootViewController))")
+                print("🔍 [SpatialCaptionsPlugin] Root view controller has \(rootViewController.view.subviews.count) subviews")
+                
+                // First, check if the root view controller has an ARSCNView
+                if let arView = self.findARSCNView(in: rootViewController.view) {
+                    self.sceneView = arView
+                    print("🎆 [SpatialCaptionsPlugin] SUCCESS: SceneView found in root view controller!")
+                    print("✅ [SpatialCaptionsPlugin] ARSCNView discovered and assigned")
+                    result(true)
+                    return
+                }
+                
+                // Check presented view controllers (ARViewController is presented modally)
+                if let presentedVC = rootViewController.presentedViewController {
+                    print("🔍 [SpatialCaptionsPlugin] Found presented view controller: \(type(of: presentedVC))")
+                    print("🔍 [SpatialCaptionsPlugin] Presented view controller has \(presentedVC.view.subviews.count) subviews")
+                    
+                    if let arView = self.findARSCNView(in: presentedVC.view) {
+                        self.sceneView = arView
+                        print("🎆 [SpatialCaptionsPlugin] SUCCESS: SceneView found in presented view controller!")
+                        print("✅ [SpatialCaptionsPlugin] ARSCNView discovered in modal presentation")
+                        result(true)
+                        return
+                    }
+                    
+                    // Check if the presented view controller is ARViewController directly
+                    let vcClassName = String(describing: type(of: presentedVC))
+                    print("🔍 [SpatialCaptionsPlugin] Presented VC class name: \(vcClassName)")
+                    
+                    if vcClassName == "ARViewController" {
+                        print("🔍 [SpatialCaptionsPlugin] Found ARViewController, trying to access sceneView property")
+                        // Try to get sceneView property via KVC
+                        if let sceneView = presentedVC.value(forKey: "sceneView") as? ARSCNView {
+                            self.sceneView = sceneView
+                            print("🎆 [SpatialCaptionsPlugin] SUCCESS: SceneView found via ARViewController KVC!")
+                            print("✅ [SpatialCaptionsPlugin] ARSCNView accessed through property")
+                            result(true)
+                            return
+                        } else {
+                            print("❌ [SpatialCaptionsPlugin] FAILED: Could not access sceneView property on ARViewController")
+                            print("🚨 [SpatialCaptionsPlugin] This should not happen in NEW flow!")
+                        }
+                    }
+                } else {
+                    print("🔍 [SpatialCaptionsPlugin] No presented view controller found")
+                }
+                
+                print("💥 [SpatialCaptionsPlugin] ========== INITIALIZATION FAILED ==========")
+                print("❌ [SpatialCaptionsPlugin] Could not find ARSCNView in any view controller")
+                print("🔍 [SpatialCaptionsPlugin] Checked root VC: \(type(of: rootViewController))")
+                if let presentedVC = rootViewController.presentedViewController {
+                    print("🔍 [SpatialCaptionsPlugin] Checked presented VC: \(type(of: presentedVC))")
+                }
+                print("🚨 [SpatialCaptionsPlugin] NEW FLOW PROBLEM: ARSCNView should be available!")
+                print("🔧 [SpatialCaptionsPlugin] Check if AR View initialization happened before spatial captions")
+                result(false)
+            } else {
+                print("❌ [SpatialCaptionsPlugin] Could not access root view controller")
+                result(false)
+            }
+        }
+    }
+    
+    // Search for ARSCNView in the view hierarchy
+    private func findARSCNView(in view: UIView) -> ARSCNView? {
+        if let arView = view as? ARSCNView {
+            return arView
+        }
+        for subview in view.subviews {
+            if let arView = findARSCNView(in: subview) {
+                return arView
+            }
+        }
+        return nil
+    }
     
     private func handleAddCaption(_ call: FlutterMethodCall, result: FlutterResult) {
         guard let args = call.arguments as? [String: Any],
@@ -222,30 +313,67 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
         }
         
         DispatchQueue.main.async {
-            if lockLandscape {
-                // Lock to landscape
-                let value = UIInterfaceOrientation.landscapeRight.rawValue
-                UIDevice.current.setValue(value, forKey: "orientation")
-                UIViewController.attemptRotationToDeviceOrientation()
-                
-                // Set supported orientations
-                if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-                    appDelegate.orientationLock = .landscape
+            // Modern orientation handling for iOS 16+
+            if #available(iOS 16.0, *) {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    if lockLandscape {
+                        let geometryPreferences = UIWindowScene.GeometryPreferences.iOS(interfaceOrientations: .landscapeRight)
+                        windowScene.requestGeometryUpdate(geometryPreferences) { error in
+                            print("✅ [SpatialCaptionsPlugin] Orientation lock requested - landscape")
+                        }
+                    } else {
+                        let geometryPreferences = UIWindowScene.GeometryPreferences.iOS(interfaceOrientations: .all)
+                        windowScene.requestGeometryUpdate(geometryPreferences) { error in
+                            print("✅ [SpatialCaptionsPlugin] Orientation unlock requested - all orientations")
+                        }
+                    }
                 }
             } else {
-                // Unlock orientation
-                if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-                    appDelegate.orientationLock = .all
-                }
+                // Fallback for older iOS versions - delegate to main app
+                print("Orientation lock requested - handle in main app (iOS < 16)")
             }
         }
         
         result(nil)
     }
     
+    private func handleTestConnection(result: FlutterResult) {
+        // Simple test to verify the plugin is working
+        print("🧪 [SpatialCaptionsPlugin] Test connection called")
+        if let sceneView = sceneView {
+            print("✅ [SpatialCaptionsPlugin] SceneView is available")
+            
+            // Add a bigger test caption in the center to verify visibility
+            print("🎯 [SpatialCaptionsPlugin] Adding even bigger test caption for visibility check")
+            let testCaption = SpatialCaptionNode(text: "TEST CAPTION", fontSize: 0.32, bubbleWidth: 1.0)
+            
+            // Position it right in front of the camera - normal distance
+            let testPosition = SCNVector3(0, 0, -2.0) // 2 meters in front
+            testCaption.position = testPosition
+            
+            // Keep normal scale - no additional scaling needed
+            // testCaption already has proper scale from SpatialCaptionNode
+            
+            // Add to scene
+            sceneView.scene.rootNode.addChildNode(testCaption)
+            
+            // Remove after 5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                testCaption.removeFromParentNode()
+                print("🗑️ [SpatialCaptionsPlugin] Test caption removed")
+            }
+            
+            print("🎉 [SpatialCaptionsPlugin] Normal test caption added at (0, 0, -2) with normal scale")
+            result("Plugin connected successfully with SceneView - test caption added")
+        } else {
+            print("⚠️ [SpatialCaptionsPlugin] SceneView not available")
+            result("Plugin connected but SceneView not initialized")
+        }
+    }
+    
     // MARK: - Helper Methods
     
-    private func createStyledCaptionNode(text: String, type: CaptionType) -> CaptionNode {
+    private func createStyledCaptionNode(text: String, type: CaptionType) -> SpatialCaptionNode {
         // Customize appearance based on caption type
         let fontSize: CGFloat
         let backgroundColor: UIColor
@@ -254,23 +382,23 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
         
         switch type {
         case .partial:
-            fontSize = 0.06
+            fontSize = 0.12 // 2x bigger (was 0.06)
             backgroundColor = UIColor.black.withAlphaComponent(0.7)
             textColor = UIColor.white.withAlphaComponent(0.9)
             borderColor = UIColor.orange.withAlphaComponent(0.6)
         case .final:
-            fontSize = 0.08
+            fontSize = 0.16 // 2x bigger (was 0.08)
             backgroundColor = UIColor.black.withAlphaComponent(0.8)
             textColor = UIColor.white
             borderColor = UIColor.blue.withAlphaComponent(0.6)
         case .enhanced:
-            fontSize = 0.08
+            fontSize = 0.16 // 2x bigger (was 0.08)
             backgroundColor = UIColor.black.withAlphaComponent(0.85)
             textColor = UIColor.white
             borderColor = UIColor.green.withAlphaComponent(0.6)
         }
         
-        let captionNode = CaptionNode(
+        let captionNode = SpatialCaptionNode(
             text: text,
             fontSize: fontSize,
             backgroundColor: backgroundColor,
@@ -283,7 +411,7 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
     
     // MARK: - Animations
     
-    private func animateCaptionEntrance(_ node: CaptionNode) {
+    private func animateCaptionEntrance(_ node: SpatialCaptionNode) {
         node.opacity = 0.0
         node.scale = SCNVector3(0.8, 0.8, 0.8)
         
@@ -294,7 +422,7 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
         node.runAction(group)
     }
     
-    private func animateCaptionExit(_ node: CaptionNode, completion: @escaping () -> Void) {
+    private func animateCaptionExit(_ node: SpatialCaptionNode, completion: @escaping () -> Void) {
         let fadeOut = SCNAction.fadeOut(duration: 0.3)
         let scaleDown = SCNAction.scale(to: 0.8, duration: 0.3)
         let group = SCNAction.group([fadeOut, scaleDown])
@@ -310,7 +438,7 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
         node.runAction(move)
     }
     
-    private func animateCaptionTransition(from oldNode: CaptionNode, to newNode: CaptionNode, completion: @escaping () -> Void) {
+    private func animateCaptionTransition(from oldNode: SpatialCaptionNode, to newNode: SpatialCaptionNode, completion: @escaping () -> Void) {
         // Fade out old caption
         let fadeOut = SCNAction.fadeOut(duration: 0.2)
         
@@ -330,25 +458,38 @@ public class SpatialCaptionsPlugin: NSObject, FlutterPlugin {
     }
 }
 
-// MARK: - Enhanced CaptionNode
+// MARK: - Enhanced SpatialCaptionNode
 
 @available(iOS 14.0, *)
-extension CaptionNode {
+extension SpatialCaptionNode {
     convenience init(text: String, 
                      fontSize: CGFloat,
                      backgroundColor: UIColor,
                      textColor: UIColor,
                      borderColor: UIColor) {
-        self.init(text: text, fontSize: fontSize)
+        // Use EVEN BIGGER bubbleWidth like test caption (1.0 instead of 0.25)
+        self.init(text: text, fontSize: fontSize, bubbleWidth: 1.0)
         
-        // Update background color
-        if let backgroundMaterial = self.childNodes.first?.geometry?.firstMaterial {
+        print("🎨 [SpatialCaptionNode] Enhanced init called with fontSize: \(fontSize), bubbleWidth: 1.0")
+        
+        // Update background color AFTER creation
+        if let backgroundNode = self.childNodes.first,
+           let backgroundMaterial = backgroundNode.geometry?.firstMaterial {
             backgroundMaterial.diffuse.contents = backgroundColor
+            print("🎨 [SpatialCaptionNode] Updated background color")
+        } else {
+            print("❌ [SpatialCaptionNode] Could not find background node to update color")
         }
         
-        // Update text color
-        if let textGeometry = self.childNodes.last?.geometry as? SCNText {
+        // Update text color AFTER creation  
+        if let textNode = self.childNodes.last,
+           let textGeometry = textNode.geometry as? SCNText {
             textGeometry.firstMaterial?.diffuse.contents = textColor
+            textGeometry.firstMaterial?.emission.contents = textColor.withAlphaComponent(0.1)
+            textGeometry.firstMaterial?.specular.contents = textColor
+            print("🎨 [SpatialCaptionNode] Updated text color to \(textColor)")
+        } else {
+            print("❌ [SpatialCaptionNode] Could not find text node to update color")
         }
         
         // Add border effect (using additional geometry or shader if needed)
@@ -372,4 +513,4 @@ extension CaptionNode {
             }
         }
     }
-} 
+}

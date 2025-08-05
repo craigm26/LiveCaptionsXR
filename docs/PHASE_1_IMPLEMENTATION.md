@@ -1,53 +1,61 @@
-# Phase 1 Implementation: Vosk STT Integration
+# Phase 1 Implementation: Platform-Optimized STT Integration
 
 **Status: ✅ COMPLETED**  
 **Date:** $(date +%Y-%m-%d)
 
 ## 🎯 What Was Implemented
 
-This Phase 1 integration replaces the mock speech recognition system with a real **Vosk STT (Speech-to-Text)** solution, providing immediate transcription capabilities for English language.
+This Phase 1 integration replaces the mock speech recognition system with **platform-optimized STT solutions**: **Apple Speech Recognition on iOS** and **Whisper GGML on Android**, providing high-quality transcription capabilities with optimal performance for each platform.
 
 ## 📦 New Components Added
 
-### **1. VoskSTTService** (`lib/core/services/vosk_stt_service.dart`)
-- Real-time speech recognition using Vosk
-- English-only support (vosk-model-small-en-us-0.15)
-- Stream-based transcription results
-- Proper error handling and lifecycle management
+### **1. AppleSpeechService** (`lib/core/services/apple_speech_service.dart`)
+- Native iOS speech recognition using `speech_to_text`
+- Real-time streaming capabilities with partial results
+- On-device processing for privacy
+- Automatic error recovery and session management
+- Support for multiple languages
 
-### **2. TextAccumulator** (`lib/core/services/text_accumulator.dart`)
-- Accumulates 3-5 seconds of transcribed text
-- Manages sliding window of recent speech
-- Triggers enhancement events for future Gemma integration
-- Smart buffering with timestamp management
+### **2. WhisperService** (`lib/core/services/whisper_service_impl.dart`)
+- Android speech recognition using Whisper GGML
+- High-quality transcription with 141MB model
+- On-device processing with consistent accuracy
+- Multi-language support and offline capabilities
+- Optimized for real-time streaming
 
-### **3. HybridSpeechProcessor** (`lib/core/services/hybrid_speech_processor.dart`)
-- Orchestrates Vosk STT + TextAccumulator
-- Provides unified interface for speech processing
-- Handles real-time transcription and accumulated text enhancement
-- Integrated with existing HybridLocalizationEngine
+### **3. EnhancedSpeechProcessor** (`lib/core/services/enhanced_speech_processor.dart`)
+- Platform-aware STT orchestration service
+- Automatic engine selection (iOS: Apple Speech, Android: Whisper)
+- Unified interface for both STT systems
+- Integration with Gemma 3n for contextual enhancement
+- Smart buffering and text accumulation
 
 ## 🔄 Updated Components
 
 ### **LiveCaptionsCubit**
-- Now uses HybridSpeechProcessor instead of mock SpeechProcessor
-- Integrated with StereoAudioCapture for real audio input
+- Now uses EnhancedSpeechProcessor with platform-optimized STT
+- Integrated with both Apple Speech and Whisper services
 - Handles both interim and final transcription results
+- Automatic platform detection and engine selection
 
 ### **Service Locator**
-- Added registration for new Vosk-based services
-- Proper dependency injection setup
+- Added registration for AppleSpeechService and WhisperService
+- Platform-aware dependency injection
+- Proper service lifecycle management
 
 ### **App Configuration**
-- Updated dependencies (vosk_flutter, path_provider)
-- Modified BLoC providers to use new services
+- Updated dependencies (speech_to_text, whisper_ggml, flutter_gemma)
+- Platform-specific model management
+- Enhanced BLoC provider configuration
 
 ## 🚀 How It Works Now
 
 ```
-🎤 Microphone → StereoAudioCapture → Mono Audio → VoskSTTService
-                                                       ↓
-📝 Real-time transcription → TextAccumulator → Enhancement Trigger
+🎤 Microphone → AudioCaptureService → Platform Detection
+                                            ↓
+iOS: Apple Speech Recognition  ←→  EnhancedSpeechProcessor  ←→  Android: Whisper GGML
+                                            ↓
+📝 Real-time transcription → Text Accumulation → Gemma 3n Enhancement
                                                        ↓
 📍 HybridLocalizationEngine → AR Caption Placement
 ```
@@ -56,8 +64,10 @@ This Phase 1 integration replaces the mock speech recognition system with a real
 
 ```yaml
 dependencies:
-  vosk_flutter: ^1.0.0
-  path_provider: ^2.1.4
+  speech_to_text: ^6.6.0        # iOS Apple Speech Recognition
+  whisper_ggml: 1.3.0           # Android Whisper GGML  
+  flutter_gemma: ^0.10.0        # Gemma 3n multimodal
+  path_provider: ^2.0.11        # Model storage
 ```
 
 ## ⚠️ Current Limitations

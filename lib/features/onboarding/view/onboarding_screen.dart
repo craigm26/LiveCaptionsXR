@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:logger/logger.dart';
+import '../../../core/services/app_logger.dart';
 // Permission requests will be implemented natively or elsewhere. No permission_handler import.
 
 class OnboardingScreen extends StatefulWidget {
@@ -11,16 +11,7 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
-      colors: true,
-      printEmojis: true,
-      printTime: true,
-    ),
-  );
+  final AppLogger _logger = AppLogger.instance;
 
   final PageController _pageController = PageController();
   int _currentPage = 0;
@@ -50,71 +41,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    _logger.i('🎯 OnboardingScreen initialized with ${_pages.length} pages');
+    _logger.i('🎯 OnboardingScreen initialized with ${_pages.length} pages', category: LogCategory.ui);
   }
 
   @override
   void dispose() {
-    _logger.i('🗑️ OnboardingScreen disposing...');
+    _logger.i('🗑️ OnboardingScreen disposing...', category: LogCategory.ui);
     _pageController.dispose();
     super.dispose();
-    _logger.d('✅ OnboardingScreen disposed successfully');
+    _logger.d('✅ OnboardingScreen disposed successfully', category: LogCategory.ui);
   }
 
   Future<void> _completeOnboarding() async {
     try {
-      _logger.i('✅ Completing onboarding process...');
+      _logger.i('✅ Completing onboarding process...', category: LogCategory.ui);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('onboarding_complete', true);
-      _logger.i('✅ Onboarding completion flag saved to SharedPreferences');
+      _logger.i('✅ Onboarding completion flag saved to SharedPreferences', category: LogCategory.ui);
 
       if (mounted) {
         Navigator.of(context).pop();
-        _logger.i('🏠 Navigated back to main app after onboarding completion');
+        _logger.i('🏠 Navigated back to main app after onboarding completion', category: LogCategory.ui);
       } else {
-        _logger
-            .w('⚠️ Widget not mounted, skipping navigation after onboarding');
+        _logger.w('⚠️ Widget not mounted, skipping navigation after onboarding', category: LogCategory.ui);
       }
     } catch (e, stackTrace) {
-      _logger.e('❌ Error completing onboarding',
-          error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error completing onboarding', category: LogCategory.ui, error: e, stackTrace: stackTrace);
     }
   }
 
   Future<void> _requestPermissions() async {
     try {
-      _logger.i('🔐 Requesting permissions for AR captioning...');
+      _logger.i('🔐 Requesting permissions for AR captioning...', category: LogCategory.ui);
       // TODO: Implement permission requests natively or in the appropriate platform-specific layer.
       // This is a placeholder for where permission requests should occur.
-      _logger.d(
-          '📝 Permission request placeholder - implement native permission requests');
+      _logger.d('📝 Permission request placeholder - implement native permission requests', category: LogCategory.ui);
       return;
     } catch (e, stackTrace) {
-      _logger.e('❌ Error requesting permissions',
-          error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error requesting permissions', category: LogCategory.ui, error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
 
   void _onContinue() async {
     try {
-      _logger.d(
-          '👆 Continue button pressed on page ${_currentPage + 1}/${_pages.length}');
+      _logger.d('👆 Continue button pressed on page ${_currentPage + 1}/${_pages.length}', category: LogCategory.ui);
 
       if (_currentPage == _pages.length - 1) {
-        _logger
-            .i('🏁 Reached final onboarding page - completing onboarding...');
+        _logger.i('🏁 Reached final onboarding page - completing onboarding...', category: LogCategory.ui);
         await _requestPermissions();
         await _completeOnboarding();
       } else {
-        _logger.d('📖 Advancing to next onboarding page...');
+        _logger.d('📖 Advancing to next onboarding page...', category: LogCategory.ui);
         _pageController.nextPage(
             duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
-        _logger.d('✅ Page transition initiated successfully');
+        _logger.d('✅ Page transition initiated successfully', category: LogCategory.ui);
       }
     } catch (e, stackTrace) {
-      _logger.e('❌ Error in onboarding continue action',
-          error: e, stackTrace: stackTrace);
+      _logger.e('❌ Error in onboarding continue action', category: LogCategory.ui, error: e, stackTrace: stackTrace);
     }
   }
 

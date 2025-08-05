@@ -10,7 +10,9 @@ import '../../../core/services/ar_session_persistence_service.dart';
 import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/apple_speech_service.dart';
 import '../../../core/services/gemma_3n_service.dart';
+import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
+import '../../../core/di/service_locator.dart';
 import 'ar_session_state.dart';
 
 /// Cubit for managing AR session state and operations with persistence support
@@ -222,12 +224,18 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       emit(const ARSessionConfiguring(progress: 0.6));
       await Future.delayed(const Duration(milliseconds: 200));
       
+      // Note: Spatial captions will be initialized AFTER AR View is presented
+      
+      emit(const ARSessionConfiguring(progress: 0.8));
+      await Future.delayed(const Duration(milliseconds: 200));
+      
       emit(const ARSessionConfiguring(progress: 1.0));
       await Future.delayed(const Duration(milliseconds: 200));
       
       emit(const ARSessionInitializing());
 
       // Start AR view using the AR navigation channel
+      _logger.i('🎥 ======= PRESENTING AR VIEW FIRST =======', category: LogCategory.ar);
       _logger.i('🔗 Calling showARView via method channel...', category: LogCategory.ar);
       try {
         // Don't wait for showARView to complete - it blocks until AR view is closed!
@@ -239,13 +247,29 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         });
         
         // Continue immediately without waiting
-        _logger.i('📱 AR View launched (not waiting for completion)', category: LogCategory.ar);
+        _logger.i('📱 AR View presentation initiated', category: LogCategory.ar);
+        
+        // Give AR View a moment to present, then initialize spatial captions
+        _logger.i('⏳ Waiting for AR View to present before initializing spatial captions...', category: LogCategory.ar);
+        await Future.delayed(const Duration(milliseconds: 1000)); // Wait for presentation
+        
+        // Now initialize spatial captions when AR View should be presented
+        _logger.i('🎯 ======= INITIALIZING SPATIAL CAPTIONS AFTER AR VIEW PRESENTED =======', category: LogCategory.ar);
+        try {
+          final spatialCaptionService = sl<SpatialCaptionIntegrationService>();
+          await spatialCaptionService.initialize();
+          _logger.i('🎉 [AR_CUBIT] Spatial captions initialized successfully after AR View presentation', category: LogCategory.ar);
+        } catch (e, stackTrace) {
+          _logger.e('❌ [AR_CUBIT] Failed to initialize spatial captions after AR View presentation', category: LogCategory.ar, error: e, stackTrace: stackTrace);
+          // Continue without spatial captions - AR View can still work
+        }
+        
       } catch (e) {
         _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
         rethrow;
       }
 
-      _logger.i('✅ AR View launched successfully', category: LogCategory.ar);
+      _logger.i('✅ ======= AR VIEW PRESENTATION AND SPATIAL CAPTIONS SETUP COMPLETED =======', category: LogCategory.ar);
 
       // Calibrate the AR session with progress updates
       await _performCalibration();
@@ -721,6 +745,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
       // Start session health monitoring
       _startSessionHealthMonitoring();
+
+      // Note: Spatial captions plugin should already be initialized when AR session was created
+      _logger.i('ℹ️ [AR_CUBIT] Spatial captions plugin should already be initialized from AR session init', category: LogCategory.ar);
 
       // Start services sequentially with progress updates
       final services = [

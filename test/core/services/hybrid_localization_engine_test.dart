@@ -7,7 +7,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const channelName = 'live_captions_xr/hybrid_localization_methods';
-  const captionChannelName = 'live_captions_xr/caption_methods';
   final engine = HybridLocalizationEngine();
 
   setUp(() {
@@ -17,8 +16,6 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(const MethodChannel(channelName), null);
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel(captionChannelName), null);
   });
 
   test('predict calls method channel', () async {
@@ -73,51 +70,6 @@ void main() {
     expect(result[0], 1.0);
   });
 
-  test('placeCaption forwards to caption channel', () async {
-    MethodCall? captionCall;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel(channelName),
-            (MethodCall methodCall) async {
-      return List<double>.filled(16, 1.0);
-    });
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel(captionChannelName),
-            (MethodCall methodCall) async {
-      captionCall = methodCall;
-      return null;
-    });
-    await engine.placeRealtimeCaption('hello');
-    expect(captionCall?.method, 'placeCaption');
-    expect(captionCall?.arguments['text'], 'hello');
-  });
-
-  test('placeCaption fallback works when primary placement fails', () async {
-    List<MethodCall> captionCalls = [];
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel(channelName),
-            (MethodCall methodCall) async {
-      return List<double>.filled(16, 1.0);
-    });
-
-    // Set up the caption channel to fail first call, then succeed on fallback
-    bool firstCallMade = false;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel(captionChannelName),
-            (MethodCall methodCall) async {
-      captionCalls.add(methodCall);
-      if (!firstCallMade) {
-        firstCallMade = true;
-        throw PlatformException(
-            code: 'SESSION_NOT_READY', message: 'AR Session not ready');
-      }
-      return null; // Success on second call
-    });
-
-    await engine.placeRealtimeCaption('test caption');
-
-    // Should have made two calls - first fails, second succeeds with fallback
-    expect(captionCalls.length, 1);
-    expect(captionCalls[0].method, 'placeCaption');
-    expect(captionCalls[0].arguments['text'], 'test caption');
-  });
+  // Note: placeRealtimeCaption method was removed as caption placement 
+  // is now handled exclusively by the spatial_captions plugin
 }
