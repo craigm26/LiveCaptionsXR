@@ -38,11 +38,9 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         ARAnchorManager.arSession = sceneView.session
         print("🔗 ARSession assigned to ARAnchorManager.arSession")
         
-        // Set sceneView reference for spatial captions plugin
-        if let spatialCaptionsPlugin = FlutterPluginRegistry.shared?.valuePublished(byPlugin: "SpatialCaptionsPlugin") as? SpatialCaptionsPlugin {
-            spatialCaptionsPlugin.sceneView = sceneView
-            print("🗨️ SceneView assigned to SpatialCaptionsPlugin")
-        }
+        // Note: SpatialCaptionsPlugin sceneView assignment now handled via method channel
+        // The plugin will call back to get the sceneView reference when needed
+        print("🗨️ SpatialCaptionsPlugin will be initialized via method channel")
         
         let config = ARWorldTrackingConfiguration()
         print("📐 Starting ARSession with ARWorldTrackingConfiguration...")
@@ -60,31 +58,6 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     
-    // Add a test caption to verify caption display works
-    private func addTestCaption() {
-        print("📝 [NATIVE] Adding test caption to verify caption display...")
-        NSLog("📝 [NATIVE] Adding test caption to verify caption display...")
-        
-        if #available(iOS 14.0, *) {
-            // Create a test caption at the EXACT same position as sphere
-            let testCaption = CaptionNode(text: "BIG TEST", fontSize: 1.0, bubbleWidth: 4.0)
-            testCaption.position = SCNVector3(x: 0, y: 0, z: -1) // EXACT same position as sphere
-            testCaption.name = "test_caption"
-            
-            // Add directly to scene
-            sceneView.scene.rootNode.addChildNode(testCaption)
-            print("✅ [NATIVE] Test caption added at position (0, 0, -1)")
-            NSLog("✅ [NATIVE] Test caption added. Scene now has %d nodes", sceneView.scene.rootNode.childNodes.count)
-            
-            // Remove after 30 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) { [weak testCaption] in
-                testCaption?.removeFromParentNode()
-                print("📝 [NATIVE] Test caption removed")
-            }
-        } else {
-            print("❌ [NATIVE] iOS 14.0+ required for test caption")
-        }
-    }
     
     // Method to check session readiness with retry logic
     private func checkSessionReadiness(attempt: Int, maxAttempts: Int = 5) {
@@ -147,48 +120,7 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
         // Set up MethodChannels for captions and AR frames
         if let appDelegate = UIApplication.shared.delegate as? FlutterAppDelegate,
            let controller = appDelegate.window?.rootViewController as? FlutterViewController {
-            // Caption method channel
-            captionChannel = FlutterMethodChannel(name: "live_captions_xr/caption_methods", binaryMessenger: controller.binaryMessenger)
-            NSLog("📡 [NATIVE] Caption method channel created with name: live_captions_xr/caption_methods")
-            captionChannel?.setMethodCallHandler { [weak self] (call, result) in
-                NSLog("📨 [NATIVE] Method channel received call: %@", call.method)
-                if call.method == "placeCaption" {
-                    guard let args = call.arguments as? [String: Any] else {
-                        NSLog("❌ [NATIVE] Failed to cast arguments to dictionary")
-                        result(FlutterError(code: "BAD_ARGS", message: "Arguments not a dictionary", details: nil))
-                        return
-                    }
-                    
-                    NSLog("📦 [NATIVE] Arguments: %@", args)
-                    
-                    guard let transform = args["transform"] as? [Double],
-                          let text = args["text"] as? String else {
-                        NSLog("❌ [NATIVE] Missing required arguments - transform: %@, text: %@", args["transform"] != nil ? "YES" : "NO", args["text"] != nil ? "YES" : "NO")
-                        result(FlutterError(code: "BAD_ARGS", message: "Missing transform or text", details: nil))
-                        return
-                    }
-                    
-                    guard transform.count == 16 else {
-                        NSLog("❌ [NATIVE] Transform array has wrong size: %ld, expected 16", transform.count)
-                        result(FlutterError(code: "BAD_ARGS", message: "Transform must have 16 elements", details: nil))
-                        return
-                    }
-                    
-                    NSLog("✅ [NATIVE] Valid arguments received - text: \"%@\", transform count: %ld", text, transform.count)
-                    
-                    var matrix = matrix_identity_float4x4
-                    for row in 0..<4 {
-                        for col in 0..<4 {
-                            matrix[row][col] = Float(transform[row * 4 + col])
-                        }
-                    }
-                    self?.placeCaption(at: matrix, text: text)
-                    result(nil)
-                } else {
-                    NSLog("❌ [NATIVE] Unhandled method: %@", call.method)
-                    result(FlutterMethodNotImplemented)
-                }
-            }
+            // Note: Caption placement now handled by spatial_captions plugin
             
             // AR Frame capture method channel
             let arFrameChannel = FlutterMethodChannel(name: "live_captions_xr/ar_frames", binaryMessenger: controller.binaryMessenger)
@@ -281,82 +213,15 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
 
     // ARSCNViewDelegate: Called when a new anchor is added
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        // Check if this is a caption anchor
-        if let captionContainer = captionNodes[anchor] {
-            print("🎯 [NATIVE] Positioning caption node for anchor: \(anchor.identifier)")
-            NSLog("🎯 [NATIVE] Positioning caption node for anchor: %@", anchor.identifier.uuidString)
-            // Move the caption container to the anchor's node
-            captionContainer.removeFromParentNode()
-            node.addChildNode(captionContainer)
-            print("✅ [NATIVE] Caption positioned at anchor location")
-            NSLog("✅ [NATIVE] Caption positioned at anchor location - node has %d children", node.childNodes.count)
-            
-            // Clean up the reference after some time
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) { [weak self] in
-                self?.captionNodes.removeValue(forKey: anchor)
-            }
-        } else {
-            // Regular anchor detection
-            let label = "ARAnchor"
-            let confidence = 0.9
-            let boundingBox: [Double] = [0, 0, 100, 100] // TODO: Use real bounding box if available
-            VisualObjectPlugin.sendVisualObjectDetected(anchor: anchor, label: label, confidence: confidence, boundingBox: boundingBox)
-        }
+        // Regular anchor detection for visual objects
+        let label = "ARAnchor" 
+        let confidence = 0.9
+        let boundingBox: [Double] = [0, 0, 100, 100] // TODO: Use real bounding box if available
+        VisualObjectPlugin.sendVisualObjectDetected(anchor: anchor, label: label, confidence: confidence, boundingBox: boundingBox)
     }
 
     // TODO: Implement didUpdate for dynamic objects, and use real detection logic
 
-    func placeCaption(at transform: simd_float4x4, text: String) {
-        print("🎯 [NATIVE] placeCaption called with text: \"\(text)\"")
-        NSLog("🎯 [NATIVE] placeCaption called with text: \"%@\"", text)
-        print("📐 [NATIVE] Transform: \(transform)")
-        
-        // FORCE caption to the same position as test sphere for testing
-        let position = SCNVector3(x: 0, y: 0.2, z: -1) // Slightly above test sphere
-        print("📍 [NATIVE] Caption FORCED to sphere position (slightly above): x=\(position.x), y=\(position.y), z=\(position.z)")
-        
-        // Check if we have a current camera position
-        if let cameraTransform = sceneView.session.currentFrame?.camera.transform {
-            let cameraPos = SCNVector3(x: cameraTransform.columns.3.x, y: cameraTransform.columns.3.y, z: cameraTransform.columns.3.z)
-            print("📷 [NATIVE] Camera position: x=\(cameraPos.x), y=\(cameraPos.y), z=\(cameraPos.z)")
-            
-            let distance = sqrt(pow(position.x - cameraPos.x, 2) + pow(position.y - cameraPos.y, 2) + pow(position.z - cameraPos.z, 2))
-            print("📏 [NATIVE] Distance from camera: \(distance) meters")
-        }
-        
-        // Create a unique identifier for this caption anchor
-        let anchorID = UUID()
-        let anchor = ARAnchor(name: "caption_\(anchorID)", transform: transform)
-        sceneView.session.add(anchor: anchor)
-        print("✅ [NATIVE] AR anchor added to session with ID: \(anchorID)")
-        
-        if #available(iOS 14.0, *) {
-            // Create caption node with HUGE settings for visibility
-            let captionNode = CaptionNode(text: text, fontSize: 1.0, bubbleWidth: 4.0)
-            // Use original simdTransform but force position near red sphere
-            var forcedTransform = transform
-            forcedTransform.columns.3.x = 0    // x = 0 (same as sphere)
-            forcedTransform.columns.3.y = 0.2  // y = 0.2 (slightly above sphere)
-            forcedTransform.columns.3.z = -1   // z = -1 (same as sphere)
-            captionNode.simdTransform = forcedTransform
-            captionNode.name = "direct_caption_\(anchorID)"
-            
-            // Add directly to scene root - no anchor needed for testing
-            sceneView.scene.rootNode.addChildNode(captionNode)
-            
-            print("✅ [NATIVE] CaptionNode created DIRECTLY at transform position")
-            NSLog("✅ [NATIVE] Caption added directly to scene. Scene has %d nodes", sceneView.scene.rootNode.childNodes.count)
-            
-            // Auto-remove caption after some time
-            captionNode.fadeOutAndRemove(after: 10.0)
-            print("⏲️ [NATIVE] Caption will fade out after 10 seconds")
-        } else {
-            print("❌ [NATIVE] iOS 14.0+ required for CaptionNode")
-        }
-    }
-    
-    // Store caption nodes associated with anchors
-    private var captionNodes: [ARAnchor: SCNNode] = [:]
     
     // MARK: - ARKit Frame Capture
     private func captureCurrentARFrame(completion: @escaping (FlutterStandardTypedData?) -> Void) {

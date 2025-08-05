@@ -39,11 +39,7 @@ import Foundation
             SpeechLocalizerPlugin.register(with: registrar)
         }
         
-        if #available(iOS 14.0, *) {
-            if let registrar = self.registrar(forPlugin: "SpatialCaptionsPlugin") {
-                SpatialCaptionsPlugin.register(with: registrar)
-            }
-        }
+        // SpatialCaptionsPlugin is now registered automatically via GeneratedPluginRegistrant
         
         // Set up AR navigation method channel
         if let controller = window?.rootViewController as? FlutterViewController {
@@ -194,10 +190,13 @@ import Foundation
             
             print("✅ ARWorldTrackingConfiguration is supported")
             print("🏗️ Creating ARViewController...")
+            print("📊 NEW FLOW: AR View will be presented first, then spatial captions initialized")
             
             // Launch actual ARViewController
             let arViewController = ARViewController()
             arViewController.modalPresentationStyle = .fullScreen
+            
+            print("🎯 ARViewController created - spatial captions will initialize after presentation")
             
             var hasCompleted = false
             
@@ -215,6 +214,11 @@ import Foundation
                 // Ensure the session is actually set and ready
                 if ARAnchorManager.arSession != nil {
                     print("✅ Session ready callback: ARAnchorManager.arSession is available")
+                    print("🎊 NEW FLOW: AR session ready, spatial captions should be initializing now")
+                    
+                    // Note: Spatial captions initialize after AR View presentation
+                    print("ℹ️ Spatial captions should initialize after AR View presentation")
+                    
                     result(nil)
                 } else {
                     print("❌ Session ready callback: ARAnchorManager.arSession is nil!")

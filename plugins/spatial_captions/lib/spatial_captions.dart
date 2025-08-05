@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class SpatialCaptions {
@@ -77,6 +78,30 @@ class SpatialCaptions {
     await _channel.invokeMethod('setOrientationLock', {
       'lockLandscape': lockLandscape,
     });
+  }
+
+  /// Initialize plugin with AR scene view (iOS only)
+  static Future<bool> initializeWithSceneView() async {
+    try {
+      final result = await _channel.invokeMethod('initializeWithSceneView');
+      return result == true;
+    } catch (e) {
+      debugPrint('❌ [SpatialCaptions] Failed to initialize with scene view: $e');
+      return false;
+    }
+  }
+
+  /// Test method to verify plugin connectivity
+  static Future<void> testConnection() async {
+    try {
+      debugPrint('🧪 [SpatialCaptions] Testing plugin connection...');
+      
+      // Simple connectivity test
+      final result = await _channel.invokeMethod('testConnection');
+      debugPrint('✅ [SpatialCaptions] Plugin test result: $result');
+    } catch (e) {
+      debugPrint('❌ [SpatialCaptions] Plugin connection test failed: $e');
+    }
   }
 }
 

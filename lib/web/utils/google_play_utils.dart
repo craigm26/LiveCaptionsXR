@@ -1,5 +1,6 @@
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/interaction_handler.dart';
+import '../../core/services/app_logger.dart';
 
 class GooglePlayUtils {
   // Google Play Beta link for testing
@@ -40,7 +41,7 @@ class GooglePlayUtils {
       ]);
     } catch (e) {
       // Handle error - could show a snackbar or dialog
-      print('Could not launch Google Play Beta or Store: $e');
+      AppLogger.instance.e('Could not launch Google Play Beta or Store: $e', category: LogCategory.system);
     }
   }
 

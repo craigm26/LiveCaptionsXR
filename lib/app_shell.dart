@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
 import 'core/services/debug_logger_service.dart';
+import 'core/services/app_logger.dart';
 
 /// AppShell provides the main navigation structure for the Live Captions XR app.
 /// 
@@ -12,16 +12,6 @@ import 'core/services/debug_logger_service.dart';
 /// 
 /// The web-specific implementation fixes the issue where the hamburger menu
 /// button doesn't open the drawer on web platforms.
-final Logger _shellLogger = Logger(
-  printer: PrettyPrinter(
-    methodCount: 1,
-    errorMethodCount: 5,
-    lineLength: 120,
-    colors: true,
-    printEmojis: true,
-    printTime: false,
-  ),
-);
 
 class AppShell extends StatefulWidget {
   final Widget? child;
@@ -34,29 +24,30 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final AppLogger _logger = AppLogger.instance;
 
   @override
   Widget build(BuildContext context) {
     // Emulator diagnostic logging
     isAndroidEmulator().then((isEmu) {
       if (isEmu) {
-        _shellLogger.w('⚠️ Running on Android emulator: some features may be limited.');
+        _logger.w('⚠️ Running on Android emulator: some features may be limited.', category: LogCategory.ui);
       }
     });
 
     // For web platform, use a different approach
     if (kIsWeb) {
-      _shellLogger.i('🌐 AppShell being used on web platform - using web-specific layout');
+      _logger.i('🌐 AppShell being used on web platform - using web-specific layout', category: LogCategory.ui);
       return _buildWebLayout(context);
     }
 
-    _shellLogger.i('📱 AppShell being used on native platform');
+    _logger.i('📱 AppShell being used on native platform', category: LogCategory.ui);
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
         title: GestureDetector(
           onTap: () {
-            _shellLogger.d('🏠 AppBar title tapped, navigating to home');
+            _logger.d('🏠 AppBar title tapped, navigating to home', category: LogCategory.ui);
             context.go('/home');
           },
           child: const Text(
@@ -73,17 +64,17 @@ class _AppShellState extends State<AppShell> {
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () {
-            _shellLogger.d('🍔 Opening navigation drawer');
+            _logger.d('🍔 Opening navigation drawer', category: LogCategory.ui);
             try {
               final scaffold = _scaffoldKey.currentState;
               if (scaffold != null) {
                 scaffold.openDrawer();
-                _shellLogger.d('✅ Drawer opened successfully');
+                _logger.d('✅ Drawer opened successfully', category: LogCategory.ui);
               } else {
-                _shellLogger.w('⚠️ Scaffold state is null');
+                _logger.w('⚠️ Scaffold state is null', category: LogCategory.ui);
               }
             } catch (e) {
-              _shellLogger.e('❌ Error opening drawer: $e');
+              _logger.e('❌ Error opening drawer: $e', category: LogCategory.ui);
             }
           },
         ),
@@ -91,7 +82,7 @@ class _AppShellState extends State<AppShell> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              _shellLogger.d('⚙️ Navigating to settings');
+              _logger.d('⚙️ Navigating to settings', category: LogCategory.ui);
               context.go('/settings');
             },
             tooltip: 'Settings',
@@ -109,7 +100,7 @@ class _AppShellState extends State<AppShell> {
       appBar: AppBar(
         title: GestureDetector(
           onTap: () {
-            _shellLogger.d('🏠 AppBar title tapped, navigating to home');
+            _logger.d('🏠 AppBar title tapped, navigating to home', category: LogCategory.ui);
             context.go('/home');
           },
           child: const Text(
@@ -127,17 +118,17 @@ class _AppShellState extends State<AppShell> {
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () {
-              _shellLogger.d('🍔 Opening navigation drawer on web');
+              _logger.d('🍔 Opening navigation drawer on web', category: LogCategory.ui);
               try {
                 final scaffold = Scaffold.of(context);
                 if (scaffold.hasDrawer) {
                   scaffold.openDrawer();
-                  _shellLogger.d('✅ Drawer opened successfully on web');
+                  _logger.d('✅ Drawer opened successfully on web', category: LogCategory.ui);
                 } else {
-                  _shellLogger.w('⚠️ Scaffold has no drawer on web');
+                  _logger.w('⚠️ Scaffold has no drawer on web', category: LogCategory.ui);
                 }
               } catch (e) {
-                _shellLogger.e('❌ Error opening drawer on web: $e');
+                _logger.e('❌ Error opening drawer on web: $e', category: LogCategory.ui);
                 // Fallback: try using the scaffold key
                 _scaffoldKey.currentState?.openDrawer();
               }
@@ -148,7 +139,7 @@ class _AppShellState extends State<AppShell> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              _shellLogger.d('⚙️ Navigating to settings');
+              _logger.d('⚙️ Navigating to settings', category: LogCategory.ui);
               context.go('/settings');
             },
             tooltip: 'Settings',
@@ -266,7 +257,7 @@ class _AppShellState extends State<AppShell> {
       selected: isSelected,
       selectedTileColor: Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
       onTap: () {
-        _shellLogger.d('🎯 Navigating to $route');
+        _logger.d('🎯 Navigating to $route', category: LogCategory.ui);
         Navigator.of(context).pop(); // Close drawer
         context.go(route);
       },
