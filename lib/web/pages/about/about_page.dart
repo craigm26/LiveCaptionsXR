@@ -80,7 +80,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Coming Soon: Android & Android XR Support!',
+                          'Cross-Platform Accessibility',
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -90,7 +90,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'Live Captions XR is designed for the next generation of accessibility—optimized for Android XR headsets, but also fully compatible with Android and iOS devices. Stay tuned for our upcoming Android and XR releases! ',
+                          'Live Captions XR provides advanced accessibility features across iOS and Android platforms with platform-specific speech recognition and on-device AI processing.',
                           style:
                               Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: Colors.blueGrey[800],
@@ -119,7 +119,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 80.0,
+        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -136,10 +136,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
         children: [
           Icon(
             Icons.info_outline,
-            size: isMobile ? 64 : 80,
+            size: isMobile ? 48 : 64, // Reduced icon size
             color: Theme.of(context).primaryColor,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             'About Live Captions XR',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
@@ -148,7 +148,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Container(
             constraints:
                 BoxConstraints(maxWidth: isMobile ? double.infinity : 700),
@@ -171,7 +171,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 64.0,
+        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
       ),
       child: Column(
         children: [
@@ -183,7 +183,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           Container(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Text(
@@ -196,10 +196,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32), // Reduced spacing
           Wrap(
-            spacing: 32,
-            runSpacing: 32,
+            spacing: 24, // Reduced spacing
+            runSpacing: 24, // Reduced spacing
             alignment: WrapAlignment.center,
             children: [
               _buildMissionItem(
@@ -234,18 +234,18 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16), // Reduced padding
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               icon,
-              size: 32,
+              size: 28, // Reduced icon size
               color: Theme.of(context).primaryColor,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -253,7 +253,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6), // Reduced spacing
           Text(
             description,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -271,7 +271,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 64.0,
+        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
       ),
       color: Colors.grey[50],
       child: Column(
@@ -284,10 +284,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32), // Reduced spacing
           Wrap(
-            spacing: 32,
-            runSpacing: 32,
+            spacing: 24, // Reduced spacing
+            runSpacing: 24, // Reduced spacing
             alignment: WrapAlignment.center,
             children: [
               _buildFounderCard(
@@ -311,7 +311,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                     label: const Text('LinkedIn Profile'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                          horizontal: 20, vertical: 10), // Reduced padding
                     ),
                   ),
                   // contact should go to email: craig@craigmerry.com
@@ -328,7 +328,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                     label: const Text('Contact'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                          horizontal: 20, vertical: 10), // Reduced padding
                     ),
                   ),
                 ],
@@ -391,7 +391,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       List<Widget> buttons) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 400),
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(24), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -406,7 +406,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       child: Column(
         children: [
           CircleAvatar(
-            radius: 60,
+            radius: 50, // Reduced radius
             backgroundColor: Colors.grey[200],
             backgroundImage: name == 'Craig Merry' 
                 ? const AssetImage('assets/images/CraigMerry.jpg')
@@ -417,11 +417,11 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ? null
                 : Icon(
                     Icons.person,
-                    size: 60,
+                    size: 50, // Reduced icon size
                     color: Theme.of(context).primaryColor,
                   ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             name,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -430,7 +430,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6), // Reduced spacing
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -438,7 +438,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             bio,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -447,10 +447,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: 12, // Reduced spacing
+            runSpacing: 12, // Reduced spacing
             alignment: WrapAlignment.center,
             children: buttons,
           ),
@@ -464,7 +464,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 64.0,
+        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
       ),
       child: Column(
         children: [
@@ -476,7 +476,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           Container(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Text(
@@ -489,14 +489,14 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32), // Reduced spacing
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: isMobile ? 1 : 2,
-            childAspectRatio: isMobile ? 3 : 2.5,
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 20,
+            childAspectRatio: isMobile ? 3.5 : 3.0, // Increased aspect ratio for more compact cards
+            mainAxisSpacing: 16, // Reduced spacing
+            crossAxisSpacing: 16, // Reduced spacing
             children: [
               _buildProjectCard(
                 context,
@@ -532,10 +532,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
   Widget _buildProjectCard(
       BuildContext context, IconData icon, String title, String description) {
     return Card(
-      elevation: 4,
+      elevation: 2, // Reduced elevation
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16), // Reduced padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -543,10 +543,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           children: [
             Icon(
               icon,
-              size: 32,
+              size: 28, // Reduced icon size
               color: Theme.of(context).primaryColor,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8), // Reduced spacing
             Flexible(
               child: Text(
                 title,
@@ -558,7 +558,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 maxLines: 2,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4), // Reduced spacing
             Flexible(
               child: Text(
                 description,
@@ -581,7 +581,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 48.0 : 64.0,
+        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -597,10 +597,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
         children: [
           Icon(
             Icons.favorite,
-            size: 48,
+            size: 36, // Reduced icon size
             color: Theme.of(context).primaryColor,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             'Join Our Community',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -609,7 +609,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Container(
             constraints: const BoxConstraints(maxWidth: 600),
             child: Text(
@@ -621,10 +621,10 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: 12, // Reduced spacing
+            runSpacing: 12, // Reduced spacing
             alignment: WrapAlignment.center,
             children: [
               FilledButton.icon(
@@ -640,7 +640,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 label: const Text('Contribute on GitHub'),
                 style: FilledButton.styleFrom(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
                 ),
               ),
               OutlinedButton.icon(
@@ -656,7 +656,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                 label: const Text('Get Support'),
                 style: OutlinedButton.styleFrom(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
                 ),
               ),
             ],

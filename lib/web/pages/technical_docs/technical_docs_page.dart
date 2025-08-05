@@ -294,9 +294,9 @@ class _TechnicalDocsPageState extends State<TechnicalDocsPage>
             ['Stereo audio capture', 'Directional audio analysis', 'Noise reduction'],
           ),
           _buildArchitectureComponent(
-            'Speech Recognition',
-            'On-device speech-to-text using Whisper and Gemma 3n',
-            ['Whisper GGML models', 'Gemma 3n multimodal AI', 'Local processing'],
+                    'Platform Speech Recognition',
+        'Platform-specific speech recognition with on-device processing',
+        ['Apple Speech Recognition (iOS)', 'whisper_ggml (Android)', 'Gemma 3n multimodal AI'],
           ),
           _buildArchitectureComponent(
             'AR Integration',

@@ -71,7 +71,7 @@ The system uses event streams to provide real-time feedback:
 ### Native Layer (iOS/Android)
 - **HybridLocalizationEngine:** Fuses audio direction, visual detection, and IMU orientation using a Kalman filter. Exposed to Dart via MethodChannel for prediction, update, and fused transform retrieval.
 - **ARKit/ARCore Plugins:** Native plugins for AR anchor management, visual object detection, and caption placement.
-- **Streaming ASR:** On-device, low-latency speech recognition using the `whisper_ggml` package with the base model for fast, private processing.
+- **Streaming ASR:** Platform-specific speech recognition - **Android**: `whisper_ggml` package with base model, **iOS**: Apple Speech Recognition framework
 
 ## End-to-End Pipeline
 1. **AR Session Initialization:** User enters AR mode, triggering session initialization with real-time progress feedback.

@@ -1,10 +1,14 @@
-# Whisper Base Model Setup - LiveCaptionsXR
+# Whisper Base Model Setup - LiveCaptionsXR (Android Only)
 
-## 🎯 Current Configuration
+## 🎯 Platform-Specific Configuration
 
-**Model**: `whisper_base.bin` (141 MB)
-**Status**: ✅ Ready for use
+**Platform**: Android only  
+**iOS Alternative**: Uses native Apple Speech Recognition framework  
+**Model**: `whisper_base.bin` (141 MB)  
+**Status**: ✅ Ready for use on Android  
 **Location**: `assets/models/whisper_base.bin`
+
+
 
 ## 📋 Configuration Summary
 
@@ -114,7 +118,7 @@ flutter test test/whisper_integration_test.dart
 2. Resources cleaned up
 3. Model remains loaded for next session
 
-## 🎯 Benefits of Base Model
+## 🎯 Benefits of Base Model (Android)
 
 ### ✅ Advantages
 - **Fast Processing**: Optimized for real-time use
@@ -122,8 +126,10 @@ flutter test test/whisper_integration_test.dart
 - **Good Accuracy**: Suitable for most speech recognition needs
 - **Low Memory**: Efficient resource usage
 - **Reliable**: Stable and well-tested
+- **Offline Capability**: Works without internet connection
 
 ### ⚠️ Limitations
+- **Platform**: Android only (iOS uses native Apple Speech Recognition)
 - **Accuracy**: Not as high as larger models
 - **Languages**: Primarily optimized for English
 - **Complex Speech**: May struggle with technical terms
@@ -151,4 +157,6 @@ The application is now configured to use `whisper_base.bin` for all whisper_ggml
 - ✅ **Easy Integration**: Seamlessly integrated into the AR pipeline
 - ✅ **Configurable**: Users can adjust settings as needed
 
-**The whisper_base.bin model is ready for production use!** 🚀 
+**The whisper_base.bin model is ready for production use on Android!** 🚀
+
+> **Note**: iOS devices use the native Apple Speech Recognition framework, which provides similar functionality without requiring model downloads. 

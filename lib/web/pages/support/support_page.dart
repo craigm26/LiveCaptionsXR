@@ -80,7 +80,7 @@ class _SupportPageState extends State<SupportPage>
                 // Hero Section
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(isMobile ? 32 : 64),
+                  padding: EdgeInsets.all(isMobile ? 24 : 48), // Reduced padding
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -97,19 +97,19 @@ class _SupportPageState extends State<SupportPage>
                     children: [
                       Icon(
                         Icons.support_agent_rounded,
-                        size: isMobile ? 48 : 64,
+                        size: isMobile ? 36 : 48, // Reduced icon size
                         color: Theme.of(context).primaryColor,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16), // Reduced spacing
                       Text(
                         'Support & Help',
                         style: TextStyle(
-                          fontSize: isMobile ? 32 : 48,
+                          fontSize: isMobile ? 28 : 40, // Reduced font size
                           fontWeight: FontWeight.bold,
                           color: Colors.grey[800],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12), // Reduced spacing
                       Text(
                         'Get help with Live Captions XR and connect with our community',
                         style: TextStyle(
@@ -122,16 +122,16 @@ class _SupportPageState extends State<SupportPage>
                   ),
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 32), // Reduced spacing
 
                 // Support Options Grid
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: isMobile ? 1 : 2,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: isMobile ? 1.2 : 1.5,
+                  crossAxisSpacing: 16, // Reduced spacing
+                  mainAxisSpacing: 16, // Reduced spacing
+                  childAspectRatio: isMobile ? 1.4 : 1.8, // Increased aspect ratio for more compact cards
                   children: [
                     _buildSupportCard(
                       context,
@@ -257,22 +257,22 @@ class _SupportPageState extends State<SupportPage>
                   ],
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 32), // Reduced spacing
 
                 // FAQ Section
                 _buildFAQSection(context, isMobile),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 32), // Reduced spacing
 
                 // Developer Documentation Section
                 _buildDeveloperDocsSection(context, isMobile),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 32), // Reduced spacing
 
                 // Community Section
                 _buildCommunitySection(context, isMobile),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 32), // Reduced spacing
 
                 // Contact Section
                 _buildContactSection(context, isMobile),
@@ -311,12 +311,12 @@ class _SupportPageState extends State<SupportPage>
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16), // Reduced padding
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10), // Reduced padding
                   decoration: BoxDecoration(
                     gradient: LinearGradient(colors: gradient),
                     borderRadius: BorderRadius.circular(12),
@@ -324,23 +324,23 @@ class _SupportPageState extends State<SupportPage>
                   child: Icon(
                     icon,
                     color: Colors.white,
-                    size: 24,
+                    size: 20, // Reduced icon size
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced spacing
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16, // Reduced font size
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6), // Reduced spacing
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13, // Reduced font size
                     color: Colors.grey[600],
                     height: 1.4,
                   ),
@@ -373,7 +373,7 @@ class _SupportPageState extends State<SupportPage>
 
   Widget _buildFAQSection(BuildContext context, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 24 : 32),
+      padding: EdgeInsets.all(isMobile ? 20 : 24), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
@@ -384,12 +384,12 @@ class _SupportPageState extends State<SupportPage>
           Text(
             'Frequently Asked Questions',
             style: TextStyle(
-              fontSize: isMobile ? 24 : 28,
+              fontSize: isMobile ? 22 : 26, // Reduced font size
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20), // Reduced spacing
           _buildFAQItem(
             'What is Live Captions XR?',
             'Live Captions XR is an AR app that provides real-time captions in 3D space, helping deaf and hard-of-hearing individuals identify who is speaking and what they\'re saying.',
@@ -412,7 +412,7 @@ class _SupportPageState extends State<SupportPage>
           ),
           _buildFAQItem(
             'What technologies does Live Captions XR use?',
-            'We use Flutter for cross-platform development, ARKit for iOS AR features, Whisper for speech recognition, Gemma 3n for AI processing, and various native plugins for audio processing.',
+            'We use Flutter for cross-platform development, ARKit/ARCore for AR features, platform-specific speech recognition (Apple Speech Recognition on iOS, whisper_ggml on Android), Gemma 3n for AI processing, and various native plugins for audio processing.',
           ),
           _buildFAQItem(
             'How do I set up the development environment?',
@@ -429,23 +429,23 @@ class _SupportPageState extends State<SupportPage>
 
   Widget _buildFAQItem(String question, String answer) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12), // Reduced margin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             question,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15, // Reduced font size
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6), // Reduced spacing
           Text(
             answer,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13, // Reduced font size
               color: Colors.grey[600],
               height: 1.4,
             ),
@@ -457,7 +457,7 @@ class _SupportPageState extends State<SupportPage>
 
   Widget _buildDeveloperDocsSection(BuildContext context, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 24 : 32),
+      padding: EdgeInsets.all(isMobile ? 20 : 24), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -479,35 +479,35 @@ class _SupportPageState extends State<SupportPage>
             children: [
               Icon(
                 Icons.code_rounded,
-                size: 32,
+                size: 28, // Reduced icon size
                 color: Theme.of(context).primaryColor,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12), // Reduced spacing
               Text(
                 'Developer Resources',
                 style: TextStyle(
-                  fontSize: isMobile ? 24 : 28,
+                  fontSize: isMobile ? 22 : 26, // Reduced font size
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20), // Reduced spacing
           Text(
             'Comprehensive documentation and guides for developers who want to contribute to Live Captions XR or integrate with our technology.',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15, // Reduced font size
               color: Colors.grey[600],
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           
           // Documentation Categories
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: 12, // Reduced spacing
+            runSpacing: 12, // Reduced spacing
             children: [
               _buildDocCategory(
                 context,
@@ -584,11 +584,11 @@ class _SupportPageState extends State<SupportPage>
             ],
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 24), // Reduced spacing
           
           // Quick Start Guide
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20), // Reduced padding
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
@@ -604,20 +604,20 @@ class _SupportPageState extends State<SupportPage>
                     Icon(
                       Icons.rocket_launch_rounded,
                       color: Theme.of(context).primaryColor,
-                      size: 24,
+                      size: 20, // Reduced icon size
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8), // Reduced spacing
                     Text(
                       'Quick Start for Contributors',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16, // Reduced font size
                         fontWeight: FontWeight.bold,
                         color: Colors.grey[800],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced spacing
                 _buildQuickStartStep(
                   '1. Fork the Repository',
                   'Start by forking the LiveCaptionsXR repository on GitHub',
@@ -704,12 +704,12 @@ class _SupportPageState extends State<SupportPage>
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16), // Reduced padding
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10), // Reduced padding
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -717,23 +717,23 @@ class _SupportPageState extends State<SupportPage>
                   child: Icon(
                     icon,
                     color: color,
-                    size: 24,
+                    size: 20, // Reduced icon size
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8), // Reduced spacing
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14, // Reduced font size
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4), // Reduced spacing
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12, // Reduced font size
                     color: Colors.grey[600],
                     height: 1.3,
                   ),
