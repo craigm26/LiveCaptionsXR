@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiveCaptionsXR Model Distribution System</title>
+    <meta name="description" content="Dual-purpose platform: Direct model downloads for LiveCaptionsXR apps and comprehensive guide for setting up Gemma 3N model distribution systems">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -141,6 +142,12 @@
         .model-item .model-size {
             color: #7f8c8d;
             font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .model-item .model-desc {
+            color: #95a5a6;
+            font-size: 0.8em;
+            font-style: italic;
         }
         .footer {
             text-align: center;
@@ -173,43 +180,55 @@
     <div class="container">
         <div class="header">
             <h1>🤖 LiveCaptionsXR Model Distribution System</h1>
-            <div class="subtitle">Standalone AI Model Distribution for LiveCaptionsXR Applications</div>
+            <div class="subtitle">Dual-Purpose Platform: Direct Downloads & Setup Guide</div>
         </div>
         
         <div class="system-notice">
-            <strong>⚠️ System Notice:</strong> This is a separate model distribution system, not part of the main LiveCaptionsXR application. 
-            Models are hosted on Cloudflare R2 for reliable, fast downloads and can be deployed independently.
+            <strong>🎯 Dual-Purpose Platform:</strong> This system serves two distinct purposes: 
+            <strong>1)</strong> Direct model downloads for LiveCaptionsXR applications, and 
+            <strong>2)</strong> A comprehensive guide for setting up your own Gemma 3N model distribution system for fine-tuning and updates.
         </div>
 
         <div class="purpose-section">
-            <h2>🎯 Purpose & Separation</h2>
-            <p>This system provides centralized AI model distribution for LiveCaptionsXR applications. It operates independently from the main project and serves multiple purposes:</p>
+            <h2>🎯 Dual-Purpose System</h2>
+            <p>This platform serves two distinct but complementary purposes:</p>
+            
+            <h3>📱 Purpose 1: LiveCaptionsXR Model Downloads</h3>
             <ul>
-                <li><strong>Model Distribution:</strong> Centralized location for downloading AI models</li>
-                <li><strong>Independent Hosting:</strong> Can be deployed separately from the main application</li>
+                <li><strong>Direct Model Access:</strong> Immediate downloads for LiveCaptionsXR applications</li>
+                <li><strong>Production Ready:</strong> Optimized for real-world app deployment</li>
                 <li><strong>Multiple Access Methods:</strong> Web downloads, direct URLs, and Flutter integration</li>
-                <li><strong>Cloudflare R2 Integration:</strong> Uses Cloudflare R2 for reliable, fast model hosting</li>
+                <li><strong>Cloudflare R2 Integration:</strong> Reliable, fast model hosting with global CDN</li>
                 <li><strong>Cross-Platform Support:</strong> Works with iOS, Android, and web applications</li>
+            </ul>
+            
+            <h3>🔧 Purpose 2: Gemma 3N Distribution Setup Guide</h3>
+            <ul>
+                <li><strong>Complete Implementation:</strong> Full working example of a model distribution system</li>
+                <li><strong>Fine-tuning Ready:</strong> Designed to handle model updates and custom fine-tuned versions</li>
+                <li><strong>Deployment Templates:</strong> Ready-to-use configurations for Cloudflare, AWS, or other platforms</li>
+                <li><strong>Best Practices:</strong> Production-ready patterns for model distribution</li>
+                <li><strong>Open Source:</strong> Use as a starting point for your own model distribution needs</li>
             </ul>
         </div>
 
         <div class="audience-grid">
             <div class="audience-card">
-                <h3>👥 End Users</h3>
-                <p>Download AI models directly through a web interface. Simple, user-friendly downloads for manual model acquisition.</p>
-                <a href="web/download.html" class="action-btn">🌐 Web Downloads</a>
+                <h3>📱 LiveCaptionsXR Users</h3>
+                <p>Download AI models directly for your LiveCaptionsXR applications. Simple, user-friendly downloads with progress tracking.</p>
+                <a href="web/download.html" class="action-btn">🌐 Download Models</a>
             </div>
             
             <div class="audience-card">
-                <h3>👨‍💻 Developers</h3>
+                <h3>👨‍💻 App Developers</h3>
                 <p>Integrate model downloads into your Flutter applications. Complete implementation with progress tracking and error handling.</p>
                 <a href="flutter/README.md" class="action-btn">📱 Flutter Integration</a>
             </div>
             
             <div class="audience-card">
-                <h3>🔧 System Administrators</h3>
-                <p>Manage the Cloudflare R2 storage and model distribution infrastructure. PowerShell scripts for automation.</p>
-                <a href="docs/SETUP_GUIDE.md" class="action-btn">⚙️ System Setup</a>
+                <h3>🔧 System Builders</h3>
+                <p>Set up your own Gemma 3N model distribution system. Complete guide with deployment templates and best practices.</p>
+                <a href="docs/SETUP_GUIDE.md" class="action-btn">⚙️ Setup Guide</a>
             </div>
         </div>
 
@@ -219,25 +238,32 @@
                 <div class="model-item">
                     <div class="model-name">🎤 Whisper Base</div>
                     <div class="model-size">141 MB</div>
+                    <div class="model-desc">Speech recognition</div>
                 </div>
                 <div class="model-item">
                     <div class="model-name">🧠 Gemma 3N E2B</div>
                     <div class="model-size">2.92 GB</div>
+                    <div class="model-desc">Text generation & reasoning</div>
                 </div>
                 <div class="model-item">
                     <div class="model-name">🧠 Gemma 3N E4B</div>
                     <div class="model-size">4.11 GB</div>
+                    <div class="model-desc">Enhanced text generation</div>
                 </div>
             </div>
+            <p style="text-align: center; margin-top: 20px; color: #7f8c8d; font-style: italic;">
+                Models are optimized for LiveCaptionsXR and ready for fine-tuning workflows
+            </p>
         </div>
 
         <div class="footer">
             <p>
                 <strong>LiveCaptionsXR Model Distribution System</strong><br>
-                Part of the LiveCaptionsXR ecosystem - Empowering accessibility through AI<br>
+                Dual-purpose platform: Direct downloads for LiveCaptionsXR apps & Gemma 3N distribution setup guide<br>
                 <a href="https://github.com/craigm26/LiveCaptionsXR" target="_blank" rel="noopener">Main Project Repository</a> | 
                 <a href="README.md" target="_blank" rel="noopener">System Documentation</a> | 
-                <a href="CONSOLIDATED_SUMMARY.md" target="_blank" rel="noopener">Technical Summary</a>
+                <a href="CONSOLIDATED_SUMMARY.md" target="_blank" rel="noopener">Technical Summary</a> | 
+                <a href="workers-deploy-guide.md" target="_blank" rel="noopener">Deployment Guide</a>
             </p>
         </div>
     </div>
