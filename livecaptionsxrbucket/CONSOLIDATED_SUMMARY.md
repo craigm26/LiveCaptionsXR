@@ -6,6 +6,7 @@
 livecaptionsxrbucket/
 ├── README.md                    # Main overview & quick start
 ├── CONSOLIDATED_SUMMARY.md      # This file
+├── NOTICE                       # Gemma Terms of Use notice (required)
 ├── scripts/                     # 3 essential PowerShell scripts
 │   ├── upload.ps1              # Upload models to R2
 │   ├── make_public.ps1         # Make files publicly accessible
@@ -19,6 +20,21 @@ livecaptionsxrbucket/
     ├── pubspec.yaml            # Dependencies
     └── lib/features/model_downloads/  # 8 Dart files
 ```
+
+## 📋 Gemma Terms of Use Compliance
+
+This distribution system includes Gemma 3N models and complies with Google's Gemma Terms of Use:
+
+### Required Notices
+- **NOTICE file**: Included in root directory as required by Section 3.1
+- **Terms notice**: Displayed on web pages and in Flutter app for Gemma models
+- **Use restrictions**: Users must comply with the Gemma Prohibited Use Policy
+
+### Compliance Features
+- ✅ Terms notice displayed for all Gemma models
+- ✅ NOTICE file accompanies all distributions
+- ✅ Links to official Gemma Terms of Use and Prohibited Use Policy
+- ✅ Compliance documentation in setup guides
 
 ## 🎯 What Changed
 

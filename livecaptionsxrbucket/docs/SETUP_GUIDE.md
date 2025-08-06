@@ -36,6 +36,25 @@ rclone config
 .\scripts\test.ps1
 ```
 
+## 📋 Gemma Terms of Use Compliance
+
+This distribution system includes Gemma 3N models and must comply with Google's Gemma Terms of Use:
+
+### Required Notices
+- **NOTICE file**: Must be included with all distributions (see `NOTICE` file in root)
+- **Terms notice**: Displayed on web pages and in Flutter app for Gemma models
+- **Use restrictions**: Users must comply with the Gemma Prohibited Use Policy
+
+### Compliance Requirements
+1. **Include use restrictions** in any agreement governing use/distribution
+2. **Provide notice to users** about the use restrictions in Section 3.2
+3. **Include prominent notices** for any modified files
+4. **Accompany distributions** with the required NOTICE text file
+
+### Links
+- [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
+- [Gemma Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy)
+
 ## 🔗 Download URLs
 
 | Model | Size | URL |

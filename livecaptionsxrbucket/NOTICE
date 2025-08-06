@@ -1,0 +1,10 @@
+Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms
+
+This distribution includes Gemma 3N models for use in LiveCaptionsXR applications and as examples for setting up model distribution systems.
+
+Users must comply with:
+1. The Gemma Terms of Use at ai.google.dev/gemma/terms
+2. The Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy
+3. All applicable laws and regulations
+
+For more information about this distribution system, see the documentation in this repository. 

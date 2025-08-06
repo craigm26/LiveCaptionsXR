@@ -19,6 +19,7 @@ class ModelConfig {
   final ModelType type;
   final String displayName;
   final String assetPath; // Path to the model in assets directory
+  final String? termsNotice; // Terms of use notice for specific models
 
   const ModelConfig({
     required this.fileName,
@@ -27,14 +28,30 @@ class ModelConfig {
     required this.type,
     required this.displayName,
     required this.assetPath,
+    this.termsNotice,
   });
 }
 
 class ModelDownloadManager extends ChangeNotifier {
   static final AppLogger _logger = AppLogger.instance;
   
+  // Gemma Terms of Use notice as required by Google
+  static const String _gemmaTermsNotice = 
+      'Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. '
+      'Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy '
+      'and applicable laws and regulations.';
+  
   // Model configurations
   static const Map<String, ModelConfig> _modelConfigs = {
+    'gemma-3n-E2B-it-int4': ModelConfig(
+      fileName: 'gemma-3n-E2B-it-int4.task',
+      url: 'https://livecaptionsxrbucket.com/gemma-3n-E2B-it-int4.task',
+      expectedSize: 3133601792, // 2.92 GB
+      type: ModelType.gemma,
+      displayName: 'Gemma 3n E2B',
+      assetPath: 'assets/models/gemma-3n-E2B-it-int4.task',
+      termsNotice: _gemmaTermsNotice,
+    ),
     'gemma-3n-E4B-it-int4': ModelConfig(
       fileName: 'gemma-3n-E4B-it-int4.task',
       url: 'https://livecaptionsxrbucket.com/gemma-3n-E4B-it-int4.task',
@@ -42,6 +59,7 @@ class ModelDownloadManager extends ChangeNotifier {
       type: ModelType.gemma,
       displayName: 'Gemma 3n Multimodal',
       assetPath: 'assets/models/gemma-3n-E4B-it-int4.task',
+      termsNotice: _gemmaTermsNotice,
     ),
     'whisper-base': ModelConfig(
       fileName: 'ggml-base.bin',
@@ -70,6 +88,19 @@ class ModelDownloadManager extends ChangeNotifier {
   
   // Get model config
   ModelConfig? getModelConfig(String modelKey) => _modelConfigs[modelKey];
+
+  /// Get terms notice for a specific model
+  String? getTermsNotice(String modelKey) {
+    return _modelConfigs[modelKey]?.termsNotice;
+  }
+
+  /// Get all models that require terms notices
+  List<String> getModelsWithTermsNotices() {
+    return _modelConfigs.entries
+        .where((entry) => entry.value.termsNotice != null)
+        .map((entry) => entry.key)
+        .toList();
+  }
 
   /// Get the path where a model should be stored
   Future<String> getModelPath(String modelKey) async {
@@ -525,6 +556,7 @@ class ModelDownloadManager extends ChangeNotifier {
         error: error,
         expectedSize: config.expectedSize,
         url: config.url,
+        termsNotice: config.termsNotice,
       );
     }
     
@@ -544,6 +576,7 @@ class ModelStatus {
   final String? error;
   final int expectedSize;
   final String url;
+  final String? termsNotice;
 
   const ModelStatus({
     required this.key,
@@ -556,6 +589,7 @@ class ModelStatus {
     this.error,
     required this.expectedSize,
     required this.url,
+    this.termsNotice,
   });
 
   bool get isReady => exists && complete && !downloading && error == null;

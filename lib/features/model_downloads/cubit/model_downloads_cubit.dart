@@ -31,6 +31,7 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
       sizeInBytes: 3136226711,
       sizeDisplay: '2.92 GB',
       version: '1.0.0',
+      termsNotice: 'Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy and applicable laws and regulations.',
     ),
     ModelInfo(
       name: 'Gemma 3N E4B Model',
@@ -40,6 +41,7 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
       sizeInBytes: 4405655031,
       sizeDisplay: '4.11 GB',
       version: '1.0.0',
+      termsNotice: 'Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy and applicable laws and regulations.',
     ),
   ];
 
