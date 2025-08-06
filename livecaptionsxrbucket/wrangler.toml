@@ -5,13 +5,7 @@ main = "./src/index.js"
 [assets]
 directory = "."
 binding = "ASSETS"
-not_found_handling = "404-page"
 
-# Optional: Add your account_id here (found in Cloudflare dashboard)
-# account_id = "your-account-id-here"
-
-# Custom domain configuration
-zone_id = "a6b749215c45e9a1edb86425f0f592a7"
-routes = [
-  "livecaptionsxrbucket.com/*"
-] 
+[[routes]]
+pattern = "livecaptionsxrbucket.com/*"
+zone_id = "a6b749215c45e9a1edb86425f0f592a7" 

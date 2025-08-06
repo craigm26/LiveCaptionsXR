@@ -72,6 +72,46 @@ class ModelCard extends StatelessWidget {
               ),
             ),
             
+            // Terms notice for Gemma models
+            if (model.termsNotice != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.green[700], size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Terms of Use Notice',
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      model.termsNotice!,
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 12),
             
             // Size and version info

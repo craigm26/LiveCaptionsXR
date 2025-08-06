@@ -13,6 +13,12 @@ export default {
       return handleApiRequest(request, url);
     }
     
+    // Handle root path explicitly
+    if (url.pathname === "/" || url.pathname === "") {
+      const indexRequest = new Request(url.origin + "/index.html", request);
+      return env.ASSETS.fetch(indexRequest);
+    }
+    
     // Serve static assets
     return env.ASSETS.fetch(request);
   },
@@ -59,7 +65,8 @@ async function handleApiRequest(request, url) {
             purpose: "LiveCaptionsXR text processing & fine-tuning example",
             fileName: "gemma-3n-E2B-it-int4.task",
             expectedSize: 3133601792,
-            modelKey: "gemma-3n-E2B-it-int4"
+            modelKey: "gemma-3n-E2B-it-int4",
+            termsNotice: "Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy and applicable laws and regulations."
           },
           {
             name: "Gemma 3N E4B",
@@ -69,7 +76,8 @@ async function handleApiRequest(request, url) {
             purpose: "LiveCaptionsXR enhanced processing & fine-tuning example",
             fileName: "gemma-3n-E4B-it-int4.task",
             expectedSize: 4398046511,
-            modelKey: "gemma-3n-E4B-it-int4"
+            modelKey: "gemma-3n-E4B-it-int4",
+            termsNotice: "Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy and applicable laws and regulations."
           }
         ],
         system_info: {
@@ -82,6 +90,12 @@ async function handleApiRequest(request, url) {
             model_download_manager: "lib/core/services/model_download_manager.dart",
             web_interface: "web/model_downloads_page.html",
             compatibility: "Full compatibility with LiveCaptionsXR app"
+          },
+          terms_compliance: {
+            gemma_terms_url: "https://ai.google.dev/gemma/terms",
+            prohibited_use_policy_url: "https://ai.google.dev/gemma/prohibited_use_policy",
+            notice_file: "NOTICE",
+            compliance_status: "Compliant with Gemma Terms of Use Section 3.1"
           }
         }
       }), {

@@ -7,6 +7,7 @@ class ModelInfo {
   final String sizeDisplay;
   final String version;
   final bool isRecommended;
+  final String? termsNotice;
 
   const ModelInfo({
     required this.name,
@@ -17,6 +18,7 @@ class ModelInfo {
     required this.sizeDisplay,
     required this.version,
     this.isRecommended = false,
+    this.termsNotice,
   });
 
   String get formattedSize {
