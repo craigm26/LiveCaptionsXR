@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../models/model_info.dart';
 import '../services/model_download_service.dart';
+import '../../../core/services/ios_model_config_service.dart';
 
 part 'model_downloads_state.dart';
 
 class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
+  final IOSModelConfigService _iosConfig = IOSModelConfigService();
+
   ModelDownloadsCubit() : super(const ModelDownloadsState()) {
     _loadModels();
     _checkDownloadedModels();
@@ -54,16 +57,27 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
 
   Future<void> _checkDownloadedModels() async {
     final downloadedModels = <String>{};
+    final validationResults = <String, ModelValidationResult>{};
     
     for (final model in _availableModels) {
       final isDownloaded = await ModelDownloadService.isModelDownloaded(model.fileName);
       if (isDownloaded) {
         downloadedModels.add(model.fileName);
+        
+        // Validate downloaded model
+        final validation = await ModelDownloadService.validateModel(model.fileName);
+        validationResults[model.fileName] = validation;
+        
+        // If validation failed, remove from downloaded models
+        if (validation.status != ModelValidationStatus.valid) {
+          downloadedModels.remove(model.fileName);
+        }
       }
     }
 
     emit(state.copyWith(
       downloadedModels: downloadedModels,
+      validationResults: validationResults,
     ));
   }
 
@@ -77,10 +91,11 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
     final activeDownloads = Set<String>.from(state.activeDownloads)..add(model.fileName);
     emit(state.copyWith(activeDownloads: activeDownloads));
 
-    // Start download
+    // Start download with validation
     final downloadStream = ModelDownloadService.downloadModel(
       model.fileName,
       model.name,
+      validateAfterDownload: true,
     );
 
     await for (final progress in downloadStream) {
@@ -98,6 +113,11 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
           final newActiveDownloads = Set<String>.from(state.activeDownloads)..remove(model.fileName);
           final newDownloadedModels = Set<String>.from(state.downloadedModels)..add(model.fileName);
           
+          // Validate the downloaded model
+          final validation = await ModelDownloadService.validateModel(model.fileName);
+          final newValidationResults = Map<String, ModelValidationResult>.from(state.validationResults);
+          newValidationResults[model.fileName] = validation;
+          
           emit(state.copyWith(
             activeDownloads: newActiveDownloads,
             downloadedModels: newDownloadedModels,
@@ -105,6 +125,7 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
               ...state.downloadProgress,
               model.fileName: progress,
             },
+            validationResults: newValidationResults,
           ));
           break;
 
@@ -148,7 +169,13 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
     final success = await ModelDownloadService.deleteModel(fileName);
     if (success) {
       final newDownloadedModels = Set<String>.from(state.downloadedModels)..remove(fileName);
-      emit(state.copyWith(downloadedModels: newDownloadedModels));
+      final newValidationResults = Map<String, ModelValidationResult>.from(state.validationResults);
+      newValidationResults.remove(fileName);
+      
+      emit(state.copyWith(
+        downloadedModels: newDownloadedModels,
+        validationResults: newValidationResults,
+      ));
     }
   }
 
@@ -158,6 +185,21 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
 
   void clearError() {
     emit(state.copyWith(error: null));
+  }
+
+  /// Get iOS-specific recommendations for model loading
+  Map<String, dynamic> getIOSRecommendations() {
+    return _iosConfig.getDiagnosticInfo();
+  }
+
+  /// Get optimal configuration for a specific model
+  IOSModelConfig getOptimalConfig(String modelName) {
+    return _iosConfig.getOptimalConfig(modelName);
+  }
+
+  /// Validate a specific model
+  Future<ModelValidationResult> validateModel(String fileName) async {
+    return await ModelDownloadService.validateModel(fileName);
   }
 
   @override

@@ -7,6 +7,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart' as gemma_model;
 import 'model_download_manager.dart';
 import 'app_logger.dart';
+import 'ios_model_config_service.dart';
 
 /// Event class for Gemma 3n contextual enhancement progress and status
 class Gemma3nEnhancementEvent {
@@ -28,14 +29,15 @@ class Gemma3nEnhancementEvent {
 /// A centralized service for all Gemma 3n model interactions.
 ///
 /// This service is the single entry point for text, audio, image,
-/// and multimodal inference, as outlined in the refactoring plan in
-/// `prd/19_livecaptionsxr_multistage_captioning_pipeline.md`.
+/// and multimodal inference, with iOS-specific optimizations to prevent XNNPACK crashes.
 class Gemma3nService {
   final AppLogger _logger = AppLogger.instance;
+  final IOSModelConfigService _iosConfig = IOSModelConfigService();
 
   final ModelDownloadManager _modelManager;
   InferenceModel? _inferenceModel;
   bool _isInitialized = false;
+  IOSModelConfig? _currentConfig;
 
   // Cache for common phrase enhancements
   final Map<String, String> _enhancementCache = {};
@@ -52,7 +54,7 @@ class Gemma3nService {
   Gemma3nService({required ModelDownloadManager modelManager})
       : _modelManager = modelManager;
 
-  /// Initializes the Gemma 3n model with timeout and error handling.
+  /// Initializes the Gemma 3n model with iOS-specific optimizations and fallback mechanisms.
   Future<void> initialize() async {
     if (_isInitialized && _inferenceModel != null) {
       _logger.i('✅ Gemma3nService already initialized',
@@ -61,7 +63,7 @@ class Gemma3nService {
     }
 
     try {
-      _logger.i('🚀 Initializing Gemma3nService...',
+      _logger.i('🚀 Initializing Gemma3nService with iOS optimizations...',
           category: LogCategory.gemma);
 
       // Clear XNNPack cache to fix version incompatibility issues
@@ -116,30 +118,29 @@ class Gemma3nService {
         message: 'Creating inference model...',
       ));
 
-      // Add timeout to prevent freezing during model creation
-      _logger.i('⏱️ Creating Gemma model with 60-second timeout...',
-          category: LogCategory.gemma);
-      _inferenceModel = await gemmaPlugin
-          .createModel(
-            modelType: gemma_model.ModelType.gemmaIt,
-            maxTokens: 1024, // Increased for multimodal support
-            supportImage: true, // Enable image support for Gemma 3n
-            maxNumImages: 1, // Support one image per message
-          )
-          .timeout(Duration(seconds: 540)); // Increased timeout for iOS
+      // Get iOS-optimized configuration
+      _currentConfig = _iosConfig.getOptimalConfig(modelKey);
+      _iosConfig.logConfiguration(_currentConfig!, modelKey);
 
-      _isInitialized = true;
-      _logger.i('✅ Gemma3nService initialized successfully',
-          category: LogCategory.gemma);
+      // Try to create model with optimal configuration first
+      _inferenceModel = await _createModelWithFallback(gemmaPlugin, modelKey);
 
-      // Emit enhancement event for initialization complete
-      _enhancementEventController.add(const Gemma3nEnhancementEvent(
-        progress: 1.0,
-        message: 'Gemma 3n service ready',
-        isComplete: true,
-      ));
+      if (_inferenceModel != null) {
+        _isInitialized = true;
+        _logger.i('✅ Gemma3nService initialized successfully with optimal configuration',
+            category: LogCategory.gemma);
+
+        // Emit enhancement event for initialization complete
+        _enhancementEventController.add(const Gemma3nEnhancementEvent(
+          progress: 1.0,
+          message: 'Gemma 3n service ready',
+          isComplete: true,
+        ));
+      } else {
+        throw Exception('Failed to initialize model with any configuration');
+      }
     } on TimeoutException catch (e) {
-      _logger.e('⏱️ Gemma3nService initialization timed out after 60 seconds',
+      _logger.e('⏱️ Gemma3nService initialization timed out',
           category: LogCategory.gemma, error: e);
 
       // Emit enhancement event for timeout
@@ -167,6 +168,54 @@ class Gemma3nService {
       _isInitialized = false;
       _inferenceModel = null;
     }
+  }
+
+  /// Create model with fallback configurations to handle iOS XNNPACK crashes
+  Future<InferenceModel?> _createModelWithFallback(
+    FlutterGemmaPlugin gemmaPlugin,
+    String modelKey,
+  ) async {
+    final configs = [
+      _currentConfig!,
+      _iosConfig.getDeviceOptimizedConfig(),
+      _iosConfig.getFallbackConfig(),
+    ];
+
+    for (int i = 0; i < configs.length; i++) {
+      final config = configs[i];
+      try {
+        _logger.i('🔄 Trying configuration ${i + 1}/${configs.length} for $modelKey',
+            category: LogCategory.gemma);
+        _iosConfig.logConfiguration(config, modelKey);
+
+        // Add timeout to prevent freezing during model creation
+        final model = await gemmaPlugin
+            .createModel(
+              modelType: gemma_model.ModelType.gemmaIt,
+              maxTokens: config.maxTokens,
+              supportImage: config.maxNumImages > 0,
+              maxNumImages: config.maxNumImages,
+            )
+            .timeout(Duration(seconds: 300)); // 5 minutes timeout
+
+        _logger.i('✅ Model created successfully with configuration ${i + 1}',
+            category: LogCategory.gemma);
+        _currentConfig = config;
+        return model;
+      } catch (e) {
+        _logger.w('⚠️ Configuration ${i + 1} failed: $e', category: LogCategory.gemma);
+        
+        // If this is the last configuration, rethrow the error
+        if (i == configs.length - 1) {
+          rethrow;
+        }
+        
+        // Otherwise, continue to next configuration
+        await Future.delayed(Duration(seconds: 2)); // Brief delay between attempts
+      }
+    }
+
+    return null;
   }
 
   /// Enhances a raw text string using the Gemma model.

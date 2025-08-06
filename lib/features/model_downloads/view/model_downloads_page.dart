@@ -5,6 +5,7 @@ import '../models/model_info.dart';
 import '../services/model_download_service.dart';
 import '../widgets/model_card.dart';
 import '../widgets/download_progress_dialog.dart';
+import '../widgets/ios_diagnostic_widget.dart';
 
 class ModelDownloadsPage extends StatelessWidget {
   const ModelDownloadsPage({super.key});
@@ -54,6 +55,11 @@ class ModelDownloadsView extends StatelessWidget {
 
           return Column(
             children: [
+              // iOS Diagnostic Widget (only shown on iOS)
+              IOSDiagnosticWidget(
+                cubit: context.read<ModelDownloadsCubit>(),
+              ),
+              
               // Header with storage info
               _buildStorageInfo(context, state),
               
@@ -67,6 +73,7 @@ class ModelDownloadsView extends StatelessWidget {
                     final isDownloaded = state.downloadedModels.contains(model.fileName);
                     final isDownloading = state.activeDownloads.contains(model.fileName);
                     final progress = state.downloadProgress[model.fileName];
+                    final validationResult = state.validationResults[model.fileName];
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
@@ -75,6 +82,7 @@ class ModelDownloadsView extends StatelessWidget {
                         isDownloaded: isDownloaded,
                         isDownloading: isDownloading,
                         progress: progress,
+                        validationResult: validationResult,
                         onDownload: () => _handleDownload(context, model),
                         onCancel: () => _handleCancel(context, model.fileName),
                         onDelete: () => _handleDelete(context, model.fileName),

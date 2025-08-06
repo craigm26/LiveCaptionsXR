@@ -8,6 +8,7 @@ class ModelCard extends StatelessWidget {
   final bool isDownloaded;
   final bool isDownloading;
   final DownloadProgress? progress;
+  final ModelValidationResult? validationResult;
   final VoidCallback onDownload;
   final VoidCallback onCancel;
   final VoidCallback onDelete;
@@ -18,6 +19,7 @@ class ModelCard extends StatelessWidget {
     required this.isDownloaded,
     required this.isDownloading,
     this.progress,
+    this.validationResult,
     required this.onDownload,
     required this.onCancel,
     required this.onDelete,
@@ -198,6 +200,12 @@ class ModelCard extends StatelessWidget {
                   ],
                 ),
               ),
+              
+              // Validation status
+              if (validationResult != null) ...[
+                const SizedBox(width: 8),
+                _buildValidationStatus(validationResult!),
+              ],
             ],
             
             const SizedBox(height: 16),
@@ -249,6 +257,59 @@ class ModelCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildValidationStatus(ModelValidationResult validationResult) {
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+
+    switch (validationResult.status) {
+      case ModelValidationStatus.valid:
+        statusColor = Colors.green;
+        statusIcon = Icons.verified;
+        statusText = 'Valid';
+        break;
+      case ModelValidationStatus.corrupted:
+        statusColor = Colors.red;
+        statusIcon = Icons.error;
+        statusText = 'Corrupted';
+        break;
+      case ModelValidationStatus.incompatible:
+        statusColor = Colors.orange;
+        statusIcon = Icons.warning;
+        statusText = 'Incompatible';
+        break;
+      case ModelValidationStatus.unknown:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help;
+        statusText = 'Unknown';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(statusIcon, color: statusColor, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            statusText,
+            style: TextStyle(
+              color: statusColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
