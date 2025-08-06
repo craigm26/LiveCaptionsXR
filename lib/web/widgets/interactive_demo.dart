@@ -231,7 +231,7 @@ class DemoShowcase extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Interactive Technology Demo',
+            'Multi-Modal Technology Showcase',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],

@@ -38,75 +38,22 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = ResponsiveUtils.getScreenSize(context);
     final isMobile = ResponsiveUtils.isMobile(context);
     final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
-
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SingleChildScrollView(
           child: Column(
             children: [
-              _buildHeroSection(context, isMobile),
-
-              // Coming Soon Section
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 24.0, horizontal: 16.0),
-                child: Card(
-                  color: Colors.blue[50],
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.android,
-                                color: Colors.green[700], size: 32),
-                            SizedBox(width: 12),
-                            Icon(Icons.vrpano,
-                                color: Colors.deepPurple, size: 32),
-                            SizedBox(width: 12),
-                            Icon(Icons.phone_iphone,
-                                color: Colors.grey[800], size: 32),
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Cross-Platform Accessibility',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[900],
-                                  ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'Live Captions XR provides advanced accessibility features across iOS and Android platforms with platform-specific speech recognition and on-device AI processing.',
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: Colors.blueGrey[800],
-                                    fontSize: 16,
-                                  ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              _buildMissionSection(context, isMobile),
-              _buildFounderSection(context, isMobile),
-              _buildProjectSection(context, isMobile),
-              _buildContributeSection(context, isMobile),
+              _buildHeroSection(context, screenSize),
+              _buildMissionSection(context, screenSize),
+              _buildFounderSection(context, screenSize),
+              _buildProjectSection(context, screenSize),
+              _buildContributeSection(context, screenSize),
             ],
           ),
         ),
@@ -114,12 +61,15 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHeroSection(BuildContext context, bool isMobile) {
+  Widget _buildHeroSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 40.0 : isTablet ? 48.0 : 64.0,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -132,33 +82,43 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
           ],
         ),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            size: isMobile ? 48 : 64, // Reduced icon size
-            color: Theme.of(context).primaryColor,
-          ),
-          const SizedBox(height: 16), // Reduced spacing
-          Text(
-            'About Live Captions XR',
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12), // Reduced spacing
           Container(
-            constraints:
-                BoxConstraints(maxWidth: isMobile ? double.infinity : 700),
-            child: Text(
-              'Democratizing accessibility through open-source innovation and community-driven development.',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w400,
-                  ),
-              textAlign: TextAlign.center,
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.info_outline,
+              size: isMobile ? 48 : isTablet ? 56 : 64,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          SizedBox(width: isMobile ? 16 : 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'About Live Captions XR',
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                        fontSize: isMobile ? 28 : isTablet ? 32 : 36,
+                      ),
+                ),
+                SizedBox(height: isMobile ? 6 : 8),
+                Text(
+                  'Democratizing accessibility through open-source innovation and community-driven development.',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w400,
+                        fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                      ),
+                ),
+              ],
             ),
           ),
         ],
@@ -166,12 +126,15 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMissionSection(BuildContext context, bool isMobile) {
+  Widget _buildMissionSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
       ),
       child: Column(
         children: [
@@ -180,98 +143,110 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
+                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24), // Reduced spacing
+          SizedBox(height: isMobile ? 16 : 20),
           Container(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
+            ),
             child: Text(
               'Live Captions XR was born from a simple belief: everyone deserves equal access to communication and information. Our mission is to break down barriers for the deaf and hard-of-hearing community by providing real-time, accurate, and contextually-aware closed captions through cutting-edge AI technology.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[700],
-                    height: 1.6,
-                    fontSize: 18,
+                    height: 1.5,
+                    fontSize: isMobile ? 16 : isTablet ? 18 : 20,
                   ),
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 32), // Reduced spacing
-          Wrap(
-            spacing: 24, // Reduced spacing
-            runSpacing: 24, // Reduced spacing
-            alignment: WrapAlignment.center,
-            children: [
-              _buildMissionItem(
-                context,
-                Icons.accessibility_new,
-                'Accessibility First',
-                'Designed by and for the deaf community',
-              ),
-              _buildMissionItem(
-                context,
-                Icons.code,
-                'Open Source',
-                'Transparent, collaborative development',
-              ),
-              _buildMissionItem(
-                context,
-                Icons.privacy_tip,
-                'Privacy Focused',
-                'On-device processing protects your data',
-              ),
-            ],
+          SizedBox(height: isMobile ? 24 : 32),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : isTablet ? 2 : 3,
+              childAspectRatio: isMobile ? 2.5 : isTablet ? 3.0 : 3.5,
+              mainAxisSpacing: isMobile ? 12 : 16,
+              crossAxisSpacing: isMobile ? 12 : 16,
+            ),
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              final missions = [
+                {'icon': Icons.accessibility_new, 'title': 'Accessibility First', 'description': 'Designed by and for the deaf community'},
+                {'icon': Icons.code, 'title': 'Open Source', 'description': 'Transparent, collaborative development'},
+                {'icon': Icons.privacy_tip, 'title': 'Privacy Focused', 'description': 'On-device processing protects your data'},
+              ];
+              final mission = missions[index];
+              return _buildMissionItem(context, mission['icon'] as IconData, mission['title'] as String, mission['description'] as String, screenSize);
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMissionItem(
-      BuildContext context, IconData icon, String title, String description) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 250),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16), // Reduced padding
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+  Widget _buildMissionItem(BuildContext context, IconData icon, String title, String description, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(isMobile ? 12 : 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: isMobile ? 24 : 28,
+                color: Theme.of(context).primaryColor,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 28, // Reduced icon size
-              color: Theme.of(context).primaryColor,
+            SizedBox(height: isMobile ? 8 : 12),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isMobile ? 14 : 16,
+                  ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 12), // Reduced spacing
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6), // Reduced spacing
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            SizedBox(height: isMobile ? 4 : 6),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontSize: isMobile ? 12 : 13,
+                  ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildFounderSection(BuildContext context, bool isMobile) {
+  Widget _buildFounderSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
       ),
       color: Colors.grey[50],
       child: Column(
@@ -281,190 +256,190 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
+                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32), // Reduced spacing
-          Wrap(
-            spacing: 24, // Reduced spacing
-            runSpacing: 24, // Reduced spacing
-            alignment: WrapAlignment.center,
-            children: [
-              _buildFounderCard(
+          SizedBox(height: isMobile ? 24 : 32),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : 2,
+              childAspectRatio: isMobile ? 2.2 : 2.8,
+              mainAxisSpacing: isMobile ? 12 : 16,
+              crossAxisSpacing: isMobile ? 12 : 16,
+            ),
+            itemCount: 2,
+            itemBuilder: (context, index) {
+              final founders = [
+                {
+                  'name': 'Craig Merry',
+                  'title': 'Founder & Lead Developer',
+                  'bio': 'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded Live Captions XR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
+                  'buttons': [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await InteractionHandler.safeAsyncExecution(
+                          action: () async {
+                            await launchUrl(Uri.parse('https://www.linkedin.com/in/craigmerry/'));
+                          },
+                          timeout: const Duration(seconds: 5),
+                        );
+                      },
+                      icon: const Icon(Icons.code),
+                      label: Text(isMobile ? 'LinkedIn' : 'LinkedIn Profile'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 16 : 20,
+                          vertical: isMobile ? 8 : 10,
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await InteractionHandler.safeAsyncExecution(
+                          action: () async {
+                            await launchUrl(Uri.parse('mailto:craig@craigmerry.com'));
+                          },
+                          timeout: const Duration(seconds: 5),
+                        );
+                      },
+                      icon: const Icon(Icons.email),
+                      label: const Text('Contact'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 16 : 20,
+                          vertical: isMobile ? 8 : 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                },
+                {
+                  'name': 'Sasha Denisov',
+                  'title': 'Co-Founder & Technical Lead',
+                  'bio': 'Chief Software Engineer and Head of Flutter Competency with 12+ years in designing scalable, maintainable systems. Google Developer Expert for AI, Flutter and Firebase. Creator of flutter_gemma, the on-device AI package powering Live Captions XR\'s speech recognition capabilities. Specializes in end-to-end architecture and AI integration.',
+                  'buttons': [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await InteractionHandler.safeAsyncExecution(
+                          action: () async {
+                            await launchUrl(Uri.parse('https://www.linkedin.com/in/aleks-denisov/'));
+                          },
+                          timeout: const Duration(seconds: 5),
+                        );
+                      },
+                      icon: const Icon(Icons.code),
+                      label: Text(isMobile ? 'LinkedIn' : 'LinkedIn Profile'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 16 : 20,
+                          vertical: isMobile ? 8 : 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                },
+              ];
+              final founder = founders[index];
+              return _buildFounderCard(
                 context,
-                'Craig Merry',
-                'Founder & Lead Developer',
-                'Craig is a mostly deaf individual who understands firsthand the challenges faced by the deaf and hard-of-hearing community. With a background in software development and AI, Craig founded Live Captions XR to bridge the accessibility gap using innovative technology. His personal experience drives the project\'s commitment to creating truly inclusive solutions.',
-                [
-                  // direct link to linkedin profile: https://www.linkedin.com/in/craigmerry/
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      // use a common url package to open the linkedin profile
-                      await InteractionHandler.safeAsyncExecution(
-                        action: () async {
-                          await launchUrl(Uri.parse('https://www.linkedin.com/in/craigmerry/'));
-                        },
-                        timeout: const Duration(seconds: 5),
-                      );
-                    },
-                    icon: const Icon(Icons.code),
-                    label: const Text('LinkedIn Profile'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10), // Reduced padding
-                    ),
-                  ),
-                  // contact should go to email: craig@craigmerry.com
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await InteractionHandler.safeAsyncExecution(
-                        action: () async {
-                          await launchUrl(Uri.parse('mailto:craig@craigmerry.com'));
-                        },
-                        timeout: const Duration(seconds: 5),
-                      );
-                    },
-                    icon: const Icon(Icons.email),
-                    label: const Text('Contact'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10), // Reduced padding
-                    ),
-                  ),
-                ],
-              ),
-              _buildFounderCard(
-                context,
-                'Sasha Denisov',
-                'Co-Founder & Technical Lead',
-                'Chief Software Engineer and Head of Flutter Competency with 12+ years in designing scalable, maintainable systems. Google Developer Expert for AI, Flutter and Firebase. Creator of flutter_gemma, the on-device AI package powering Live Captions XR\'s speech recognition capabilities. Specializes in end-to-end architecture and AI integration.',
-                [
-                  // direct link to linkedin profile: https://www.linkedin.com/in/aleks-denisov/
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await InteractionHandler.safeAsyncExecution(
-                        action: () async {
-                          await launchUrl(Uri.parse('https://www.linkedin.com/in/aleks-denisov/'));
-                        },
-                        timeout: const Duration(seconds: 5),
-                      );
-                    },
-                    icon: const Icon(Icons.code),
-                    label: const Text('LinkedIn Profile'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                    ),
-                  ),
-                  /* contact should go to email: aleks@denisov.com (this is a fake email)
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await InteractionHandler.safeAsyncExecution(
-                        action: () async {
-                          await launchUrl(Uri.parse('mailto:aleks@denisov.com'));
-                        },
-                        timeout: const Duration(seconds: 5),
-                      );
-                    },
-                    icon: const Icon(Icons.email),
-                    label: const Text('Contact'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                    ),
-                  ),
-                */
-                ],
-              ),
-            ],
+                founder['name'] as String,
+                founder['title'] as String,
+                founder['bio'] as String,
+                founder['buttons'] as List<Widget>,
+                screenSize,
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFounderCard(
-      BuildContext context,
-      String name,
-      String title,
-      String bio,
-      List<Widget> buttons) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
-      padding: const EdgeInsets.all(24), // Reduced padding
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 50, // Reduced radius
-            backgroundColor: Colors.grey[200],
-            backgroundImage: name == 'Craig Merry' 
-                ? const AssetImage('assets/images/CraigMerry.jpg')
-                : name == 'Sasha Denisov'
-                    ? const AssetImage('assets/images/SashaProfilePicture.jpg')
-                    : null,
-            child: name == 'Craig Merry' || name == 'Sasha Denisov'
-                ? null
-                : Icon(
-                    Icons.person,
-                    size: 50, // Reduced icon size
+  Widget _buildFounderCard(BuildContext context, String name, String title, String bio, List<Widget> buttons, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 16 : 20),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: isMobile ? 40 : isTablet ? 45 : 50,
+              backgroundColor: Colors.grey[200],
+              backgroundImage: name == 'Craig Merry' 
+                  ? const AssetImage('assets/images/CraigMerry.jpg')
+                  : name == 'Sasha Denisov'
+                      ? const AssetImage('assets/images/SashaProfilePicture.jpg')
+                      : null,
+              child: name == 'Craig Merry' || name == 'Sasha Denisov'
+                  ? null
+                  : Icon(
+                      Icons.person,
+                      size: isMobile ? 40 : isTablet ? 45 : 50,
+                      color: Theme.of(context).primaryColor,
+                    ),
+            ),
+            SizedBox(height: isMobile ? 12 : 16),
+            Text(
+              name,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
+                    fontSize: isMobile ? 18 : 20,
                   ),
-          ),
-          const SizedBox(height: 16), // Reduced spacing
-          Text(
-            name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6), // Reduced spacing
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16), // Reduced spacing
-          Text(
-            bio,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey[700],
-                  height: 1.6,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24), // Reduced spacing
-          Wrap(
-            spacing: 12, // Reduced spacing
-            runSpacing: 12, // Reduced spacing
-            alignment: WrapAlignment.center,
-            children: buttons,
-          ),
-        ],
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: isMobile ? 4 : 6),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontSize: isMobile ? 14 : 16,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: isMobile ? 12 : 16),
+            Expanded(
+              child: Text(
+                bio,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[700],
+                      height: 1.4,
+                      fontSize: isMobile ? 13 : 14,
+                    ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: isMobile ? 6 : 8,
+              ),
+            ),
+            SizedBox(height: isMobile ? 12 : 16),
+            Wrap(
+              spacing: isMobile ? 8 : 12,
+              runSpacing: isMobile ? 8 : 12,
+              alignment: WrapAlignment.center,
+              children: buttons,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildProjectSection(BuildContext context, bool isMobile) {
+  Widget _buildProjectSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
       ),
       child: Column(
         children: [
@@ -473,101 +448,102 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
+                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24), // Reduced spacing
+          SizedBox(height: isMobile ? 16 : 20),
           Container(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
+            ),
             child: Text(
               'Live Captions XR is built in the open with transparency and community collaboration at its core. Every line of code, every decision, and every improvement is shared with the community.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[700],
-                    height: 1.6,
-                    fontSize: 18,
+                    height: 1.5,
+                    fontSize: isMobile ? 16 : isTablet ? 18 : 20,
                   ),
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 32), // Reduced spacing
-          GridView.count(
+          SizedBox(height: isMobile ? 24 : 32),
+          GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: isMobile ? 1 : 2,
-            childAspectRatio: isMobile ? 3.5 : 3.0, // Increased aspect ratio for more compact cards
-            mainAxisSpacing: 16, // Reduced spacing
-            crossAxisSpacing: 16, // Reduced spacing
-            children: [
-              _buildProjectCard(
-                context,
-                Icons.code,
-                'MIT Licensed',
-                'Free and open source software that anyone can use, modify, and distribute.',
-              ),
-              _buildProjectCard(
-                context,
-                Icons.group,
-                'Community Driven',
-                'Built by developers, accessibility advocates, and community members worldwide.',
-              ),
-              _buildProjectCard(
-                context,
-                Icons.bug_report,
-                'Transparent Development',
-                'All bugs, features, and discussions are tracked publicly on GitHub.',
-              ),
-              _buildProjectCard(
-                context,
-                Icons.volunteer_activism,
-                'Contributing Welcome',
-                'We welcome contributions from developers, designers, testers, and accessibility experts.',
-              ),
-            ],
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : isTablet ? 2 : 2,
+              childAspectRatio: isMobile ? 2.8 : isTablet ? 3.2 : 3.5,
+              mainAxisSpacing: isMobile ? 12 : 16,
+              crossAxisSpacing: isMobile ? 12 : 16,
+            ),
+            itemCount: 4,
+            itemBuilder: (context, index) {
+              final projects = [
+                {'icon': Icons.code, 'title': 'MIT Licensed', 'description': 'Free and open source software that anyone can use, modify, and distribute.'},
+                {'icon': Icons.group, 'title': 'Community Driven', 'description': 'Built by developers, accessibility advocates, and community members worldwide.'},
+                {'icon': Icons.bug_report, 'title': 'Transparent Development', 'description': 'All bugs, features, and discussions are tracked publicly on GitHub.'},
+                {'icon': Icons.volunteer_activism, 'title': 'Contributing Welcome', 'description': 'We welcome contributions from developers, designers, testers, and accessibility experts.'},
+              ];
+              final project = projects[index];
+              return _buildProjectCard(context, project['icon'] as IconData, project['title'] as String, project['description'] as String, screenSize);
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProjectCard(
-      BuildContext context, IconData icon, String title, String description) {
+  Widget _buildProjectCard(BuildContext context, IconData icon, String title, String description, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
     return Card(
-      elevation: 2, // Reduced elevation
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16), // Reduced padding
+        padding: EdgeInsets.all(isMobile ? 16 : 20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: 28, // Reduced icon size
-              color: Theme.of(context).primaryColor,
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(isMobile ? 10 : 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: isMobile ? 24 : 28,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                SizedBox(width: isMobile ? 12 : 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: isMobile ? 16 : 18,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8), // Reduced spacing
-            Flexible(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-              ),
-            ),
-            const SizedBox(height: 4), // Reduced spacing
-            Flexible(
+            SizedBox(height: isMobile ? 8 : 12),
+            Expanded(
               child: Text(
                 description,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[600],
+                      fontSize: isMobile ? 13 : 14,
                     ),
-                textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                maxLines: 3,
+                maxLines: isMobile ? 3 : 4,
               ),
             ),
           ],
@@ -576,12 +552,15 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildContributeSection(BuildContext context, bool isMobile) {
+  Widget _buildContributeSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24.0 : 48.0,
-        vertical: isMobile ? 32.0 : 48.0, // Reduced vertical padding
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -595,36 +574,47 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.favorite,
-            size: 36, // Reduced icon size
-            color: Theme.of(context).primaryColor,
+          Container(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.favorite,
+              size: isMobile ? 32 : 36,
+              color: Theme.of(context).primaryColor,
+            ),
           ),
-          const SizedBox(height: 16), // Reduced spacing
+          SizedBox(height: isMobile ? 12 : 16),
           Text(
             'Join Our Community',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
+                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12), // Reduced spacing
+          SizedBox(height: isMobile ? 8 : 12),
           Container(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
+            ),
             child: Text(
               'Help us build a more accessible world. Whether you\'re a developer, designer, tester, or accessibility advocate, there\'s a place for you in our community.',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
-                    height: 1.5,
+                    height: 1.4,
+                    fontSize: isMobile ? 16 : isTablet ? 18 : 20,
                   ),
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 24), // Reduced spacing
+          SizedBox(height: isMobile ? 20 : 24),
           Wrap(
-            spacing: 12, // Reduced spacing
-            runSpacing: 12, // Reduced spacing
+            spacing: isMobile ? 8 : 12,
+            runSpacing: isMobile ? 8 : 12,
             alignment: WrapAlignment.center,
             children: [
               FilledButton.icon(
@@ -637,10 +627,12 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                   );
                 },
                 icon: const Icon(Icons.code),
-                label: const Text('Contribute on GitHub'),
+                label: Text(isMobile ? 'GitHub' : 'Contribute on GitHub'),
                 style: FilledButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 16 : 20,
+                    vertical: isMobile ? 10 : 12,
+                  ),
                 ),
               ),
               OutlinedButton.icon(
@@ -653,10 +645,12 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                   );
                 },
                 icon: const Icon(Icons.support),
-                label: const Text('Get Support'),
+                label: Text(isMobile ? 'Support' : 'Get Support'),
                 style: OutlinedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Reduced padding
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 16 : 20,
+                    vertical: isMobile ? 10 : 12,
+                  ),
                 ),
               ),
             ],
