@@ -2,6 +2,8 @@
 
 Dual-purpose platform: Direct model downloads for LiveCaptionsXR applications and comprehensive guide for setting up Gemma 3N model distribution systems.
 
+Right now, these pages are [available at:](https://livecaptionsxr-models.craigm26.workers.dev/)
+
 ## 📋 Gemma Terms of Use Compliance
 
 This distribution system includes Gemma 3N models and must comply with Google's Gemma Terms of Use:
