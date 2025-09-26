@@ -1,17 +1,26 @@
 import 'dart:async';
+import 'dart:math';
+import 'dart:typed_data';
+
 import 'package:audio_streamer/audio_streamer.dart';
 import 'package:live_captions_xr/core/services/app_logger.dart';
-import 'dart:math';
+import 'package:permission_handler/permission_handler.dart';
 
 class AudioCaptureService {
   static final AppLogger _logger = AppLogger.instance;
   StreamSubscription<List<double>>? _audioSubscription;
-  final StreamController<List<int>> _streamController = StreamController<List<int>>();
+  StreamController<Uint8List>? _streamController;
   
   bool _isCapturing = false;
   int _audioChunksProcessed = 0;
 
-  Stream<List<int>> get audioStream => _streamController.stream;
+  Stream<Uint8List> get audioStream {
+    final controller = _streamController;
+    if (controller != null && !controller.isClosed) {
+      return controller.stream;
+    }
+    return Stream<Uint8List>.empty();
+  }
 
   Future<void> start() async {
     if (_isCapturing) {
@@ -20,11 +29,25 @@ class AudioCaptureService {
     }
     
     _logger.i('🎤 Starting audio capture...', category: LogCategory.audio);
+    _logger.d('🔐 Checking microphone permission...', category: LogCategory.audio);
+
+    final permissionStatus = await Permission.microphone.status;
+    if (!permissionStatus.isGranted) {
+      final result = await Permission.microphone.request();
+      if (!result.isGranted) {
+        _logger.e('❌ Microphone permission denied. Cannot start audio capture.', category: LogCategory.audio);
+        throw Exception('Microphone permission required for audio capture');
+      }
+    }
+
     _logger.d('📊 Configuring audio streamer with 16kHz sample rate', category: LogCategory.audio);
     
     try {
-      AudioStreamer().sampleRate = 16000;
-      _audioSubscription = AudioStreamer().audioStream.listen((buffer) {
+      final audioStreamer = AudioStreamer();
+      audioStreamer.sampleRate = 16000;
+      final controller = StreamController<Uint8List>.broadcast();
+      _streamController = controller;
+      _audioSubscription = audioStreamer.audioStream.listen((buffer) {
         _audioChunksProcessed++;
         _logger.d('🎵 Audio chunk #$_audioChunksProcessed received (${buffer.length} samples)', category: LogCategory.audio);
         
@@ -33,7 +56,7 @@ class AudioCaptureService {
         for (int i = 0; i < buffer.length; i++) {
           rmsLevel += buffer[i] * buffer[i];
         }
-        rmsLevel = buffer.length > 0 ? sqrt(rmsLevel / buffer.length) : 0.0;
+        rmsLevel = buffer.isNotEmpty ? sqrt(rmsLevel / buffer.length) : 0.0;
         
         _logger.d('📊 Audio levels - RMS: ${rmsLevel.toStringAsFixed(4)}', category: LogCategory.audio);
         
@@ -42,12 +65,23 @@ class AudioCaptureService {
           _logger.d('🗣️ Potential speech detected (RMS: ${rmsLevel.toStringAsFixed(4)})', category: LogCategory.audio);
         }
         
-        final intBuffer = buffer.map((d) => d.toInt()).toList();
-        _streamController.add(intBuffer);
-        _logger.d('📤 Sent audio chunk to stream (${intBuffer.length} samples)', category: LogCategory.audio);
+        final byteData = ByteData(buffer.length * 2);
+        for (int i = 0; i < buffer.length; i++) {
+          final double sample = buffer[i].clamp(-1.0, 1.0);
+          final int intSample = (sample * 32767).round().clamp(-32768, 32767);
+          byteData.setInt16(i * 2, intSample, Endian.little);
+        }
+        final chunk = byteData.buffer.asUint8List();
+        if (!controller.isClosed) {
+          controller.add(chunk);
+        }
+        _logger.d('📤 Sent audio chunk to stream (${chunk.length} bytes)', category: LogCategory.audio);
         
       }, onError: (error) {
         _logger.e('❌ Error in audio stream: $error', category: LogCategory.audio);
+        if (!controller.isClosed) {
+          controller.addError(error);
+        }
       });
       
       _isCapturing = true;
@@ -61,7 +95,7 @@ class AudioCaptureService {
     }
   }
 
-  void stop() {
+  Future<void> stop() async {
     if (!_isCapturing) {
       _logger.w('⚠️ Audio capture not running, skipping stop', category: LogCategory.audio);
       return;
@@ -71,8 +105,10 @@ class AudioCaptureService {
     _logger.d('📊 Final stats - Total chunks processed: $_audioChunksProcessed', category: LogCategory.audio);
     
     try {
-      _audioSubscription?.cancel();
-      _streamController.close();
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+      await _streamController?.close();
+      _streamController = null;
       _isCapturing = false;
       _audioChunksProcessed = 0;
       _logger.i('✅ Audio capture stopped successfully', category: LogCategory.audio);

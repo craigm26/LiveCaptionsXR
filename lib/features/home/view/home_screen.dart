@@ -87,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasMissingModels =
         (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
 
-    if (hasMissingModels && mounted) {
+    /*if (hasMissingModels && mounted) {
       _logger.w(
           '⚠️ Missing models detected, showing download dialog. Platform needs - Gemma: $needsGemma, Whisper: $needsWhisper',
           category: LogCategory.system);
@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _logger.i(
           '✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper)',
           category: LogCategory.system);
-    }
+    }*/
   }
 
   /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session
@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
           value: _modelDownloadManager,
           child: Consumer<ModelDownloadManager>(
             builder: (context, manager, _) {
-              const gemmaKey = 'gemma-3n-E4B-it-int4';
+              const gemmaKey = 'gemma-3n-E2B-it-int4';
               const whisperKey = 'whisper-base';
 
               final gemmaDownloading = manager.isDownloading(gemmaKey);
@@ -186,14 +186,14 @@ class _HomeScreenState extends State<HomeScreen> {
               final whisperCompleted = manager.isCompleted(whisperKey);
 
               return AlertDialog(
-                title: const Text('Required Models Setup'),
+                title: const Text('Models Setup'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'LiveCaptionsXR requires AI models to function. Please download the required models before proceeding:',
+                        'LiveCaptionsXR requires AI models to function. Please download the models before proceeding:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
@@ -215,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       color: Colors.blue.shade600),
                                   const SizedBox(width: 8),
                                   const Text(
-                                    'Gemma 3n Multimodal Model',
+                                    'Gemma 3n E2B Model',
                                     style:
                                         TextStyle(fontWeight: FontWeight.bold),
                                   ),
@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               const Text(
-                                'For caption enhancement and multimodal processing (4.1 GB)',
+                                'For captions and text processing (2.92 GB)',
                                 style:
                                     TextStyle(fontSize: 12, color: Colors.grey),
                               ),
@@ -291,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         color: Colors.green.shade600),
                                     const SizedBox(width: 8),
                                     const Text(
-                                      'Whisper Speech Recognition Model',
+                                      'Whisper Base Model',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold),
                                     ),
@@ -299,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
-                                  'For speech-to-text transcription (147.95 MB)',
+                                  'For speech-to-text transcription (141 MB)',
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.grey),
                                 ),
@@ -351,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         color: Colors.blue.shade600),
                                     const SizedBox(width: 8),
                                     const Text(
-                                      'Apple Speech Recognition',
+                                      'Apple Speech Recognition Model',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold),
                                     ),
@@ -359,12 +359,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
-                                  'Built-in iOS speech recognition (no download required)',
+                                  'Built-in iOS speech recognition model (no download required)',
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.grey),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text('✅ iOS Speech Recognition ready',
+                                const Text('✅ iOS Speech Recognition Model ready',
                                     style: TextStyle(color: Colors.green)),
                                 const SizedBox(height: 16),
                               ],
@@ -382,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: const Text(
-                              'Estimated total download time: ~20-45 min on a 50 Mbps connection',
+                              'Estimated total download time: ~20-30 min on a 50 Mbps connection',
                               style:
                                   TextStyle(fontSize: 12, color: Colors.grey),
                             ),

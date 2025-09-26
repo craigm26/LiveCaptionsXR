@@ -422,14 +422,10 @@ class EnhancedSpeechProcessor {
       _logger.i('🎤 Starting Whisper GGML processing...', category: LogCategory.speech);
       
       // Subscribe to audio capture service for real-time processing
-      _audioCaptureService.audioStream.listen((audioData) async {
-        _logger.d('🎵 Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
+      _audioCaptureService.audioStream.listen((audioBytes) async {
+        _logger.d('🎵 Received audio chunk (${audioBytes.length} bytes)', category: LogCategory.speech);
         
         try {
-          // Convert audio data to Uint8List for Whisper processing
-          final audioBytes = Uint8List.fromList(audioData);
-          _logger.d('🔄 Converting audio to bytes (${audioBytes.length} bytes)', category: LogCategory.speech);
-          
           // Process with Whisper service
           _logger.d('🎤 Sending audio to Whisper for transcription...', category: LogCategory.speech);
           final result = await _whisperService.processAudioBuffer(audioBytes);

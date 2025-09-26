@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spatial Captions</string>
+    <string name="ar_debug_overlay_title">Spatial Captions Debug</string>
+    <string name="ar_debug_anchor_info">Anchor ID: %1$s</string>
+    <string name="ar_debug_session_state">Session State: %1$s</string>
+    <string name="ar_debug_caption_count">Captions: %1$d</string>
+</resources>
+

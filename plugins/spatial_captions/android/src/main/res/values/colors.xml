@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="captionPartialBackground">#CCFF9800</color>
+    <color name="captionPartialBorder">#FFFFA726</color>
+    <color name="captionFinalBackground">#CC2196F3</color>
+    <color name="captionFinalBorder">#FF64B5F6</color>
+    <color name="captionEnhancedBackground">#CC43A047</color>
+    <color name="captionEnhancedBorder">#FF66BB6A</color>
+    <color name="captionTextColor">#FFFFFFFF</color>
+    <color name="captionShadowColor">#66000000</color>
+</resources>
+

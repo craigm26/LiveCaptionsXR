@@ -3,6 +3,7 @@ import 'app_logger.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Camera service for visual processing and capture
 /// 
@@ -13,21 +14,34 @@ class CameraService {
   
   bool _isCameraStarted = false;
   bool _isInitialized = false;
+  Completer<void>? _initializeCompleter;
 
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   
   Timer? _periodicCaptureTimer;
   final StreamController<List<int>> _frameStreamController = StreamController<List<int>>.broadcast();
+  bool _isCaptureInProgress = false;
   
   /// Initialize the camera service for mobile platforms
   Future<void> initialize() async {
+    if (_initializeCompleter != null) {
+      return _initializeCompleter!.future;
+    }
+
+    if (_isInitialized) {
+      return;
+    }
+
+    final completer = Completer<void>();
+    _initializeCompleter = completer;
     _logger.i('🏗️ Initializing CameraService...', category: LogCategory.camera);
     try {
       _logger.d('Setting up camera configuration...', category: LogCategory.camera);
       // Initialize camera for mobile platforms (Android and iOS)
       if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
         _logger.d('Checking available cameras...', category: LogCategory.camera);
+        await _ensureCameraPermission();
         _cameras = await availableCameras();
         final frontCamera = _cameras!.firstWhere(
           (c) => c.lensDirection == CameraLensDirection.front,
@@ -41,9 +55,13 @@ class CameraService {
         _logger.i('ℹ️ CameraService skipped (web platform detected)', category: LogCategory.camera);
         _isInitialized = false;
       }
+      completer.complete();
     } catch (e, stackTrace) {
       _logger.e('❌ Camera initialization failed', category: LogCategory.camera, error: e, stackTrace: stackTrace);
+      completer.completeError(e, stackTrace);
       rethrow;
+    } finally {
+      _initializeCompleter = null;
     }
   }
   
@@ -103,8 +121,14 @@ class CameraService {
       _logger.w('⚠️ Camera controller not initialized, cannot capture frame', category: LogCategory.camera);
       return null;
     }
+
+    if (_isCaptureInProgress) {
+      _logger.w('⚠️ Previous capture still in progress, skipping new capture request', category: LogCategory.camera);
+      return null;
+    }
     
     try {
+      _isCaptureInProgress = true;
       _logger.d('Acquiring frame from camera...', category: LogCategory.camera);
       
       final XFile imageFile = await _cameraController!.takePicture();
@@ -116,6 +140,8 @@ class CameraService {
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to capture frame', category: LogCategory.camera, error: e, stackTrace: stackTrace);
       return null;
+    } finally {
+      _isCaptureInProgress = false;
     }
   }
   
@@ -154,5 +180,18 @@ class CameraService {
     _isInitialized = false;
     _isCameraStarted = false;
     _logger.i('✅ CameraService disposed successfully', category: LogCategory.camera);
+  }
+
+  Future<void> _ensureCameraPermission() async {
+    _logger.d('Requesting camera permission if needed...', category: LogCategory.camera);
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+    }
+
+    if (!status.isGranted) {
+      _logger.e('⚠️ Camera permission denied. Cannot initialize camera.', category: LogCategory.camera);
+      throw CameraException('CameraAccessDenied', 'Camera access permission was denied.');
+    }
   }
 } 
