@@ -11,6 +11,9 @@ flutter:
     platforms:
       ios:
         pluginClass: SpatialCaptionsPlugin
+      android:
+        package: com.livecaptionsxr.spatialcaptions
+        pluginClass: SpatialCaptionsPlugin
 
 dependencies:
   flutter:

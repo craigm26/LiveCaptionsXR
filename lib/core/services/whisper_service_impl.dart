@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Platform-specific imports
@@ -209,7 +210,7 @@ class WhisperService {
       ));
       
       return false;
-    }
+  }
   }
   
   /// Start processing audio data
@@ -328,11 +329,27 @@ class WhisperService {
         message: 'Transcribing speech...',
       ));
       
-      // Save audio data to a temporary file
+      // Ensure temporary directory exists
       final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/whisper_audio_${DateTime.now().millisecondsSinceEpoch}.wav');
-      await tempFile.writeAsBytes(audioData);
-      _logger.d('💾 Saved audio to temp file: ${tempFile.path}', category: LogCategory.speech);
+      final whisperDir = Directory('${tempDir.path}/whisper_cache');
+      if (!await whisperDir.exists()) {
+        await whisperDir.create(recursive: true);
+        _logger.d('📁 Created whisper cache directory: ${whisperDir.path}', category: LogCategory.speech);
+      }
+
+      // Convert raw PCM16 data to WAV format
+      final wavBytes = _wrapPcmAsWav(
+        pcmBytes: audioData,
+        sampleRate: 16000,
+        channels: 1,
+        bitsPerSample: 16,
+      );
+
+      // Save audio data to a temporary file inside the cache directory
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final tempFile = File('${whisperDir.path}/whisper_audio_$timestamp.wav');
+      await tempFile.writeAsBytes(wavBytes, flush: true);
+      _logger.d('💾 Saved audio to temp file: ${tempFile.path} (${tempFile.lengthSync()} bytes)', category: LogCategory.speech);
       
       // Emit STT event for audio preparation
       _sttEventController.add(const WhisperSTTEvent(
@@ -359,17 +376,19 @@ class WhisperService {
         message: 'Processing with Whisper GGML...',
       ));
       
+      _logger.d('⚙️ Whisper.transcribe starting with audio file: ${tempFile.path}', category: LogCategory.speech);
       // Process audio with Whisper GGML
       final response = await _whisper!.transcribe(
         transcribeRequest: transcribeRequest,
-        modelPath: tempFile.path, // Use the temp file path
+        modelPath: tempFile.path,
       );
+      _logger.d('✅ Whisper.transcribe completed for: ${tempFile.path}', category: LogCategory.speech);
       
       _logger.d('📝 Whisper GGML response received: "${response.text}"', category: LogCategory.speech);
       
       // Clean up temp file
       await tempFile.delete();
-      _logger.d('🗑️ Cleaned up temp audio file', category: LogCategory.speech);
+      _logger.d('🗑️ Cleaned up temp audio file: ${tempFile.path}', category: LogCategory.speech);
       
       final speechResult = SpeechResult(
         text: response.text,
@@ -457,4 +476,46 @@ class WhisperService {
       _logger.e('❌ Error disposing Whisper service', category: LogCategory.speech, error: e, stackTrace: stackTrace);
     }
   }
-} 
+
+  Uint8List _wrapPcmAsWav({
+    required Uint8List pcmBytes,
+    required int sampleRate,
+    required int channels,
+    required int bitsPerSample,
+  }) {
+    final byteRate = sampleRate * channels * (bitsPerSample ~/ 8);
+    final blockAlign = channels * (bitsPerSample ~/ 8);
+    final dataSize = pcmBytes.lengthInBytes;
+    final totalSize = 36 + dataSize;
+
+    final buffer = BytesBuilder();
+    buffer.add(ascii.encode('RIFF'));
+    buffer.add(_intToBytes(totalSize, 4));
+    buffer.add(ascii.encode('WAVE'));
+    buffer.add(ascii.encode('fmt '));
+    buffer.add(_intToBytes(16, 4)); // PCM chunk size
+    buffer.add(_intToBytes(1, 2)); // Audio format (1 = PCM)
+    buffer.add(_intToBytes(channels, 2));
+    buffer.add(_intToBytes(sampleRate, 4));
+    buffer.add(_intToBytes(byteRate, 4));
+    buffer.add(_intToBytes(blockAlign, 2));
+    buffer.add(_intToBytes(bitsPerSample, 2));
+    buffer.add(ascii.encode('data'));
+    buffer.add(_intToBytes(dataSize, 4));
+    buffer.add(pcmBytes);
+
+    return buffer.toBytes();
+  }
+
+  Uint8List _intToBytes(int value, int byteCount) {
+    final bytes = ByteData(byteCount);
+    if (byteCount == 2) {
+      bytes.setInt16(0, value, Endian.little);
+    } else if (byteCount == 4) {
+      bytes.setInt32(0, value, Endian.little);
+    } else {
+      throw ArgumentError('Unsupported byteCount: $byteCount');
+    }
+    return bytes.buffer.asUint8List();
+  }
+}

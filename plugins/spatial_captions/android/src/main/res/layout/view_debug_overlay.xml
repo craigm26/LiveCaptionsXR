@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#AA000000">
+
+
+    <TextView
+        android:id="@+id/debugTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/ar_debug_overlay_title"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small"
+        android:textColor="@android:color/white"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/debugAnchorInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@android:color/white"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small" />
+
+    <TextView
+        android:id="@+id/debugSessionState"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@android:color/white"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small" />
+
+    <TextView
+        android:id="@+id/debugCaptionCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@android:color/white"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small" />
+
+</LinearLayout>
+

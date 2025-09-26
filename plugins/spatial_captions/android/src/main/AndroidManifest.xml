@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.livecaptionsxr.spatialcaptions">
+
+    <uses-feature android:name="android.hardware.camera.ar" />
+
+    <application>
+        <activity
+            android:name="com.livecaptionsxr.spatialcaptions.AugmentedCaptionActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+    </application>
+
+</manifest>
+

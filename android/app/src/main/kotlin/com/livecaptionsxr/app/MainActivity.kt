@@ -14,6 +14,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
     private val VISUAL_CHANNEL = "com.craig.livecaptions/visual"
     private val HYBRID_CHANNEL = "live_captions_xr/hybrid_localization_methods"
+    private val AR_NAVIGATION_CHANNEL = "live_captions_xr/ar_navigation"
 
     private lateinit var visualCaptureController: VisualCaptureController
     private lateinit var hybridLocalizationEngine: HybridLocalizationEngine
@@ -86,6 +87,19 @@ class MainActivity: FlutterActivity() {
                 else -> {
                     result.notImplemented()
                 }
+            }
+        }
+
+        // AR Navigation Method Channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AR_NAVIGATION_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "showARView" -> {
+                    result.error("UNIMPLEMENTED", "Android AR view not yet available", null)
+                }
+                "arViewWillClose" -> {
+                    result.success("noop")
+                }
+                else -> result.notImplemented()
             }
         }
     }

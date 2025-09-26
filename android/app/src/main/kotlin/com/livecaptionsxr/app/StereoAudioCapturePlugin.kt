@@ -20,13 +20,15 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 class StereoAudioCapturePlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler, ActivityAware {
     private lateinit var methodChannel: MethodChannel
     private lateinit var eventChannel: EventChannel
     private var activity: Activity? = null
     private var audioRecord: AudioRecord? = null
-    private var isRecording = false
+    private val isRecording = AtomicBoolean(false)
     private var eventSink: EventChannel.EventSink? = null
     private val sampleRate = 16000
     private val bufferSize = AudioRecord.getMinBufferSize(
@@ -91,39 +93,87 @@ class StereoAudioCapturePlugin : FlutterPlugin, MethodCallHandler, EventChannel.
         eventSink = null
     }
 
+    private val captureExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "StereoAudioCapture").apply { priority = Thread.NORM_PRIORITY }
+    }
+
     private fun startRecording() {
-        if (isRecording) return
+        val activityRef = activity ?: return
+
+        if (!isRecording.compareAndSet(false, true)) return
+
+        val minBuffer = AudioRecord.getMinBufferSize(
+            sampleRate,
+            AudioFormat.CHANNEL_IN_STEREO,
+            AudioFormat.ENCODING_PCM_FLOAT
+        )
+        val safeBufferSize = (minBuffer * 2).coerceAtLeast(sampleRate / 5)
+
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.MIC,
             sampleRate,
             AudioFormat.CHANNEL_IN_STEREO,
             AudioFormat.ENCODING_PCM_FLOAT,
-            bufferSize
+            safeBufferSize
         )
-        audioRecord?.startRecording()
-        isRecording = true
-        Thread {
-            val floatBuffer = FloatArray(bufferSize)
-            while (isRecording && audioRecord?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                val read = audioRecord?.read(floatBuffer, 0, floatBuffer.size, AudioRecord.READ_BLOCKING) ?: 0
-                if (read > 0) {
-                    // Convert float array to byte array (Float32, little endian)
-                    val byteBuffer = ByteBuffer.allocate(read * 4).order(ByteOrder.LITTLE_ENDIAN)
-                    for (i in 0 until read) {
-                        byteBuffer.putFloat(floatBuffer[i])
-                    }
-                    Handler(Looper.getMainLooper()).post {
-                        eventSink?.success(byteBuffer.array())
-                    }
+
+        val record = audioRecord
+        if (record?.state != AudioRecord.STATE_INITIALIZED) {
+            isRecording.set(false)
+            record?.release()
+            audioRecord = null
+            return
+        }
+
+        record.startRecording()
+
+        captureExecutor.execute {
+            val floatBuffer = FloatArray(safeBufferSize)
+            val byteBuffer = ByteBuffer.allocateDirect(safeBufferSize * Float.SIZE_BYTES)
+                .order(ByteOrder.LITTLE_ENDIAN)
+
+            while (isRecording.get() && record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                val read = record.read(floatBuffer, 0, floatBuffer.size, AudioRecord.READ_BLOCKING)
+                if (read <= 0) continue
+
+                val evenSamples = if (read % 2 == 0) read else read - 1
+                if (evenSamples <= 0) continue
+
+                byteBuffer.clear()
+                for (i in 0 until evenSamples) {
+                    byteBuffer.putFloat(floatBuffer[i])
+                }
+
+                val payload = ByteArray(byteBuffer.position())
+                byteBuffer.flip()
+                byteBuffer.get(payload)
+
+                postToMainThread(activityRef.mainLooper) {
+                    eventSink?.success(payload)
                 }
             }
-        }.start()
+
+            record.stop()
+            record.release()
+            audioRecord = null
+            isRecording.set(false)
+        }
     }
 
     private fun stopRecording() {
-        isRecording = false
-        audioRecord?.stop()
-        audioRecord?.release()
-        audioRecord = null
+        if (isRecording.compareAndSet(true, false)) {
+            audioRecord?.stop()
+            audioRecord?.release()
+            audioRecord = null
+        }
     }
+
+    private inline fun postToMainThread(looper: Looper, crossinline block: () -> Unit) {
+        if (Looper.myLooper() == looper) {
+            block()
+        } else {
+            Handler(looper).post { block() }
+        }
+    }
+
 } 

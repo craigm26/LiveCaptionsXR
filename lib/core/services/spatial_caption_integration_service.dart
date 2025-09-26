@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+
 import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:spatial_captions/spatial_captions.dart';
@@ -51,20 +53,23 @@ class SpatialCaptionIntegrationService {
     // Initialize plugin with AR scene view (iOS only) - single attempt since AR View should be ready
     try {
       _logger.i('🎯 [SPATIAL INTEGRATION] About to call SpatialCaptions.initializeWithSceneView()', category: LogCategory.captions);
-      _logger.i('🔍 [SPATIAL INTEGRATION] Looking for ARSCNView in view hierarchy...', category: LogCategory.captions);
-      
+      _logger.i('🔍 [SPATIAL INTEGRATION] Looking for ARSCNView/SceneView in view hierarchy...', category: LogCategory.captions);
+
       final sceneViewInitialized = await SpatialCaptions.initializeWithSceneView();
-      
+
       _logger.i('📊 [SPATIAL INTEGRATION] SpatialCaptions.initializeWithSceneView() returned: $sceneViewInitialized', category: LogCategory.captions);
-      
+
       if (!sceneViewInitialized) {
-        _logger.e('🚨 [SPATIAL INTEGRATION] CRITICAL: ARSCNView not found in view hierarchy!', category: LogCategory.captions);
-        _logger.e('❌ [SPATIAL INTEGRATION] This means AR View is not presented yet or ARSCNView creation failed', category: LogCategory.captions);
-        throw Exception('ARSCNView not available for spatial captions initialization');
+        _logger.w('⚠️ [SPATIAL INTEGRATION] AR scene view not yet available. Spatial captions will start once the scene is ready.', category: LogCategory.captions);
+        return;
       }
-      
-      _logger.i('🎉 [SPATIAL INTEGRATION] SUCCESS: ARSCNView found and plugin initialized!', category: LogCategory.captions);
+
+      _logger.i('🎉 [SPATIAL INTEGRATION] SUCCESS: Scene view found and plugin initialized!', category: LogCategory.captions);
       _logger.i('✅ [SPATIAL INTEGRATION] Spatial captions ready for use', category: LogCategory.captions);
+    } on MissingPluginException catch (e, stackTrace) {
+      _logger.w('⚠️ [SPATIAL INTEGRATION] Spatial captions plugin not found on ${Platform.operatingSystem}.', category: LogCategory.captions, error: e, stackTrace: stackTrace);
+      _logger.w('⚠️ [SPATIAL INTEGRATION] Continuing without spatial captions support.', category: LogCategory.captions);
+      return;
     } catch (e, stackTrace) {
       _logger.e('💥 [SPATIAL INTEGRATION] INITIALIZATION FAILED!', category: LogCategory.captions, error: e, stackTrace: stackTrace);
       _logger.e('❌ [SPATIAL INTEGRATION] Will not proceed with AR View presentation', category: LogCategory.captions);
