@@ -7,6 +7,8 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
     var sceneView: ARSCNView!
     var captionChannel: FlutterMethodChannel?
     var onSessionReady: (() -> Void)?
+    private var hasShownSafetyWarning = false
+    private var safetyOverlayView: UIView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -110,13 +112,16 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+
         NSLog("🎬 [NATIVE] ARViewController.viewDidAppear - sceneView frame: %@", NSCoder.string(for: sceneView.frame))
         NSLog("🎬 [NATIVE] sceneView.isHidden: %@, alpha: %f", sceneView.isHidden ? "YES" : "NO", sceneView.alpha)
-        
+
         // Add close button
         setupCloseButton()
-        
+
+        // Show AR safety warning immediately when AR experience begins
+        presentSafetyWarningIfNeeded()
+
         // Set up MethodChannels for captions and AR frames
         if let appDelegate = UIApplication.shared.delegate as? FlutterAppDelegate,
            let controller = appDelegate.window?.rootViewController as? FlutterViewController {
@@ -156,6 +161,73 @@ class ARViewController: UIViewController, ARSCNViewDelegate {
             closeButton.widthAnchor.constraint(equalToConstant: 60),
             closeButton.heightAnchor.constraint(equalToConstant: 40)
         ])
+    }
+
+    private func presentSafetyWarningIfNeeded() {
+        guard !hasShownSafetyWarning else { return }
+        hasShownSafetyWarning = true
+
+        let overlay = UIView()
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        view.addSubview(overlay)
+        safetyOverlayView = overlay
+
+        NSLayoutConstraint.activate([
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            overlay.topAnchor.constraint(equalTo: view.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        let container = UIStackView()
+        container.axis = .vertical
+        container.spacing = 16
+        container.alignment = .center
+        container.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(container)
+
+        NSLayoutConstraint.activate([
+            container.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            container.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            container.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 24),
+            container.trailingAnchor.constraint(lessThanOrEqualTo: overlay.trailingAnchor, constant: -24)
+        ])
+
+        let titleLabel = UILabel()
+        titleLabel.text = "Stay safe while using AR"
+        titleLabel.textColor = .white
+        titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
+        titleLabel.textAlignment = .center
+
+        let messageLabel = UILabel()
+        messageLabel.text = "Use AR with a parent or guardian if you're under 13. Always stay aware of your surroundings."
+        messageLabel.textColor = .white
+        messageLabel.font = UIFont.systemFont(ofSize: 16)
+        messageLabel.numberOfLines = 0
+        messageLabel.textAlignment = .center
+
+        let continueButton = UIButton(type: .system)
+        continueButton.setTitle("I Understand", for: .normal)
+        continueButton.setTitleColor(.black, for: .normal)
+        continueButton.backgroundColor = .white
+        continueButton.layer.cornerRadius = 10
+        continueButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 24, bottom: 12, right: 24)
+        continueButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .medium)
+        continueButton.addTarget(self, action: #selector(dismissSafetyWarning), for: .touchUpInside)
+
+        container.addArrangedSubview(titleLabel)
+        container.addArrangedSubview(messageLabel)
+        container.addArrangedSubview(continueButton)
+    }
+
+    @objc private func dismissSafetyWarning() {
+        UIView.animate(withDuration: 0.25, animations: {
+            self.safetyOverlayView?.alpha = 0
+        }, completion: { _ in
+            self.safetyOverlayView?.removeFromSuperview()
+            self.safetyOverlayView = nil
+        })
     }
     
     @objc private func closeButtonTapped() {
