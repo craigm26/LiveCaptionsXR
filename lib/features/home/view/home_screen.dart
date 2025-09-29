@@ -57,27 +57,40 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkAndPromptModelDownload() async {
-    _logger.d('🔍 Checking model availability on app startup...',
-        category: LogCategory.system);
+    _logger.d(
+      '🔍 Checking model availability on app startup...',
+      category: LogCategory.system,
+    );
 
     // Check if required models exist
-    _logger.d('🔍 Checking Gemma model availability...',
-        category: LogCategory.gemma);
-    final gemmaExists =
-        await _modelDownloadManager.modelExists('gemma-3n-E4B-it-int4');
-    _logger.d('📦 Gemma model exists: $gemmaExists',
-        category: LogCategory.gemma);
-
-    _logger.d('🔍 Checking Whisper model availability...',
-        category: LogCategory.speech);
-    final whisperExists =
-        await _modelDownloadManager.modelExists('whisper-base');
-    _logger.d('📦 Whisper model exists: $whisperExists',
-        category: LogCategory.speech);
+    _logger.d(
+      '🔍 Checking Gemma model availability...',
+      category: LogCategory.gemma,
+    );
+    final gemmaExists = await _modelDownloadManager.modelExists(
+      'gemma-3n-E4B-it-int4',
+    );
+    _logger.d(
+      '📦 Gemma model exists: $gemmaExists',
+      category: LogCategory.gemma,
+    );
 
     _logger.d(
-        '📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists',
-        category: LogCategory.system);
+      '🔍 Checking Whisper model availability...',
+      category: LogCategory.speech,
+    );
+    final whisperExists = await _modelDownloadManager.modelExists(
+      'whisper-base',
+    );
+    _logger.d(
+      '📦 Whisper model exists: $whisperExists',
+      category: LogCategory.speech,
+    );
+
+    _logger.d(
+      '📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists',
+      category: LogCategory.system,
+    );
 
     // Determine which models are needed for this platform
     final needsWhisper = !kIsWeb && !Platform.isIOS;
@@ -103,21 +116,27 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session
   Future<void> _initializeGemmaBeforeAR() async {
     if (_isGemmaInitialized || _isGemmaInitializing) {
-      _logger.i('🤖 Gemma already initialized or initializing, skipping',
-          category: LogCategory.gemma);
+      _logger.i(
+        '🤖 Gemma already initialized or initializing, skipping',
+        category: LogCategory.gemma,
+      );
       return;
     }
 
     try {
       _isGemmaInitializing = true;
-      _logger.i('🤖 Pre-initializing Gemma 3n service before AR launch...',
-          category: LogCategory.gemma);
+      _logger.i(
+        '🤖 Pre-initializing Gemma 3n service before AR launch...',
+        category: LogCategory.gemma,
+      );
 
       final gemma3nService = sl<Gemma3nService>();
 
       if (gemma3nService.isReady) {
-        _logger.i('✅ Gemma 3n service already ready',
-            category: LogCategory.gemma);
+        _logger.i(
+          '✅ Gemma 3n service already ready',
+          category: LogCategory.gemma,
+        );
         _isGemmaInitialized = true;
         return;
       }
@@ -128,32 +147,49 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Initialize with platform-specific timeout
-      final timeout =
-          Platform.isIOS ? Duration(seconds: 90) : Duration(seconds: 120);
+      final timeout = Platform.isIOS
+          ? Duration(seconds: 90)
+          : Duration(seconds: 120);
       _logger.i(
-          '⏱️ Initializing Gemma with ${timeout.inSeconds}s timeout for ${Platform.isIOS ? 'iOS' : 'Android'}',
-          category: LogCategory.gemma);
+        '⏱️ Initializing Gemma with ${timeout.inSeconds}s timeout for ${Platform.isIOS ? 'iOS' : 'Android'}',
+        category: LogCategory.gemma,
+      );
 
       await gemma3nService.initialize().timeout(timeout);
 
       if (gemma3nService.isReady) {
-        _logger.i('✅ Gemma 3n service pre-initialized successfully!',
-            category: LogCategory.gemma);
+        _logger.i(
+          '✅ Gemma 3n service pre-initialized successfully!',
+          category: LogCategory.gemma,
+        );
         _isGemmaInitialized = true;
       } else {
-        _logger.w('⚠️ Gemma 3n service initialized but not ready',
-            category: LogCategory.gemma);
+        _logger.w(
+          '⚠️ Gemma 3n service initialized but not ready',
+          category: LogCategory.gemma,
+        );
       }
     } on TimeoutException catch (e) {
-      _logger.e('⏱️ Gemma 3n service initialization timed out',
-          category: LogCategory.gemma, error: e);
-      _logger.w('⚠️ Continuing without Gemma enhancement',
-          category: LogCategory.gemma);
+      _logger.e(
+        '⏱️ Gemma 3n service initialization timed out',
+        category: LogCategory.gemma,
+        error: e,
+      );
+      _logger.w(
+        '⚠️ Continuing without Gemma enhancement',
+        category: LogCategory.gemma,
+      );
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to pre-initialize Gemma 3n service',
-          category: LogCategory.gemma, error: e, stackTrace: stackTrace);
-      _logger.w('⚠️ Continuing without Gemma enhancement',
-          category: LogCategory.gemma);
+      _logger.e(
+        '❌ Failed to pre-initialize Gemma 3n service',
+        category: LogCategory.gemma,
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _logger.w(
+        '⚠️ Continuing without Gemma enhancement',
+        category: LogCategory.gemma,
+      );
     } finally {
       _isGemmaInitializing = false;
       if (mounted) {
@@ -162,8 +198,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showModelDownloadDialog(
-      {required bool gemmaExists, required bool whisperExists}) {
+  Future<bool> _ensureARSafetyAcknowledged(BuildContext context) async {
+    if (kIsWeb || !Platform.isAndroid) {
+      return true;
+    }
+
+    _logger.i(
+      '⚠️ Showing Android AR safety warning dialog...',
+      category: LogCategory.ui,
+    );
+
+    final acknowledged =
+        await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Stay safe while using AR'),
+              content: const Text(
+                "Use AR with a parent or guardian if you're under 13. Always stay aware of your surroundings.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('I Understand'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!acknowledged) {
+      _logger.w(
+        '⚠️ User did not acknowledge AR safety warning',
+        category: LogCategory.ui,
+      );
+    }
+
+    return acknowledged;
+  }
+
+  void _showModelDownloadDialog({
+    required bool gemmaExists,
+    required bool whisperExists,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -211,28 +294,34 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.auto_awesome,
-                                      color: Colors.blue.shade600),
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    color: Colors.blue.shade600,
+                                  ),
                                   const SizedBox(width: 8),
                                   const Text(
                                     'Gemma 3n E2B Model',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               const Text(
                                 'For captions and text processing (2.92 GB)',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               if (gemmaDownloading)
                                 Column(
                                   children: [
                                     LinearProgressIndicator(
-                                        value: gemmaProgress),
+                                      value: gemmaProgress,
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Downloading: ${(gemmaProgress * 100).toStringAsFixed(1)}%',
@@ -246,7 +335,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Text(
                                       'Error: $gemmaError',
                                       style: const TextStyle(
-                                          color: Colors.red, fontSize: 12),
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     ElevatedButton(
@@ -265,8 +356,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: const Text('Download Gemma Model'),
                                 ),
                               if (gemmaCompleted)
-                                const Text('✅ Gemma model ready',
-                                    style: TextStyle(color: Colors.green)),
+                                const Text(
+                                  '✅ Gemma model ready',
+                                  style: TextStyle(color: Colors.green),
+                                ),
                             ],
                           ),
                         ),
@@ -287,13 +380,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               if (!kIsWeb && !Platform.isIOS) ...[
                                 Row(
                                   children: [
-                                    Icon(Icons.mic,
-                                        color: Colors.green.shade600),
+                                    Icon(
+                                      Icons.mic,
+                                      color: Colors.green.shade600,
+                                    ),
                                     const SizedBox(width: 8),
                                     const Text(
                                       'Whisper Base Model',
                                       style: TextStyle(
-                                          fontWeight: FontWeight.bold),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -301,14 +397,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Text(
                                   'For speech-to-text transcription (141 MB)',
                                   style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 if (whisperDownloading)
                                   Column(
                                     children: [
                                       LinearProgressIndicator(
-                                          value: whisperProgress),
+                                        value: whisperProgress,
+                                      ),
                                       const SizedBox(height: 4),
                                       Text(
                                         'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
@@ -322,7 +421,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Text(
                                         'Error: $whisperError',
                                         style: const TextStyle(
-                                            color: Colors.red, fontSize: 12),
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       ElevatedButton(
@@ -341,19 +442,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: const Text('Download Whisper Model'),
                                   ),
                                 if (whisperCompleted)
-                                  const Text('✅ Whisper model ready',
-                                      style: TextStyle(color: Colors.green)),
+                                  const Text(
+                                    '✅ Whisper model ready',
+                                    style: TextStyle(color: Colors.green),
+                                  ),
                                 const SizedBox(height: 16),
                               ] else if (!kIsWeb && Platform.isIOS) ...[
                                 Row(
                                   children: [
-                                    Icon(Icons.mic,
-                                        color: Colors.blue.shade600),
+                                    Icon(
+                                      Icons.mic,
+                                      color: Colors.blue.shade600,
+                                    ),
                                     const SizedBox(width: 8),
                                     const Text(
                                       'Apple Speech Recognition Model',
                                       style: TextStyle(
-                                          fontWeight: FontWeight.bold),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -361,11 +467,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Text(
                                   'Built-in iOS speech recognition model (no download required)',
                                   style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text('✅ iOS Speech Recognition Model ready',
-                                    style: TextStyle(color: Colors.green)),
+                                const Text(
+                                  '✅ iOS Speech Recognition Model ready',
+                                  style: TextStyle(color: Colors.green),
+                                ),
                                 const SizedBox(height: 16),
                               ],
                             ],
@@ -377,22 +487,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Info section
                       Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 16, color: Colors.blueGrey),
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: Colors.blueGrey,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: const Text(
                               'Estimated total download time: ~20-30 min on a 50 Mbps connection',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       GestureDetector(
-                        onTap: () => launchUrl(Uri.parse(
-                            'https://huggingface.co/google/gemma-3n-E2B-it')),
+                        onTap: () => launchUrl(
+                          Uri.parse(
+                            'https://huggingface.co/google/gemma-3n-E2B-it',
+                          ),
+                        ),
                         child: const Text(
                           'Learn more about the models',
                           style: TextStyle(
@@ -415,12 +533,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Check if any required models are currently downloading
                       final hasActiveDownloads =
                           (needsGemma && gemmaDownloading) ||
-                              (needsWhisper && whisperDownloading);
+                          (needsWhisper && whisperDownloading);
 
                       // Check if all required models are completed
                       final allRequiredCompleted =
                           (!needsGemma || gemmaCompleted) &&
-                              (!needsWhisper || whisperCompleted);
+                          (!needsWhisper || whisperCompleted);
 
                       // Only show Close button when all required models are completed
                       // No Cancel option - models must be downloaded
@@ -446,128 +564,178 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Start all services needed for AR mode using the ARSessionCubit
   Future<void> _startAllServicesForARMode() async {
-    _logger.i('🚀🚀🚀 [HOME] _startAllServicesForARMode STARTED!',
-        category: LogCategory.ui);
+    _logger.i(
+      '🚀🚀🚀 [HOME] _startAllServicesForARMode STARTED!',
+      category: LogCategory.ui,
+    );
 
     try {
       if (!mounted) {
-        _logger.w('⚠️ [HOME] Widget not mounted, returning',
-            category: LogCategory.ui);
+        _logger.w(
+          '⚠️ [HOME] Widget not mounted, returning',
+          category: LogCategory.ui,
+        );
         return;
       }
 
-      _logger.i('🔍 [HOME] Step 1: Getting ARSessionCubit...',
-          category: LogCategory.ui);
+      _logger.i(
+        '🔍 [HOME] Step 1: Getting ARSessionCubit...',
+        category: LogCategory.ui,
+      );
       final arSessionCubit = context.read<ARSessionCubit>();
-      _logger.i('✅ [HOME] Step 1 complete: Got arSessionCubit',
-          category: LogCategory.ui);
+      _logger.i(
+        '✅ [HOME] Step 1 complete: Got arSessionCubit',
+        category: LogCategory.ui,
+      );
 
-      _logger.i('🔍 [HOME] Step 2: Getting Whisper service...',
-          category: LogCategory.ui);
+      _logger.i(
+        '🔍 [HOME] Step 2: Getting Whisper service...',
+        category: LogCategory.ui,
+      );
       final whisperService = sl<WhisperService>();
       _logger.i(
-          '✅ [HOME] Step 2 complete: Retrieved Whisper service from service locator',
-          category: LogCategory.speech);
+        '✅ [HOME] Step 2 complete: Retrieved Whisper service from service locator',
+        category: LogCategory.speech,
+      );
 
-      _logger.i('🔍 [HOME] Step 3: Getting Gemma 3n service...',
-          category: LogCategory.ui);
+      _logger.i(
+        '🔍 [HOME] Step 3: Getting Gemma 3n service...',
+        category: LogCategory.ui,
+      );
       final gemma3nService = sl<Gemma3nService>();
       _logger.i(
-          '✅ [HOME] Step 3 complete: Retrieved Gemma 3n service from service locator',
-          category: LogCategory.gemma);
+        '✅ [HOME] Step 3 complete: Retrieved Gemma 3n service from service locator',
+        category: LogCategory.gemma,
+      );
 
       // Platform-specific STT setup
       if (!kIsWeb && Platform.isIOS) {
         _logger.i(
-            '🔍 [HOME] Step 4: Setting up Apple Speech STT event listener...',
-            category: LogCategory.ui);
+          '🔍 [HOME] Step 4: Setting up Apple Speech STT event listener...',
+          category: LogCategory.ui,
+        );
         final appleSpeechService = sl<AppleSpeechService>();
         arSessionCubit.listenToAppleSpeechSTT(appleSpeechService);
         _logger.i(
-            '✅ [HOME] Step 4 complete: Apple Speech STT event listener configured',
-            category: LogCategory.speech);
+          '✅ [HOME] Step 4 complete: Apple Speech STT event listener configured',
+          category: LogCategory.speech,
+        );
       } else {
-        _logger.i('🔍 [HOME] Step 4: Setting up Whisper STT event listener...',
-            category: LogCategory.ui);
+        _logger.i(
+          '🔍 [HOME] Step 4: Setting up Whisper STT event listener...',
+          category: LogCategory.ui,
+        );
         arSessionCubit.listenToWhisperSTT(whisperService);
         _logger.i(
-            '✅ [HOME] Step 4 complete: Whisper STT event listener configured',
-            category: LogCategory.speech);
+          '✅ [HOME] Step 4 complete: Whisper STT event listener configured',
+          category: LogCategory.speech,
+        );
       }
 
       _logger.i(
-          '🔍 [HOME] Step 5: Setting up Gemma 3n enhancement event listener...',
-          category: LogCategory.ui);
+        '🔍 [HOME] Step 5: Setting up Gemma 3n enhancement event listener...',
+        category: LogCategory.ui,
+      );
       arSessionCubit.listenToGemma3nEnhancement(gemma3nService);
       _logger.i(
-          '✅ [HOME] Step 5 complete: Gemma 3n enhancement event listener configured',
-          category: LogCategory.gemma);
+        '✅ [HOME] Step 5 complete: Gemma 3n enhancement event listener configured',
+        category: LogCategory.gemma,
+      );
 
       _logger.i(
-          '🔍 [HOME] Step 6: Starting all AR services through ARSessionCubit...',
-          category: LogCategory.ui);
+        '🔍 [HOME] Step 6: Starting all AR services through ARSessionCubit...',
+        category: LogCategory.ui,
+      );
       await arSessionCubit.startAllARServices(
         startLiveCaptions: () async {
-          _logger.i('🔍 [HOME] Step 6a: Getting LiveCaptionsCubit...',
-              category: LogCategory.ui);
+          _logger.i(
+            '🔍 [HOME] Step 6a: Getting LiveCaptionsCubit...',
+            category: LogCategory.ui,
+          );
           final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
-          _logger.i('✅ [HOME] Step 6a complete: Got LiveCaptionsCubit',
-              category: LogCategory.ui);
+          _logger.i(
+            '✅ [HOME] Step 6a complete: Got LiveCaptionsCubit',
+            category: LogCategory.ui,
+          );
 
-          _logger.i('🔍 [HOME] Step 6b: Checking LiveCaptions state...',
-              category: LogCategory.ui);
+          _logger.i(
+            '🔍 [HOME] Step 6b: Checking LiveCaptions state...',
+            category: LogCategory.ui,
+          );
           if (liveCaptionsCubit.state is! LiveCaptionsActive ||
               !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
             _logger.i(
-                '🎤 [HOME] Step 6c: Starting live captions for AR mode...',
-                category: LogCategory.captions);
+              '🎤 [HOME] Step 6c: Starting live captions for AR mode...',
+              category: LogCategory.captions,
+            );
             await liveCaptionsCubit.startCaptions();
             _logger.i(
-                '✅ [HOME] Step 6c complete: Live captions started for AR mode',
-                category: LogCategory.captions);
+              '✅ [HOME] Step 6c complete: Live captions started for AR mode',
+              category: LogCategory.captions,
+            );
           } else {
-            _logger.i('🎤 [HOME] Step 6c: Live captions already active',
-                category: LogCategory.captions);
+            _logger.i(
+              '🎤 [HOME] Step 6c: Live captions already active',
+              category: LogCategory.captions,
+            );
           }
         },
         startSoundDetection: () async {
           final soundDetectionCubit = context.read<SoundDetectionCubit>();
           if (!soundDetectionCubit.isActive) {
-            _logger.i('🔊 Starting sound detection for AR mode...',
-                category: LogCategory.audio);
+            _logger.i(
+              '🔊 Starting sound detection for AR mode...',
+              category: LogCategory.audio,
+            );
             await soundDetectionCubit.start();
-            _logger.i('✅ Sound detection started for AR mode',
-                category: LogCategory.audio);
+            _logger.i(
+              '✅ Sound detection started for AR mode',
+              category: LogCategory.audio,
+            );
           } else {
-            _logger.i('🔊 Sound detection already active',
-                category: LogCategory.audio);
+            _logger.i(
+              '🔊 Sound detection already active',
+              category: LogCategory.audio,
+            );
           }
         },
         startLocalization: () async {
           final localizationCubit = context.read<LocalizationCubit>();
           if (!localizationCubit.isActive) {
-            _logger.i('🧭 Starting localization for AR mode...',
-                category: LogCategory.ar);
+            _logger.i(
+              '🧭 Starting localization for AR mode...',
+              category: LogCategory.ar,
+            );
             await localizationCubit.start();
-            _logger.i('✅ Localization started for AR mode',
-                category: LogCategory.ar);
+            _logger.i(
+              '✅ Localization started for AR mode',
+              category: LogCategory.ar,
+            );
           } else {
-            _logger.i('🧭 Localization already active',
-                category: LogCategory.ar);
+            _logger.i(
+              '🧭 Localization already active',
+              category: LogCategory.ar,
+            );
           }
         },
         startVisualIdentification: () async {
-          final visualIdentificationCubit =
-              context.read<VisualIdentificationCubit>();
+          final visualIdentificationCubit = context
+              .read<VisualIdentificationCubit>();
           if (!visualIdentificationCubit.isActive) {
-            _logger.i('👁️ Starting visual identification for AR mode...',
-                category: LogCategory.camera);
+            _logger.i(
+              '👁️ Starting visual identification for AR mode...',
+              category: LogCategory.camera,
+            );
             await visualIdentificationCubit.start();
-            _logger.i('✅ Visual identification started for AR mode',
-                category: LogCategory.camera);
+            _logger.i(
+              '✅ Visual identification started for AR mode',
+              category: LogCategory.camera,
+            );
           } else {
-            _logger.i('👁️ Visual identification already active',
-                category: LogCategory.camera);
+            _logger.i(
+              '👁️ Visual identification already active',
+              category: LogCategory.camera,
+            );
           }
         },
         // Provide stop callbacks for proper cleanup
@@ -575,11 +743,15 @@ class _HomeScreenState extends State<HomeScreen> {
           final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
           if (liveCaptionsCubit.state is LiveCaptionsActive &&
               (liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-            _logger.i('🎤 Stopping live captions...',
-                category: LogCategory.captions);
+            _logger.i(
+              '🎤 Stopping live captions...',
+              category: LogCategory.captions,
+            );
             await liveCaptionsCubit.stopCaptions();
-            _logger.i('✅ Live captions stopped',
-                category: LogCategory.captions);
+            _logger.i(
+              '✅ Live captions stopped',
+              category: LogCategory.captions,
+            );
           }
         },
         stopSoundDetection: () async {
@@ -599,8 +771,8 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         stopVisualIdentification: () async {
-          final visualIdentificationCubit =
-              context.read<VisualIdentificationCubit>();
+          final visualIdentificationCubit = context
+              .read<VisualIdentificationCubit>();
           if (visualIdentificationCubit.isActive) {
             _logger.i('👁️ Stopping visual identification...');
             await visualIdentificationCubit.stop();
@@ -609,14 +781,20 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
       _logger.i(
-          '✅ [HOME] Step 6 complete: All AR services started successfully through ARSessionCubit',
-          category: LogCategory.ui);
+        '✅ [HOME] Step 6 complete: All AR services started successfully through ARSessionCubit',
+        category: LogCategory.ui,
+      );
       _logger.i(
-          '🎉🎉🎉 [HOME] _startAllServicesForARMode COMPLETED SUCCESSFULLY!',
-          category: LogCategory.ui);
+        '🎉🎉🎉 [HOME] _startAllServicesForARMode COMPLETED SUCCESSFULLY!',
+        category: LogCategory.ui,
+      );
     } catch (e, stackTrace) {
-      _logger.e('❌ [HOME] _startAllServicesForARMode FAILED!',
-          category: LogCategory.ui, error: e, stackTrace: stackTrace);
+      _logger.e(
+        '❌ [HOME] _startAllServicesForARMode FAILED!',
+        category: LogCategory.ui,
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -639,9 +817,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _logger.w('🧪 Emulator detected: showing AR/camera fallback.');
           final cameraService = sl<CameraService>();
           return FutureBuilder<void>(
-            future: cameraService
-                .initialize()
-                .then((_) => cameraService.startCamera()),
+            future: cameraService.initialize().then(
+              (_) => cameraService.startCamera(),
+            ),
             builder: (context, camSnapshot) {
               if (camSnapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
@@ -702,10 +880,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'Tap "Enter AR Mode" to begin',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white38, fontSize: 14),
                 ),
               ],
             ),
@@ -721,7 +896,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return BlocBuilder<SettingsCubit, dynamic>(
       builder: (context, settingsState) {
-        final debugOverlayEnabled = (settingsState != null &&
+        final debugOverlayEnabled =
+            (settingsState != null &&
                 settingsState.debugLoggingOverlayEnabled != null)
             ? settingsState.debugLoggingOverlayEnabled
             : false;
@@ -763,8 +939,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         builder: (context, arSessionState) {
                           final inARMode = arSessionState is ARSessionReady;
                           // Only log significant AR state changes
-                          return BlocBuilder<LiveCaptionsCubit,
-                              LiveCaptionsState>(
+                          return BlocBuilder<
+                            LiveCaptionsCubit,
+                            LiveCaptionsState
+                          >(
                             builder: (context, captionsState) {
                               // Removed verbose caption state logging
                               // Removed verbose caption details logging
@@ -776,8 +954,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   captionsState is LiveCaptionsActive) {
                                 showOverlay = true;
                                 _logger.i(
-                                    '🎯 [UI] Showing captions overlay in AR mode',
-                                    category: LogCategory.ui);
+                                  '🎯 [UI] Showing captions overlay in AR mode',
+                                  category: LogCategory.ui,
+                                );
                               } else if (inARMode &&
                                   captionsState is LiveCaptionsActive &&
                                   captionsState.showOverlayFallback) {
@@ -794,8 +973,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       right: 16,
                                       child: LiveCaptionsWidget(
                                         onToggle: () {
-                                          final cubit =
-                                              context.read<LiveCaptionsCubit>();
+                                          final cubit = context
+                                              .read<LiveCaptionsCubit>();
                                           if (cubit.state
                                                   is LiveCaptionsActive &&
                                               (cubit.state
@@ -824,43 +1003,49 @@ class _HomeScreenState extends State<HomeScreen> {
                       Positioned(
                         top: 32,
                         left: 16,
-                        child: BlocBuilder<SoundDetectionCubit,
-                            SoundDetectionState>(
-                          builder: (context, state) {
-                            if (state is SoundDetectionLoaded &&
-                                state.events.isNotEmpty) {
-                              final SoundEvent event = state.events.last;
-                              return Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue
-                                      .withAlpha((255 * 0.8).round()),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.hearing,
-                                        color: Colors.white),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                        style: const TextStyle(
-                                            color: Colors.white),
+                        child:
+                            BlocBuilder<
+                              SoundDetectionCubit,
+                              SoundDetectionState
+                            >(
+                              builder: (context, state) {
+                                if (state is SoundDetectionLoaded &&
+                                    state.events.isNotEmpty) {
+                                  final SoundEvent event = state.events.last;
+                                  return Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withAlpha(
+                                        (255 * 0.8).round(),
                                       ),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                  ],
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.hearing,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
                       ),
                       // Directional cue overlay (center)
                       Center(
-                        child:
-                            BlocBuilder<LocalizationCubit, LocalizationState>(
+                        child: BlocBuilder<LocalizationCubit, LocalizationState>(
                           builder: (context, state) {
                             if (state is LocalizationLoaded) {
                               IconData arrowIcon;
@@ -880,13 +1065,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               return Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(arrowIcon,
-                                      color: Colors.orange, size: 64),
+                                  Icon(
+                                    arrowIcon,
+                                    color: Colors.orange,
+                                    size: 64,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Sound from ${state.direction} (${(state.confidence * 100).toStringAsFixed(0)}%)',
                                     style: const TextStyle(
-                                        color: Colors.orange, fontSize: 18),
+                                      color: Colors.orange,
+                                      fontSize: 18,
+                                    ),
                                   ),
                                 ],
                               );
@@ -896,8 +1086,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       // Visual object highlight overlay (bottom right)
-                      BlocBuilder<VisualIdentificationCubit,
-                          VisualIdentificationState>(
+                      BlocBuilder<
+                        VisualIdentificationCubit,
+                        VisualIdentificationState
+                      >(
                         builder: (context, state) {
                           if (state is VisualIdentificationLoaded &&
                               state.objects.isNotEmpty) {
@@ -909,21 +1101,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                      color: Colors.greenAccent, width: 3),
+                                    color: Colors.greenAccent,
+                                    width: 3,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
-                                  color: Colors.black
-                                      .withAlpha((255 * 0.3).round()),
+                                  color: Colors.black.withAlpha(
+                                    (255 * 0.3).round(),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.visibility,
-                                        color: Colors.greenAccent),
+                                    const Icon(
+                                      Icons.visibility,
+                                      color: Colors.greenAccent,
+                                    ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
                                         style: const TextStyle(
-                                            color: Colors.greenAccent),
+                                          color: Colors.greenAccent,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -936,13 +1134,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  floatingActionButton:
-                      BlocListener<ARSessionCubit, ARSessionState>(
+                  floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
                       if (state is ARSessionReady) {
                         // AR session is ready. No need to start services here anymore.
                         _logger.i(
-                            '🔄 AR session ready. Services should already be started.');
+                          '🔄 AR session ready. Services should already be started.',
+                        );
                       } else if (state is ARSessionError) {
                         _logger.e('❌ AR session error: ${state.message}');
                       } else if (state is ARSessionInitial) {
@@ -950,43 +1148,48 @@ class _HomeScreenState extends State<HomeScreen> {
                         _logger.i('✅ AR mode closed and all services stopped');
 
                         // Double-check that live captions are stopped
-                        final liveCaptionsCubit =
-                            context.read<LiveCaptionsCubit>();
+                        final liveCaptionsCubit = context
+                            .read<LiveCaptionsCubit>();
                         if (liveCaptionsCubit.state is LiveCaptionsActive &&
                             (liveCaptionsCubit.state as LiveCaptionsActive)
                                 .isListening) {
                           _logger.w(
-                              '⚠️ Live captions still active after AR session end, stopping...');
+                            '⚠️ Live captions still active after AR session end, stopping...',
+                          );
                           liveCaptionsCubit.stopCaptions();
                         }
 
                         // Double-check that other services are stopped
-                        final soundDetectionCubit =
-                            context.read<SoundDetectionCubit>();
+                        final soundDetectionCubit = context
+                            .read<SoundDetectionCubit>();
                         if (soundDetectionCubit.isActive) {
                           _logger.w(
-                              '⚠️ Sound detection still active after AR session end, stopping...');
+                            '⚠️ Sound detection still active after AR session end, stopping...',
+                          );
                           soundDetectionCubit.stop();
                         }
 
-                        final localizationCubit =
-                            context.read<LocalizationCubit>();
+                        final localizationCubit = context
+                            .read<LocalizationCubit>();
                         if (localizationCubit.isActive) {
                           _logger.w(
-                              '⚠️ Localization still active after AR session end, stopping...');
+                            '⚠️ Localization still active after AR session end, stopping...',
+                          );
                           localizationCubit.stop();
                         }
 
-                        final visualIdentificationCubit =
-                            context.read<VisualIdentificationCubit>();
+                        final visualIdentificationCubit = context
+                            .read<VisualIdentificationCubit>();
                         if (visualIdentificationCubit.isActive) {
                           _logger.w(
-                              '⚠️ Visual identification still active after AR session end, stopping...');
+                            '⚠️ Visual identification still active after AR session end, stopping...',
+                          );
                           visualIdentificationCubit.stop();
                         }
 
                         _logger.i(
-                            '✅ All services verified as stopped after AR session end');
+                          '✅ All services verified as stopped after AR session end',
+                        );
                       }
                     },
                     child: FloatingActionButton(
@@ -994,48 +1197,73 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: _isGemmaInitializing
                           ? null
                           : () async {
-                              _logger.i('🥽 Enter AR Mode button pressed...',
-                                  category: LogCategory.ui);
+                              _logger.i(
+                                '🥽 Enter AR Mode button pressed...',
+                                category: LogCategory.ui,
+                              );
 
-                              final arSessionCubit =
-                                  context.read<ARSessionCubit>();
-                              _logger.i('🎯 Got ARSessionCubit instance',
-                                  category: LogCategory.ui);
+                              final arSessionCubit = context
+                                  .read<ARSessionCubit>();
+                              _logger.i(
+                                '🎯 Got ARSessionCubit instance',
+                                category: LogCategory.ui,
+                              );
 
                               try {
+                                final shouldProceed =
+                                    await _ensureARSafetyAcknowledged(context);
+                                if (!shouldProceed) {
+                                  _logger.i(
+                                    '🚫 AR mode launch cancelled after safety warning',
+                                    category: LogCategory.ui,
+                                  );
+                                  return;
+                                }
+
                                 // Ensure Gemma is initialized before starting AR
                                 if (!_isGemmaInitialized &&
                                     !_isGemmaInitializing) {
                                   _logger.i(
-                                      '🤖 Gemma not yet initialized, initializing now...',
-                                      category: LogCategory.ar);
+                                    '🤖 Gemma not yet initialized, initializing now...',
+                                    category: LogCategory.ar,
+                                  );
                                   await _initializeGemmaBeforeAR();
                                 }
 
                                 // Start all AR services
                                 await _startAllServicesForARMode();
                                 _logger.i(
-                                    '✅ [HOME] All AR services started successfully',
-                                    category: LogCategory.ui);
+                                  '✅ [HOME] All AR services started successfully',
+                                  category: LogCategory.ui,
+                                );
 
                                 // Initialize AR session (this will block until AR view is closed)
                                 _logger.i(
-                                    '🎯 [HOME] Now calling initializeARSession...',
-                                    category: LogCategory.ui);
+                                  '🎯 [HOME] Now calling initializeARSession...',
+                                  category: LogCategory.ui,
+                                );
                                 await arSessionCubit.initializeARSession(
-                                    restoreFromPersistence: false);
-                                _logger.i('✅ [HOME] AR session completed',
-                                    category: LogCategory.ui);
+                                  restoreFromPersistence: false,
+                                );
+                                _logger.i(
+                                  '✅ [HOME] AR session completed',
+                                  category: LogCategory.ui,
+                                );
                               } catch (e, stackTrace) {
-                                _logger.e('❌ Failed to enter AR mode',
-                                    error: e, stackTrace: stackTrace);
+                                _logger.e(
+                                  '❌ Failed to enter AR mode',
+                                  error: e,
+                                  stackTrace: stackTrace,
+                                );
 
-                                ScaffoldMessenger.of(context)
-                                    .hideCurrentSnackBar();
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).hideCurrentSnackBar();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                        '❌ Failed to enter AR mode: ${e.toString()}'),
+                                      '❌ Failed to enter AR mode: ${e.toString()}',
+                                    ),
                                     backgroundColor: Colors.red,
                                     duration: const Duration(seconds: 5),
                                   ),
@@ -1051,8 +1279,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Icon(Icons.view_in_ar),
