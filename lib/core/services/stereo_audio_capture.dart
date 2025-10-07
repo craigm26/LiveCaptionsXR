@@ -192,23 +192,29 @@ class StereoAudioCapture {
         if (data.length % 2 != 0) {
           _logger.w('⚠️ Odd number of samples received: ${data.length} samples');
           _logger.d('📊 Raw buffer length: ${event.length} bytes');
-          
-          // Auto-fix by truncating the last sample if it's just one sample off
-          if (data.length % 2 == 1 && data.length > 1) {
-            _logger.w('⚠️ Truncating last sample to make even number for stereo');
-            final truncatedData = Float32List(data.length - 1);
-            truncatedData.setAll(0, data.take(data.length - 1));
-            final truncatedLeft = Float32List(truncatedData.length ~/ 2);
-            final truncatedRight = Float32List(truncatedData.length ~/ 2);
-            
-            for (var i = 0; i < truncatedData.length; i += 2) {
-              truncatedLeft[i ~/ 2] = truncatedData[i];
-              truncatedRight[i ~/ 2] = truncatedData[i + 1];
+
+          // Whisper occasionally prepends a single-channel (mono) sample when
+          // capturing stereo from certain devices. Instead of truncating the
+          // trailing sample (which effectively drops real audio), prepend a zero to
+          // yield an even number of samples while keeping the rest of the frame
+          // intact.
+          if (data.length % 2 == 1) {
+            final patchedData = Float32List(data.length + 1);
+            patchedData[0] = 0.0;
+            patchedData.setAll(1, data);
+            _logger.w('⚠️ Prepending zero sample to balance stereo frame');
+
+            final left = Float32List(patchedData.length ~/ 2);
+            final right = Float32List(patchedData.length ~/ 2);
+
+            for (var i = 0; i < patchedData.length; i += 2) {
+              left[i ~/ 2] = patchedData[i];
+              right[i ~/ 2] = patchedData[i + 1];
             }
-            
-            return StereoAudioFrame(left: truncatedLeft, right: truncatedRight);
+
+            return StereoAudioFrame(left: left, right: right);
           }
-          
+
           _logger.e('❌ Cannot fix audio buffer with ${data.length} samples');
           throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');
         }
