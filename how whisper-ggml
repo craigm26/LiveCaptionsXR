@@ -1,0 +1,59 @@
+[1mdiff --git a/lib/core/services/stereo_audio_capture.dart b/lib/core/services/stereo_audio_capture.dart[m
+[1mindex 5cf60bc..71ad671 100644[m
+[1m--- a/lib/core/services/stereo_audio_capture.dart[m
+[1m+++ b/lib/core/services/stereo_audio_capture.dart[m
+[36m@@ -190,27 +190,33 @@[m [mclass StereoAudioCapture {[m
+         [m
+         // Validate we have even number of samples for stereo[m
+         if (data.length % 2 != 0) {[m
+[31m-          _logger.w('⚠️ Odd number of samples received: ${data.length} samples');[m
+[31m-          _logger.d('📊 Raw buffer length: ${event.length} bytes');[m
+[31m-          [m
+[31m-          // Auto-fix by truncating the last sample if it's just one sample off[m
+[31m-          if (data.length % 2 == 1 && data.length > 1) {[m
+[31m-            _logger.w('⚠️ Truncating last sample to make even number for stereo');[m
+[31m-            final truncatedData = Float32List(data.length - 1);[m
+[31m-            truncatedData.setAll(0, data.take(data.length - 1));[m
+[31m-            final truncatedLeft = Float32List(truncatedData.length ~/ 2);[m
+[31m-            final truncatedRight = Float32List(truncatedData.length ~/ 2);[m
+[31m-            [m
+[31m-            for (var i = 0; i < truncatedData.length; i += 2) {[m
+[31m-              truncatedLeft[i ~/ 2] = truncatedData[i];[m
+[31m-              truncatedRight[i ~/ 2] = truncatedData[i + 1];[m
+[31m-            }[m
+[31m-            [m
+[31m-            return StereoAudioFrame(left: truncatedLeft, right: truncatedRight);[m
+[31m-          }[m
+[31m-          [m
+[31m-          _logger.e('❌ Cannot fix audio buffer with ${data.length} samples');[m
+[31m-          throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');[m
+[32m+[m[32m      _logger.w('⚠️ Odd number of samples received: ${data.length} samples');[m
+[32m+[m[32m      _logger.d('📊 Raw buffer length: ${event.length} bytes');[m
+[32m+[m
+[32m+[m[32m      // Whisper occasionally prepends a single-channel (mono) sample when[m
+[32m+[m[32m      // capturing stereo from certain devices. Instead of truncating the[m
+[32m+[m[32m      // trailing sample (which effectively drops real audio), prepend a zero to[m
+[32m+[m[32m      // yield an even number of samples while keeping the rest of the frame[m
+[32m+[m[32m      // intact.[m
+[32m+[m[32m      if (data.length % 2 == 1) {[m
+[32m+[m[32m        final patchedData = Float32List(data.length + 1);[m
+[32m+[m[32m        patchedData[0] = 0.0;[m
+[32m+[m[32m        patchedData.setAll(1, data);[m
+[32m+[m[32m        _logger.w('⚠️ Prepending zero sample to balance stereo frame');[m
+[32m+[m
+[32m+[m[32m        final left = Float32List(patchedData.length ~/ 2);[m
+[32m+[m[32m        final right = Float32List(patchedData.length ~/ 2);[m
+[32m+[m
+[32m+[m[32m        for (var i = 0; i < patchedData.length; i += 2) {[m
+[32m+[m[32m          left[i ~/ 2] = patchedData[i];[m
+[32m+[m[32m          right[i ~/ 2] = patchedData[i + 1];[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        return StereoAudioFrame(left: left, right: right);[m
+[32m+[m[32m      }[m
+[32m+[m
+[32m+[m[32m      _logger.e('❌ Cannot fix audio buffer with ${data.length} samples');[m
+[32m+[m[32m      throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');[m
+         }[m
+         [m
+         final left = Float32List(data.length ~/ 2);[m

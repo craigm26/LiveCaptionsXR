@@ -5,7 +5,7 @@ publish_to: none
 
 name: live_captions_xr
 description: Live Captions XR - Real-time, spatially-aware closed captioning powered by on-device AI for accessibility.
-version: 1.0.0+2
+version: 1.0.0+4
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -24,23 +24,23 @@ dependencies:
   logger: ^2.0.2+1
   url_launcher: ^6.2.2
   flutter_launcher_icons: ^0.14.4
-  flutter_gemma: ^0.10.0
+  flutter_gemma: ^0.11.3
   whisper_ggml: 1.3.0
-  speech_to_text: ^6.6.0
-  device_info_plus: ^11.5.0
-  camera: ^0.10.5+9
-  permission_handler: ^11.3.1
+  speech_to_text: ^7.3.0
+  device_info_plus: ^12.1.0
+  camera: ^0.11.2
+  permission_handler: ^12.0.1
   flutter_sound: ^9.2.13
   path_provider: ^2.0.11
   provider: ^6.1.2
   http: ^1.4.0
   dart_openai: ^5.1.0
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.0
   vector_math: ^2.1.4
   spatial_captions:
     path: plugins/spatial_captions
   
-  google_sign_in: ^6.2.1
+  google_sign_in: ^7.2.0
   audio_streamer: ^4.2.2
   youtube_player_iframe: ^5.2.1
   # youtube_player_iframe: ^5.2.1  # Removed due to webview dependency issues

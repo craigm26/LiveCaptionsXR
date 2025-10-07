@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late ModelDownloadManager _modelDownloadManager;
   bool _isGemmaInitialized = false;
   bool _isGemmaInitializing = false;
+  bool _hasShownSafetyPrompt = false;
 
   @override
   void initState() {
@@ -50,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _modelDownloadManager = ModelDownloadManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _showImmediateSafetyWarningIfNeeded();
       await _checkAndPromptModelDownload();
       // Initialize Gemma after model checks
       await _initializeGemmaBeforeAR();
@@ -241,6 +243,46 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return acknowledged;
+  }
+
+  Future<void> _showImmediateSafetyWarningIfNeeded() async {
+    if (kIsWeb || !Platform.isAndroid || _hasShownSafetyPrompt || !mounted) {
+      return;
+    }
+
+    _hasShownSafetyPrompt = true;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Stay Safe During AR Experiences'),
+          content: const SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Before you explore AR, remember:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                Text('• Kids should only use AR when a parent or guardian is supervising.'),
+                SizedBox(height: 8),
+                Text('• Always watch your surroundings to avoid obstacles or hazards.'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('I Understand'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showModelDownloadDialog({

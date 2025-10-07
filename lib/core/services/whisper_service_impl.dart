@@ -39,6 +39,7 @@ class WhisperService {
   
   // Whisper GGML instance
   Whisper? _whisper;
+  String? _modelPath;
   
   // Model download manager
   final ModelDownloadManager _modelDownloadManager;
@@ -143,6 +144,7 @@ class WhisperService {
       // Get the model path
       final modelPath = await _modelDownloadManager.getModelPath(modelKey);
       final modelDir = Directory(modelPath).parent.path;
+      _modelPath = modelPath;
       
       _logger.i('📁 Using model from: $modelPath', category: LogCategory.speech);
       _logger.i('📁 Model directory: $modelDir', category: LogCategory.speech);
@@ -378,9 +380,14 @@ class WhisperService {
       
       _logger.d('⚙️ Whisper.transcribe starting with audio file: ${tempFile.path}', category: LogCategory.speech);
       // Process audio with Whisper GGML
+      if (_modelPath == null) {
+        _logger.e('❌ Whisper model path not set before transcription', category: LogCategory.speech);
+        throw StateError('Whisper model path is not initialized');
+      }
+
       final response = await _whisper!.transcribe(
         transcribeRequest: transcribeRequest,
-        modelPath: tempFile.path,
+        modelPath: _modelPath!,
       );
       _logger.d('✅ Whisper.transcribe completed for: ${tempFile.path}', category: LogCategory.speech);
       

@@ -36,6 +36,7 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
   final List<String> _directions = ['left', 'center', 'right'];
   int _textIndex = 0;
   int _directionIndex = 0;
+  bool _hasShownSafetyDialog = false;
 
   @override
   void initState() {
@@ -46,6 +47,14 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
     
     // Initialize the integration service
     _integrationService.initialize();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasShownSafetyDialog) {
+        return;
+      }
+      _hasShownSafetyDialog = true;
+      _showARSafetyWarning();
+    });
   }
 
   @override
@@ -352,6 +361,40 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
     }
   }
 
+  void _showARSafetyWarning() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Stay Safe During AR Experiences'),
+          content: const SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Before you continue, please make sure:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                Text('• Children use this AR experience only with active parental supervision.'),
+                SizedBox(height: 8),
+                Text('• You stay aware of your surroundings to avoid obstacles and hazards.'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('I Understand'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _addPartialCaption() {
     final text = _demoTexts[_textIndex % _demoTexts.length];
     final direction = _directions[_directionIndex % _directions.length];
@@ -468,19 +511,19 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('This demo allows you to test the spatial caption system:\n'),
-              Text('• Partial captions (orange) - Real-time transcription'),
-              Text('• Final captions (blue) - Completed transcription'),
-              Text('• Enhanced captions (green) - AI-enhanced text'),
-              Text('\nCaptions are positioned based on:'),
-              Text('• Speaker direction (left/center/right)'),
-              Text('• Audio localization'),
-              Text('• Manual placement for testing'),
-              Text('\nFeatures:'),
-              Text('• Caption lifecycle management'),
-              Text('• Automatic caption replacement'),
-              Text('• Landscape orientation lock'),
-              Text('• Configurable display duration'),
+                  Text('This demo allows you to test the spatial caption system:\n'),
+                  Text('• Partial captions (orange) - Real-time transcription'),
+                  Text('• Final captions (blue) - Completed transcription'),
+                  Text('• Enhanced captions (green) - AI-enhanced text'),
+                  Text('\nCaptions are positioned based on:'),
+                  Text('• Speaker direction (left/center/right)'),
+                  Text('• Audio localization'),
+                  Text('• Manual placement for testing'),
+                  Text('\nFeatures:'),
+                  Text('• Caption lifecycle management'),
+                  Text('• Automatic caption replacement'),
+                  Text('• Landscape orientation lock'),
+                  Text('• Configurable display duration'),
             ],
           ),
         ),
