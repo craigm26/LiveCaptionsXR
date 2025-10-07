@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera access is required for visual speaker identification.</string>
+	<string>Camera access is required for visual speaker identification, AR features, and spatial captions.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This app requires local network access for model inference services.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
