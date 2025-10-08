@@ -8,7 +8,6 @@ import 'package:vector_math/vector_math_64.dart';
 import 'package:spatial_captions/spatial_captions.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import '../models/speech_result.dart';
-import '../models/enhanced_caption.dart';
 import 'speech_localizer.dart';
 import 'stereo_audio_capture.dart';
 import 'gemma_3n_service.dart';
@@ -22,6 +21,8 @@ class SpatialCaptionIntegrationService {
   final Gemma3nService _gemmaService;
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final AppLogger _logger = AppLogger.instance;
+
+  bool _isSpatialCaptionsReady = false;
   
   // Removed: Method channel for AR session events (no longer needed)
 
@@ -61,18 +62,22 @@ class SpatialCaptionIntegrationService {
 
       if (!sceneViewInitialized) {
         _logger.w('⚠️ [SPATIAL INTEGRATION] AR scene view not yet available. Spatial captions will start once the scene is ready.', category: LogCategory.captions);
+        _isSpatialCaptionsReady = false;
         return;
       }
 
       _logger.i('🎉 [SPATIAL INTEGRATION] SUCCESS: Scene view found and plugin initialized!', category: LogCategory.captions);
       _logger.i('✅ [SPATIAL INTEGRATION] Spatial captions ready for use', category: LogCategory.captions);
+      _isSpatialCaptionsReady = true;
     } on MissingPluginException catch (e, stackTrace) {
       _logger.w('⚠️ [SPATIAL INTEGRATION] Spatial captions plugin not found on ${Platform.operatingSystem}.', category: LogCategory.captions, error: e, stackTrace: stackTrace);
       _logger.w('⚠️ [SPATIAL INTEGRATION] Continuing without spatial captions support.', category: LogCategory.captions);
+      _isSpatialCaptionsReady = false;
       return;
     } catch (e, stackTrace) {
       _logger.e('💥 [SPATIAL INTEGRATION] INITIALIZATION FAILED!', category: LogCategory.captions, error: e, stackTrace: stackTrace);
       _logger.e('❌ [SPATIAL INTEGRATION] Will not proceed with AR View presentation', category: LogCategory.captions);
+      _isSpatialCaptionsReady = false;
       rethrow; // Re-throw to prevent AR View from starting
     }
     
@@ -109,7 +114,12 @@ class SpatialCaptionIntegrationService {
   /// Process a partial speech result
   Future<void> processPartialResult(SpeechResult result) async {
     _logger.i('🎤 [SPATIAL INTEGRATION] Processing partial result: "${result.text}" (confidence: ${result.confidence})', category: LogCategory.captions);
-    
+
+    if (!_isSpatialCaptionsReady) {
+      _logger.w('⚠️ [SPATIAL INTEGRATION] Spatial captions not ready - skipping partial caption push to native layer', category: LogCategory.captions);
+      return;
+    }
+
     try {
       // Get position from audio direction
       final position = await _calculateCaptionPosition(result);
@@ -137,7 +147,12 @@ class SpatialCaptionIntegrationService {
   /// Process a final speech result
   Future<void> processFinalResult(SpeechResult result) async {
     _logger.i('📝 [SPATIAL INTEGRATION] Processing final result: "${result.text}" (confidence: ${result.confidence})', category: LogCategory.captions);
-    
+
+    if (!_isSpatialCaptionsReady) {
+      _logger.w('⚠️ [SPATIAL INTEGRATION] Spatial captions not ready - skipping final caption push to native layer', category: LogCategory.captions);
+      return;
+    }
+
     try {
       // Get position from audio direction
       final position = await _calculateCaptionPosition(result);
@@ -264,7 +279,7 @@ class SpatialCaptionIntegrationService {
     
     // Default: place in front of user
     _logger.i('📍 [POSITION] USING DEFAULT CENTER POSITION', category: LogCategory.captions);
-    _logger.i('📍 [POSITION] Position: (0, ${captionHeight}, -${defaultCaptionDistance})', category: LogCategory.captions);
+    _logger.i('📍 [POSITION] Position: (0, $captionHeight, -$defaultCaptionDistance)', category: LogCategory.captions);
     return Vector3(0, captionHeight, -defaultCaptionDistance);
   }
   
@@ -308,7 +323,7 @@ class SpatialCaptionIntegrationService {
         captionToEnhance.text,
       );
       
-      if (enhancedText != null && enhancedText != captionToEnhance.text) {
+      if (enhancedText != captionToEnhance.text) {
         // Update with enhanced text
         await _spatialCaptionsCubit.enhanceCaption(
           captionId: captionToEnhance.id,
