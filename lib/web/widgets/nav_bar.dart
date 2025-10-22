@@ -233,7 +233,7 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
             children: [
               Icon(Icons.android, color: Colors.green[600]),
               const SizedBox(width: 12),
-              const Text('Android Beta'),
+              const Text('Google Play Store'),
             ],
           ),
         ),
@@ -472,7 +472,7 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                             },
                             icon: const Icon(Icons.android, color: Colors.white, size: 20),
                             label: const Text(
-                              'Android Beta',
+                              'Google Play Store',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,

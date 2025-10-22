@@ -771,7 +771,7 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
                   }
                 },
                 icon: const Icon(Icons.android),
-                label: Text(isMobile ? 'Android' : 'Android Beta'),
+                label: Text(isMobile ? 'Android' : 'Google Play Store'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,

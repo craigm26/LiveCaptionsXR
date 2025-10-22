@@ -593,7 +593,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   }
                 },
                 icon: const Icon(Icons.android),
-                label: Text(isMobile ? 'Android' : 'Android Beta'),
+                label: Text(isMobile ? 'Android' : 'Google Play Store'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,
@@ -829,7 +829,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   },
                   icon: const Icon(Icons.android, color: Colors.white, size: 20),
                   label: Text(
-                    isMobile ? 'Android' : 'Android Beta',
+                    isMobile ? 'Android' : 'Google Play Store',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: isMobile ? 14 : 16,

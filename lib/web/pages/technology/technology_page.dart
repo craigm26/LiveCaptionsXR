@@ -709,7 +709,7 @@ class _TechnologyPageState extends State<TechnologyPage>
                   }
                 },
                 icon: const Icon(Icons.android),
-                label: Text(isMobile ? 'Android' : 'Android Beta'),
+                label: Text(isMobile ? 'Android' : 'Google Play Store'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,

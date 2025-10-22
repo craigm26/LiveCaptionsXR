@@ -84599,7 +84599,7 @@ A.WR.prototype={}
 A.uc.prototype={
 J(a){var s=null,r=this.c
 r=r==null?s:"GoException: "+r.a
-return A.Cj(!0,A.f8(A.aL(A.b([B.Wq,B.ba,A.U(r==null?"page not found":r,s,s,s,s,s),B.ba,new A.Ef(new A.a4x(a),B.Wt,s)],t.p),B.p,B.bl,B.m),s,s),B.aq,!0)}}
+return A.Cj(!0,A.f8(A.aL(A.b([B.Wq,B.ba,A.U(r==null?"page not found":r,s,s,s,s,s),B.ba,new A.Ef(new A.a4x(a),B.Ws,s)],t.p),B.p,B.bl,B.m),s,s),B.aq,!0)}}
 A.a4x.prototype={
 $0(){return A.dx(this.a).dc(0,"/",null)},
 $S:0}
@@ -85893,7 +85893,7 @@ i=A.n(a2)
 h=a?16:24
 g=a?12:16
 g=A.fb(B.o4,j,new A.anJ(),A.ey(b,b,i.dx,b,b,b,b,b,b,B.i,b,b,new A.P(h,g,h,g),b,new A.bm(A.aa(12),B.r),b,b,b,b,b))
-j=A.U(a?"Android":"Android Beta",b,b,b,b,b)
+j=A.U(a?"Android":"Google Play Store",b,b,b,b,b)
 i=a?16:24
 h=a?12:16
 h=A.fb(B.o3,j,new A.anK(),A.ey(b,b,B.cd,b,b,b,b,b,b,B.i,b,b,new A.P(i,h,i,h),b,new A.bm(A.aa(12),B.r),b,b,b,b,b))
@@ -86273,7 +86273,7 @@ c=A.ab(a2,A.fb(B.o6,a,new A.ap8(),A.ey(a2,a2,B.F,a2,a2,a2,a2,a2,a2,a2,a2,a2,new 
 b=A.aa(16)
 r=A.b([B.cd,B.cd.al(0.8)],r)
 j=A.b([new A.c5(0,B.am,B.cd.al(0.3),B.hE,20)],j)
-d=a3?"Android":"Android Beta"
+d=a3?"Android":"Google Play Store"
 d=A.U(d,a2,a2,a2,A.b1(a2,a2,B.i,a2,a2,a2,a2,a2,a2,a2,a2,a3?14:16,a2,a2,B.bk,a2,a2,!0,a2,a2,a2,a2,a2,a2,a2,a2),a2)
 a=a3?20:24
 a0=a3?12:16
@@ -87270,7 +87270,7 @@ n=A.n(a1)
 m=f?16:20
 l=f?10:12
 l=A.ay9(B.o4,o,new A.atP(),A.aya(n.dx,B.i,new A.P(m,l,m,l),g))
-o=A.U(f?"Android":"Android Beta",g,g,g,g,g)
+o=A.U(f?"Android":"Google Play Store",g,g,g,g,g)
 n=f?16:20
 m=f?10:12
 m=A.ay9(B.o3,o,new A.atQ(),A.aya(B.cd,B.i,new A.P(n,m,n,m),g))
@@ -87499,7 +87499,7 @@ j=$.ai
 h.im(new A.AY(new A.aqv(c,b),s,!0,0.5625,B.F,i,i,i,i,r.ry.e,!0,!0,i,i,i,!1,i,"Close Bottom Sheet",new A.bZ(B.aq,q,t.Tt),"Scrim",i,i,i,p,A.aN(t.f9),new A.bu(i,t.Ts),new A.bu(i,t.A),new A.va(),i,0,new A.bj(new A.an(o,n),m),l,k,i,B.yK,new A.bZ(i,q,t.Lk),new A.bj(new A.an(j,n),m),new A.bj(new A.an(j,n),m),t.Fu))}}
 A.aqg.prototype={
 $1(a){var s=t.p,r=t.N
-return A.b([A.aE8(A.bM(A.b([B.HA,B.fa,B.Wv],s),B.p,B.l,B.m),"ios",r),A.aE8(A.bM(A.b([A.by(B.eC,B.cd,null,null),B.fa,B.Wr],s),B.p,B.l,B.m),"android",r)],t.Do)},
+return A.b([A.aE8(A.bM(A.b([B.HA,B.fa,B.Wu],s),B.p,B.l,B.m),"ios",r),A.aE8(A.bM(A.b([A.by(B.eC,B.cd,null,null),B.fa,B.Wv],s),B.p,B.l,B.m),"android",r)],t.Do)},
 $S:579}
 A.aqh.prototype={
 $1(a){return this.Xu(a)},
@@ -87567,7 +87567,7 @@ n=A.ab(s,A.bM(A.b([A.ab(s,A.ays("assets/logos/logo.png",B.fp,24,24),B.f,s,s,new 
 o=this.b
 o=A.az6(A.b([new A.kA(B.Hi,"Home",o==="/",new A.aqm(a),s),new A.kA(B.Hh,"Features",o==="/features",new A.aqn(a),s),new A.kA(B.dF,"Technology",o==="/technology",new A.aqo(a),s),new A.kA(B.Hj,"About",o==="/about",new A.aqp(a),s),new A.kA(B.kl,"Support",o==="/support",new A.aqq(a),s),new A.kA(B.dF,"Documentation",o==="/docs",new A.aqr(a),s),B.jz,new A.kA(B.H9,"Privacy Policy",o==="/privacy",new A.aqs(a),s)],m),!0,!0,!0)
 o=A.b([n,B.jz,A.cP(new A.Mw(o,B.nw,B.ab,!1,s,s,B.m7,!1,s,8,B.a_,s,s,B.G,B.ay,s))],m)
-if(q)B.b.M(o,A.b([B.jz,new A.bx(B.fY,A.aL(A.b([A.a1(A.fb(B.o6,B.Wu,new A.aqt(),A.ey(s,s,A.n(a).dx,s,s,s,s,s,s,s,s,s,B.jG,s,new A.bm(A.aa(12),B.r),s,s,s,s,s)),s,1/0),B.da,A.a1(A.fb(B.o5,B.Ws,new A.aqu(),A.ey(s,s,B.cd,s,s,s,s,s,s,s,s,s,B.jG,s,new A.bm(A.aa(12),B.r),s,s,s,s,s)),s,1/0)],m),B.p,B.l,B.m),s)],m))
+if(q)B.b.M(o,A.b([B.jz,new A.bx(B.fY,A.aL(A.b([A.a1(A.fb(B.o6,B.Wt,new A.aqt(),A.ey(s,s,A.n(a).dx,s,s,s,s,s,s,s,s,s,B.jG,s,new A.bm(A.aa(12),B.r),s,s,s,s,s)),s,1/0),B.da,A.a1(A.fb(B.o5,B.Wr,new A.aqu(),A.ey(s,s,B.cd,s,s,s,s,s,s,s,s,s,B.jG,s,new A.bm(A.aa(12),B.r),s,s,s,s,s)),s,1/0)],m),B.p,B.l,B.m),s)],m))
 return A.ab(s,A.Cj(!0,A.ab(s,A.aL(o,B.p,B.l,B.m),B.f,s,s,s,s,s,s,B.jG,s,s,p),B.aq,!0),B.f,s,s,B.BF,s,r.a.b*0.8,s,s,s,s,s)},
 $S:581}
 A.aql.prototype={
@@ -95284,13 +95284,13 @@ B.Vs=new A.p(!0,B.q,null,".AppleSystemUIFont",null,null,null,null,null,null,null
 B.St=new A.p(!0,B.q,null,".AppleSystemUIFont",null,null,null,null,null,null,null,null,null,null,null,null,null,B.j,null,null,null,"blackRedwoodCity labelSmall",null,null,null,null)
 B.Wp=new A.e6(B.Ud,B.Tg,B.Ue,B.UK,B.ST,B.T_,B.Tz,B.Uz,B.TL,B.Vd,B.Sl,B.SB,B.V7,B.Vs,B.St)
 B.Wq=new A.dI("Page Not Found",null,B.ik,null,null,null,null,null)
-B.Wr=new A.dI("Android Beta",null,null,null,null,null,null,null)
 B.Al=new A.p(!0,B.i,null,null,null,null,16,B.bk,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.Ws=new A.dI("Android Beta",null,B.Al,null,null,null,null,null)
+B.Wr=new A.dI("Google Play Store",null,B.Al,null,null,null,null,null)
 B.Tp=new A.p(!0,B.i,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.Wt=new A.dI("Go to home page",null,B.Tp,null,null,null,null,null)
-B.Wu=new A.dI("iOS TestFlight",null,B.Al,null,null,null,null,null)
-B.Wv=new A.dI("iOS TestFlight",null,null,null,null,null,null,null)
+B.Ws=new A.dI("Go to home page",null,B.Tp,null,null,null,null,null)
+B.Wt=new A.dI("iOS TestFlight",null,B.Al,null,null,null,null,null)
+B.Wu=new A.dI("iOS TestFlight",null,null,null,null,null,null,null)
+B.Wv=new A.dI("Google Play Store",null,null,null,null,null,null,null)
 B.fe=new A.p(!0,B.i,null,null,null,null,null,B.bk,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Ww=new A.dI("Get Support",null,B.fe,null,null,null,null,null)
 B.VR=new A.p(!0,null,null,null,null,null,null,B.bk,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
