@@ -235,38 +235,53 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       emit(const ARSessionInitializing());
 
       // Start AR view using the AR navigation channel
-      _logger.i('🎥 ======= PRESENTING AR VIEW FIRST =======', category: LogCategory.ar);
-      _logger.i('🔗 Calling showARView via method channel...', category: LogCategory.ar);
-      try {
-        // Don't wait for showARView to complete - it blocks until AR view is closed!
-        const MethodChannel('live_captions_xr/ar_navigation')
-            .invokeMethod('showARView').then((_) {
-          _logger.i('✅ AR View closed (showARView completed)', category: LogCategory.ar);
-        }).catchError((e) {
-          _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
-        });
-        
-        // Continue immediately without waiting
-        _logger.i('📱 AR View presentation initiated', category: LogCategory.ar);
-        
-        // Give AR View a moment to present, then initialize spatial captions
-        _logger.i('⏳ Waiting for AR View to present before initializing spatial captions...', category: LogCategory.ar);
-        await Future.delayed(const Duration(milliseconds: 1000)); // Wait for presentation
-        
-        // Now initialize spatial captions when AR View should be presented
-        _logger.i('🎯 ======= INITIALIZING SPATIAL CAPTIONS AFTER AR VIEW PRESENTED =======', category: LogCategory.ar);
+      final bool canShowARView = Platform.isIOS;
+      if (canShowARView) {
+        _logger.i('🎥 ======= PRESENTING AR VIEW FIRST =======', category: LogCategory.ar);
+        _logger.i('🔗 Calling showARView via method channel...', category: LogCategory.ar);
         try {
-          final spatialCaptionService = sl<SpatialCaptionIntegrationService>();
-          await spatialCaptionService.initialize();
-          _logger.i('🎉 [AR_CUBIT] Spatial captions initialized successfully after AR View presentation', category: LogCategory.ar);
-        } catch (e, stackTrace) {
-          _logger.e('❌ [AR_CUBIT] Failed to initialize spatial captions after AR View presentation', category: LogCategory.ar, error: e, stackTrace: stackTrace);
-          // Continue without spatial captions - AR View can still work
+          // Don't wait for showARView to complete - it blocks until AR view is closed!
+          const MethodChannel('live_captions_xr/ar_navigation')
+              .invokeMethod('showARView')
+              .then((_) {
+            _logger.i('✅ AR View closed (showARView completed)', category: LogCategory.ar);
+          }).catchError((e) {
+            _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
+          });
+
+          // Continue immediately without waiting
+          _logger.i('📱 AR View presentation initiated', category: LogCategory.ar);
+          _logger.i('⏳ Waiting for AR View to present before initializing spatial captions...', category: LogCategory.ar);
+          await Future.delayed(const Duration(milliseconds: 1000)); // Wait for presentation
+          _logger.i('🎯 AR View should now be presented, proceeding with spatial captions setup', category: LogCategory.ar);
+        } catch (e) {
+          _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
         }
-        
-      } catch (e) {
-        _logger.e('❌ AR View method channel call failed', category: LogCategory.ar, error: e);
-        rethrow;
+      } else {
+        _logger.w(
+          '⚠️ AR navigation channel not implemented on ${Platform.operatingSystem}; skipping AR View presentation',
+          category: LogCategory.ar,
+        );
+      }
+
+      final captionInitPhase = canShowARView ? 'AFTER AR VIEW PRESENTED' : 'WITHOUT AR VIEW';
+      _logger.i('🎯 ======= INITIALIZING SPATIAL CAPTIONS $captionInitPhase =======', category: LogCategory.ar);
+      try {
+        final spatialCaptionService = sl<SpatialCaptionIntegrationService>();
+        await spatialCaptionService.initialize();
+        final successContext =
+            canShowARView ? 'after AR View presentation' : 'without AR View presentation';
+        _logger.i('🎉 [AR_CUBIT] Spatial captions initialized successfully $successContext', category: LogCategory.ar);
+      } catch (e, stackTrace) {
+        final failureContext =
+            canShowARView ? 'after AR View presentation' : 'without AR View presentation';
+        _logger.e(
+          '❌ [AR_CUBIT] Failed to initialize spatial captions $failureContext',
+          category: LogCategory.ar,
+          error: e,
+          stackTrace: stackTrace,
+        );
+        // Continue without spatial captions - AR View can still work
       }
 
       _logger.i('✅ ======= AR VIEW PRESENTATION AND SPATIAL CAPTIONS SETUP COMPLETED =======', category: LogCategory.ar);

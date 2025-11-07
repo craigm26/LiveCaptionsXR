@@ -152,14 +152,28 @@ class StereoAudioCapture {
       _logger.d('🔍 Parsing audio frame: type=${event.runtimeType}');
       
       if (event is Float32List) {
-        _logger.d('📊 Processing Float32List with ${event.length} samples (${event.length / 2} per channel)');
-        final left = Float32List(event.length ~/ 2);
-        final right = Float32List(event.length ~/ 2);
-        for (var i = 0; i < event.length; i += 2) {
+        final originalSamples = event.length;
+        final usableSamples = originalSamples - (originalSamples % 2);
+
+        if (usableSamples < originalSamples) {
+          _logger.w('⚠️ Trimmed an odd sample from Float32List before deinterleaving '
+              '($originalSamples -> $usableSamples samples)');
+        }
+
+        if (usableSamples < 2) {
+          _logger.e('❌ Insufficient samples after trimming: $usableSamples samples');
+          throw ArgumentError('Not enough audio samples');
+        }
+
+        _logger.d('📊 Processing Float32List with $usableSamples samples (${usableSamples / 2} per channel)');
+        final left = Float32List(usableSamples ~/ 2);
+        final right = Float32List(usableSamples ~/ 2);
+
+        for (var i = 0; i < usableSamples; i += 2) {
           left[i ~/ 2] = event[i];
           right[i ~/ 2] = event[i + 1];
         }
-        
+
         // Log audio level for monitoring
         double leftRms = 0.0, rightRms = 0.0;
         for (var i = 0; i < left.length; i++) {
@@ -168,57 +182,46 @@ class StereoAudioCapture {
         }
         leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
         rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
-        
+
         _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
-        
+
         return StereoAudioFrame(left: left, right: right);
       }
       if (event is Uint8List) {
         _logger.d('📊 Processing Uint8List with ${event.length} bytes');
         _logger.d('📊 First 16 bytes: ${event.take(16).toList()}');
-        
-        // Validate byte length should be multiple of 4 (Float32 size)
-        if (event.length % 4 != 0) {
-          _logger.e('❌ Invalid Uint8List length: ${event.length} bytes (not multiple of 4)');
+
+        const floatBytes = Float32List.bytesPerElement;
+        final usableBytes = event.length - (event.length % floatBytes);
+
+        if (usableBytes != event.length) {
+          _logger.w('⚠️ Dropped ${event.length - usableBytes} trailing byte(s) to align with Float32 samples');
+        }
+
+        final rawSampleCount = usableBytes ~/ floatBytes;
+        if (rawSampleCount == 0) {
+          _logger.e('❌ Audio frame contains no Float32 samples');
           throw ArgumentError('Invalid audio data length: ${event.length} bytes');
         }
-        
-        // Convert bytes to Float32List
-        final data = Float32List.view(event.buffer);
+
+        final usableSamples = rawSampleCount - (rawSampleCount % 2);
+        if (usableSamples == 0) {
+          _logger.e('❌ Audio frame too short after ensuring even stereo samples');
+          throw ArgumentError('Not enough stereo samples: $rawSampleCount samples');
+        }
+
+        if (usableSamples != rawSampleCount) {
+          _logger.w('⚠️ Trimmed odd sample from Uint8List (${rawSampleCount} -> $usableSamples samples)');
+        }
+
+        final data = Float32List.view(
+          event.buffer,
+          event.offsetInBytes,
+          usableSamples,
+        );
         _logger.d('📊 Converted to Float32List with ${data.length} samples');
         _logger.d('📊 First 8 float values: ${data.take(8).toList()}');
-        
-        // Validate we have even number of samples for stereo
-        if (data.length % 2 != 0) {
-          _logger.w('⚠️ Odd number of samples received: ${data.length} samples');
-          _logger.d('📊 Raw buffer length: ${event.length} bytes');
 
-          // Whisper occasionally prepends a single-channel (mono) sample when
-          // capturing stereo from certain devices. Instead of truncating the
-          // trailing sample (which effectively drops real audio), prepend a zero to
-          // yield an even number of samples while keeping the rest of the frame
-          // intact.
-          if (data.length % 2 == 1) {
-            final patchedData = Float32List(data.length + 1);
-            patchedData[0] = 0.0;
-            patchedData.setAll(1, data);
-            _logger.w('⚠️ Prepending zero sample to balance stereo frame');
-
-            final left = Float32List(patchedData.length ~/ 2);
-            final right = Float32List(patchedData.length ~/ 2);
-
-            for (var i = 0; i < patchedData.length; i += 2) {
-              left[i ~/ 2] = patchedData[i];
-              right[i ~/ 2] = patchedData[i + 1];
-            }
-
-            return StereoAudioFrame(left: left, right: right);
-          }
-
-          _logger.e('❌ Cannot fix audio buffer with ${data.length} samples');
-          throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');
-        }
-        
         final left = Float32List(data.length ~/ 2);
         final right = Float32List(data.length ~/ 2);
         
