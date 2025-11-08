@@ -28,6 +28,10 @@ import '../../../core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
 import '../../../core/services/apple_speech_service.dart';
+import '../../../core/services/audio_service.dart';
+import '../../../core/services/visual_identification_service.dart';
+import '../../../core/services/visual_service.dart';
+import '../../../core/services/enhanced_speech_processor.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,6 +47,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isGemmaInitialized = false;
   bool _isGemmaInitializing = false;
   bool _hasShownSafetyPrompt = false;
+  AudioService? _audioService;
+  bool _audioServiceStarted = false;
 
   @override
   void initState() {
@@ -55,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _checkAndPromptModelDownload();
       // Initialize Gemma after model checks
       await _initializeGemmaBeforeAR();
+      await _ensureNonARCaptionPipeline();
     });
   }
 
@@ -116,19 +123,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session
-  Future<void> _initializeGemmaBeforeAR() async {
-    if (_isGemmaInitialized || _isGemmaInitializing) {
+  Future<bool> _initializeGemmaBeforeAR() async {
+    if (_isGemmaInitialized) {
+      return true;
+    }
+    if (_isGemmaInitializing) {
       _logger.i(
-        '🤖 Gemma already initialized or initializing, skipping',
+        '?? Gemma already initializing, skipping duplicate request',
         category: LogCategory.gemma,
       );
-      return;
+      return false;
     }
 
     try {
       _isGemmaInitializing = true;
       _logger.i(
-        '🤖 Pre-initializing Gemma 3n service before AR launch...',
+        '?? Pre-initializing Gemma 3n service before AR launch...',
         category: LogCategory.gemma,
       );
 
@@ -136,11 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (gemma3nService.isReady) {
         _logger.i(
-          '✅ Gemma 3n service already ready',
+          '? Gemma 3n service already ready',
           category: LogCategory.gemma,
         );
         _isGemmaInitialized = true;
-        return;
+        return true;
       }
 
       // Show loading state if needed
@@ -153,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? Duration(seconds: 90)
           : Duration(seconds: 120);
       _logger.i(
-        '⏱️ Initializing Gemma with ${timeout.inSeconds}s timeout for ${Platform.isIOS ? 'iOS' : 'Android'}',
+        '?? Initializing Gemma with s timeout for ',
         category: LogCategory.gemma,
       );
 
@@ -161,35 +171,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (gemma3nService.isReady) {
         _logger.i(
-          '✅ Gemma 3n service pre-initialized successfully!',
+          '? Gemma 3n service pre-initialized successfully!',
           category: LogCategory.gemma,
         );
         _isGemmaInitialized = true;
+        return true;
       } else {
         _logger.w(
-          '⚠️ Gemma 3n service initialized but not ready',
+          '?? Gemma 3n service initialized but not ready',
           category: LogCategory.gemma,
         );
       }
     } on TimeoutException catch (e) {
       _logger.e(
-        '⏱️ Gemma 3n service initialization timed out',
+        '?? Gemma 3n service initialization timed out',
         category: LogCategory.gemma,
         error: e,
       );
       _logger.w(
-        '⚠️ Continuing without Gemma enhancement',
+        '?? Continuing without Gemma enhancement',
         category: LogCategory.gemma,
       );
     } catch (e, stackTrace) {
       _logger.e(
-        '❌ Failed to pre-initialize Gemma 3n service',
+        '? Failed to pre-initialize Gemma 3n service',
         category: LogCategory.gemma,
         error: e,
         stackTrace: stackTrace,
       );
       _logger.w(
-        '⚠️ Continuing without Gemma enhancement',
+        '?? Continuing without Gemma enhancement',
         category: LogCategory.gemma,
       );
     } finally {
@@ -198,8 +209,88 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {});
       }
     }
+    return false;
   }
 
+  @override
+  void dispose() {
+    unawaited(_stopNonARCaptionPipeline());
+    super.dispose();
+  }
+
+  Future<void> _ensureNonARCaptionPipeline() async {
+    if (!mounted) return;
+
+    final soundDetectionCubit = context.read<SoundDetectionCubit>();
+    final visualIdentificationCubit = context.read<VisualIdentificationCubit>();
+    final gemmaService = sl<Gemma3nService>();
+    final speechProcessor = sl<EnhancedSpeechProcessor>();
+
+    _audioService ??= AudioService(
+      gemma3nService: gemmaService,
+      speechProcessor: speechProcessor,
+      soundDetectionCubit: soundDetectionCubit,
+      visualService: VisualIdentificationService(
+        visualIdentificationCubit: visualIdentificationCubit,
+        gemma3nService: gemmaService,
+        visualService: VisualService(),
+      ),
+    );
+
+    if (!_audioServiceStarted) {
+      try {
+        await _audioService!.start(requireGemma: false, enableVisualService: true);
+        _audioServiceStarted = true;
+        _logger.i(
+          '? 2D audio pipeline started successfully',
+          category: LogCategory.audio,
+        );
+      } catch (e, stackTrace) {
+        _logger.e(
+          '❌ Failed to start 2D audio pipeline',
+          category: LogCategory.audio,
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
+    if (liveCaptionsCubit.state is! LiveCaptionsActive ||
+        !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
+      try {
+        await liveCaptionsCubit.startCaptions();
+        _logger.i(
+          '? Live captions active in 2D mode',
+          category: LogCategory.captions,
+        );
+      } catch (e, stackTrace) {
+        _logger.e(
+          '❌ Failed to start live captions in 2D mode',
+          category: LogCategory.captions,
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+  }
+
+  Future<void> _stopNonARCaptionPipeline() async {
+    if (!_audioServiceStarted) return;
+    try {
+      await _audioService?.stop();
+      _logger.i('? 2D audio pipeline stopped', category: LogCategory.audio);
+    } catch (e, stackTrace) {
+      _logger.e(
+        '❌ Error stopping 2D audio pipeline',
+        category: LogCategory.audio,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      _audioServiceStarted = false;
+    }
+  }
   Future<bool> _ensureARSafetyAcknowledged(BuildContext context) async {
     if (kIsWeb || !Platform.isAndroid) {
       return true;
@@ -841,12 +932,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _logger.i('🗑️ HomeScreen disposing...');
-    super.dispose();
-    _logger.d('✅ HomeScreen disposed successfully');
-  }
 
   Widget _buildCameraOrFallback() {
     return FutureBuilder<bool>(
@@ -1232,6 +1317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _logger.i(
                           '✅ All services verified as stopped after AR session end',
                         );
+                        unawaited(_ensureNonARCaptionPipeline());
                       }
                     },
                     child: FloatingActionButton(
@@ -1243,14 +1329,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 '🥽 Enter AR Mode button pressed...',
                                 category: LogCategory.ui,
                               );
-
+                    
                               final arSessionCubit = context
                                   .read<ARSessionCubit>();
                               _logger.i(
                                 '🎯 Got ARSessionCubit instance',
                                 category: LogCategory.ui,
                               );
-
+                    
                               try {
                                 final shouldProceed =
                                     await _ensureARSafetyAcknowledged(context);
@@ -1261,24 +1347,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                   return;
                                 }
-
+                    
                                 // Ensure Gemma is initialized before starting AR
-                                if (!_isGemmaInitialized &&
-                                    !_isGemmaInitializing) {
-                                  _logger.i(
-                                    '🤖 Gemma not yet initialized, initializing now...',
-                                    category: LogCategory.ar,
+                                final gemmaReady =
+                                    await _initializeGemmaBeforeAR();
+                                if (!gemmaReady) {
+                                  _logger.w(
+                                    '?? Gemma unavailable - staying in 2D captions mode',
+                                    category: LogCategory.gemma,
                                   );
-                                  await _initializeGemmaBeforeAR();
+                                  if (mounted) {
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    messenger.hideCurrentSnackBar();
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Gemma contextual enhancement is not ready. Staying in non-AR captions mode.',
+                                        ),
+                                        duration: Duration(seconds: 4),
+                                      ),
+                                    );
+                                  }
+                                  return;
                                 }
-
+                    
+                                await _stopNonARCaptionPipeline();
+                    
                                 // Start all AR services
                                 await _startAllServicesForARMode();
                                 _logger.i(
                                   '✅ [HOME] All AR services started successfully',
                                   category: LogCategory.ui,
                                 );
-
+                    
                                 // Initialize AR session (this will block until AR view is closed)
                                 _logger.i(
                                   '🎯 [HOME] Now calling initializeARSession...',
@@ -1297,7 +1399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   error: e,
                                   stackTrace: stackTrace,
                                 );
-
+                    
                                 ScaffoldMessenger.of(
                                   context,
                                 ).hideCurrentSnackBar();

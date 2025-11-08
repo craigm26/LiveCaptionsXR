@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -40,6 +41,9 @@ class WhisperService {
   // Whisper GGML instance
   Whisper? _whisper;
   String? _modelPath;
+  static const int _maxQueueSize = 2;
+  final Queue<_PendingWhisperRequest> _pendingRequests = Queue();
+  bool _isQueueDraining = false;
   
   // Model download manager
   final ModelDownloadManager _modelDownloadManager;
@@ -253,8 +257,10 @@ class WhisperService {
     }
   }
   
-  /// Process audio buffer and return transcription
-  Future<SpeechResult> processAudioBuffer(Uint8List audioData) async {
+  /// Core audio processing pipeline (single threaded)
+  Future<SpeechResult> _processAudioBufferInternal(
+    Uint8List audioData,
+  ) async {
     // Handle web platform
     if (kIsWeb) {
       _logger.w('⚠️ Web platform detected - returning demo result', category: LogCategory.speech);
@@ -439,6 +445,62 @@ class WhisperService {
       return fallbackResult;
     }
   }
+
+  /// Process audio buffer and enqueue it for serialized handling
+  Future<SpeechResult> processAudioBuffer(Uint8List audioData) {
+    if (!_isProcessing) {
+      _logger.w(
+        '?? Received audio while Whisper processing is stopped - dropping chunk',
+        category: LogCategory.speech,
+      );
+      return Future.value(
+        SpeechResult(
+          text: '',
+          confidence: 0.0,
+          isFinal: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+    }
+
+    if (audioData.isEmpty) {
+      _logger.w(
+        '?? Ignoring empty audio buffer sent to Whisper queue',
+        category: LogCategory.speech,
+      );
+      return Future.value(
+        SpeechResult(
+          text: '',
+          confidence: 0.0,
+          isFinal: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+    }
+
+    if (_pendingRequests.length >= _maxQueueSize) {
+      final dropped = _pendingRequests.removeFirst();
+      if (!dropped.completer.isCompleted) {
+        dropped.completer.completeError(
+          StateError('Dropped due to Whisper queue backpressure'),
+        );
+      }
+      _logger.w(
+        '?? Whisper queue saturated - dropping oldest pending chunk to keep latency low',
+        category: LogCategory.speech,
+      );
+    }
+
+    final completer = Completer<SpeechResult>();
+    _pendingRequests.add(
+      _PendingWhisperRequest(
+        Uint8List.fromList(audioData),
+        completer,
+      ),
+    );
+    _drainAudioQueue();
+    return completer.future;
+  }
   
   /// Update configuration
   Future<void> updateConfig(SpeechConfig config) async {
@@ -457,8 +519,17 @@ class WhisperService {
     if (!_isProcessing) return;
     
     try {
+      while (_pendingRequests.isNotEmpty) {
+        final pending = _pendingRequests.removeFirst();
+        if (!pending.completer.isCompleted) {
+          pending.completer.completeError(
+            StateError('Whisper processing stopped before completion'),
+          );
+        }
+      }
+      _isQueueDraining = false;
       _isProcessing = false;
-      _logger.i('🛑 Stopped Whisper processing', category: LogCategory.speech);
+      _logger.i('?? Stopped Whisper processing', category: LogCategory.speech);
       
       // Emit STT event for processing stop
       _sttEventController.add(const WhisperSTTEvent(
@@ -466,10 +537,10 @@ class WhisperService {
         message: 'STT processing stopped',
       ));
     } catch (e, stackTrace) {
-      _logger.e('❌ Error stopping Whisper processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+      _logger.e('? Error stopping Whisper processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
     }
   }
-  
+
   /// Dispose resources
   Future<void> dispose() async {
     try {
@@ -484,6 +555,43 @@ class WhisperService {
     }
   }
 
+  void _drainAudioQueue() {
+    if (_isQueueDraining || _pendingRequests.isEmpty) {
+      return;
+    }
+    _isQueueDraining = true;
+    Future<void>(() async {
+      while (true) {
+        _PendingWhisperRequest? request;
+        if (_pendingRequests.isEmpty) {
+          _isQueueDraining = false;
+          if (_pendingRequests.isEmpty) {
+            break;
+          }
+          _isQueueDraining = true;
+          continue;
+        } else {
+          request = _pendingRequests.removeFirst();
+        }
+
+        if (request == null) {
+          continue;
+        }
+
+        try {
+          final result = await _processAudioBufferInternal(request.audioData);
+          if (!request.completer.isCompleted) {
+            request.completer.complete(result);
+          }
+        } catch (e, stackTrace) {
+          if (!request.completer.isCompleted) {
+            request.completer.completeError(e, stackTrace);
+          }
+        }
+      }
+      _isQueueDraining = false;
+    });
+  }
   Uint8List _wrapPcmAsWav({
     required Uint8List pcmBytes,
     required int sampleRate,
@@ -525,4 +633,11 @@ class WhisperService {
     }
     return bytes.buffer.asUint8List();
   }
+}
+
+class _PendingWhisperRequest {
+  final Uint8List audioData;
+  final Completer<SpeechResult> completer;
+
+  _PendingWhisperRequest(this.audioData, this.completer);
 }
