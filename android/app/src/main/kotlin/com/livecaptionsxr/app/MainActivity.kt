@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.livecaptionsxr.spatialcaptions.SpatialCaptionsPlugin
 
 class MainActivity: FlutterActivity() {
     private val VISUAL_CHANNEL = "com.craig.livecaptions/visual"
@@ -31,8 +32,10 @@ class MainActivity: FlutterActivity() {
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Register the stereo audio capture plugin
+        // Register native plugins that aren't auto-registered (because they live inside the host app)
         flutterEngine.plugins.add(StereoAudioCapturePlugin())
+        flutterEngine.plugins.add(SpatialCaptionsPlugin())
+        flutterEngine.plugins.add(ArAnchorPlugin())
 
         // Visual Capture Method Channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VISUAL_CHANNEL).setMethodCallHandler { call, result ->
@@ -102,6 +105,7 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
     }
 
     private fun initializeCamera() {
@@ -153,4 +157,5 @@ class MainActivity: FlutterActivity() {
             }
         }
     }
+
 }

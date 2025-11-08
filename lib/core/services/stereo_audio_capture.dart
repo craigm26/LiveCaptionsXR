@@ -214,9 +214,17 @@ class StereoAudioCapture {
           _logger.w('⚠️ Trimmed odd sample from Uint8List (${rawSampleCount} -> $usableSamples samples)');
         }
 
+        // Some Android codecs wrap the incoming bytes in a _Uint8ArrayView with an
+        // arbitrary offset. Float32List.view requires the offset to be aligned to
+        // the element size (4 bytes), so copy to an aligned buffer if needed.
+        final needsRealignment =
+            event.offsetInBytes % floatBytes != 0;
+        final Uint8List alignedBytes =
+            needsRealignment ? Uint8List.fromList(event) : event;
+
         final data = Float32List.view(
-          event.buffer,
-          event.offsetInBytes,
+          alignedBytes.buffer,
+          needsRealignment ? 0 : alignedBytes.offsetInBytes,
           usableSamples,
         );
         _logger.d('📊 Converted to Float32List with ${data.length} samples');

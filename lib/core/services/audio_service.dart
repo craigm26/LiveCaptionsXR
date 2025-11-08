@@ -1,13 +1,6 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:async';
-import 'dart:math';
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
-import 'package:get_it/get_it.dart';
-import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
 import 'package:get_it/get_it.dart';
 
 import '../models/sound_event.dart';
@@ -15,11 +8,6 @@ import '../../features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'stereo_audio_capture.dart';
 import 'speech_localizer.dart';
 import 'spatial_caption_integration_service.dart';
-import 'debug_capturing_logger.dart';
-import 'gemma_3n_service.dart';
-import 'visual_identification_service.dart';
-import 'spatial_caption_integration_service.dart';
-import 'debug_capturing_logger.dart';
 import 'gemma_3n_service.dart';
 import 'visual_identification_service.dart';
 import 'enhanced_speech_processor.dart';
@@ -43,6 +31,7 @@ class AudioService {
   final EnhancedSpeechProcessor? speechProcessor;
 
   bool _modelLoaded = false;
+  bool _gemmaReady = false;
   bool _isListening = false;
   StreamSubscription<StereoAudioFrame>? _captureSub;
   StreamController<SoundEvent>? _soundEventController;
@@ -70,22 +59,32 @@ class AudioService {
   /// 1. Load optimized model for mobile devices
   /// 2. Configure for real-time audio processing
   /// 3. Set up multimodal integration pipeline
-  Future<void> start() async {
+  Future<void> start({bool requireGemma = false, bool enableVisualService = true}) async {
     _logger.i('🚀 Starting AudioService...', category: LogCategory.audio);
 
-    // start the gemma3n service
-    await gemma3nService.initialize();
+    _gemmaReady = await _initializeGemma(requireGemma: requireGemma);
+    if (!_gemmaReady) {
+      _logger.w(
+        '⚠️ Gemma 3n service unavailable - running in 2D fallback mode',
+        category: LogCategory.audio,
+      );
+    }
 
-    // start the visual service
-    await visualService.start();
+    if (enableVisualService) {
+      await _startVisualService();
+    } else {
+      _logger.i('ℹ️ Visual service disabled for this session', category: LogCategory.audio);
+    }
 
-    // start the speech processor
-    await speechProcessor?.startProcessing();
-
-    // start the audio capture
+    await _startSpeechProcessor();
     await _startAudioCapture(); 
 
-    _logger.i('✅ AudioService started successfully', category: LogCategory.audio);
+    _logger.i(
+      _gemmaReady
+          ? '✅ AudioService started successfully with Gemma enhancement'
+          : '✅ AudioService started successfully (Gemma disabled)',
+      category: LogCategory.audio,
+    );
   }
 
   /// Start continuous audio capture and processing.
@@ -196,5 +195,66 @@ class AudioService {
   Stream<SoundEvent> get soundEventStream {
     _logger.d('📡 Providing sound event stream', category: LogCategory.audio);
     return _soundEventController?.stream ?? Stream.empty();
+  }
+
+  Future<bool> _initializeGemma({required bool requireGemma}) async {
+    try {
+      await gemma3nService.initialize();
+      _modelLoaded = gemma3nService.isReady;
+      if (!_modelLoaded && requireGemma) {
+        throw StateError('Gemma 3n service required but not ready');
+      }
+      return _modelLoaded;
+    } catch (e, stackTrace) {
+      _logger.e(
+        '❌ Failed to initialize Gemma 3n service',
+        category: LogCategory.audio,
+        error: e,
+        stackTrace: stackTrace,
+      );
+      if (requireGemma) {
+        rethrow;
+      }
+      _modelLoaded = false;
+      return false;
+    }
+  }
+
+  Future<void> _startVisualService() async {
+    try {
+      await visualService.start();
+      _logger.i('✅ Visual identification service started', category: LogCategory.audio);
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Visual service unavailable - continuing without camera enhancements',
+        category: LogCategory.audio,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _startSpeechProcessor() async {
+    if (speechProcessor == null) {
+      _logger.w('⚠️ No speech processor configured - captions will be limited', category: LogCategory.audio);
+      return;
+    }
+
+    try {
+      final started = await speechProcessor!.startProcessing();
+      if (!started) {
+        _logger.w(
+          '⚠️ Speech processor failed to start; live captions may be unavailable',
+          category: LogCategory.audio,
+        );
+      }
+    } catch (e, stackTrace) {
+      _logger.e(
+        '❌ Error starting speech processor',
+        category: LogCategory.audio,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }
