@@ -42,7 +42,7 @@ class WhisperService {
   // Whisper GGML instance
   Whisper? _whisper;
   String? _modelPath;
-  static const int _maxQueueSize = 6;
+  static const int _maxQueueSize = 24;
   final Queue<_PendingWhisperRequest> _pendingRequests = Queue();
   bool _isQueueDraining = false;
   DateTime? _lastQueueDropWarningAt;
@@ -608,18 +608,23 @@ class WhisperService {
     if (_pendingRequests.length >= _maxQueueSize) {
       final dropped = _pendingRequests.removeFirst();
       if (!dropped.completer.isCompleted) {
-        dropped.completer.completeError(
-          StateError('Dropped due to Whisper queue backpressure'),
+        dropped.completer.complete(
+          SpeechResult(
+            text: '',
+            confidence: 0.0,
+            isFinal: false,
+            timestamp: DateTime.now(),
+          ),
         );
       }
 
       final now = DateTime.now();
       final shouldLog = _lastQueueDropWarningAt == null ||
-          now.difference(_lastQueueDropWarningAt!) > const Duration(seconds: 2);
+          now.difference(_lastQueueDropWarningAt!) > const Duration(seconds: 5);
       if (shouldLog) {
         _lastQueueDropWarningAt = now;
-        _logger.w(
-          '?? Whisper queue saturated - dropping oldest pending chunk to keep latency low',
+        _logger.i(
+          '⏳ Whisper queue saturated - dropping oldest pending chunk to maintain responsiveness',
           category: LogCategory.speech,
         );
       }

@@ -41,11 +41,14 @@ class EnhancedSpeechProcessor {
   StreamSubscription<StereoAudioFrame>? _stereoAudioSubscription;
 
   SpeechEngine _activeEngine;
+  StreamSubscription<Uint8List>? _monoAudioSubscription;
   SpeechConfig _config = const SpeechConfig();
   String _currentLanguage = 'en';
   bool _isInitialized = false;
   bool _isProcessing = false;
   bool _useEnhancement = true; // New flag to control enhancement
+  bool _frameCaptureEnabled = true;
+  bool _stereoCaptureEnabled = true;
   Object? _lastStartProcessingError;
   StackTrace? _lastStartProcessingStackTrace;
 
@@ -69,7 +72,6 @@ class EnhancedSpeechProcessor {
   static const String defaultFallbackTranscript = "Listening...";
 
   // Visual context
-  List<int>? _latestFrame;
   StreamSubscription? _frameSubscription;
 
   // Mutex for Gemma requests to ensure only one at a time
@@ -192,37 +194,46 @@ class EnhancedSpeechProcessor {
       _config = config ?? const SpeechConfig();
       _currentLanguage = _config.language;
       _useEnhancement = enableGemmaEnhancement; // Set the flag
+      _frameCaptureEnabled = _useEnhancement;
+      _stereoCaptureEnabled = _useEnhancement;
 
-      // Initialize unified frame capture service
-      _logger.i(
-        '📸 Initializing FrameCaptureService...',
-        category: LogCategory.camera,
-      );
-      final frameInitialized = await _frameCaptureService.initialize();
-      if (frameInitialized) {
+      if (_frameCaptureEnabled) {
+        // Initialize unified frame capture service
         _logger.i(
-          '✅ FrameCaptureService initialized for ${_frameCaptureService.platformInfo}',
+          '📸 Initializing FrameCaptureService...',
           category: LogCategory.camera,
         );
-
-        // On Android, we can subscribe to frame stream for continuous frames
-        // On iOS, we capture frames on-demand via ARFrameService
-        if (!Platform.isIOS) {
-          // Note: For Android, we'd need to implement frame streaming in FrameCaptureService
-          // For now, we'll capture frames on-demand for both platforms
-          _logger.d(
-            '🤖 Android detected - frames will be captured on-demand',
+        final frameInitialized = await _frameCaptureService.initialize();
+        if (frameInitialized) {
+          _logger.i(
+            '✅ FrameCaptureService initialized for ${_frameCaptureService.platformInfo}',
             category: LogCategory.camera,
           );
+
+          // On Android, we can subscribe to frame stream for continuous frames
+          // On iOS, we capture frames on-demand via ARFrameService
+          if (!Platform.isIOS) {
+            // Note: For Android, we'd need to implement frame streaming in FrameCaptureService
+            // For now, we'll capture frames on-demand for both platforms
+            _logger.d(
+              '🤖 Android detected - frames will be captured on-demand',
+              category: LogCategory.camera,
+            );
+          } else {
+            _logger.d(
+              '🍎 iOS detected - ARKit frames will be captured on-demand',
+              category: LogCategory.ar,
+            );
+          }
         } else {
-          _logger.d(
-            '🍎 iOS detected - ARKit frames will be captured on-demand',
-            category: LogCategory.ar,
+          _logger.e(
+            '❌ Failed to initialize FrameCaptureService',
+            category: LogCategory.camera,
           );
         }
       } else {
-        _logger.e(
-          '❌ Failed to initialize FrameCaptureService',
+        _logger.i(
+          '🛑 Skipping FrameCaptureService initialization (enhancement disabled)',
           category: LogCategory.camera,
         );
       }
@@ -380,7 +391,10 @@ class EnhancedSpeechProcessor {
 
   Future<void> _initializeWhisperGgml() async {
     try {
-      await _whisperService.initialize(config: _config);
+      final initialized = await _whisperService.initialize(config: _config);
+      if (!initialized) {
+        throw StateError('Whisper service failed to initialize');
+      }
       _logger.i(
         '✅ Whisper GGML engine initialized',
         category: LogCategory.speech,
@@ -400,10 +414,6 @@ class EnhancedSpeechProcessor {
     try {
       _logger.i(
         '🍎 [DEBUG] _initializeAppleSpeech called',
-        category: LogCategory.speech,
-      );
-      _logger.i(
-        '🍎 [DEBUG] AppleSpeechService instance check: ${_appleSpeechService != null}',
         category: LogCategory.speech,
       );
       _logger.i('🍎 [DEBUG] Config: $_config', category: LogCategory.speech);
@@ -458,14 +468,28 @@ class EnhancedSpeechProcessor {
       if (config != null) await updateConfig(config);
 
       await _audioCaptureService.start();
-      await _frameCaptureService.start();
+      if (_frameCaptureEnabled) {
+        await _frameCaptureService.start();
+      } else {
+        _logger.d(
+          '🛑 Frame capture disabled - skipping FrameCaptureService.start()',
+          category: LogCategory.camera,
+        );
+      }
 
-      // Start stereo audio capture for spatial positioning
-      _logger.i(
-        '🎧 [SPATIAL] Starting stereo audio capture for spatial positioning...',
-        category: LogCategory.speech,
-      );
-      await _startStereoAudioCapture();
+      if (_stereoCaptureEnabled) {
+        // Start stereo audio capture for spatial positioning
+        _logger.i(
+          '🎧 [SPATIAL] Starting stereo audio capture for spatial positioning...',
+          category: LogCategory.speech,
+        );
+        await _startStereoAudioCapture();
+      } else {
+        _logger.d(
+          '🛑 Stereo audio capture disabled - skipping spatial audio setup',
+          category: LogCategory.speech,
+        );
+      }
 
       switch (_activeEngine) {
         case SpeechEngine.flutter_sound:
@@ -614,9 +638,30 @@ class EnhancedSpeechProcessor {
         category: LogCategory.speech,
       );
 
-      // Subscribe to audio capture service for real-time processing
-      _audioCaptureService.audioStream.listen(
+      final started = await _whisperService.startProcessing();
+      if (!started) {
+        throw StateError('Whisper service failed to start processing');
+      }
+
+      await _monoAudioSubscription?.cancel();
+      _monoAudioSubscription = _audioCaptureService.audioStream.listen(
         (audioBytes) async {
+          if (audioBytes.isEmpty) {
+            _logger.d(
+              '🎵 Ignoring empty audio chunk sent to Whisper',
+              category: LogCategory.speech,
+            );
+            return;
+          }
+
+          if (!_whisperService.isProcessing) {
+            _logger.w(
+              '⏳ Whisper not ready to process chunk yet; dropping ${audioBytes.length} bytes',
+              category: LogCategory.speech,
+            );
+            return;
+          }
+
           _logger.d(
             '🎵 Received audio chunk (${audioBytes.length} bytes)',
             category: LogCategory.speech,
@@ -630,10 +675,17 @@ class EnhancedSpeechProcessor {
             );
             final result = await _whisperService.processAudioBuffer(audioBytes);
 
-            _logger.i(
-              '📝 Whisper transcription result: "${result.text}" (confidence: ${result.confidence})',
-              category: LogCategory.speech,
-            );
+            if (result.text.isNotEmpty) {
+              _logger.i(
+                '📝 Whisper transcription result: "${result.text}" (confidence: ${result.confidence})',
+                category: LogCategory.speech,
+              );
+            } else {
+              _logger.d(
+                '📝 Whisper returned empty transcription (confidence: ${result.confidence})',
+                category: LogCategory.speech,
+              );
+            }
 
             // Process the speech result
             _processSpeechResult(result);
@@ -656,7 +708,6 @@ class EnhancedSpeechProcessor {
         },
       );
 
-      await _whisperService.startProcessing();
       _logger.i(
         '✅ Whisper GGML processing started successfully',
         category: LogCategory.speech,
@@ -1066,10 +1117,17 @@ class EnhancedSpeechProcessor {
           break;
       }
 
-      // Stop stereo audio capture
-      await _stopStereoAudioCapture();
+      await _monoAudioSubscription?.cancel();
+      _monoAudioSubscription = null;
 
-      await _frameCaptureService.stop();
+      // Stop stereo audio capture
+      if (_stereoCaptureEnabled) {
+        await _stopStereoAudioCapture();
+      }
+
+      if (_frameCaptureEnabled) {
+        await _frameCaptureService.stop();
+      }
       _isProcessing = false;
       _logger.i('✅ Speech processing stopped', category: LogCategory.speech);
       return true;
@@ -1123,6 +1181,13 @@ class EnhancedSpeechProcessor {
       '📸 Capturing frame via FrameCaptureService...',
       category: LogCategory.camera,
     );
+    if (!_frameCaptureEnabled) {
+      _logger.d(
+        '🛑 Frame capture disabled - returning null frame',
+        category: LogCategory.camera,
+      );
+      return null;
+    }
     try {
       // Add timeout to frame capture to prevent hanging
       final frameData = await _frameCaptureService.captureFrame().timeout(

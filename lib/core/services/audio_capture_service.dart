@@ -13,6 +13,23 @@ class AudioCaptureService {
   
   bool _isCapturing = false;
   int _audioChunksProcessed = 0;
+  BytesBuilder? _pendingChunkBuilder;
+  DateTime? _lastChunkEmitAt;
+  DateTime? _lastSpeechAt;
+  bool _speechActive = false;
+  double _smoothedRms = 0.0;
+
+  static const int _targetSampleRate = 16000;
+  static const int _bytesPerSample = 2;
+  static const double _speechStartRms = 0.02;
+  static const double _speechStopRms = 0.015;
+  static const Duration _speechHangover = Duration(milliseconds: 350);
+  static const int _minSpeechChunkBytes =
+      (_targetSampleRate * _bytesPerSample) ~/ 2; // ~0.5 second
+  static const int _targetChunkBytes =
+      _targetSampleRate * _bytesPerSample * 1; // ~1 second
+  static const Duration _maxChunkInterval = Duration(seconds: 1);
+  static const Duration _silenceFlushInterval = Duration(milliseconds: 700);
 
   Stream<Uint8List> get audioStream {
     final controller = _streamController;
@@ -46,6 +63,7 @@ class AudioCaptureService {
       final audioStreamer = AudioStreamer();
       audioStreamer.sampleRate = 16000;
       final controller = StreamController<Uint8List>.broadcast();
+      _resetBufferingState();
       _streamController = controller;
       _audioSubscription = audioStreamer.audioStream.listen((buffer) {
         _audioChunksProcessed++;
@@ -72,10 +90,7 @@ class AudioCaptureService {
           byteData.setInt16(i * 2, intSample, Endian.little);
         }
         final chunk = byteData.buffer.asUint8List();
-        if (!controller.isClosed) {
-          controller.add(chunk);
-        }
-        _logger.d('📤 Sent audio chunk to stream (${chunk.length} bytes)', category: LogCategory.audio);
+        _bufferAudioChunk(controller, chunk, rmsLevel);
         
       }, onError: (error) {
         _logger.e('❌ Error in audio stream: $error', category: LogCategory.audio);
@@ -107,10 +122,14 @@ class AudioCaptureService {
     try {
       await _audioSubscription?.cancel();
       _audioSubscription = null;
-      await _streamController?.close();
+      if (_streamController != null) {
+        await _flushBufferedAudio(_streamController!);
+        await _streamController?.close();
+      }
       _streamController = null;
       _isCapturing = false;
       _audioChunksProcessed = 0;
+      _resetBufferingState();
       _logger.i('✅ Audio capture stopped successfully', category: LogCategory.audio);
     } catch (e, stackTrace) {
       _logger.e('❌ Error stopping audio capture', category: LogCategory.audio, error: e, stackTrace: stackTrace);
@@ -120,4 +139,90 @@ class AudioCaptureService {
   
   bool get isCapturing => _isCapturing;
   int get audioChunksProcessed => _audioChunksProcessed;
+
+  void _bufferAudioChunk(
+    StreamController<Uint8List> controller,
+    Uint8List chunk,
+    double rmsLevel,
+  ) {
+    if (controller.isClosed) {
+      return;
+    }
+
+    _pendingChunkBuilder ??= BytesBuilder();
+    _pendingChunkBuilder!.add(chunk);
+
+    final now = DateTime.now();
+    _lastChunkEmitAt ??= now;
+    final bufferedBytes = _pendingChunkBuilder!.length;
+    _smoothedRms = _smoothedRms == 0.0
+        ? rmsLevel
+        : (_smoothedRms * 0.8) + (rmsLevel * 0.2);
+
+    final bool wasActive = _speechActive;
+    if (_smoothedRms >= _speechStartRms) {
+      _speechActive = true;
+      _lastSpeechAt = now;
+    } else if (_speechActive &&
+        _lastSpeechAt != null &&
+        now.difference(_lastSpeechAt!) > _speechHangover &&
+        _smoothedRms < _speechStopRms) {
+      _speechActive = false;
+    }
+
+    final bool reachedTargetSize = bufferedBytes >= _targetChunkBytes;
+    final bool reachedSpeechThreshold = _speechActive &&
+        bufferedBytes >= _minSpeechChunkBytes;
+
+    final bool reachedTimeout =
+        now.difference(_lastChunkEmitAt!) >= _maxChunkInterval;
+    final bool silenceFlush = !wasActive &&
+        !_speechActive &&
+        _pendingChunkBuilder!.length >= (_targetSampleRate ~/ 5) * _bytesPerSample &&
+        now.difference(_lastChunkEmitAt!) >= _silenceFlushInterval;
+
+    if (reachedTargetSize ||
+        reachedSpeechThreshold ||
+        reachedTimeout ||
+        silenceFlush) {
+      final combined = _pendingChunkBuilder!.takeBytes();
+      if (combined.isNotEmpty && !controller.isClosed) {
+        controller.add(combined);
+        _logger.d(
+          '📤 Sent batched audio chunk to stream (${combined.length} bytes)',
+          category: LogCategory.audio,
+        );
+      }
+      _pendingChunkBuilder = null;
+      _lastChunkEmitAt = now;
+    }
+  }
+
+  Future<void> _flushBufferedAudio(StreamController<Uint8List> controller) async {
+    final builder = _pendingChunkBuilder;
+    if (builder == null || builder.length == 0 || controller.isClosed) {
+      _pendingChunkBuilder = null;
+      _lastChunkEmitAt = null;
+      return;
+    }
+
+    final combined = builder.takeBytes();
+    if (combined.isNotEmpty && !controller.isClosed) {
+      controller.add(combined);
+      _logger.d(
+        '📤 Flushed final audio chunk (${combined.length} bytes)',
+        category: LogCategory.audio,
+      );
+    }
+    _pendingChunkBuilder = null;
+    _lastChunkEmitAt = null;
+  }
+
+  void _resetBufferingState() {
+    _pendingChunkBuilder = null;
+    _lastChunkEmitAt = null;
+    _lastSpeechAt = null;
+    _speechActive = false;
+    _smoothedRms = 0.0;
+  }
 }
