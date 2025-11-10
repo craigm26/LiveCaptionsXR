@@ -87,13 +87,16 @@ void setupServiceLocator() {
     );
   }
   if (!sl.isRegistered<LiveCaptionsCubit>()) {
+    final passThroughConfig = SpeechConfig.lowLatency.copyWith(
+      enableRealTimeEnhancement: false,
+    );
     sl.registerLazySingleton<LiveCaptionsCubit>(
       () => LiveCaptionsCubit(
         speechProcessor: sl<EnhancedSpeechProcessor>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
         spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
-        useEnhancement: true,
-        speechConfig: const SpeechConfig(), // Pass default config with whisper settings
+        useEnhancement: false,
+        speechConfig: passThroughConfig,
       ),
     );
   }
