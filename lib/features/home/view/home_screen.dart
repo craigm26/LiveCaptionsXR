@@ -16,7 +16,7 @@ import '../../ar_session/cubit/ar_session_cubit.dart';
 import '../../ar_session/cubit/ar_session_state.dart';
 import '../cubit/home_cubit.dart';
 import '../../../core/models/sound_event.dart';
-import '../../../core/models/visual_object.dart';
+import '../../../core/models/detected_speaker.dart';
 import '../../../core/services/app_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
 import '../../../shared/widgets/ar_session_status_widget.dart';
@@ -1219,40 +1219,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       >(
                         builder: (context, state) {
                           if (state is VisualIdentificationLoaded &&
-                              state.objects.isNotEmpty) {
-                            final VisualObject obj = state.objects.first;
-                            return Positioned(
-                              bottom: 48,
-                              right: 24,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.greenAccent,
-                                    width: 3,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Colors.black.withAlpha(
-                                    (255 * 0.3).round(),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.visibility,
-                                      color: Colors.greenAccent,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '${obj.label} (${(obj.confidence * 100).toStringAsFixed(0)}%)',
-                                        style: const TextStyle(
-                                          color: Colors.greenAccent,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              (state.speakers.isNotEmpty ||
+                                  state.activeSpeaker != null)) {
+                            return Positioned.fill(
+                              child: IgnorePointer(
+                                ignoring: true,
+                                child: _SpeakerDetectionOverlay(state: state),
                               ),
                             );
                           }
@@ -1437,6 +1409,141 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _SpeakerDetectionOverlay extends StatelessWidget {
+  const _SpeakerDetectionOverlay({required this.state});
+
+  final VisualIdentificationLoaded state;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        final children = <Widget>[];
+
+        for (final speaker in state.speakers) {
+          final rect = speaker.boundingBox;
+          final left = rect.left.clamp(0.0, 1.0) * size.width;
+          final top = rect.top.clamp(0.0, 1.0) * size.height;
+          final width =
+              (rect.width.clamp(0.05, 1.0)) * size.width; // enforce min width
+          final height =
+              (rect.height.clamp(0.05, 1.0)) * size.height; // enforce min height
+          final isActive = state.activeSpeaker?.faceId == speaker.faceId;
+
+          children.add(
+            Positioned(
+              left: left,
+              top: top,
+              width: width,
+              height: height,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: isActive ? Colors.greenAccent : Colors.white70,
+                    width: isActive ? 3 : 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  color: (isActive ? Colors.greenAccent : Colors.white)
+                      .withOpacity(0.08),
+                ),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    margin: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Face ${speaker.faceId} • ${(speaker.confidence * 100).toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        color: isActive ? Colors.greenAccent : Colors.white70,
+                        fontSize: 12,
+                        fontWeight:
+                            isActive ? FontWeight.bold : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (state.activeSpeaker != null) {
+          children.add(
+            Positioned(
+              left: 24,
+              bottom: 32,
+              child: _ActiveSpeakerBadge(speaker: state.activeSpeaker!),
+            ),
+          );
+        }
+
+        return Stack(children: children);
+      },
+    );
+  }
+}
+
+class _ActiveSpeakerBadge extends StatelessWidget {
+  const _ActiveSpeakerBadge({required this.speaker});
+
+  final DetectedSpeaker speaker;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.65),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.greenAccent, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black54,
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.hearing, color: Colors.greenAccent),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Active speaker · Face ${speaker.faceId}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                'State: ${speaker.state.name} • ${(speaker.confidence * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

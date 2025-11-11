@@ -8,6 +8,7 @@ import '../../../core/services/enhanced_speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
+import '../../../core/services/speaker_attribution_store.dart';
 import 'live_captions_state.dart';
 
 class LiveCaptionsStartException implements Exception {
@@ -34,6 +35,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final EnhancedSpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
+  final SpeakerAttributionStore _speakerAttributionStore;
   final AppLogger _logger = AppLogger.instance;
 
   StreamSubscription? _captionSubscription;
@@ -45,11 +47,13 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     required EnhancedSpeechProcessor speechProcessor,
     required HybridLocalizationEngine hybridLocalizationEngine,
     required SpatialCaptionIntegrationService spatialCaptionIntegrationService,
+    required SpeakerAttributionStore speakerAttributionStore,
     bool useEnhancement = true,
     SpeechConfig? speechConfig,
   }) : _speechProcessor = speechProcessor,
        _hybridLocalizationEngine = hybridLocalizationEngine,
        _spatialCaptionIntegrationService = spatialCaptionIntegrationService,
+       _speakerAttributionStore = speakerAttributionStore,
        _useEnhancement = useEnhancement,
        _speechConfig = speechConfig,
        super(const LiveCaptionsInitial());
@@ -277,7 +281,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       );
 
       // Create speech result for spatial caption integration
-      final speechResult = SpeechResult(
+      final speechResult = _buildSpeechResult(
         text: displayText,
         confidence: caption.confidence,
         isFinal: true,
@@ -321,7 +325,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         );
         try {
           // Create SpeechResult for spatial processing
-          final speechResult = SpeechResult(
+          final speechResult = _buildSpeechResult(
             text: caption.displayText,
             confidence: caption.confidence,
             isFinal: caption.isFinal,
@@ -349,7 +353,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
       emit(
         currentState.copyWith(
-          currentCaption: SpeechResult(
+          currentCaption: _buildSpeechResult(
             text: caption.displayText,
             confidence: caption.confidence,
             isFinal: caption.isFinal,
@@ -371,6 +375,46 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     );
     final enhancedCaption = EnhancedCaption.fromSpeechResult(result);
     _handleEnhancedCaption(enhancedCaption);
+  }
+
+  SpeechResult _buildSpeechResult({
+    required String text,
+    required double confidence,
+    required bool isFinal,
+    required DateTime timestamp,
+  }) {
+    return SpeechResult(
+      text: text,
+      confidence: confidence,
+      isFinal: isFinal,
+      timestamp: timestamp,
+      metadata: _buildSpeakerMetadata(),
+    );
+  }
+
+  Map<String, dynamic>? _buildSpeakerMetadata() {
+    final speaker = _speakerAttributionStore.activeSpeaker;
+    if (speaker == null) {
+      return null;
+    }
+    final bbox = speaker.boundingBox;
+    final metadata = <String, dynamic>{
+      'speakerFaceId': speaker.faceId,
+      'speakerConfidence': speaker.confidence,
+      'speakerState': speaker.state.name,
+      'speakerTimestamp': speaker.timestamp.toIso8601String(),
+      'speakerBoundingBox': {
+        'left': bbox.left,
+        'top': bbox.top,
+        'width': bbox.width,
+        'height': bbox.height,
+      },
+    };
+    final transform = speaker.worldTransform;
+    if (transform != null) {
+      metadata['speakerWorldTransform'] = transform;
+    }
+    return metadata;
   }
 
   Future<void> stopCaptions() async {
