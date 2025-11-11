@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:spatial_captions/spatial_captions.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
+import '../models/detected_speaker.dart';
 import '../models/speech_result.dart';
 import 'speech_localizer.dart';
 import 'stereo_audio_capture.dart';
@@ -35,6 +36,9 @@ class SpatialCaptionIntegrationService {
   
   // Track last audio frame for direction estimation
   StereoAudioFrame? _lastAudioFrame;
+  DetectedSpeaker? _activeSpeaker;
+  DateTime? _activeSpeakerUpdatedAt;
+  static const Duration _activeSpeakerFreshFor = Duration(milliseconds: 750);
   
   SpatialCaptionIntegrationService({
     required SpatialCaptionsCubit spatialCaptionsCubit,
@@ -126,7 +130,7 @@ class SpatialCaptionIntegrationService {
       _logger.d('📍 [SPATIAL INTEGRATION] Calculated position for partial caption: $position', category: LogCategory.captions);
       
       // Use speaker direction as a simple speaker ID
-      final speakerId = result.speakerDirection ?? 'default';
+      final speakerId = _resolveSpeakerId(result);
       _logger.d('👤 [SPATIAL INTEGRATION] Using speaker ID: $speakerId for partial caption', category: LogCategory.captions);
       
       // Add partial caption through spatial plugin
@@ -154,11 +158,11 @@ class SpatialCaptionIntegrationService {
     }
 
     try {
-      // Get position from audio direction
+      // Get position from audio direction or active face anchor
       final position = await _calculateCaptionPosition(result);
       
-      // Use speaker direction as a simple speaker ID
-      final speakerId = result.speakerDirection ?? 'default';
+      // Resolve the active speaker ID if available
+      final speakerId = _resolveSpeakerId(result);
       
       // Add final caption (will replace partial)
       await _spatialCaptionsCubit.finalizeCaption(
@@ -179,6 +183,11 @@ class SpatialCaptionIntegrationService {
 
   /// Calculate caption position based on audio direction and hybrid localization
   Future<Vector3> _calculateCaptionPosition(SpeechResult result) async {
+    final anchorPosition = _activeSpeakerPositionIfFresh();
+    if (anchorPosition != null) {
+      _logger.i('?? [POSITION] Using active speaker anchor position: $anchorPosition', category: LogCategory.captions);
+      return anchorPosition;
+    }
     _logger.i('🎯 [POSITION] ===== CALCULATING CAPTION POSITION =====', category: LogCategory.captions);
     _logger.i('🎯 [POSITION] Text: "${result.text}"', category: LogCategory.captions);
     _logger.i('🎯 [POSITION] Speaker direction in result: ${result.speakerDirection ?? "NULL"}', category: LogCategory.captions);
@@ -367,4 +376,47 @@ class SpatialCaptionIntegrationService {
     }
     _enhancementTimers.clear();
   }
-} 
+
+  String _resolveSpeakerId(SpeechResult result) {
+    final metadata = result.metadata;
+    final faceIdFromMetadata = metadata?['speakerFaceId'];
+    if (faceIdFromMetadata is int) {
+      return 'face_$faceIdFromMetadata';
+    }
+    if (_activeSpeaker != null && _activeSpeakerUpdatedAt != null) {
+      final age = DateTime.now().difference(_activeSpeakerUpdatedAt!);
+      if (age <= _activeSpeakerFreshFor) {
+        return 'face_${_activeSpeaker!.faceId}';
+      }
+    }
+    return result.speakerDirection ?? 'default';
+  }
+
+  Vector3? _activeSpeakerPositionIfFresh() {
+    final speaker = _activeSpeaker;
+    if (speaker == null || _activeSpeakerUpdatedAt == null) {
+      return null;
+    }
+    if (DateTime.now().difference(_activeSpeakerUpdatedAt!) > _activeSpeakerFreshFor) {
+      return null;
+    }
+    final transform = speaker.worldTransform;
+    if (transform == null || transform.length != 16) {
+      return null;
+    }
+    return Vector3(transform[12], transform[13], transform[14]);
+  }
+
+  void updateActiveSpeaker(DetectedSpeaker? speaker) {
+    _activeSpeaker = speaker;
+    _activeSpeakerUpdatedAt = speaker == null ? null : DateTime.now();
+    if (speaker?.worldTransform != null && speaker!.worldTransform!.length == 16) {
+      unawaited(
+        _hybridLocalizationEngine.updateWithVisualMeasurement(
+          transform: speaker.worldTransform!,
+          confidence: speaker.confidence,
+        ),
+      );
+    }
+  }
+}

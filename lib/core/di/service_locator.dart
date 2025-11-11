@@ -19,6 +19,9 @@ import 'package:live_captions_xr/features/settings/cubit/settings_cubit.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
 import 'package:live_captions_xr/core/services/speech_localizer.dart';
 import 'package:live_captions_xr/core/services/spatial_caption_integration_service.dart';
+import 'package:live_captions_xr/core/services/visual_speaker_service.dart';
+import 'package:live_captions_xr/core/services/speaker_tagging_coordinator.dart';
+import 'package:live_captions_xr/core/services/speaker_attribution_store.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/app_logger.dart';
 // ... imports
@@ -95,6 +98,7 @@ void setupServiceLocator() {
         speechProcessor: sl<EnhancedSpeechProcessor>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
         spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
+        speakerAttributionStore: sl<SpeakerAttributionStore>(),
         useEnhancement: false,
         speechConfig: passThroughConfig,
       ),
@@ -104,9 +108,14 @@ void setupServiceLocator() {
     sl.registerFactory<SoundDetectionCubit>(() => SoundDetectionCubit());
   }
   if (!sl.isRegistered<VisualIdentificationCubit>()) {
-    sl.registerFactory<VisualIdentificationCubit>(() => VisualIdentificationCubit(
-      hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
-    ));
+    sl.registerFactory<VisualIdentificationCubit>(
+      () => VisualIdentificationCubit(
+        hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+        visualSpeakerService: sl<VisualSpeakerService>(),
+        speakerTaggingCoordinator: sl<SpeakerTaggingCoordinator>(),
+        attributionStore: sl<SpeakerAttributionStore>(),
+      ),
+    );
   }
   if (!sl.isRegistered<GoogleAuthService>()) {
     sl.registerLazySingleton<GoogleAuthService>(() => GoogleAuthService());
@@ -116,6 +125,13 @@ void setupServiceLocator() {
   }
   if (!sl.isRegistered<CameraService>()) {
     sl.registerLazySingleton<CameraService>(() => CameraService());
+  }
+  if (!sl.isRegistered<VisualSpeakerService>()) {
+    sl.registerLazySingleton<VisualSpeakerService>(
+      () => VisualSpeakerService(
+        cameraService: sl<CameraService>(),
+      ),
+    );
   }
   if (!sl.isRegistered<ARFrameService>()) {
     sl.registerLazySingleton<ARFrameService>(() => ARFrameService());
@@ -149,6 +165,19 @@ void setupServiceLocator() {
         gemmaService: sl<Gemma3nService>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
       ),
+    );
+  }
+  if (!sl.isRegistered<SpeakerTaggingCoordinator>()) {
+    sl.registerLazySingleton<SpeakerTaggingCoordinator>(
+      () => SpeakerTaggingCoordinator(
+        spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
+        attributionStore: sl<SpeakerAttributionStore>(),
+      ),
+    );
+  }
+  if (!sl.isRegistered<SpeakerAttributionStore>()) {
+    sl.registerLazySingleton<SpeakerAttributionStore>(
+      () => SpeakerAttributionStore(),
     );
   }
   // Register SettingsCubit

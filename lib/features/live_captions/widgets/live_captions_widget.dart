@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -221,14 +223,15 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       return _buildPlaceholder(context, state);
     }
 
-    final currentText = state.currentCaption?.text ??
-        (state.captions.isNotEmpty ? state.captions.last.text : null);
+    final SpeechResult? currentResult = _resolveCurrentResult(state);
+    final currentText = currentResult?.text;
 
     if (currentText == null || currentText.isEmpty) {
       return _buildPlaceholder(context, state);
     }
 
     final isInterim = state.currentCaption != null;
+    final speakerDetails = _extractSpeakerDetails(currentResult);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -288,6 +291,13 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
                       ),
                 ),
               ],
+            ),
+          ],
+          if (speakerDetails != null) ...[
+            const SizedBox(height: 10),
+            _SpeakerAttributionChip(
+              details: speakerDetails,
+              isInterim: isInterim,
             ),
           ],
         ],
@@ -393,6 +403,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
 
   Widget _buildHistoryItem(
       BuildContext context, SpeechResult caption, int index) {
+    final speakerDetails = _extractSpeakerDetails(caption);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -414,11 +425,27 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              caption.text,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  caption.text,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                      ),
+                ),
+                if (speakerDetails != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Face ${speakerDetails.faceId} • ${(speakerDetails.confidence * 100).toStringAsFixed(0)}%',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.blueGrey[200],
+                            fontSize: 11,
+                          ),
+                    ),
                   ),
+              ],
             ),
           ),
           Text(
@@ -459,4 +486,104 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       ),
     );
   }
+
+  SpeechResult? _resolveCurrentResult(LiveCaptionsActive state) {
+    return state.currentCaption ??
+        (state.captions.isNotEmpty ? state.captions.last : null);
+  }
+
+  _SpeakerDetails? _extractSpeakerDetails(SpeechResult? result) {
+    final metadata = result?.metadata;
+    if (metadata == null) {
+      return null;
+    }
+    final faceId = metadata['speakerFaceId'];
+    final confidence = metadata['speakerConfidence'];
+    if (faceId is! int || confidence is! num) {
+      return null;
+    }
+    final state = metadata['speakerState'] as String?;
+    Rect? bbox;
+    final bboxMap = metadata['speakerBoundingBox'];
+    if (bboxMap is Map) {
+      final left = (bboxMap['left'] as num?)?.toDouble();
+      final top = (bboxMap['top'] as num?)?.toDouble();
+      final width = (bboxMap['width'] as num?)?.toDouble();
+      final height = (bboxMap['height'] as num?)?.toDouble();
+      if (left != null && top != null && width != null && height != null) {
+        bbox = Rect.fromLTWH(left, top, width, height);
+      }
+    }
+    final transform =
+        (metadata['speakerWorldTransform'] as List<dynamic>?)?.cast<double>();
+    return _SpeakerDetails(
+      faceId: faceId,
+      confidence: confidence.toDouble(),
+      state: state ?? 'unknown',
+      boundingBox: bbox,
+      worldTransform: transform,
+    );
+  }
+}
+
+class _SpeakerAttributionChip extends StatelessWidget {
+  const _SpeakerAttributionChip({
+    required this.details,
+    required this.isInterim,
+  });
+
+  final _SpeakerDetails details;
+  final bool isInterim;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isInterim ? Colors.orange : Colors.greenAccent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.7)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.person_pin_circle, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            'Face ${details.faceId} • ${(details.confidence * 100).toStringAsFixed(0)}%',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          if (details.boundingBox != null) ...[
+            const SizedBox(width: 6),
+            Text(
+              '@ (${(details.boundingBox!.left * 100).toStringAsFixed(0)}%, ${(details.boundingBox!.top * 100).toStringAsFixed(0)}%)',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white70,
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SpeakerDetails {
+  const _SpeakerDetails({
+    required this.faceId,
+    required this.confidence,
+    required this.state,
+    this.boundingBox,
+    this.worldTransform,
+  });
+
+  final int faceId;
+  final double confidence;
+  final String state;
+  final Rect? boundingBox;
+  final List<double>? worldTransform;
 }
