@@ -3,8 +3,11 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:audio_streamer/audio_streamer.dart';
+import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/core/services/app_logger.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:live_captions_xr/spatial_intel/streams/predictive_stream_hub.dart';
+import 'package:live_captions_xr/spatial_intel/streams/spatial_sensor_stream.dart';
 
 class AudioCaptureService {
   static final AppLogger _logger = AppLogger.instance;
@@ -77,6 +80,8 @@ class AudioCaptureService {
         rmsLevel = buffer.isNotEmpty ? sqrt(rmsLevel / buffer.length) : 0.0;
         
         _logger.d('📊 Audio levels - RMS: ${rmsLevel.toStringAsFixed(4)}', category: LogCategory.audio);
+
+        _fanOutToPredictiveStream(buffer, rmsLevel);
         
         // Check if audio level is above threshold (potential speech)
         if (rmsLevel > 0.01) {
@@ -224,5 +229,36 @@ class AudioCaptureService {
     _lastSpeechAt = null;
     _speechActive = false;
     _smoothedRms = 0.0;
+  }
+
+  void _fanOutToPredictiveStream(List<double> buffer, double rmsLevel) {
+    if (!GetIt.I.isRegistered<PredictiveStreamHub>()) {
+      return;
+    }
+    try {
+      final hub = GetIt.I<PredictiveStreamHub>();
+      final hopMicros =
+          (buffer.length / _targetSampleRate * Duration.microsecondsPerSecond)
+              .round();
+      hub.audio.publishFloatSamples(
+        samples: buffer,
+        sampleRate: _targetSampleRate,
+        hop: Duration(microseconds: hopMicros),
+      );
+      hub.sensors.publishDoa(
+        DoaEstimate(
+          azimuth: 0.0,
+          elevation: 0.0,
+          confidence: rmsLevel.clamp(0.0, 1.0),
+        ),
+      );
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Failed to fan out audio frame to predictive stream hub',
+        category: LogCategory.audio,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }

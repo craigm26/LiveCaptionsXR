@@ -1,0 +1,25 @@
+decode:
+  mode: deterministic
+  temperature: 0.0
+  top_k: 1
+  grammar:
+    enable: true
+    paths:
+      - wfst_grammars/numbers.wfst
+      - wfst_grammars/dates.wfst
+
+stability:
+  token_prob_min: 0.80
+  entropy_max: 1.2
+  span_prob_min: 0.75
+
+placement:
+  azimuth_gate_deg: 12
+  jitter_max_dps: 6
+  face_occlusion_pct_max: 8
+
+ui:
+  ghost_alpha: 0.35
+  commit_fade_ms: 120
+  unreadable_recenter: true
+
