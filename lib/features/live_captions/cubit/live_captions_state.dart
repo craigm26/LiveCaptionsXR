@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/models/speech_result.dart';
+import 'package:live_captions_xr/spatial_intel/predict/next_token_stream.dart';
 
 /// State for live captions functionality
 abstract class LiveCaptionsState extends Equatable {
@@ -33,6 +34,7 @@ class LiveCaptionsActive extends LiveCaptionsState {
   final String? error;
   final bool showOverlayFallback;
   final bool hasEnhancement;
+  final NextTokenState? predictiveState;
 
   const LiveCaptionsActive({
     required this.captions,
@@ -41,10 +43,19 @@ class LiveCaptionsActive extends LiveCaptionsState {
     this.error,
     this.showOverlayFallback = false,
     this.hasEnhancement = false,
+    this.predictiveState,
   });
 
   @override
-  List<Object?> get props => [captions, currentCaption, isListening, error, showOverlayFallback, hasEnhancement];
+  List<Object?> get props => [
+        captions,
+        currentCaption,
+        isListening,
+        error,
+        showOverlayFallback,
+        hasEnhancement,
+        predictiveState,
+      ];
 
   LiveCaptionsActive copyWith({
     List<SpeechResult>? captions,
@@ -53,6 +64,7 @@ class LiveCaptionsActive extends LiveCaptionsState {
     String? error,
     bool? showOverlayFallback,
     bool? hasEnhancement,
+    NextTokenState? predictiveState,
   }) {
     return LiveCaptionsActive(
       captions: captions ?? this.captions,
@@ -61,6 +73,7 @@ class LiveCaptionsActive extends LiveCaptionsState {
       error: error ?? this.error,
       showOverlayFallback: showOverlayFallback ?? this.showOverlayFallback,
       hasEnhancement: hasEnhancement ?? this.hasEnhancement,
+      predictiveState: predictiveState ?? this.predictiveState,
     );
   }
 }

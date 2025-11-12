@@ -37,6 +37,7 @@ dependencies:
   dart_openai: ^5.1.0
   flutter_dotenv: ^6.0.0
   vector_math: ^2.1.4
+  yaml: ^3.1.2
   spatial_captions:
     path: plugins/spatial_captions
   
@@ -59,6 +60,7 @@ flutter:
   assets:
     - assets/logos/
     - assets/images/
+    - assets/spatial_intel/decoding/
   #  - assets/models/whisper_base.bin
   # - assets/models/gemma-3n-E4B-it-int4.task
   # fonts:

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:spatial_captions/spatial_captions.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
+import 'package:get_it/get_it.dart';
 import '../models/detected_speaker.dart';
 import '../models/speech_result.dart';
 import 'speech_localizer.dart';
@@ -14,6 +15,9 @@ import 'stereo_audio_capture.dart';
 import 'gemma_3n_service.dart';
 import 'app_logger.dart';
 import 'hybrid_localization_engine.dart';
+import 'package:live_captions_xr/spatial_intel/streams/predictive_stream_hub.dart';
+import 'package:live_captions_xr/spatial_intel/streams/spatial_sensor_stream.dart';
+import 'package:live_captions_xr/spatial_intel/placement/spatial_anchor_coordinator.dart';
 
 /// Service that integrates live captions with spatial positioning in AR
 class SpatialCaptionIntegrationService {
@@ -183,9 +187,23 @@ class SpatialCaptionIntegrationService {
 
   /// Calculate caption position based on audio direction and hybrid localization
   Future<Vector3> _calculateCaptionPosition(SpeechResult result) async {
+    final coordinator = GetIt.I.isRegistered<SpatialAnchorCoordinator>()
+        ? GetIt.I<SpatialAnchorCoordinator>()
+        : null;
+    final speakerMetadata = result.metadata;
+    final spatialConfidence = result.confidence;
+
     final anchorPosition = _activeSpeakerPositionIfFresh();
     if (anchorPosition != null) {
       _logger.i('?? [POSITION] Using active speaker anchor position: $anchorPosition', category: LogCategory.captions);
+      if (coordinator != null) {
+        final decision = coordinator.chooseAnchor(
+          fusedTransformPosition: anchorPosition,
+          speakerMetadata: speakerMetadata,
+          spatialConfidence: spatialConfidence,
+        );
+        return decision.position;
+      }
       return anchorPosition;
     }
     _logger.i('🎯 [POSITION] ===== CALCULATING CAPTION POSITION =====', category: LogCategory.captions);
@@ -210,7 +228,16 @@ class SpatialCaptionIntegrationService {
         
         _logger.i('🎯 [POSITION] USING HYBRID LOCALIZATION', category: LogCategory.captions);
         _logger.i('🎯 [POSITION] Position: x=$x, y=$y, z=$z', category: LogCategory.captions);
-        return Vector3(x, y, z);
+        final fusedPosition = Vector3(x, y, z);
+        if (coordinator != null) {
+          final decision = coordinator.chooseAnchor(
+            fusedTransformPosition: fusedPosition,
+            speakerMetadata: speakerMetadata,
+            spatialConfidence: spatialConfidence,
+          );
+          return decision.position;
+        }
+        return fusedPosition;
       } else {
         _logger.w('⚠️ [POSITION] Hybrid transform invalid (expected 16, got ${fusedTransform.length})', category: LogCategory.captions);
       }
@@ -244,6 +271,15 @@ class SpatialCaptionIntegrationService {
         captionHeight,
         -defaultCaptionDistance * cos(angle),
       );
+      _publishDoaEstimate(angle, result.confidence);
+      if (coordinator != null) {
+        final decision = coordinator.chooseAnchor(
+          fusedTransformPosition: null,
+          speakerMetadata: speakerMetadata,
+          spatialConfidence: spatialConfidence,
+        );
+        return decision.position;
+      }
       _logger.i('📍 [POSITION] Final position: (${pos.x.toStringAsFixed(2)}, ${pos.y.toStringAsFixed(2)}, ${pos.z.toStringAsFixed(2)})', category: LogCategory.captions);
       return pos;
     } else {
@@ -269,12 +305,21 @@ class SpatialCaptionIntegrationService {
           angle: direction,
           confidence: result.confidence,
         );
+        _publishDoaEstimate(direction, result.confidence);
         
         final pos = Vector3(
           defaultCaptionDistance * sin(direction),
           captionHeight,
           -defaultCaptionDistance * cos(direction),
         );
+        if (coordinator != null) {
+          final decision = coordinator.chooseAnchor(
+            fusedTransformPosition: null,
+            speakerMetadata: speakerMetadata,
+            spatialConfidence: spatialConfidence,
+          );
+          return decision.position;
+        }
         _logger.i('🔊 [POSITION] USING AUDIO DIRECTION', category: LogCategory.captions);
         _logger.i('🔊 [POSITION] Final position: (${pos.x.toStringAsFixed(2)}, ${pos.y.toStringAsFixed(2)}, ${pos.z.toStringAsFixed(2)})', category: LogCategory.captions);
         return pos;
@@ -289,7 +334,16 @@ class SpatialCaptionIntegrationService {
     // Default: place in front of user
     _logger.i('📍 [POSITION] USING DEFAULT CENTER POSITION', category: LogCategory.captions);
     _logger.i('📍 [POSITION] Position: (0, $captionHeight, -$defaultCaptionDistance)', category: LogCategory.captions);
-    return Vector3(0, captionHeight, -defaultCaptionDistance);
+    final defaultPosition = Vector3(0, captionHeight, -defaultCaptionDistance);
+    if (coordinator != null) {
+      final decision = coordinator.chooseAnchor(
+        fusedTransformPosition: null,
+        speakerMetadata: speakerMetadata,
+        spatialConfidence: spatialConfidence,
+      );
+      return decision.position;
+    }
+    return defaultPosition;
   }
   
   /// Helper method to calculate RMS for logging
@@ -405,6 +459,28 @@ class SpatialCaptionIntegrationService {
       return null;
     }
     return Vector3(transform[12], transform[13], transform[14]);
+  }
+
+  void _publishDoaEstimate(double azimuth, double confidence) {
+    if (!GetIt.I.isRegistered<PredictiveStreamHub>()) {
+      return;
+    }
+    try {
+      GetIt.I<PredictiveStreamHub>().sensors.publishDoa(
+            DoaEstimate(
+              azimuth: azimuth,
+              elevation: 0.0,
+              confidence: confidence.clamp(0.0, 1.0).toDouble(),
+            ),
+          );
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ [SPATIAL] Failed to publish DOA estimate',
+        category: LogCategory.captions,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   void updateActiveSpeaker(DetectedSpeaker? speaker) {

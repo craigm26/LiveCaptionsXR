@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 import '../../../core/models/enhanced_caption.dart';
 import '../../../core/models/speech_result.dart';
@@ -10,6 +11,10 @@ import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
 import '../../../core/services/speaker_attribution_store.dart';
 import 'live_captions_state.dart';
+import 'package:live_captions_xr/spatial_intel/streams/predictive_stream_hub.dart';
+import 'package:live_captions_xr/spatial_intel/streams/context_stream.dart';
+import 'package:live_captions_xr/spatial_intel/predict/predictive_caption_engine.dart';
+import 'package:live_captions_xr/spatial_intel/predict/next_token_stream.dart';
 
 class LiveCaptionsStartException implements Exception {
   final String message;
@@ -33,15 +38,16 @@ class LiveCaptionsStartException implements Exception {
 /// from the [EnhancedSpeechProcessor].
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   final EnhancedSpeechProcessor _speechProcessor;
-  final HybridLocalizationEngine _hybridLocalizationEngine;
   final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
   final SpeakerAttributionStore _speakerAttributionStore;
   final AppLogger _logger = AppLogger.instance;
 
   StreamSubscription? _captionSubscription;
+  StreamSubscription<NextTokenState>? _predictiveSubscription;
   final List<EnhancedCaption> _captionHistory = [];
   final bool _useEnhancement;
   SpeechConfig? _speechConfig;
+  NextTokenState? _latestPredictiveState;
 
   LiveCaptionsCubit({
     required EnhancedSpeechProcessor speechProcessor,
@@ -51,12 +57,58 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     bool useEnhancement = true,
     SpeechConfig? speechConfig,
   }) : _speechProcessor = speechProcessor,
-       _hybridLocalizationEngine = hybridLocalizationEngine,
        _spatialCaptionIntegrationService = spatialCaptionIntegrationService,
        _speakerAttributionStore = speakerAttributionStore,
        _useEnhancement = useEnhancement,
        _speechConfig = speechConfig,
-       super(const LiveCaptionsInitial());
+       super(const LiveCaptionsInitial()) {
+    _logger.d(
+      '🧭 Hybrid localization engine ready: ${hybridLocalizationEngine.runtimeType}',
+      category: LogCategory.captions,
+    );
+    _initializePredictiveSubscription();
+  }
+
+  void _initializePredictiveSubscription() {
+    if (!GetIt.I.isRegistered<PredictiveCaptionEngine>()) {
+      _logger.w(
+        '⚠️ PredictiveCaptionEngine not registered; predictive UI features disabled',
+        category: LogCategory.captions,
+      );
+      return;
+    }
+    try {
+      final engine = GetIt.I<PredictiveCaptionEngine>();
+      engine.initialize();
+      _predictiveSubscription = engine.nextTokenStates.listen(
+        (predictiveState) {
+          _latestPredictiveState = predictiveState;
+          if (state is LiveCaptionsActive) {
+            emit(
+              (state as LiveCaptionsActive).copyWith(
+                predictiveState: predictiveState,
+              ),
+            );
+          }
+        },
+        onError: (error, stackTrace) {
+          _logger.w(
+            '⚠️ Predictive caption stream error: $error',
+            category: LogCategory.captions,
+            error: error,
+            stackTrace: stackTrace,
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Failed to initialize predictive caption subscription',
+        category: LogCategory.captions,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
 
   /// Update speech configuration (useful for changing whisper settings)
   void updateSpeechConfig(SpeechConfig config) {
@@ -265,6 +317,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
             isListening: true,
             hasEnhancement: _useEnhancement,
             captions: [],
+            predictiveState: _latestPredictiveState,
           );
 
     if (caption.isFinal) {
@@ -288,6 +341,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         timestamp: caption.timestamp,
       );
 
+      _publishContextFrame(speechResult);
+
       // Process through spatial caption integration service
       await _spatialCaptionIntegrationService.processFinalResult(speechResult);
 
@@ -305,6 +360,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
               .toList(),
           currentCaption: null,
           hasEnhancement: caption.isEnhanced,
+          predictiveState: _latestPredictiveState,
         ),
       );
       _logger.i(
@@ -318,23 +374,22 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       );
 
       // Use spatial_captions plugin for partial results (consistent with final results)
+      final partialResult = _buildSpeechResult(
+        text: caption.displayText,
+        confidence: caption.confidence,
+        isFinal: caption.isFinal,
+        timestamp: caption.timestamp,
+      );
       if (caption.displayText.isNotEmpty && caption.displayText.length > 3) {
         _logger.d(
           '⚡ [CAPTIONS CUBIT] Processing PARTIAL caption with spatial plugin: "${caption.displayText}"',
           category: LogCategory.captions,
         );
         try {
-          // Create SpeechResult for spatial processing
-          final speechResult = _buildSpeechResult(
-            text: caption.displayText,
-            confidence: caption.confidence,
-            isFinal: caption.isFinal,
-            timestamp: caption.timestamp,
-          );
-
+          _publishContextFrame(partialResult);
           // Process through spatial plugin (same as final results)
           await _spatialCaptionIntegrationService.processPartialResult(
-            speechResult,
+            partialResult,
           );
           _logger.d(
             '✅ [CAPTIONS CUBIT] Partial caption processed through spatial plugin',
@@ -353,12 +408,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
       emit(
         currentState.copyWith(
-          currentCaption: _buildSpeechResult(
-            text: caption.displayText,
-            confidence: caption.confidence,
-            isFinal: caption.isFinal,
-            timestamp: caption.timestamp,
-          ),
+          currentCaption: partialResult,
+          predictiveState: _latestPredictiveState,
         ),
       );
       _logger.i(
@@ -390,6 +441,37 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       timestamp: timestamp,
       metadata: _buildSpeakerMetadata(),
     );
+  }
+
+  void _publishContextFrame(SpeechResult result) {
+    if (!GetIt.I.isRegistered<PredictiveStreamHub>()) {
+      return;
+    }
+    try {
+      final hub = GetIt.I<PredictiveStreamHub>();
+      final metadata = Map<String, dynamic>.from(result.metadata ?? const {});
+      final dynamic faceId = metadata['speakerFaceId'];
+      final speakerId = faceId != null
+          ? 'face_$faceId'
+          : result.speakerDirection ?? 'default';
+      final confidence =
+          (metadata['speakerConfidence'] as num?)?.toDouble() ??
+              result.confidence;
+      hub.context.publish(
+        CaptionContextFrame(
+          speakerId: speakerId,
+          confidence: confidence.clamp(0.0, 1.0).toDouble(),
+          metadata: metadata,
+        ),
+      );
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Failed to publish caption context frame',
+        category: LogCategory.captions,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Map<String, dynamic>? _buildSpeakerMetadata() {
@@ -441,6 +523,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   @override
   Future<void> close() {
     stopCaptions();
+    _predictiveSubscription?.cancel();
     _speechProcessor.dispose();
     return super.close();
   }

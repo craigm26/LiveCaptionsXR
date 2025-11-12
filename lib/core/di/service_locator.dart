@@ -24,6 +24,9 @@ import 'package:live_captions_xr/core/services/speaker_tagging_coordinator.dart'
 import 'package:live_captions_xr/core/services/speaker_attribution_store.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/app_logger.dart';
+import 'package:live_captions_xr/spatial_intel/streams/predictive_stream_hub.dart';
+import 'package:live_captions_xr/spatial_intel/predict/predictive_caption_engine.dart';
+import 'package:live_captions_xr/spatial_intel/placement/spatial_anchor_coordinator.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -164,6 +167,22 @@ void setupServiceLocator() {
         speechLocalizer: sl<SpeechLocalizer>(),
         gemmaService: sl<Gemma3nService>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+      ),
+    );
+  }
+  if (!sl.isRegistered<PredictiveStreamHub>()) {
+    sl.registerLazySingleton<PredictiveStreamHub>(() => PredictiveStreamHub());
+  }
+  if (!sl.isRegistered<PredictiveCaptionEngine>()) {
+    sl.registerLazySingleton<PredictiveCaptionEngine>(
+      () => PredictiveCaptionEngine(),
+    );
+  }
+  if (!sl.isRegistered<SpatialAnchorCoordinator>()) {
+    sl.registerLazySingleton<SpatialAnchorCoordinator>(
+      () => SpatialAnchorCoordinator(
+        streamHub: sl<PredictiveStreamHub>(),
+        policy: sl<PredictiveCaptionEngine>().policy,
       ),
     );
   }

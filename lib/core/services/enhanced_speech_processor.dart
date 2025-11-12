@@ -15,6 +15,9 @@ import 'frame_capture_service.dart';
 import 'stereo_audio_capture.dart';
 import 'spatial_caption_integration_service.dart';
 import 'app_logger.dart';
+import 'package:live_captions_xr/spatial_intel/streams/predictive_stream_hub.dart';
+import 'package:live_captions_xr/spatial_intel/streams/video_stream.dart';
+import 'package:live_captions_xr/spatial_intel/predict/predictive_caption_engine.dart';
 
 /// Speech processing engine types
 enum SpeechEngine {
@@ -925,6 +928,8 @@ class EnhancedSpeechProcessor {
         category: LogCategory.speech,
       );
 
+      _fanOutToPredictiveEngine(result);
+
       // Try to enhance with Gemma 3n if available and enabled
       if (gemma3nService.isReady && _useEnhancement) {
         _logger.i(
@@ -1092,6 +1097,22 @@ class EnhancedSpeechProcessor {
     }
   }
 
+  void _fanOutToPredictiveEngine(SpeechResult result) {
+    if (!GetIt.I.isRegistered<PredictiveCaptionEngine>()) {
+      return;
+    }
+    try {
+      GetIt.I<PredictiveCaptionEngine>().handleSpeechResult(result);
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ [PREDICTIVE] Failed to process speech result for predictive engine',
+        category: LogCategory.speech,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   Future<bool> stopProcessing() async {
     if (!_isProcessing) return true;
 
@@ -1205,7 +1226,29 @@ class EnhancedSpeechProcessor {
           '✅ Frame captured: ${frameData.length} bytes',
           category: LogCategory.camera,
         );
-        return frameData;
+        final bytes = frameData is Uint8List
+            ? frameData
+            : Uint8List.fromList(frameData);
+        if (GetIt.I.isRegistered<PredictiveStreamHub>()) {
+          try {
+            GetIt.I<PredictiveStreamHub>().video.publish(
+                  VideoStreamFrame(
+                    imageData: bytes,
+                    width: 0,
+                    height: 0,
+                    pixelFormat: VideoPixelFormat.jpeg,
+                  ),
+                );
+          } catch (e, stackTrace) {
+            _logger.w(
+              '⚠️ Failed to publish frame to predictive video stream',
+              category: LogCategory.camera,
+              error: e,
+              stackTrace: stackTrace,
+            );
+          }
+        }
+        return bytes;
       } else {
         _logger.w(
           '⚠️ Frame capture returned null',

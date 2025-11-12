@@ -2,10 +2,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 import '../cubit/live_captions_cubit.dart';
 import '../cubit/live_captions_state.dart';
 import '../../../core/models/speech_result.dart';
+import 'package:live_captions_xr/spatial_intel/predict/predictive_caption_engine.dart';
+import 'package:live_captions_xr/spatial_intel/ui/ghost_caption_widget.dart';
+import 'package:live_captions_xr/spatial_intel/decoding/decode_policy.dart';
 
 /// Widget for displaying live captions in AR/XR style
 class LiveCaptionsWidget extends StatefulWidget {
@@ -225,6 +229,20 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
 
     final SpeechResult? currentResult = _resolveCurrentResult(state);
     final currentText = currentResult?.text;
+    final predictiveState = state.predictiveState;
+    final DecodePolicy policy = GetIt.I.isRegistered<PredictiveCaptionEngine>()
+        ? GetIt.I<PredictiveCaptionEngine>().policy
+        : DecodePolicy.defaultPolicy();
+    final textStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: Colors.white,
+          fontSize: 18,
+          height: 1.4,
+        ) ??
+        const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          height: 1.4,
+        );
 
     if (currentText == null || currentText.isEmpty) {
       return _buildPlaceholder(context, state);
@@ -256,14 +274,16 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            currentText,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white,
-                  fontSize: 18,
-                  height: 1.4,
+          predictiveState != null
+              ? GhostCaptionWidget(
+                  state: predictiveState,
+                  policy: policy,
+                  baseStyle: textStyle,
+                )
+              : Text(
+                  currentText,
+                  style: textStyle,
                 ),
-          ),
           if (state.currentCaption != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -285,7 +305,10 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${(state.currentCaption!.confidence * 100).toStringAsFixed(0)}%',
+                  'p=${((predictiveState?.spanProbability ??
+                              state.currentCaption!.confidence) *
+                          100)
+                      .toStringAsFixed(0)}%',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.orange.withAlpha((255 * 0.7).round()),
                       ),
