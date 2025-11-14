@@ -1,5 +1,6 @@
          
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/user_settings.dart';
 import '../../../core/services/enhanced_speech_processor.dart'
@@ -207,9 +208,154 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              _buildSectionHeader('Model Configuration'),
+              Tooltip(
+                message: 'HuggingFace token for downloading gated Gemma models. Leave empty to use bucket downloads. Can also be set via .env file as HUGGINGFACE_TOKEN.',
+                child: _buildHuggingFaceTokenTile(context, state),
+              ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildHuggingFaceTokenTile(BuildContext context, UserSettings state) {
+    return _HuggingFaceTokenInput(state: state);
+  }
+}
+
+class _HuggingFaceTokenInput extends StatefulWidget {
+  final UserSettings state;
+
+  const _HuggingFaceTokenInput({required this.state});
+
+  @override
+  State<_HuggingFaceTokenInput> createState() => _HuggingFaceTokenInputState();
+}
+
+class _HuggingFaceTokenInputState extends State<_HuggingFaceTokenInput> {
+  late TextEditingController _tokenController;
+  bool _isTokenVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tokenController = TextEditingController(text: widget.state.huggingFaceToken ?? '');
+  }
+
+  @override
+  void didUpdateWidget(_HuggingFaceTokenInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.huggingFaceToken != widget.state.huggingFaceToken) {
+      _tokenController.text = widget.state.huggingFaceToken ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.key, color: Theme.of(context).primaryColor),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'HuggingFace Token',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.state.hasHuggingFaceToken
+                            ? 'Token configured'
+                            : 'Not configured - using bucket downloads',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: widget.state.hasHuggingFaceToken
+                              ? Colors.green
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _tokenController,
+              obscureText: !_isTokenVisible,
+              decoration: InputDecoration(
+                labelText: 'HuggingFace Token',
+                hintText: 'Enter your HuggingFace token',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isTokenVisible ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isTokenVisible = !_isTokenVisible;
+                    });
+                  },
+                ),
+                border: const OutlineInputBorder(),
+                helperText: 'Required for downloading gated Gemma models from HuggingFace',
+              ),
+              onChanged: (value) {
+                context.read<SettingsCubit>().setHuggingFaceToken(value);
+              },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (widget.state.hasHuggingFaceToken)
+                  TextButton.icon(
+                    onPressed: () {
+                      _tokenController.clear();
+                      context.read<SettingsCubit>().setHuggingFaceToken(null);
+                    },
+                    icon: const Icon(Icons.clear, size: 16),
+                    label: const Text('Clear Token'),
+                  ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: widget.state.hasHuggingFaceToken
+                      ? () {
+                          Clipboard.setData(
+                              ClipboardData(text: widget.state.huggingFaceToken ?? ''));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Token copied to clipboard'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      : null,
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copy'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

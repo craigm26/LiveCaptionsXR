@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/web/app/app_web.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'app.dart';
 import 'core/services/app_logger.dart';
 import 'core/services/debug_logger_service.dart';
@@ -19,23 +20,39 @@ void main() async {
   AppLogger.instance.configure(const LogConfig(
     globalLevel: LogLevel.info,
     categoryLevels: {
-      LogCategory.gemma: LogLevel.debug,      // Enable detailed Gemma logs
-      LogCategory.ar: LogLevel.debug,         // Enable detailed AR logs
-      LogCategory.audio: LogLevel.warning,    // Reduce audio noise (keep warning+ only)
-      LogCategory.captions: LogLevel.debug,   // Enable caption logs
-      LogCategory.camera: LogLevel.debug,     // Enable camera/frame capture logs
-      LogCategory.speech: LogLevel.debug,     // Enable speech processing logs
-      LogCategory.ui: LogLevel.info,          // Keep UI logs at info level
-      LogCategory.system: LogLevel.info,      // Keep system logs at info level
+      LogCategory.gemma: LogLevel.debug, // Enable detailed Gemma logs
+      LogCategory.ar: LogLevel.debug, // Enable detailed AR logs
+      LogCategory.audio:
+          LogLevel.warning, // Reduce audio noise (keep warning+ only)
+      LogCategory.captions: LogLevel.debug, // Enable caption logs
+      LogCategory.camera: LogLevel.debug, // Enable camera/frame capture logs
+      LogCategory.speech: LogLevel.debug, // Enable speech processing logs
+      LogCategory.ui: LogLevel.info, // Keep UI logs at info level
+      LogCategory.system: LogLevel.info, // Keep system logs at info level
     },
     enableConsoleOutput: true,
   ));
-  
-  _logger.i('🚀 Starting Live Captions XR application...', category: LogCategory.system);
+
+  _logger.i('🚀 Starting Live Captions XR application...',
+      category: LogCategory.system);
 
   try {
     WidgetsFlutterBinding.ensureInitialized();
-    _logger.d('✅ Flutter widgets binding initialized', category: LogCategory.system);
+    _logger.d('✅ Flutter widgets binding initialized',
+        category: LogCategory.system);
+
+    if (!kIsWeb) {
+      // Request microphone permission
+      _logger.i('🎤 Requesting microphone permission...',
+          category: LogCategory.system);
+      var status = await Permission.microphone.status;
+      if (status.isDenied) {
+        await Permission.microphone.request();
+      }
+      _logger.i(
+          '🎤 Microphone permission status: ${await Permission.microphone.status}',
+          category: LogCategory.system);
+    }
 
     // Force landscape orientation
     if (!kIsWeb) {
@@ -43,33 +60,40 @@ void main() async {
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-      _logger.d('🔄 Forced landscape orientation', category: LogCategory.system);
+      _logger.d('🔄 Forced landscape orientation',
+          category: LogCategory.system);
     }
 
     // Load environment variables (optional, skip if file not found)
     try {
       await dotenv.load(fileName: ".env");
-      _logger.d('🔑 Environment variables loaded', category: LogCategory.system);
+      _logger.d('🔑 Environment variables loaded',
+          category: LogCategory.system);
     } catch (e) {
-      _logger.w('⚠️ .env file not found, skipping dotenv load', category: LogCategory.system);
+      _logger.w('⚠️ .env file not found, skipping dotenv load',
+          category: LogCategory.system);
     }
 
     // Initialize debug logger service
     DebugLoggerService().initialize();
-    _logger.d('🐛 Debug logger service initialized', category: LogCategory.system);
+    _logger.d('🐛 Debug logger service initialized',
+        category: LogCategory.system);
 
     // Register all services only once here!
     setupServiceLocator();
 
     if (kIsWeb) {
-      _logger.i('🌐 Running web version of Live Captions XR', category: LogCategory.system);
+      _logger.i('🌐 Running web version of Live Captions XR',
+          category: LogCategory.system);
       runApp(const LiveCaptionsXRWebApp());
     } else {
-      _logger.i('📱 Running native version of Live Captions XR', category: LogCategory.system);
+      _logger.i('📱 Running native version of Live Captions XR',
+          category: LogCategory.system);
       runApp(const LiveCaptionsXrApp());
     }
 
-    _logger.i('✅ Live Captions XR application launched successfully', category: LogCategory.system);
+    _logger.i('✅ Live Captions XR application launched successfully',
+        category: LogCategory.system);
   } catch (e, stackTrace) {
     _logger.e('❌ Failed to start LiveCaptionsXR application',
         category: LogCategory.system, error: e, stackTrace: stackTrace);

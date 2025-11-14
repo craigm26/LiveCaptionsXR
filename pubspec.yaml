@@ -24,7 +24,7 @@ dependencies:
   logger: ^2.0.2+1
   url_launcher: ^6.2.2
   flutter_launcher_icons: ^0.14.4
-  flutter_gemma: ^0.11.3
+  flutter_gemma: ^0.11.9
   whisper_ggml: 1.3.0
   speech_to_text: ^7.3.0
   device_info_plus: ^12.1.0
@@ -61,8 +61,8 @@ flutter:
     - assets/logos/
     - assets/images/
     - assets/spatial_intel/decoding/
-  #  - assets/models/whisper_base.bin
-  # - assets/models/gemma-3n-E4B-it-int4.task
+    - assets/models/whisper_base.bin
+    - assets/models/gemma-3n-E4B-it-int4.task
   # fonts:
   #   - family: Roboto
   #     fonts:
@@ -85,4 +85,3 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: assets/logos/logo.png
-
