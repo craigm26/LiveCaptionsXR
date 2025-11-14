@@ -42,6 +42,9 @@ class UserSettings {
   final bool highContrastEnabled;
   final bool debugLoggingOverlayEnabled;
 
+  /// HuggingFace token for downloading gated models.
+  final String? huggingFaceToken;
+
   const UserSettings({
     this.sttMode = SttMode.offline,
     this.asrBackend = AsrBackend.whisperGgml,
@@ -51,6 +54,7 @@ class UserSettings {
     this.captionFontSize = 1.0,
     this.highContrastEnabled = false,
     this.debugLoggingOverlayEnabled = true,
+    this.huggingFaceToken,
   });
 
   /// Create a copy of the settings with modified properties.
@@ -63,6 +67,7 @@ class UserSettings {
     double? captionFontSize,
     bool? highContrastEnabled,
     bool? debugLoggingOverlayEnabled,
+    String? huggingFaceToken,
   }) {
     return UserSettings(
       sttMode: sttMode ?? this.sttMode,
@@ -74,6 +79,7 @@ class UserSettings {
       highContrastEnabled: highContrastEnabled ?? this.highContrastEnabled,
       debugLoggingOverlayEnabled:
           debugLoggingOverlayEnabled ?? this.debugLoggingOverlayEnabled,
+      huggingFaceToken: huggingFaceToken ?? this.huggingFaceToken,
     );
   }
 
@@ -88,6 +94,7 @@ class UserSettings {
       'captionFontSize': captionFontSize,
       'highContrastEnabled': highContrastEnabled,
       'debugLoggingOverlayEnabled': debugLoggingOverlayEnabled,
+      'huggingFaceToken': huggingFaceToken,
     };
   }
 
@@ -104,6 +111,10 @@ class UserSettings {
       highContrastEnabled: json['highContrastEnabled'] as bool? ?? false,
       debugLoggingOverlayEnabled:
           json['debugLoggingOverlayEnabled'] as bool? ?? false,
+      huggingFaceToken: json['huggingFaceToken'] as String?,
     );
   }
+
+  /// Check if HuggingFace token is available.
+  bool get hasHuggingFaceToken => huggingFaceToken != null && huggingFaceToken!.isNotEmpty;
 }

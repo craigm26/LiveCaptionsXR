@@ -1,6 +1,7 @@
   import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/debug_logger_service.dart';
@@ -64,19 +65,30 @@ class SettingsCubit extends Cubit<UserSettings> {
       _logger.i('⚙️ Loading app settings...');
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = prefs.getString('user_settings');
+      UserSettings settings;
+      
       if (settingsJson != null) {
-        final settings = UserSettings.fromJson(jsonDecode(settingsJson));
-        emit(settings);
-        // Enable debug logger service based on loaded setting
-        _debugLogger.setEnabled(settings.debugLoggingOverlayEnabled);
-        _logger.i('✅ Settings loaded successfully');
+        settings = UserSettings.fromJson(jsonDecode(settingsJson));
       } else {
         _logger.i('ℹ️ No saved settings found, using defaults.');
-        final defaultSettings = const UserSettings();
-        emit(defaultSettings);
-        // Enable debug logger service based on default setting
-        _debugLogger.setEnabled(defaultSettings.debugLoggingOverlayEnabled);
+        settings = const UserSettings();
+        
+        // If no token in settings, check .env file and save it
+        if (!settings.hasHuggingFaceToken) {
+          final envToken = dotenv.env['HUGGINGFACE_TOKEN'];
+          if (envToken != null && envToken.isNotEmpty) {
+            _logger.i('🔑 Found HuggingFace token in .env file, adding to settings');
+            settings = settings.copyWith(huggingFaceToken: envToken);
+            // Save the settings with the token from .env
+            await _saveSettings(settings);
+          }
+        }
       }
+      
+      emit(settings);
+      // Enable debug logger service based on loaded setting
+      _debugLogger.setEnabled(settings.debugLoggingOverlayEnabled);
+      _logger.i('✅ Settings loaded successfully');
     } catch (e, stackTrace) {
       _logger.e('❌ Error loading settings', error: e, stackTrace: stackTrace);
     }
@@ -111,6 +123,10 @@ class SettingsCubit extends Cubit<UserSettings> {
 
   void setCaptionFontSize(double size) {
     _saveSettings(state.copyWith(captionFontSize: size));
+  }
+
+  void setHuggingFaceToken(String? token) {
+    _saveSettings(state.copyWith(huggingFaceToken: token?.isEmpty == true ? null : token));
   }
 
   Future<void> resetSettings() async {

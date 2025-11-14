@@ -1231,6 +1231,58 @@ class _HomeScreenState extends State<HomeScreen> {
                           return const SizedBox.shrink();
                         },
                       ),
+                      // Microphone indicator (bottom center, above FAB)
+                      Positioned(
+                        bottom: 80,
+                        left: 0,
+                        right: 0,
+                        child: BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+                          builder: (context, captionsState) {
+                            final isListening = captionsState is LiveCaptionsActive &&
+                                captionsState.isListening;
+                            return Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isListening
+                                      ? Colors.green.withOpacity(0.8)
+                                      : Colors.grey.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isListening ? Icons.mic : Icons.mic_off,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isListening ? 'Microphone Active' : 'Microphone Off',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ],
                   ),
                   floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
