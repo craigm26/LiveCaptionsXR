@@ -159,9 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Initialize with platform-specific timeout
-      final timeout = Platform.isIOS
-          ? Duration(seconds: 90)
-          : Duration(seconds: 120);
+      final timeout =
+          Platform.isIOS ? Duration(seconds: 90) : Duration(seconds: 120);
       _logger.i(
         '?? Initializing Gemma with s timeout for ',
         category: LogCategory.gemma,
@@ -239,7 +238,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!_audioServiceStarted) {
       try {
-        await _audioService!.start(requireGemma: false, enableVisualService: true);
+        await _audioService!
+            .start(requireGemma: false, enableVisualService: true);
         _audioServiceStarted = true;
         _logger.i(
           '? 2D audio pipeline started successfully',
@@ -291,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _audioServiceStarted = false;
     }
   }
+
   Future<bool> _ensureARSafetyAcknowledged(BuildContext context) async {
     if (kIsWeb || !Platform.isAndroid) {
       return true;
@@ -301,8 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
       category: LogCategory.ui,
     );
 
-    final acknowledged =
-        await showDialog<bool>(
+    final acknowledged = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) {
@@ -359,9 +359,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 12),
-                Text('• Kids should only use AR when a parent or guardian is supervising.'),
+                Text(
+                    '• Kids should only use AR when a parent or guardian is supervising.'),
                 SizedBox(height: 8),
-                Text('• Always watch your surroundings to avoid obstacles or hazards.'),
+                Text(
+                    '• Always watch your surroundings to avoid obstacles or hazards.'),
               ],
             ),
           ),
@@ -666,12 +668,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Check if any required models are currently downloading
                       final hasActiveDownloads =
                           (needsGemma && gemmaDownloading) ||
-                          (needsWhisper && whisperDownloading);
+                              (needsWhisper && whisperDownloading);
 
                       // Check if all required models are completed
                       final allRequiredCompleted =
                           (!needsGemma || gemmaCompleted) &&
-                          (!needsWhisper || whisperCompleted);
+                              (!needsWhisper || whisperCompleted);
 
                       // Only show Close button when all required models are completed
                       // No Cancel option - models must be downloaded
@@ -852,8 +854,8 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         startVisualIdentification: () async {
-          final visualIdentificationCubit = context
-              .read<VisualIdentificationCubit>();
+          final visualIdentificationCubit =
+              context.read<VisualIdentificationCubit>();
           if (!visualIdentificationCubit.isActive) {
             _logger.i(
               '👁️ Starting visual identification for AR mode...',
@@ -904,8 +906,8 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         stopVisualIdentification: () async {
-          final visualIdentificationCubit = context
-              .read<VisualIdentificationCubit>();
+          final visualIdentificationCubit =
+              context.read<VisualIdentificationCubit>();
           if (visualIdentificationCubit.isActive) {
             _logger.i('👁️ Stopping visual identification...');
             await visualIdentificationCubit.stop();
@@ -932,7 +934,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   Widget _buildCameraOrFallback() {
     return FutureBuilder<bool>(
       future: isAndroidEmulator(),
@@ -945,8 +946,8 @@ class _HomeScreenState extends State<HomeScreen> {
           final cameraService = sl<CameraService>();
           return FutureBuilder<void>(
             future: cameraService.initialize().then(
-              (_) => cameraService.startCamera(),
-            ),
+                  (_) => cameraService.startCamera(),
+                ),
             builder: (context, camSnapshot) {
               if (camSnapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
@@ -1017,14 +1018,96 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildMicStatusIndicator() {
+    return BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+      builder: (context, captionsState) {
+        final isListening =
+            captionsState is LiveCaptionsActive && captionsState.isListening;
+        final Color backgroundColor =
+            isListening ? Colors.green.shade600 : Colors.blueGrey.shade600;
+
+        return Center(
+          child: Tooltip(
+            message: isListening
+                ? 'Microphone is actively capturing audio.'
+                : 'Microphone is idle. Start captions to begin listening.',
+            child: Semantics(
+              label: isListening ? 'Microphone active' : 'Microphone inactive',
+              container: true,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: backgroundColor.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        isListening ? Icons.mic : Icons.mic_off,
+                        color: backgroundColor,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isListening ? 'Mic live' : 'Mic paused',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          isListening
+                              ? 'Audio input healthy'
+                              : 'Start captions to listen',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _logger.d('🏗️ Building HomeScreen UI');
 
     return BlocBuilder<SettingsCubit, dynamic>(
       builder: (context, settingsState) {
-        final debugOverlayEnabled =
-            (settingsState != null &&
+        final debugOverlayEnabled = (settingsState != null &&
                 settingsState.debugLoggingOverlayEnabled != null)
             ? settingsState.debugLoggingOverlayEnabled
             : false;
@@ -1066,10 +1149,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         builder: (context, arSessionState) {
                           final inARMode = arSessionState is ARSessionReady;
                           // Only log significant AR state changes
-                          return BlocBuilder<
-                            LiveCaptionsCubit,
-                            LiveCaptionsState
-                          >(
+                          return BlocBuilder<LiveCaptionsCubit,
+                              LiveCaptionsState>(
                             builder: (context, captionsState) {
                               // Removed verbose caption state logging
                               // Removed verbose caption details logging
@@ -1100,8 +1181,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       right: 16,
                                       child: LiveCaptionsWidget(
                                         onToggle: () {
-                                          final cubit = context
-                                              .read<LiveCaptionsCubit>();
+                                          final cubit =
+                                              context.read<LiveCaptionsCubit>();
                                           if (cubit.state
                                                   is LiveCaptionsActive &&
                                               (cubit.state
@@ -1130,49 +1211,47 @@ class _HomeScreenState extends State<HomeScreen> {
                       Positioned(
                         top: 32,
                         left: 16,
-                        child:
-                            BlocBuilder<
-                              SoundDetectionCubit,
-                              SoundDetectionState
-                            >(
-                              builder: (context, state) {
-                                if (state is SoundDetectionLoaded &&
-                                    state.events.isNotEmpty) {
-                                  final SoundEvent event = state.events.last;
-                                  return Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withAlpha(
-                                        (255 * 0.8).round(),
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
+                        child: BlocBuilder<SoundDetectionCubit,
+                            SoundDetectionState>(
+                          builder: (context, state) {
+                            if (state is SoundDetectionLoaded &&
+                                state.events.isNotEmpty) {
+                              final SoundEvent event = state.events.last;
+                              return Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withAlpha(
+                                    (255 * 0.8).round(),
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.hearing,
+                                      color: Colors.white,
                                     ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.hearing,
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
+                                        style: const TextStyle(
                                           color: Colors.white,
                                         ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ),
                       // Directional cue overlay (center)
                       Center(
-                        child: BlocBuilder<LocalizationCubit, LocalizationState>(
+                        child:
+                            BlocBuilder<LocalizationCubit, LocalizationState>(
                           builder: (context, state) {
                             if (state is LocalizationLoaded) {
                               IconData arrowIcon;
@@ -1213,10 +1292,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       // Visual object highlight overlay (bottom right)
-                      BlocBuilder<
-                        VisualIdentificationCubit,
-                        VisualIdentificationState
-                      >(
+                      BlocBuilder<VisualIdentificationCubit,
+                          VisualIdentificationState>(
                         builder: (context, state) {
                           if (state is VisualIdentificationLoaded &&
                               (state.speakers.isNotEmpty ||
@@ -1231,61 +1308,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           return const SizedBox.shrink();
                         },
                       ),
-                      // Microphone indicator (bottom center, above FAB)
-                      Positioned(
-                        bottom: 80,
-                        left: 0,
-                        right: 0,
-                        child: BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
-                          builder: (context, captionsState) {
-                            final isListening = captionsState is LiveCaptionsActive &&
-                                captionsState.isListening;
-                            return Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isListening
-                                      ? Colors.green.withOpacity(0.8)
-                                      : Colors.grey.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isListening ? Icons.mic : Icons.mic_off,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      isListening ? 'Microphone Active' : 'Microphone Off',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                      BlocBuilder<ARSessionCubit, ARSessionState>(
+                        builder: (context, arState) {
+                          final bottomInset =
+                              arState is ARSessionReady ? 80.0 : 28.0;
+                          return Positioned(
+                            bottom: bottomInset,
+                            left: 0,
+                            right: 0,
+                            child: _buildMicStatusIndicator(),
+                          );
+                        },
                       ),
                     ],
                   ),
-                  floatingActionButton: BlocListener<ARSessionCubit, ARSessionState>(
+                  floatingActionButton:
+                      BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
                       if (state is ARSessionReady) {
                         // AR session is ready. No need to start services here anymore.
@@ -1299,8 +1337,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         _logger.i('✅ AR mode closed and all services stopped');
 
                         // Double-check that live captions are stopped
-                        final liveCaptionsCubit = context
-                            .read<LiveCaptionsCubit>();
+                        final liveCaptionsCubit =
+                            context.read<LiveCaptionsCubit>();
                         if (liveCaptionsCubit.state is LiveCaptionsActive &&
                             (liveCaptionsCubit.state as LiveCaptionsActive)
                                 .isListening) {
@@ -1311,8 +1349,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
 
                         // Double-check that other services are stopped
-                        final soundDetectionCubit = context
-                            .read<SoundDetectionCubit>();
+                        final soundDetectionCubit =
+                            context.read<SoundDetectionCubit>();
                         if (soundDetectionCubit.isActive) {
                           _logger.w(
                             '⚠️ Sound detection still active after AR session end, stopping...',
@@ -1320,8 +1358,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           soundDetectionCubit.stop();
                         }
 
-                        final localizationCubit = context
-                            .read<LocalizationCubit>();
+                        final localizationCubit =
+                            context.read<LocalizationCubit>();
                         if (localizationCubit.isActive) {
                           _logger.w(
                             '⚠️ Localization still active after AR session end, stopping...',
@@ -1329,8 +1367,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           localizationCubit.stop();
                         }
 
-                        final visualIdentificationCubit = context
-                            .read<VisualIdentificationCubit>();
+                        final visualIdentificationCubit =
+                            context.read<VisualIdentificationCubit>();
                         if (visualIdentificationCubit.isActive) {
                           _logger.w(
                             '⚠️ Visual identification still active after AR session end, stopping...',
@@ -1353,14 +1391,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 '🥽 Enter AR Mode button pressed...',
                                 category: LogCategory.ui,
                               );
-                    
-                              final arSessionCubit = context
-                                  .read<ARSessionCubit>();
+
+                              final arSessionCubit =
+                                  context.read<ARSessionCubit>();
                               _logger.i(
                                 '🎯 Got ARSessionCubit instance',
                                 category: LogCategory.ui,
                               );
-                    
+
                               try {
                                 final shouldProceed =
                                     await _ensureARSafetyAcknowledged(context);
@@ -1371,7 +1409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                   return;
                                 }
-                    
+
                                 // Ensure Gemma is initialized before starting AR
                                 final gemmaReady =
                                     await _initializeGemmaBeforeAR();
@@ -1395,16 +1433,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   }
                                   return;
                                 }
-                    
+
                                 await _stopNonARCaptionPipeline();
-                    
+
                                 // Start all AR services
                                 await _startAllServicesForARMode();
                                 _logger.i(
                                   '✅ [HOME] All AR services started successfully',
                                   category: LogCategory.ui,
                                 );
-                    
+
                                 // Initialize AR session (this will block until AR view is closed)
                                 _logger.i(
                                   '🎯 [HOME] Now calling initializeARSession...',
@@ -1423,7 +1461,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   error: e,
                                   stackTrace: stackTrace,
                                 );
-                    
+
                                 ScaffoldMessenger.of(
                                   context,
                                 ).hideCurrentSnackBar();
@@ -1483,8 +1521,8 @@ class _SpeakerDetectionOverlay extends StatelessWidget {
           final top = rect.top.clamp(0.0, 1.0) * size.height;
           final width =
               (rect.width.clamp(0.05, 1.0)) * size.width; // enforce min width
-          final height =
-              (rect.height.clamp(0.05, 1.0)) * size.height; // enforce min height
+          final height = (rect.height.clamp(0.05, 1.0)) *
+              size.height; // enforce min height
           final isActive = state.activeSpeaker?.faceId == speaker.faceId;
 
           children.add(
@@ -1501,7 +1539,7 @@ class _SpeakerDetectionOverlay extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(12),
                   color: (isActive ? Colors.greenAccent : Colors.white)
-                      .withOpacity(0.08),
+                      .withValues(alpha: 0.08),
                 ),
                 child: Align(
                   alignment: Alignment.topCenter,
@@ -1512,7 +1550,7 @@ class _SpeakerDetectionOverlay extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1557,7 +1595,7 @@ class _ActiveSpeakerBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.65),
+        color: Colors.black.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.greenAccent, width: 2),
         boxShadow: const [

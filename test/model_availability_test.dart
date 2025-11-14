@@ -17,7 +17,7 @@ void main() {
       expect(gemmaConfig, isNotNull);
       
       expect(whisperConfig!.assetPath, equals('assets/models/whisper_base.bin'));
-      expect(gemmaConfig!.assetPath, equals('assets/models/gemma-3n-E4B-it-int4.task'));
+      expect(gemmaConfig!.assetPath, isNull);
       
       expect(whisperConfig.fileName, equals('ggml-base.bin'));
       expect(gemmaConfig.fileName, equals('gemma-3n-E4B-it-int4.task'));
@@ -47,7 +47,8 @@ void main() {
 
     test('should calculate total model size', () {
       final totalSize = modelManager.getTotalModelsSize();
-      expect(totalSize, equals(147951465 + 4398046511));
+      const expectedTotal = 147951465 + 3133601792 + 4398046511;
+      expect(totalSize, equals(expectedTotal));
     });
   });
 } 

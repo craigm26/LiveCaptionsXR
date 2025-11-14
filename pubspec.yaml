@@ -62,7 +62,7 @@ flutter:
     - assets/images/
     - assets/spatial_intel/decoding/
     - assets/models/whisper_base.bin
-    - assets/models/gemma-3n-E4B-it-int4.task
+    # Gemma 3n task files are downloaded on demand due to size.
   # fonts:
   #   - family: Roboto
   #     fonts:

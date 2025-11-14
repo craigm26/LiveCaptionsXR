@@ -27,7 +27,7 @@ class ModelConfig {
   final int expectedSize;
   final ModelType type;
   final String displayName;
-  final String assetPath; // Path to the model in assets directory
+  final String? assetPath; // Path to the model in assets directory (optional)
   final String? termsNotice; // Terms of use notice for specific models
 
   const ModelConfig({
@@ -36,27 +36,43 @@ class ModelConfig {
     required this.expectedSize,
     required this.type,
     required this.displayName,
-    required this.assetPath,
+    this.assetPath,
     this.termsNotice,
+  });
+}
+
+/// Metadata describing how and when a model was downloaded.
+class ModelDownloadMetadata {
+  final DownloadSource source;
+  final DateTime? downloadedAt;
+  final bool isInferred;
+
+  const ModelDownloadMetadata({
+    required this.source,
+    this.downloadedAt,
+    this.isInferred = false,
   });
 }
 
 class ModelDownloadManager extends ChangeNotifier {
   static final AppLogger _logger = AppLogger.instance;
-  final HuggingFaceTokenService _tokenService = HuggingFaceTokenService.instance;
-  
+  final HuggingFaceTokenService _tokenService =
+      HuggingFaceTokenService.instance;
+
   // Gemma Terms of Use notice as required by Google
-  static const String _gemmaTermsNotice = 
+  static const String _gemmaTermsNotice =
       'Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. '
       'Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy '
       'and applicable laws and regulations.';
-  
+
   // HuggingFace repository URL mapping for Gemma models
   static const Map<String, String> _huggingFaceUrls = {
-    'gemma-3n-E2B-it-int4': 'https://huggingface.co/google/gemma-3n-E2B-it/resolve/main/gemma-3n-E2B-it-int4.task',
-    'gemma-3n-E4B-it-int4': 'https://huggingface.co/google/gemma-3n-E4B-it/resolve/main/gemma-3n-E4B-it-int4.task',
+    'gemma-3n-E2B-it-int4':
+        'https://huggingface.co/google/gemma-3n-E2B-it/resolve/main/gemma-3n-E2B-it-int4.task',
+    'gemma-3n-E4B-it-int4':
+        'https://huggingface.co/google/gemma-3n-E4B-it/resolve/main/gemma-3n-E4B-it-int4.task',
   };
-  
+
   // Model configurations
   static const Map<String, ModelConfig> _modelConfigs = {
     'gemma-3n-E2B-it-int4': ModelConfig(
@@ -65,7 +81,7 @@ class ModelDownloadManager extends ChangeNotifier {
       expectedSize: 3133601792, // 2.92 GB
       type: ModelType.gemma,
       displayName: 'Gemma 3n E2B',
-      assetPath: 'assets/models/gemma-3n-E2B-it-int4.task',
+      assetPath: null, // Too large to bundle; downloaded on demand
       termsNotice: _gemmaTermsNotice,
     ),
     'gemma-3n-E4B-it-int4': ModelConfig(
@@ -74,7 +90,7 @@ class ModelDownloadManager extends ChangeNotifier {
       expectedSize: 4398046511, // 4.1 GB
       type: ModelType.gemma,
       displayName: 'Gemma 3n Multimodal',
-      assetPath: 'assets/models/gemma-3n-E4B-it-int4.task',
+      assetPath: null, // Too large to bundle; downloaded on demand
       termsNotice: _gemmaTermsNotice,
     ),
     'whisper-base': ModelConfig(
@@ -98,10 +114,10 @@ class ModelDownloadManager extends ChangeNotifier {
   String? getError(String modelKey) => _errors[modelKey];
   bool isDownloading(String modelKey) => _downloading[modelKey] ?? false;
   bool isCompleted(String modelKey) => _completed[modelKey] ?? false;
-  
+
   // Get all available model keys
   List<String> get availableModels => _modelConfigs.keys.toList();
-  
+
   // Get model config
   ModelConfig? getModelConfig(String modelKey) => _modelConfigs[modelKey];
 
@@ -126,16 +142,15 @@ class ModelDownloadManager extends ChangeNotifier {
     }
 
     final dir = await getApplicationDocumentsDirectory();
-    final modelDir = config.type == ModelType.whisper 
-        ? '${dir.path}/models'
-        : dir.path;
-    
+    final modelDir =
+        config.type == ModelType.whisper ? '${dir.path}/models' : dir.path;
+
     // Create directory if it doesn't exist
     final modelDirFile = Directory(modelDir);
     if (!await modelDirFile.exists()) {
       await modelDirFile.create(recursive: true);
     }
-    
+
     return '$modelDir/${config.fileName}';
   }
 
@@ -146,7 +161,8 @@ class ModelDownloadManager extends ChangeNotifier {
   }
 
   /// Save download source metadata for a model
-  Future<void> _saveDownloadSource(String modelKey, DownloadSource source) async {
+  Future<void> _saveDownloadSource(
+      String modelKey, DownloadSource source) async {
     try {
       final metadataPath = await _getModelMetadataPath(modelKey);
       final metadata = {
@@ -155,49 +171,74 @@ class ModelDownloadManager extends ChangeNotifier {
       };
       final file = File(metadataPath);
       await file.writeAsString(jsonEncode(metadata));
-      _logger.d('💾 Saved download source metadata: $modelKey -> ${source.name}');
+      _logger
+          .d('💾 Saved download source metadata: $modelKey -> ${source.name}');
     } catch (e) {
       _logger.w('⚠️ Failed to save download source metadata: $e');
     }
   }
 
-  /// Get download source for a model
-  Future<DownloadSource?> getDownloadSource(String modelKey) async {
+  Future<DownloadSource?> _inferDownloadSource(String modelKey) async {
+    try {
+      final config = _modelConfigs[modelKey];
+      if (config == null) {
+        return null;
+      }
+      final modelPath = await getModelPath(modelKey);
+      if (await File(modelPath).exists()) {
+        // Without metadata we can't be sure, so default to bucket branding.
+        return DownloadSource.bucket;
+      }
+      return null;
+    } catch (e) {
+      _logger.w('⚠️ Failed to infer download source for $modelKey: $e');
+      return null;
+    }
+  }
+
+  /// Read download metadata (source + timestamp) for the given model.
+  Future<ModelDownloadMetadata?> getModelDownloadMetadata(
+      String modelKey) async {
     try {
       final metadataPath = await _getModelMetadataPath(modelKey);
       final file = File(metadataPath);
       if (!await file.exists()) {
-        // If metadata doesn't exist, try to infer from URL
-        final config = _modelConfigs[modelKey];
-        if (config != null) {
-          final modelPath = await getModelPath(modelKey);
-          if (await File(modelPath).exists()) {
-            // Model exists but no metadata - likely downloaded before this feature
-            // Check if it's from HuggingFace URL pattern
-            final huggingFaceUrl = _huggingFaceUrls[modelKey];
-            if (huggingFaceUrl != null) {
-              // Could be either, default to bucket for backwards compatibility
-              return DownloadSource.bucket;
-            }
-            return DownloadSource.bucket;
-          }
+        final inferredSource = await _inferDownloadSource(modelKey);
+        if (inferredSource == null) {
+          return null;
         }
-        return null;
+        return ModelDownloadMetadata(
+          source: inferredSource,
+          isInferred: true,
+        );
       }
       final content = await file.readAsString();
       final metadata = jsonDecode(content) as Map<String, dynamic>;
       final sourceName = metadata['downloadSource'] as String?;
-      if (sourceName != null) {
-        return DownloadSource.values.firstWhere(
-          (source) => source.name == sourceName,
-          orElse: () => DownloadSource.bucket,
-        );
+      if (sourceName == null) {
+        return null;
       }
-      return null;
+      final source = DownloadSource.values.firstWhere(
+        (value) => value.name == sourceName,
+        orElse: () => DownloadSource.bucket,
+      );
+      final timestamp = metadata['timestamp'] as String?;
+      final downloadedAt =
+          timestamp != null ? DateTime.tryParse(timestamp) : null;
+      return ModelDownloadMetadata(
+        source: source,
+        downloadedAt: downloadedAt,
+      );
     } catch (e) {
-      _logger.w('⚠️ Failed to read download source metadata: $e');
+      _logger.w('⚠️ Failed to read download metadata for $modelKey: $e');
       return null;
     }
+  }
+
+  /// Get download source for a model
+  Future<DownloadSource?> getDownloadSource(String modelKey) async {
+    final metadata = await getModelDownloadMetadata(modelKey);
+    return metadata?.source;
   }
 
   /// Check if a model file exists
@@ -207,31 +248,36 @@ class ModelDownloadManager extends ChangeNotifier {
       _logger.w('⚠️ Unknown model key: $modelKey');
       return false;
     }
-    
+
     _logger.d('🔍 Checking if model exists: $modelKey');
-    
+
     // First check if the model exists in the documents directory
     final path = await getModelPath(modelKey);
     final fileExists = File(path).existsSync();
-    
+
     _logger.d('📁 Model file exists in documents: $fileExists (path: $path)');
-    
+
     if (fileExists) {
       _logger.d('✅ Model found in documents directory: $modelKey');
       return true;
     }
-    
+
     // If not in documents, check if it exists as an asset
+    if (config.assetPath == null) {
+      _logger.i(
+          'ℹ️ Model $modelKey has no bundled asset; requires download when missing.');
+      return false;
+    }
     _logger.d('🔍 Checking if model exists as asset: ${config.assetPath}');
     final assetExists = await _assetExists(config.assetPath);
     _logger.d('📦 Model exists as asset: $assetExists (${config.assetPath})');
-    
+
     if (assetExists) {
       _logger.i('✅ Model found as asset: $modelKey');
     } else {
       _logger.w('⚠️ Model not found in documents or assets: $modelKey');
     }
-    
+
     return assetExists;
   }
 
@@ -242,15 +288,15 @@ class ModelDownloadManager extends ChangeNotifier {
       _logger.w('⚠️ Unknown model key: $modelKey');
       return false;
     }
-    
+
     _logger.d('🔍 Checking if model is complete: $modelKey');
-    
+
     // First check if the model exists in the documents directory
     final path = await getModelPath(modelKey);
     final file = File(path);
     if (await file.exists()) {
       final stat = await file.stat();
-      
+
       // Try to get the actual file size from server for comparison
       int? serverSize;
       try {
@@ -262,29 +308,36 @@ class ModelDownloadManager extends ChangeNotifier {
       } catch (e) {
         _logger.w('⚠️ Could not check server file size: $e');
       }
-      
+
       // Use server size if available, otherwise fall back to config expected size
       final expectedSize = serverSize ?? config.expectedSize;
       final isComplete = stat.size >= expectedSize;
-      
+
       // Additional validation: check if file is corrupted or empty
-      final isValidFile = stat.size > 0 && await _validateModelFile(file, modelKey);
-      
-      _logger.d('📁 Model file in documents: size=${stat.size}, expected=$expectedSize, complete=$isComplete, valid=$isValidFile');
+      final isValidFile =
+          stat.size > 0 && await _validateModelFile(file, modelKey);
+
+      _logger.d(
+          '📁 Model file in documents: size=${stat.size}, expected=$expectedSize, complete=$isComplete, valid=$isValidFile');
       return isComplete && isValidFile;
     }
-    
+
     // If not in documents, check if it exists as an asset (assets are always complete)
+    if (config.assetPath == null) {
+      _logger.i(
+          'ℹ️ Model $modelKey has no bundled asset; awaiting download for completion.');
+      return false;
+    }
     _logger.d('🔍 Checking if model is complete as asset: ${config.assetPath}');
     final assetExists = await _assetExists(config.assetPath);
     _logger.d('📦 Model complete as asset: $assetExists (${config.assetPath})');
-    
+
     if (assetExists) {
       _logger.i('✅ Model is complete as asset: $modelKey');
     } else {
       _logger.w('⚠️ Model not complete in documents or assets: $modelKey');
     }
-    
+
     return assetExists;
   }
 
@@ -293,34 +346,42 @@ class ModelDownloadManager extends ChangeNotifier {
     try {
       final config = _modelConfigs[modelKey];
       if (config == null) return false;
-      
+
       // Check file size is reasonable (not empty, not too small)
       final stat = await file.stat();
-      if (stat.size < 1024) { // Less than 1KB is suspicious
+      if (stat.size < 1024) {
+        // Less than 1KB is suspicious
         _logger.w('⚠️ Model file too small: ${stat.size} bytes');
         return false;
       }
-      
+
       // For Whisper models, check if it's a valid GGML file
       if (config.type == ModelType.whisper) {
         final bytes = await file.openRead(0, 16).first; // Read first 16 bytes
         // Check for GGML magic number or common model file patterns
         if (bytes.length >= 4) {
-          final magic = bytes.take(4).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+          final magic = bytes
+              .take(4)
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join();
           _logger.d('🔍 Model file magic: $magic');
           // GGML files typically start with specific patterns
-          if (magic.startsWith('67676d6c') || magic.startsWith('67676d6d')) { // "ggml" or "ggmm"
+          if (magic.startsWith('67676d6c') || magic.startsWith('67676d6d')) {
+            // "ggml" or "ggmm"
             _logger.d('✅ Valid GGML model file detected');
             return true;
           }
         }
       }
-      
+
       // For Gemma models, check if it's a valid task file
       if (config.type == ModelType.gemma) {
         final bytes = await file.openRead(0, 16).first; // Read first 16 bytes
         if (bytes.length >= 4) {
-          final magic = bytes.take(4).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+          final magic = bytes
+              .take(4)
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join();
           _logger.d('🔍 Model file magic: $magic');
           // Task files might have different patterns, but we can check for non-zero content
           if (bytes.any((b) => b != 0)) {
@@ -329,7 +390,7 @@ class ModelDownloadManager extends ChangeNotifier {
           }
         }
       }
-      
+
       // If we can't validate the format, assume it's valid if it's not empty
       _logger.d('⚠️ Could not validate model format, assuming valid');
       return true;
@@ -340,7 +401,12 @@ class ModelDownloadManager extends ChangeNotifier {
   }
 
   /// Check if a model exists in the assets directory
-  Future<bool> _assetExists(String assetPath) async {
+  Future<bool> _assetExists(String? assetPath) async {
+    if (assetPath == null || assetPath.isEmpty) {
+      _logger.d(
+          'ℹ️ No asset path provided; skipping asset existence check for model.');
+      return false;
+    }
     try {
       _logger.d('📦 Attempting to load asset: $assetPath');
       await rootBundle.load(assetPath);
@@ -358,13 +424,17 @@ class ModelDownloadManager extends ChangeNotifier {
     if (config == null) {
       throw ArgumentError('Unknown model key: $modelKey');
     }
+    if (config.assetPath == null) {
+      throw StateError(
+          'Model $modelKey does not have a bundled asset to copy from.');
+    }
 
     _logger.d('📋 Copying model from assets to documents: $modelKey');
     final targetPath = await getModelPath(modelKey);
     final targetFile = File(targetPath);
-    
+
     _logger.d('📁 Target path: $targetPath');
-    
+
     // Create parent directory if it doesn't exist
     final parentDir = Directory(targetFile.parent.path);
     if (!await parentDir.exists()) {
@@ -374,22 +444,22 @@ class ModelDownloadManager extends ChangeNotifier {
 
     // Load the asset
     _logger.d('📦 Loading asset: ${config.assetPath}');
-    final assetBytes = await rootBundle.load(config.assetPath);
+    final assetBytes = await rootBundle.load(config.assetPath!);
     _logger.d('📦 Asset loaded, size: ${assetBytes.lengthInBytes} bytes');
-    
+
     // Write to documents directory with the correct filename
     _logger.d('💾 Writing model to documents: $targetPath');
     await targetFile.writeAsBytes(assetBytes.buffer.asUint8List());
     _logger.d('✅ Model written to documents: $targetPath');
-    
+
     // For Whisper models, also create a copy with the expected name
     if (config.type == ModelType.whisper) {
       final expectedName = 'ggml-${modelKey.replaceFirst('whisper-', '')}.bin';
       final expectedPath = '${parentDir.path}/$expectedName';
       final expectedFile = File(expectedPath);
-      
+
       _logger.d('📁 Creating Whisper model copy: $expectedPath');
-      
+
       if (!await expectedFile.exists()) {
         await expectedFile.writeAsBytes(assetBytes.buffer.asUint8List());
         _logger.i('📁 Created Whisper model file: $expectedPath');
@@ -397,13 +467,14 @@ class ModelDownloadManager extends ChangeNotifier {
         _logger.d('📁 Whisper model file already exists: $expectedPath');
       }
     }
-    
+
     _logger.i('✅ Model copy from assets completed: $modelKey');
   }
 
   /// Get the total size of all models
   int getTotalModelsSize() {
-    return _modelConfigs.values.fold(0, (sum, config) => sum + config.expectedSize);
+    return _modelConfigs.values
+        .fold(0, (sum, config) => sum + config.expectedSize);
   }
 
   /// Get the size of a specific model
@@ -427,20 +498,26 @@ class ModelDownloadManager extends ChangeNotifier {
 
     try {
       // First, check if the model exists in assets
-      _logger.d('🔍 Checking if model exists in assets: ${config.assetPath}');
+      if (config.assetPath == null) {
+        _logger.d(
+            'ℹ️ No bundled asset configured for $modelKey; skipping asset copy.');
+      } else {
+        _logger.d(
+            '🔍 Checking if model exists in assets: ${config.assetPath}');
+      }
       final assetExists = await _assetExists(config.assetPath);
-      
+
       if (assetExists) {
         _logger.i('📦 Model found in assets, copying to documents: $modelKey');
         // Copy from assets instead of downloading
         _progress[modelKey] = 0.5;
         notifyListeners();
-        
+
         await _copyAssetToDocuments(modelKey);
-        
+
         // Save download source metadata
         await _saveDownloadSource(modelKey, DownloadSource.assets);
-        
+
         _progress[modelKey] = 1.0;
         _completed[modelKey] = true;
         _downloading[modelKey] = false;
@@ -449,11 +526,12 @@ class ModelDownloadManager extends ChangeNotifier {
         return;
       }
 
-      _logger.w('⚠️ Model not found in assets, attempting remote download: $modelKey');
+      _logger.w(
+          '⚠️ Model not found in assets, attempting remote download: $modelKey');
       // Fallback to downloading from remote URL if asset doesn't exist
       final path = await getModelPath(modelKey);
       final file = File(path);
-      
+
       // Create parent directory if it doesn't exist
       final parentDir = Directory(file.parent.path);
       if (!await parentDir.exists()) {
@@ -463,31 +541,32 @@ class ModelDownloadManager extends ChangeNotifier {
       // Check if we should use HuggingFace download
       final token = await _tokenService.getToken();
       final huggingFaceUrl = _huggingFaceUrls[modelKey];
-      final useHuggingFace = token != null && 
-                            token.isNotEmpty && 
-                            huggingFaceUrl != null &&
-                            config.type == ModelType.gemma;
+      final useHuggingFace = token != null &&
+          token.isNotEmpty &&
+          huggingFaceUrl != null &&
+          config.type == ModelType.gemma;
 
       final downloadUrl = useHuggingFace ? huggingFaceUrl : config.url;
-      
+
       _logger.i('🌐 Downloading from URL: $downloadUrl');
       if (useHuggingFace) {
         _logger.i('🔑 Using HuggingFace download with token authentication');
       }
-      
+
       final request = http.Request('GET', Uri.parse(downloadUrl));
-      
+
       // Add authentication header if using HuggingFace
       if (useHuggingFace) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-      
+
       final response = await request.send();
-      
+
       _logger.i('📡 HTTP response status: ${response.statusCode}');
-      
+
       if (response.statusCode != 200) {
-        final errorMessage = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
+        final errorMessage =
+            'HTTP ${response.statusCode}: ${response.reasonPhrase}';
         _logger.e('❌ Download failed: $errorMessage');
         throw Exception('Failed to download model: $errorMessage');
       }
@@ -506,11 +585,12 @@ class ModelDownloadManager extends ChangeNotifier {
       }
 
       await sink.close();
-      
+
       // Save download source metadata
-      final downloadSource = useHuggingFace ? DownloadSource.huggingface : DownloadSource.bucket;
+      final downloadSource =
+          useHuggingFace ? DownloadSource.huggingface : DownloadSource.bucket;
       await _saveDownloadSource(modelKey, downloadSource);
-      
+
       _progress[modelKey] = 1.0;
       _completed[modelKey] = true;
       _downloading[modelKey] = false;
@@ -534,7 +614,7 @@ class ModelDownloadManager extends ChangeNotifier {
   /// Get download status for all models
   Map<String, Map<String, dynamic>> getAllModelStatus() {
     final status = <String, Map<String, dynamic>>{};
-    
+
     for (final modelKey in _modelConfigs.keys) {
       status[modelKey] = {
         'exists': false,
@@ -545,16 +625,16 @@ class ModelDownloadManager extends ChangeNotifier {
         'config': _modelConfigs[modelKey],
       };
     }
-    
+
     return status;
   }
 
   /// Check status of all models (async)
   Future<Map<String, Map<String, dynamic>>> checkAllModelStatus() async {
     final status = <String, Map<String, dynamic>>{};
-    
+
     for (final modelKey in _modelConfigs.keys) {
-      final downloadSource = await getDownloadSource(modelKey);
+      final metadata = await getModelDownloadMetadata(modelKey);
       status[modelKey] = {
         'exists': await modelExists(modelKey),
         'complete': await modelIsComplete(modelKey),
@@ -562,10 +642,12 @@ class ModelDownloadManager extends ChangeNotifier {
         'progress': getProgress(modelKey),
         'error': getError(modelKey),
         'config': _modelConfigs[modelKey],
-        'downloadSource': downloadSource?.name,
+        'downloadSource': metadata?.source.name,
+        'downloadedAt': metadata?.downloadedAt?.toIso8601String(),
+        'sourceInferred': metadata?.isInferred ?? false,
       };
     }
-    
+
     return status;
   }
 
@@ -615,7 +697,7 @@ class ModelDownloadManager extends ChangeNotifier {
   /// Clear partial download and retry
   Future<void> retryDownload(String modelKey) async {
     _logger.i('🔄 Retrying download for: $modelKey');
-    
+
     // Delete partial file if it exists
     final path = await getModelPath(modelKey);
     final file = File(path);
@@ -623,11 +705,12 @@ class ModelDownloadManager extends ChangeNotifier {
       final stat = await file.stat();
       final config = _modelConfigs[modelKey];
       if (config != null && stat.size < config.expectedSize) {
-        _logger.i('🗑️ Deleting partial download: ${stat.size} bytes (expected: ${config.expectedSize})');
+        _logger.i(
+            '🗑️ Deleting partial download: ${stat.size} bytes (expected: ${config.expectedSize})');
         await file.delete();
       }
     }
-    
+
     // Reset state and retry
     resetModel(modelKey);
     await downloadModel(modelKey);
@@ -643,22 +726,22 @@ class ModelDownloadManager extends ChangeNotifier {
 
   /// Get Whisper models
   List<String> get whisperModels => getModelsByType(ModelType.whisper);
-  
+
   /// Get Gemma models
   List<String> get gemmaModels => getModelsByType(ModelType.gemma);
 
   /// Get comprehensive model status for all models
   Future<Map<String, ModelStatus>> getDetailedModelStatus() async {
     final status = <String, ModelStatus>{};
-    
+
     for (final modelKey in _modelConfigs.keys) {
       final config = _modelConfigs[modelKey]!;
       final exists = await modelExists(modelKey);
       final complete = await modelIsComplete(modelKey);
       final downloading = isDownloading(modelKey);
       final error = getError(modelKey);
-      final downloadSource = await getDownloadSource(modelKey);
-      
+      final metadata = await getModelDownloadMetadata(modelKey);
+
       status[modelKey] = ModelStatus(
         key: modelKey,
         displayName: config.displayName,
@@ -671,10 +754,12 @@ class ModelDownloadManager extends ChangeNotifier {
         expectedSize: config.expectedSize,
         url: config.url,
         termsNotice: config.termsNotice,
-        downloadSource: downloadSource,
+        downloadSource: metadata?.source,
+        downloadedAt: metadata?.downloadedAt,
+        sourceInferred: metadata?.isInferred ?? false,
       );
     }
-    
+
     return status;
   }
 }
@@ -693,6 +778,8 @@ class ModelStatus {
   final String url;
   final String? termsNotice;
   final DownloadSource? downloadSource;
+  final DateTime? downloadedAt;
+  final bool sourceInferred;
 
   const ModelStatus({
     required this.key,
@@ -707,6 +794,8 @@ class ModelStatus {
     required this.url,
     this.termsNotice,
     this.downloadSource,
+    this.downloadedAt,
+    this.sourceInferred = false,
   });
 
   bool get isReady => exists && complete && !downloading && error == null;
@@ -715,6 +804,6 @@ class ModelStatus {
 
   @override
   String toString() {
-    return 'ModelStatus($key: exists=$exists, complete=$complete, downloading=$downloading, error=$error, source=$downloadSource)';
+    return 'ModelStatus($key: exists=$exists, complete=$complete, downloading=$downloading, error=$error, source=$downloadSource, downloadedAt=$downloadedAt, inferred=$sourceInferred)';
   }
 }
