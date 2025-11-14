@@ -153,7 +153,9 @@ class StereoAudioCapturePlugin : FlutterPlugin, MethodCallHandler, EventChannel.
                 }
             }
 
-            record.stop()
+            if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                record.stop()
+            }
             record.release()
             audioRecord = null
             isRecording.set(false)
@@ -161,11 +163,7 @@ class StereoAudioCapturePlugin : FlutterPlugin, MethodCallHandler, EventChannel.
     }
 
     private fun stopRecording() {
-        if (isRecording.compareAndSet(true, false)) {
-            audioRecord?.stop()
-            audioRecord?.release()
-            audioRecord = null
-        }
+        isRecording.set(false)
     }
 
     private inline fun postToMainThread(looper: Looper, crossinline block: () -> Unit) {
@@ -176,4 +174,4 @@ class StereoAudioCapturePlugin : FlutterPlugin, MethodCallHandler, EventChannel.
         }
     }
 
-} 
+}

@@ -23,9 +23,11 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
 
   Future<void> _loadModelStatus() async {
     final status = await _modelDownloadManager.checkAllModelStatus();
-    setState(() {
-      _modelStatus = status;
-    });
+    if (mounted) {
+      setState(() {
+        _modelStatus = status;
+      });
+    }
   }
 
   @override
@@ -65,9 +67,9 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).primaryColor,
-        ),
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
       ),
     );
   }
@@ -80,7 +82,7 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
   Widget _buildModelCard(String modelKey) {
     final status = _modelStatus[modelKey];
     final config = _modelDownloadManager.getModelConfig(modelKey);
-    
+
     if (status == null || config == null) {
       return const SizedBox.shrink();
     }
@@ -106,17 +108,22 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
                     children: [
                       Text(
                         config.displayName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _formatModelSize(config.expectedSize),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                              color: Colors.grey[600],
+                            ),
                       ),
+                      if (status['downloadSource'] != null) ...[
+                        const SizedBox(height: 4),
+                        _buildDownloadSourceChip(status['downloadSource'] as String),
+                      ],
                     ],
                   ),
                 ),
@@ -159,8 +166,9 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
                 if (!exists || !complete) ...[
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: downloading ? null : () => _downloadModel(modelKey),
-                      icon: downloading 
+                      onPressed:
+                          downloading ? null : () => _downloadModel(modelKey),
+                      icon: downloading
                           ? const SizedBox(
                               width: 16,
                               height: 16,
@@ -195,7 +203,8 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
     );
   }
 
-  Widget _buildStatusIcon(bool exists, bool complete, bool downloading, String? error) {
+  Widget _buildStatusIcon(
+      bool exists, bool complete, bool downloading, String? error) {
     if (error != null) {
       return Icon(Icons.error, color: Colors.red, size: 24);
     }
@@ -226,7 +235,7 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
   Widget _buildStorageInfo() {
     final totalSize = _modelDownloadManager.getTotalModelsSize();
     final totalSizeGB = totalSize / (1024 * 1024 * 1024);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -236,8 +245,8 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
             Text(
               'Storage Information',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -263,7 +272,8 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Successfully downloaded ${_modelDownloadManager.getModelConfig(modelKey)?.displayName}'),
+            content: Text(
+                'Successfully downloaded ${_modelDownloadManager.getModelConfig(modelKey)?.displayName}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -311,9 +321,9 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(success 
-                ? 'Model deleted successfully'
-                : 'Failed to delete model'),
+              content: Text(success
+                  ? 'Model deleted successfully'
+                  : 'Failed to delete model'),
               backgroundColor: success ? Colors.green : Colors.red,
             ),
           );
@@ -332,7 +342,53 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
     }
   }
 
-  void _showModelInfo(String modelKey, ModelConfig config) {
+  Widget _buildDownloadSourceChip(String sourceName) {
+    IconData icon;
+    Color color;
+    String label;
+    
+    switch (sourceName) {
+      case 'huggingface':
+        icon = Icons.cloud;
+        color = Colors.orange;
+        label = 'HuggingFace';
+        break;
+      case 'bucket':
+        icon = Icons.storage;
+        color = Colors.blue;
+        label = 'LiveCaptionsXR Bucket';
+        break;
+      case 'assets':
+        icon = Icons.folder;
+        color = Colors.green;
+        label = 'App Assets';
+        break;
+      default:
+        icon = Icons.help_outline;
+        color = Colors.grey;
+        label = 'Unknown';
+    }
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          'Source: $label',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+      ],
+    );
+  }
+
+  void _showModelInfo(String modelKey, ModelConfig config) async {
+    final downloadSource = await _modelDownloadManager.getDownloadSource(modelKey);
+    final sourceName = downloadSource?.name;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -343,8 +399,13 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
           children: [
             Text('Type: ${config.type.name.toUpperCase()}'),
             Text('File: ${config.fileName}'),
-            Text('Size: ${(config.expectedSize / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB'),
+            Text(
+                'Size: ${(config.expectedSize / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB'),
             Text('URL: ${config.url}'),
+            if (sourceName != null) ...[
+              const SizedBox(height: 8),
+              _buildDownloadSourceChip(sourceName),
+            ],
           ],
         ),
         actions: [
@@ -356,4 +417,4 @@ class _ModelStatusPageState extends State<ModelStatusPage> {
       ),
     );
   }
-} 
+}

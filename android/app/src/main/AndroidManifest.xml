@@ -18,7 +18,8 @@
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:fullBackupContent="true"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true">
         
         <!-- ARCore metadata -->
         <meta-data android:name="com.google.ar.core" android:value="required" />
