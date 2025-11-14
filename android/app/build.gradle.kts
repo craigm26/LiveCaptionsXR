@@ -19,6 +19,12 @@ android {
         jvmTarget = "11"
     }
 
+    androidResources {
+        noCompress.add(".tflite")
+        noCompress.add(".bin")
+        noCompress.add(".task")
+    }
+
     defaultConfig {
         // Updated Application ID for Google Play Store
         applicationId = "com.livecaptionsxr.app"

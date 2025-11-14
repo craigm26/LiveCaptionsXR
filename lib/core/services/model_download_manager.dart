@@ -1,14 +1,23 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'app_logger.dart';
+import 'huggingface_token_service.dart';
 
 /// Enum for different model types
 enum ModelType {
   gemma,
   whisper,
+}
+
+/// Enum for download source
+enum DownloadSource {
+  assets,
+  huggingface,
+  bucket,
 }
 
 /// Model configuration class
@@ -34,12 +43,19 @@ class ModelConfig {
 
 class ModelDownloadManager extends ChangeNotifier {
   static final AppLogger _logger = AppLogger.instance;
+  final HuggingFaceTokenService _tokenService = HuggingFaceTokenService.instance;
   
   // Gemma Terms of Use notice as required by Google
   static const String _gemmaTermsNotice = 
       'Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. '
       'Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy '
       'and applicable laws and regulations.';
+  
+  // HuggingFace repository URL mapping for Gemma models
+  static const Map<String, String> _huggingFaceUrls = {
+    'gemma-3n-E2B-it-int4': 'https://huggingface.co/google/gemma-3n-E2B-it/resolve/main/gemma-3n-E2B-it-int4.task',
+    'gemma-3n-E4B-it-int4': 'https://huggingface.co/google/gemma-3n-E4B-it/resolve/main/gemma-3n-E4B-it-int4.task',
+  };
   
   // Model configurations
   static const Map<String, ModelConfig> _modelConfigs = {
@@ -121,6 +137,67 @@ class ModelDownloadManager extends ChangeNotifier {
     }
     
     return '$modelDir/${config.fileName}';
+  }
+
+  /// Get the path for model metadata file
+  Future<String> _getModelMetadataPath(String modelKey) async {
+    final modelPath = await getModelPath(modelKey);
+    return '$modelPath.metadata.json';
+  }
+
+  /// Save download source metadata for a model
+  Future<void> _saveDownloadSource(String modelKey, DownloadSource source) async {
+    try {
+      final metadataPath = await _getModelMetadataPath(modelKey);
+      final metadata = {
+        'downloadSource': source.name,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+      final file = File(metadataPath);
+      await file.writeAsString(jsonEncode(metadata));
+      _logger.d('💾 Saved download source metadata: $modelKey -> ${source.name}');
+    } catch (e) {
+      _logger.w('⚠️ Failed to save download source metadata: $e');
+    }
+  }
+
+  /// Get download source for a model
+  Future<DownloadSource?> getDownloadSource(String modelKey) async {
+    try {
+      final metadataPath = await _getModelMetadataPath(modelKey);
+      final file = File(metadataPath);
+      if (!await file.exists()) {
+        // If metadata doesn't exist, try to infer from URL
+        final config = _modelConfigs[modelKey];
+        if (config != null) {
+          final modelPath = await getModelPath(modelKey);
+          if (await File(modelPath).exists()) {
+            // Model exists but no metadata - likely downloaded before this feature
+            // Check if it's from HuggingFace URL pattern
+            final huggingFaceUrl = _huggingFaceUrls[modelKey];
+            if (huggingFaceUrl != null) {
+              // Could be either, default to bucket for backwards compatibility
+              return DownloadSource.bucket;
+            }
+            return DownloadSource.bucket;
+          }
+        }
+        return null;
+      }
+      final content = await file.readAsString();
+      final metadata = jsonDecode(content) as Map<String, dynamic>;
+      final sourceName = metadata['downloadSource'] as String?;
+      if (sourceName != null) {
+        return DownloadSource.values.firstWhere(
+          (source) => source.name == sourceName,
+          orElse: () => DownloadSource.bucket,
+        );
+      }
+      return null;
+    } catch (e) {
+      _logger.w('⚠️ Failed to read download source metadata: $e');
+      return null;
+    }
   }
 
   /// Check if a model file exists
@@ -361,6 +438,9 @@ class ModelDownloadManager extends ChangeNotifier {
         
         await _copyAssetToDocuments(modelKey);
         
+        // Save download source metadata
+        await _saveDownloadSource(modelKey, DownloadSource.assets);
+        
         _progress[modelKey] = 1.0;
         _completed[modelKey] = true;
         _downloading[modelKey] = false;
@@ -380,8 +460,28 @@ class ModelDownloadManager extends ChangeNotifier {
         await parentDir.create(recursive: true);
       }
 
-      _logger.i('🌐 Downloading from URL: ${config.url}');
-      final request = http.Request('GET', Uri.parse(config.url));
+      // Check if we should use HuggingFace download
+      final token = await _tokenService.getToken();
+      final huggingFaceUrl = _huggingFaceUrls[modelKey];
+      final useHuggingFace = token != null && 
+                            token.isNotEmpty && 
+                            huggingFaceUrl != null &&
+                            config.type == ModelType.gemma;
+
+      final downloadUrl = useHuggingFace ? huggingFaceUrl : config.url;
+      
+      _logger.i('🌐 Downloading from URL: $downloadUrl');
+      if (useHuggingFace) {
+        _logger.i('🔑 Using HuggingFace download with token authentication');
+      }
+      
+      final request = http.Request('GET', Uri.parse(downloadUrl));
+      
+      // Add authentication header if using HuggingFace
+      if (useHuggingFace) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
       final response = await request.send();
       
       _logger.i('📡 HTTP response status: ${response.statusCode}');
@@ -406,6 +506,11 @@ class ModelDownloadManager extends ChangeNotifier {
       }
 
       await sink.close();
+      
+      // Save download source metadata
+      final downloadSource = useHuggingFace ? DownloadSource.huggingface : DownloadSource.bucket;
+      await _saveDownloadSource(modelKey, downloadSource);
+      
       _progress[modelKey] = 1.0;
       _completed[modelKey] = true;
       _downloading[modelKey] = false;
@@ -449,6 +554,7 @@ class ModelDownloadManager extends ChangeNotifier {
     final status = <String, Map<String, dynamic>>{};
     
     for (final modelKey in _modelConfigs.keys) {
+      final downloadSource = await getDownloadSource(modelKey);
       status[modelKey] = {
         'exists': await modelExists(modelKey),
         'complete': await modelIsComplete(modelKey),
@@ -456,6 +562,7 @@ class ModelDownloadManager extends ChangeNotifier {
         'progress': getProgress(modelKey),
         'error': getError(modelKey),
         'config': _modelConfigs[modelKey],
+        'downloadSource': downloadSource?.name,
       };
     }
     
@@ -487,6 +594,12 @@ class ModelDownloadManager extends ChangeNotifier {
       final file = File(path);
       if (await file.exists()) {
         await file.delete();
+        // Also delete metadata file if it exists
+        final metadataPath = await _getModelMetadataPath(modelKey);
+        final metadataFile = File(metadataPath);
+        if (await metadataFile.exists()) {
+          await metadataFile.delete();
+        }
         resetModel(modelKey);
         _logger.i('🗑️ Deleted model file: $modelKey');
         return true;
@@ -544,6 +657,7 @@ class ModelDownloadManager extends ChangeNotifier {
       final complete = await modelIsComplete(modelKey);
       final downloading = isDownloading(modelKey);
       final error = getError(modelKey);
+      final downloadSource = await getDownloadSource(modelKey);
       
       status[modelKey] = ModelStatus(
         key: modelKey,
@@ -557,6 +671,7 @@ class ModelDownloadManager extends ChangeNotifier {
         expectedSize: config.expectedSize,
         url: config.url,
         termsNotice: config.termsNotice,
+        downloadSource: downloadSource,
       );
     }
     
@@ -577,6 +692,7 @@ class ModelStatus {
   final int expectedSize;
   final String url;
   final String? termsNotice;
+  final DownloadSource? downloadSource;
 
   const ModelStatus({
     required this.key,
@@ -590,6 +706,7 @@ class ModelStatus {
     required this.expectedSize,
     required this.url,
     this.termsNotice,
+    this.downloadSource,
   });
 
   bool get isReady => exists && complete && !downloading && error == null;
@@ -598,6 +715,6 @@ class ModelStatus {
 
   @override
   String toString() {
-    return 'ModelStatus($key: exists=$exists, complete=$complete, downloading=$downloading, error=$error)';
+    return 'ModelStatus($key: exists=$exists, complete=$complete, downloading=$downloading, error=$error, source=$downloadSource)';
   }
 }
