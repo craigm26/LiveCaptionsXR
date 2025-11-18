@@ -56,12 +56,12 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     required SpeakerAttributionStore speakerAttributionStore,
     bool useEnhancement = true,
     SpeechConfig? speechConfig,
-  }) : _speechProcessor = speechProcessor,
-       _spatialCaptionIntegrationService = spatialCaptionIntegrationService,
-       _speakerAttributionStore = speakerAttributionStore,
-       _useEnhancement = useEnhancement,
-       _speechConfig = speechConfig,
-       super(const LiveCaptionsInitial()) {
+  })  : _speechProcessor = speechProcessor,
+        _spatialCaptionIntegrationService = spatialCaptionIntegrationService,
+        _speakerAttributionStore = speakerAttributionStore,
+        _useEnhancement = useEnhancement,
+        _speechConfig = speechConfig,
+        super(const LiveCaptionsInitial()) {
     _logger.d(
       '🧭 Hybrid localization engine ready: ${hybridLocalizationEngine.runtimeType}',
       category: LogCategory.captions,
@@ -152,19 +152,17 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         // Subscribe to Gemma enhancement events to show progress
         StreamSubscription? gemmaProgressSubscription;
         if (_useEnhancement) {
-          gemmaProgressSubscription = _speechProcessor
-              .gemma3nService
-              .enhancementEvents
-              .listen((event) {
-                if (!event.isComplete && event.error == null) {
-                  emit(
-                    LiveCaptionsLoading(
-                      message: event.message,
-                      progress: event.progress,
-                    ),
-                  );
-                }
-              });
+          gemmaProgressSubscription =
+              _speechProcessor.gemma3nService.enhancementEvents.listen((event) {
+            if (!event.isComplete && event.error == null) {
+              emit(
+                LiveCaptionsLoading(
+                  message: event.message,
+                  progress: event.progress,
+                ),
+              );
+            }
+          });
         }
 
         try {
@@ -252,8 +250,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         final StackTrace? startErrorStackTrace =
             _speechProcessor.lastStartProcessingStackTrace;
         final String? errorDetails = startError?.toString();
-        final bool permissionDenied =
-            errorDetails != null &&
+        final bool permissionDenied = errorDetails != null &&
             errorDetails.contains('Microphone permission');
 
         final String userFacingMessage = permissionDenied
@@ -306,10 +303,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   }
 
   void _handleEnhancedCaption(EnhancedCaption caption) async {
-    _logger.i(
-      '📋📥 [CAPTIONS CUBIT] Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})',
-      category: LogCategory.captions,
-    );
+    _logger.d(
+        '[CUBIT] Received caption: "${caption.displayText}" (Final: ${caption.isFinal})');
 
     final currentState = state is LiveCaptionsActive
         ? (state as LiveCaptionsActive)
@@ -324,18 +319,10 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       _captionHistory.add(caption);
       if (_captionHistory.length > 50) _captionHistory.removeAt(0);
       _logger.i(
-        '📚 [CAPTIONS CUBIT] Added FINAL caption to history (${_captionHistory.length} total)',
-        category: LogCategory.captions,
-      );
+          '[CUBIT] Final caption added to history: "${caption.displayText}"');
 
-      final displayText = caption.displayText;
-      _logger.d(
-        '🎯 Processing final caption through spatial integration: "$displayText"',
-      );
-
-      // Create speech result for spatial caption integration
       final speechResult = _buildSpeechResult(
-        text: displayText,
+        text: caption.displayText,
         confidence: caption.confidence,
         isFinal: true,
         timestamp: caption.timestamp,
@@ -343,7 +330,6 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
       _publishContextFrame(speechResult);
 
-      // Process through spatial caption integration service
       await _spatialCaptionIntegrationService.processFinalResult(speechResult);
 
       emit(
@@ -363,17 +349,7 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
           predictiveState: _latestPredictiveState,
         ),
       );
-      _logger.i(
-        '📤 [CAPTIONS CUBIT] Emitted updated state with ${_captionHistory.length} captions - FINAL CAPTION SHOULD BE VISIBLE NOW',
-        category: LogCategory.captions,
-      );
     } else {
-      _logger.i(
-        '⏳ [CAPTIONS CUBIT] Processing partial caption: "${caption.displayText}"',
-        category: LogCategory.captions,
-      );
-
-      // Use spatial_captions plugin for partial results (consistent with final results)
       final partialResult = _buildSpeechResult(
         text: caption.displayText,
         confidence: caption.confidence,
@@ -381,28 +357,18 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         timestamp: caption.timestamp,
       );
       if (caption.displayText.isNotEmpty && caption.displayText.length > 3) {
-        _logger.d(
-          '⚡ [CAPTIONS CUBIT] Processing PARTIAL caption with spatial plugin: "${caption.displayText}"',
-          category: LogCategory.captions,
-        );
         try {
           _publishContextFrame(partialResult);
-          // Process through spatial plugin (same as final results)
           await _spatialCaptionIntegrationService.processPartialResult(
             partialResult,
           );
-          _logger.d(
-            '✅ [CAPTIONS CUBIT] Partial caption processed through spatial plugin',
-            category: LogCategory.captions,
-          );
         } catch (e, stackTrace) {
           _logger.e(
-            '❌ [CAPTIONS CUBIT] Failed to process partial caption through spatial plugin',
+            '❌ [CUBIT] Failed to process partial caption through spatial plugin',
             category: LogCategory.captions,
             error: e,
             stackTrace: stackTrace,
           );
-          // Note: No fallback - spatial plugin is the only caption system now
         }
       }
 
@@ -412,18 +378,10 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
           predictiveState: _latestPredictiveState,
         ),
       );
-      _logger.i(
-        '📤 [CAPTIONS CUBIT] Emitted state with partial caption - PARTIAL CAPTION SHOULD BE VISIBLE NOW',
-        category: LogCategory.captions,
-      );
     }
   }
 
   void _handleRawSpeechResult(SpeechResult result) {
-    _logger.i(
-      '🎤📥 [CAPTIONS CUBIT] Received raw speech result: "${result.text}" (final: ${result.isFinal})',
-      category: LogCategory.captions,
-    );
     final enhancedCaption = EnhancedCaption.fromSpeechResult(result);
     _handleEnhancedCaption(enhancedCaption);
   }
@@ -454,9 +412,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       final speakerId = faceId != null
           ? 'face_$faceId'
           : result.speakerDirection ?? 'default';
-      final confidence =
-          (metadata['speakerConfidence'] as num?)?.toDouble() ??
-              result.confidence;
+      final confidence = (metadata['speakerConfidence'] as num?)?.toDouble() ??
+          result.confidence;
       hub.context.publish(
         CaptionContextFrame(
           speakerId: speakerId,

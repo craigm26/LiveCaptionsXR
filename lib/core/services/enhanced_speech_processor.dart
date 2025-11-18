@@ -9,6 +9,7 @@ import '../models/speech_config.dart';
 import '../models/enhanced_caption.dart';
 import 'audio_capture_service.dart';
 import 'gemma_3n_service.dart';
+import 'gemma_streaming_transcriber.dart';
 import 'whisper_service_impl.dart';
 import 'apple_speech_service.dart';
 import 'frame_capture_service.dart';
@@ -79,6 +80,7 @@ class EnhancedSpeechProcessor {
 
   // Mutex for Gemma requests to ensure only one at a time
   bool _gemmaProcessing = false;
+  GemmaStreamingTranscriber? _gemmaSttTranscriber;
 
   EnhancedSpeechProcessor({
     required this.gemma3nService,
@@ -87,11 +89,11 @@ class EnhancedSpeechProcessor {
     required AppleSpeechService appleSpeechService,
     required FrameCaptureService frameCaptureService,
     SpeechEngine? defaultEngine,
-  }) : _activeEngine = defaultEngine ?? _getDefaultEngine(),
-       _audioCaptureService = audioCaptureService,
-       _whisperService = whisperService,
-       _appleSpeechService = appleSpeechService,
-       _frameCaptureService = frameCaptureService {
+  })  : _activeEngine = defaultEngine ?? _getDefaultEngine(),
+        _audioCaptureService = audioCaptureService,
+        _whisperService = whisperService,
+        _appleSpeechService = appleSpeechService,
+        _frameCaptureService = frameCaptureService {
     _logger.i(
       '🏗️ [DEBUG] EnhancedSpeechProcessor constructor called',
       category: LogCategory.speech,
@@ -260,9 +262,8 @@ class EnhancedSpeechProcessor {
           );
           try {
             // Use platform-specific timeout
-            final timeout = Platform.isIOS
-                ? Duration(seconds: 60)
-                : Duration(seconds: 120);
+            final timeout =
+                Platform.isIOS ? Duration(seconds: 60) : Duration(seconds: 120);
             _logger.i(
               '⏱️ Initializing Gemma with ${timeout.inSeconds}s timeout for ${Platform.isIOS ? 'iOS' : 'Android'}',
               category: LogCategory.gemma,
@@ -426,21 +427,19 @@ class EnhancedSpeechProcessor {
         category: LogCategory.speech,
       );
 
-      await _appleSpeechService
-          .initialize(config: _config)
-          .timeout(
-            Duration(seconds: 30),
-            onTimeout: () {
-              _logger.e(
-                '⏰ [DEBUG] AppleSpeechService.initialize() timed out after 30 seconds',
-                category: LogCategory.speech,
-              );
-              throw TimeoutException(
-                'Apple Speech initialization timed out',
-                Duration(seconds: 30),
-              );
-            },
+      await _appleSpeechService.initialize(config: _config).timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          _logger.e(
+            '⏰ [DEBUG] AppleSpeechService.initialize() timed out after 30 seconds',
+            category: LogCategory.speech,
           );
+          throw TimeoutException(
+            'Apple Speech initialization timed out',
+            Duration(seconds: 30),
+          );
+        },
+      );
 
       _logger.i(
         '✅ Apple Speech engine initialized',
@@ -502,7 +501,7 @@ class EnhancedSpeechProcessor {
           await _startNativeProcessing();
           break;
         case SpeechEngine.gemma3n:
-          await _startFlutterSoundProcessing();
+          await _startGemmaSttProcessing();
           break;
         case SpeechEngine.openAI:
           // TODO: Handle this case.
@@ -540,6 +539,44 @@ class EnhancedSpeechProcessor {
       );
       return false;
     }
+  }
+
+  Future<void> _startGemmaSttProcessing() async {
+    _logger.i('🤖 [GEMMA-STT] Starting Gemma STT processing...',
+        category: LogCategory.gemma);
+    if (!gemma3nService.isReady) {
+      _logger.w(
+        '⚠️ [GEMMA-STT] Gemma service not ready - falling back to Whisper pipeline',
+        category: LogCategory.gemma,
+      );
+      await _startWhisperGgmlProcessing();
+      return;
+    }
+
+    if (!_audioCaptureService.isCapturing) {
+      _logger.w(
+        '⚠️ [GEMMA-STT] Audio capture not active - cannot stream PCM into Gemma',
+        category: LogCategory.gemma,
+      );
+      return;
+    }
+
+    final spatialService = GetIt.I.isRegistered<SpatialCaptionIntegrationService>()
+        ? GetIt.I<SpatialCaptionIntegrationService>()
+        : null;
+
+    _gemmaSttTranscriber ??= GemmaStreamingTranscriber(
+      gemmaService: gemma3nService,
+      spatialService: spatialService,
+      onTranscription: _processSpeechResult,
+      logger: _logger,
+    );
+
+    await _gemmaSttTranscriber!.start(_audioCaptureService.audioStream);
+    _logger.i(
+      '✅ [GEMMA-STT] Streaming transcription running (Gemma 3n)',
+      category: LogCategory.gemma,
+    );
   }
 
   Future<void> _startFlutterSoundProcessing() async {
@@ -607,17 +644,15 @@ class EnhancedSpeechProcessor {
 
     final StreamController<Uint8List> uint8ListController =
         StreamController<Uint8List>();
-    recordingDataController.stream
-        .transform(
-          StreamTransformer.fromHandlers(
-            handleData: (data, sink) {
-              if (data is FoodData) {
-                sink.add(data.data!);
-              }
-            },
-          ),
-        )
-        .pipe(uint8ListController.sink);
+    recordingDataController.stream.transform(
+      StreamTransformer.fromHandlers(
+        handleData: (data, sink) {
+          if (data is FoodData) {
+            sink.add(data.data!);
+          }
+        },
+      ),
+    ).pipe(uint8ListController.sink);
 
     await _recorder.startRecorder(
       toStream: uint8ListController.sink,
@@ -637,7 +672,7 @@ class EnhancedSpeechProcessor {
   Future<void> _startWhisperGgmlProcessing() async {
     try {
       _logger.i(
-        '🎤 Starting Whisper GGML processing...',
+        '🎤 [WHISPER] Starting Whisper GGML processing...',
         category: LogCategory.speech,
       );
 
@@ -651,50 +686,48 @@ class EnhancedSpeechProcessor {
         (audioBytes) async {
           if (audioBytes.isEmpty) {
             _logger.d(
-              '🎵 Ignoring empty audio chunk sent to Whisper',
-              category: LogCategory.speech,
-            );
-            return;
-          }
-
-          if (!_whisperService.isProcessing) {
-            _logger.w(
-              '⏳ Whisper not ready to process chunk yet; dropping ${audioBytes.length} bytes',
+              '🎵 [WHISPER] Ignoring empty audio chunk',
               category: LogCategory.speech,
             );
             return;
           }
 
           _logger.d(
-            '🎵 Received audio chunk (${audioBytes.length} bytes)',
+            '🎵 [WHISPER] Received audio chunk: ${audioBytes.length} bytes',
             category: LogCategory.speech,
           );
 
+          if (!_whisperService.isProcessing) {
+            _logger.w(
+              '⏳ [WHISPER] Not ready, dropping chunk',
+              category: LogCategory.speech,
+            );
+            return;
+          }
+
           try {
-            // Process with Whisper service
             _logger.d(
-              '🎤 Sending audio to Whisper for transcription...',
+              '🎤 [WHISPER] Sending chunk to Whisper...',
               category: LogCategory.speech,
             );
             final result = await _whisperService.processAudioBuffer(audioBytes);
 
+            _logger.d(
+              '📝 [WHISPER] Raw result: "${result.text}" (Confidence: ${result.confidence})',
+              category: LogCategory.speech,
+            );
+
             if (result.text.isNotEmpty) {
-              _logger.i(
-                '📝 Whisper transcription result: "${result.text}" (confidence: ${result.confidence})',
-                category: LogCategory.speech,
-              );
+              _processSpeechResult(result);
             } else {
               _logger.d(
-                '📝 Whisper returned empty transcription (confidence: ${result.confidence})',
+                '📝 [WHISPER] Empty transcription, not processing further',
                 category: LogCategory.speech,
               );
             }
-
-            // Process the speech result
-            _processSpeechResult(result);
           } catch (e, stackTrace) {
             _logger.e(
-              '❌ Error processing audio chunk',
+              '❌ [WHISPER] Error processing audio chunk',
               category: LogCategory.speech,
               error: e,
               stackTrace: stackTrace,
@@ -703,7 +736,7 @@ class EnhancedSpeechProcessor {
         },
         onError: (error, stackTrace) {
           _logger.e(
-            '❌ Error in audio stream',
+            '❌ [WHISPER] Error in audio stream',
             category: LogCategory.speech,
             error: error,
             stackTrace: stackTrace,
@@ -712,12 +745,12 @@ class EnhancedSpeechProcessor {
       );
 
       _logger.i(
-        '✅ Whisper GGML processing started successfully',
+        '✅ [WHISPER] Whisper GGML processing started successfully',
         category: LogCategory.speech,
       );
     } catch (e, stackTrace) {
       _logger.e(
-        '❌ Failed to start Whisper GGML processing',
+        '❌ [WHISPER] Failed to start Whisper GGML processing',
         category: LogCategory.speech,
         error: e,
         stackTrace: stackTrace,
@@ -906,53 +939,39 @@ class EnhancedSpeechProcessor {
 
   void _processSpeechResult(SpeechResult result) {
     _logger.d(
-      '🔄📥 [STT PROCESSING] Received speech result: "${result.text}" (final: ${result.isFinal}, confidence: ${result.confidence})',
+      '🔄📥 [STT] Received speech result: "${result.text}" (Final: ${result.isFinal}, Confidence: ${result.confidence.toStringAsFixed(2)})',
       category: LogCategory.speech,
     );
 
     try {
-      // Add to recent texts for enhancement
       if (result.text.isNotEmpty && result.text != defaultFallbackTranscript) {
         _recentTexts.add(result.text);
         if (_recentTexts.length > 10) _recentTexts.removeAt(0);
-        _logger.d(
-          '📚 [STT PROCESSING] Added to recent texts (${_recentTexts.length} items)',
-          category: LogCategory.speech,
-        );
       }
 
-      // Emit the raw speech result
       _speechResultController.add(result);
-      _logger.d(
-        '📤 [STT PROCESSING] Emitted raw speech result to speechResults stream',
-        category: LogCategory.speech,
-      );
+      _logger.d('📤 [STT] Emitted raw speech result.',
+          category: LogCategory.speech);
 
       _fanOutToPredictiveEngine(result);
 
-      // Try to enhance with Gemma 3n if available and enabled
       if (gemma3nService.isReady && _useEnhancement) {
-        _logger.i(
-          '✨ [STT PROCESSING] Gemma3n available - attempting enhancement...',
-          category: LogCategory.speech,
-        );
+        _logger.d('✨ [STT] Attempting Gemma enhancement.',
+            category: LogCategory.speech);
         _enhanceWithGemma3n(result);
       } else {
         _logger.d(
-          '📝 [STT PROCESSING] Using raw speech result (gemma ready: ${gemma3nService.isReady}, enhancement enabled: $_useEnhancement)',
+          '📝 [STT] Using raw speech result (Gemma ready: ${gemma3nService.isReady}, Enhancement: $_useEnhancement)',
           category: LogCategory.speech,
         );
-        // Create basic enhanced caption from raw result
         final basicCaption = EnhancedCaption.fromSpeechResult(result);
         _enhancedCaptionController.add(basicCaption);
-        _logger.d(
-          '📋➡️ [STT PROCESSING] Created and emitted basic caption: "${basicCaption.displayText}"',
-          category: LogCategory.speech,
-        );
+        _logger.d('📋➡️ [STT] Emitted basic caption.',
+            category: LogCategory.speech);
       }
     } catch (e, stackTrace) {
       _logger.e(
-        '❌ [STT PROCESSING] Error processing speech result',
+        '❌ [STT] Error processing speech result',
         category: LogCategory.speech,
         error: e,
         stackTrace: stackTrace,
@@ -962,138 +981,76 @@ class EnhancedSpeechProcessor {
 
   void _enhanceWithGemma3n(SpeechResult result) async {
     try {
-      _logger.d(
-        '🚀 Starting Gemma 3n enhancement for: "${result.text}"',
-        category: LogCategory.gemma,
-      );
+      _logger.d('🚀 [GEMMA] Starting enhancement for: "${result.text}"',
+          category: LogCategory.gemma);
 
       if (result.isFinal) {
-        // Check if Gemma is already processing
         if (_gemmaProcessing) {
-          _logger.w(
-            '⚠️ Gemma already processing another request, skipping: "${result.text}"',
-            category: LogCategory.gemma,
-          );
-          // Create basic caption without enhancement
+          _logger.w('⚠️ [GEMMA] Already processing, skipping.',
+              category: LogCategory.gemma);
           final basicCaption = EnhancedCaption.fromSpeechResult(result);
           _enhancedCaptionController.add(basicCaption);
           return;
         }
 
-        // Set mutex and block STT auto-restart during Gemma inference
         _gemmaProcessing = true;
-        _logger.d(
-          '🔒 Gemma mutex acquired for: "${result.text}"',
-          category: LogCategory.gemma,
-        );
-
-        // Allow STT to continue running during Gemma inference - no blocking
-        // _appleSpeechService.blockAutoRestart();
-        _logger.d(
-          '▶️ STT continues running during Gemma inference (no blocking)',
-          category: LogCategory.gemma,
-        );
+        _logger.d('🔒 [GEMMA] Mutex acquired.', category: LogCategory.gemma);
 
         try {
-          // Use multimodal enhancement with visual context if available
           String enhancedText;
-          _logger.d(
-            '🚀 Restoring frame capture to test with images (old working behavior)...',
-            category: LogCategory.gemma,
-          );
           List<int>? currentFrame = await _getCurrentFrame();
-          // List<int>? currentFrame = null; // Force text-only for testing
+
           if (currentFrame != null) {
             _logger.d(
-              '🎥 Using visual context for enhancement (${currentFrame.length} bytes)',
-              category: LogCategory.gemma,
-            );
-            _logger.d(
-              '🧠 Calling gemma3nService.enhanceTextWithVisualContext...',
-              category: LogCategory.gemma,
-            );
+                '🎥 [GEMMA] Enhancing with visual context (${currentFrame.length} bytes).',
+                category: LogCategory.gemma);
+            final spatialService = GetIt.I<SpatialCaptionIntegrationService>();
+            final direction = spatialService.currentDirection;
+            _logger.d('📍 [GEMMA] Speaker direction: $direction',
+                category: LogCategory.gemma);
+
             enhancedText = await gemma3nService.enhanceTextWithVisualContext(
               text: result.text,
               imageData: Uint8List.fromList(currentFrame),
-            );
-            _logger.d(
-              '✅ enhanceTextWithVisualContext completed',
-              category: LogCategory.gemma,
+              spatialDirection: direction,
             );
           } else {
-            _logger.d(
-              '📝 Using text-only enhancement (no frame available)',
-              category: LogCategory.gemma,
-            );
-            _logger.d(
-              '🧠 Calling gemma3nService.enhanceText...',
-              category: LogCategory.gemma,
-            );
+            _logger.d('📝 [GEMMA] Enhancing with text only.',
+                category: LogCategory.gemma);
             enhancedText = await gemma3nService.enhanceText(result.text);
-            _logger.d('✅ enhanceText completed', category: LogCategory.gemma);
           }
 
-          _logger.d(
-            '✨ Enhancement result: "$enhancedText"',
-            category: LogCategory.gemma,
-          );
+          _logger.d('✨ [GEMMA] Enhanced text: "$enhancedText"',
+              category: LogCategory.gemma);
 
           final enhancedCaption = EnhancedCaption(
             raw: result.text,
             enhanced: enhancedText,
             isFinal: true,
-            isEnhanced:
-                enhancedText != result.text, // Mark as enhanced if text changed
+            isEnhanced: enhancedText != result.text,
           );
 
           _enhancedCaptionController.add(enhancedCaption);
-          _logger.i(
-            '📋 Created enhanced caption: "${enhancedCaption.displayText}"',
-            category: LogCategory.gemma,
-          );
+          _logger.i('📋 [GEMMA] Emitted enhanced caption.',
+              category: LogCategory.gemma);
         } finally {
-          // Release mutex and unblock STT auto-restart
           _gemmaProcessing = false;
-          _logger.d('🔓 Gemma mutex released', category: LogCategory.gemma);
-
-          // STT was never blocked, so no need to unblock
-          // _appleSpeechService.unblockAutoRestart(restartImmediately: true);
-          _logger.d(
-            '▶️ STT was running continuously during Gemma inference',
-            category: LogCategory.gemma,
-          );
+          _logger.d('🔓 [GEMMA] Mutex released.', category: LogCategory.gemma);
         }
       } else {
-        // For partial results, create a partial caption
         final partialCaption = EnhancedCaption.partial(result.text);
         _enhancedCaptionController.add(partialCaption);
-        _logger.d(
-          '📋 Created partial caption: "${partialCaption.displayText}"',
-          category: LogCategory.gemma,
-        );
+        _logger.d('📋 [GEMMA] Emitted partial caption.',
+            category: LogCategory.gemma);
       }
     } catch (e, stackTrace) {
-      // Ensure mutex is released on error (STT was never blocked)
       _gemmaProcessing = false;
-      // _appleSpeechService.unblockAutoRestart(restartImmediately: true);
-      _logger.e(
-        '❌ Error enhancing with Gemma 3n',
-        category: LogCategory.gemma,
-        error: e,
-        stackTrace: stackTrace,
-      );
-      _logger.d(
-        '▶️ STT was running continuously during Gemma error',
-        category: LogCategory.gemma,
-      );
-
-      // Fallback to basic caption
+      _logger.e('❌ [GEMMA] Error during enhancement.',
+          category: LogCategory.gemma, error: e, stackTrace: stackTrace);
       final fallbackCaption = EnhancedCaption.fallback(result.text);
       _enhancedCaptionController.add(fallbackCaption);
-      _logger.w(
-        '⚠️ Using fallback caption: "${fallbackCaption.displayText}"',
-        category: LogCategory.gemma,
-      );
+      _logger.w('⚠️ [GEMMA] Emitted fallback caption.',
+          category: LogCategory.gemma);
     }
   }
 
@@ -1125,7 +1082,7 @@ class EnhancedSpeechProcessor {
           await _nativeChannel.invokeMethod('stopListening');
           break;
         case SpeechEngine.gemma3n:
-          await _stopFlutterSoundProcessing();
+          await _stopGemmaSttProcessing();
           break;
         case SpeechEngine.openAI:
           // TODO: Handle this case.
@@ -1160,6 +1117,15 @@ class EnhancedSpeechProcessor {
         stackTrace: stackTrace,
       );
       return false;
+    }
+  }
+
+  Future<void> _stopGemmaSttProcessing() async {
+    _logger.i('🛑 [GEMMA-STT] Stopping Gemma STT processing...',
+        category: LogCategory.gemma);
+    if (_gemmaSttTranscriber != null) {
+      await _gemmaSttTranscriber!.stop();
+      _gemmaSttTranscriber = null;
     }
   }
 
@@ -1198,37 +1164,23 @@ class EnhancedSpeechProcessor {
 
   /// Get current frame for visual context using unified FrameCaptureService
   Future<List<int>?> _getCurrentFrame() async {
-    _logger.d(
-      '📸 Capturing frame via FrameCaptureService...',
-      category: LogCategory.camera,
-    );
     if (!_frameCaptureEnabled) {
-      _logger.d(
-        '🛑 Frame capture disabled - returning null frame',
-        category: LogCategory.camera,
-      );
       return null;
     }
     try {
-      // Add timeout to frame capture to prevent hanging
       final frameData = await _frameCaptureService.captureFrame().timeout(
-        Duration(seconds: 5),
+        Duration(seconds: 1),
         onTimeout: () {
-          _logger.w(
-            '⏱️ Frame capture timed out after 5 seconds',
-            category: LogCategory.camera,
-          );
+          _logger.w('⏱️ [CAMERA] Frame capture timed out.',
+              category: LogCategory.camera);
           return null;
         },
       );
       if (frameData != null) {
-        _logger.d(
-          '✅ Frame captured: ${frameData.length} bytes',
-          category: LogCategory.camera,
-        );
-        final bytes = frameData is Uint8List
-            ? frameData
-            : Uint8List.fromList(frameData);
+        _logger.d('✅ [CAMERA] Captured frame: ${frameData.length} bytes',
+            category: LogCategory.camera);
+        final bytes =
+            frameData is Uint8List ? frameData : Uint8List.fromList(frameData);
         if (GetIt.I.isRegistered<PredictiveStreamHub>()) {
           try {
             GetIt.I<PredictiveStreamHub>().video.publish(
@@ -1241,7 +1193,7 @@ class EnhancedSpeechProcessor {
                 );
           } catch (e, stackTrace) {
             _logger.w(
-              '⚠️ Failed to publish frame to predictive video stream',
+              '⚠️ [PREDICTIVE] Failed to publish frame to predictive video stream',
               category: LogCategory.camera,
               error: e,
               stackTrace: stackTrace,
@@ -1250,19 +1202,11 @@ class EnhancedSpeechProcessor {
         }
         return bytes;
       } else {
-        _logger.w(
-          '⚠️ Frame capture returned null',
-          category: LogCategory.camera,
-        );
         return null;
       }
     } catch (e, stackTrace) {
-      _logger.e(
-        '❌ Failed to capture frame',
-        category: LogCategory.camera,
-        error: e,
-        stackTrace: stackTrace,
-      );
+      _logger.e('❌ [CAMERA] Failed to capture frame',
+          category: LogCategory.camera, error: e, stackTrace: stackTrace);
       return null;
     }
   }

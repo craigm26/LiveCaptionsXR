@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -207,6 +208,62 @@ class Gemma3nService {
     } catch (e) {
       _logger.e('? Failed to perform multimodal inference', error: e);
       return text;
+    }
+  }
+
+  /// Attempts to transcribe a chunk of PCM16 mono audio using Gemma 3n.
+  Future<String?> transcribeAudioChunk({
+    required Uint8List pcmBytes,
+    int sampleRate = 16000,
+    bool isFinalChunk = false,
+  }) async {
+    if (!isReady) {
+      _logger.w(
+        '?? Gemma3nService not initialized, cannot transcribe audio chunk.',
+        category: LogCategory.gemma,
+      );
+      return null;
+    }
+    if (pcmBytes.isEmpty) {
+      _logger.d(
+        '?? Empty PCM chunk provided to Gemma transcription - skipping.',
+        category: LogCategory.gemma,
+      );
+      return null;
+    }
+
+    try {
+      final payload = base64Encode(pcmBytes);
+      final prompt = '''
+You are a streaming speech recognizer.
+The user is providing 16-bit PCM mono audio (sample rate ${sampleRate}Hz) encoded as Base64.
+Transcribe the spoken English words present in this chunk.
+${isFinalChunk ? 'This is the final chunk for the utterance.' : 'More audio may follow.'}
+
+Audio chunk (base64):
+$payload
+
+Transcript:''';
+
+      _logger.d(
+        '🎙️ [Gemma-STT] Transcribing PCM chunk (${pcmBytes.length} bytes)...',
+        category: LogCategory.gemma,
+      );
+      final response = await _generateResponse(prompt: prompt);
+      final cleaned = _cleanEnhancedText(response);
+      _logger.d(
+        '🗣️ [Gemma-STT] Gemma returned transcript: "$cleaned"',
+        category: LogCategory.gemma,
+      );
+      return cleaned;
+    } catch (e, stackTrace) {
+      _logger.e(
+        '❌ Failed to transcribe PCM chunk with Gemma',
+        category: LogCategory.gemma,
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return null;
     }
   }
 

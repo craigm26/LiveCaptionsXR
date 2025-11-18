@@ -781,6 +781,25 @@ class _HomeScreenState extends State<HomeScreen> {
         '🔍 [HOME] Step 6: Starting all AR services through ARSessionCubit...',
         category: LogCategory.ui,
       );
+      final speechProcessor = sl<EnhancedSpeechProcessor>();
+      if (speechProcessor.gemma3nService.isReady &&
+          speechProcessor.activeEngine != SpeechEngine.gemma3n) {
+        _logger.i(
+          '🎙️ [HOME] Switching Live Captions engine to Gemma 3n for AR mode',
+          category: LogCategory.speech,
+        );
+        await speechProcessor.switchEngine(SpeechEngine.gemma3n);
+      } else if (!speechProcessor.gemma3nService.isReady) {
+        _logger.w(
+          '⚠️ [HOME] Gemma 3n service not ready - retaining existing STT backend',
+          category: LogCategory.speech,
+        );
+      } else {
+        _logger.d(
+          'ℹ️ [HOME] Gemma 3n STT already active',
+          category: LogCategory.speech,
+        );
+      }
       await arSessionCubit.startAllARServices(
         startLiveCaptions: () async {
           _logger.i(
@@ -914,6 +933,9 @@ class _HomeScreenState extends State<HomeScreen> {
             _logger.i('✅ Visual identification stopped');
           }
         },
+        sttBackend:
+            speechProcessor.gemma3nService.isReady ? 'Gemma 3n' : null,
+        sttIsOnline: false,
       );
       _logger.i(
         '✅ [HOME] Step 6 complete: All AR services started successfully through ARSessionCubit',
