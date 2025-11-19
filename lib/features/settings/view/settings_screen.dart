@@ -62,58 +62,49 @@ class SettingsScreen extends StatelessWidget {
               _buildSectionHeader('Speech & Enhancement'),
               Tooltip(
                 message:
-                    'Online mode uses cloud services for higher accuracy (may send audio to server). Offline mode keeps audio on device for privacy.',
+                    'Live Captions XR currently performs speech recognition fully on-device using Whisper GGML (Android) or Apple Speech plus Gemma 3n. Cloud APIs are disabled to keep every conversation private.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.cloud_outlined,
                   title: 'Speech-to-Text Mode',
-                  subtitle: 'Online for accuracy, Offline for privacy',
-                  trailing: DropdownButton<SttMode>(
-                    value: state.sttMode,
-                    items: [
-                      DropdownMenuItem<SttMode>(
-                        value: SttMode.online,
-                        enabled: false,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Opacity(
-                                opacity: 0.5,
-                                child: Text('Online'),
-                              ),
-                            ),
-                            Tooltip(
-                              message: 'Disabled for now (requires paid API)',
-                              child: Icon(Icons.lock,
-                                  size: 16, color: Colors.grey),
-                            ),
-                          ],
+                  subtitle: 'On-device pipeline (cloud mode disabled)',
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Chip(
+                        label: const Text('On-device'),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        labelStyle: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const DropdownMenuItem<SttMode>(
-                        value: SttMode.offline,
-                        child: Text('Offline'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Whisper + Gemma 3n',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                        textAlign: TextAlign.end,
                       ),
                     ],
-                    onChanged: (value) {
-                      if (value == SttMode.offline) {
-                        context
-                            .read<SettingsCubit>()
-                            .setSttMode(value as SttMode);
-                      }
-                    },
                   ),
                 ),
               ),
               Tooltip(
                 message:
-                    'Select which speech recognition engine to use. Some engines may offer better speed, privacy, or accuracy.',
+                    'Choose which on-device engine drives the captions. Whisper GGML is preferred on Android, Apple Speech (Native) shines on iOS, and Gemma 3n powers contextual rephrasing.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.settings_voice,
                   title: 'ASR Backend',
-                  subtitle: 'Choose the speech engine backend',
+                  subtitle: 'Choose the on-device speech engine',
                   trailing: DropdownButton<AsrBackend>(
                     value: state.asrBackend,
                     items: _asrBackendDropdownItems(context),
@@ -125,6 +116,7 @@ class SettingsScreen extends StatelessWidget {
                       }
                     },
                   ),
+                  trailingWidth: 260,
                 ),
               ),
               Tooltip(
@@ -193,12 +185,13 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               Tooltip(
-                message: 'Manage AI model downloads for speech recognition and enhancement.',
+                message:
+                    'Review Whisper Base and Gemma 3n downloads, see storage impact, and retry failed transfers.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.storage,
                   title: 'Model Management',
-                  subtitle: 'Download and manage AI models',
+                  subtitle: 'Check Whisper & Gemma downloads',
                   trailing: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).pushNamed('/model-status');
@@ -369,20 +362,20 @@ List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
     
     switch (backend) {
       case AsrBackend.flutterSound:
-        displayName = 'Flutter Sound';
+        displayName = 'Flutter Sound (legacy capture)';
         break;
       case AsrBackend.gemma3n:
-        displayName = 'Gemma 3n';
+        displayName = 'Gemma 3n Enhancer';
         break;
       case AsrBackend.native:
-        displayName = 'Native';
+        displayName = 'Native (Apple Speech/iOS)';
         break;
       case AsrBackend.openAI:
-        displayName = 'OpenAI';
+        displayName = 'OpenAI (disabled)';
         isEnabled = false;
         break;
       case AsrBackend.whisperGgml:
-        displayName = 'Whisper';
+        displayName = 'Whisper GGML (Android)';
         break;
     }
     
@@ -401,7 +394,7 @@ List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
           ),
           if (!isEnabled)
             Tooltip(
-              message: 'Disabled for now (requires paid API)',
+              message: 'Requires paid API key',
               child: Icon(Icons.lock, size: 16, color: Colors.grey),
             ),
         ],
@@ -436,12 +429,13 @@ Widget _buildSectionHeader(String title) {
   );
 }
 
-Widget _buildSettingTile(
+  Widget _buildSettingTile(
   BuildContext context, {
   required IconData icon,
   required String title,
   required String subtitle,
   required Widget trailing,
+  double? trailingWidth,
 }) {
   return Card(
     margin: const EdgeInsets.only(bottom: 8),
@@ -449,7 +443,13 @@ Widget _buildSettingTile(
       leading: Icon(icon, color: Theme.of(context).primaryColor),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: SizedBox(width: 160, child: trailing),
+      trailing: SizedBox(
+        width: trailingWidth ?? 180,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: trailing,
+        ),
+      ),
     ),
   );
 }

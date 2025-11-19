@@ -209,13 +209,6 @@ class _AppShellState extends State<AppShell> {
             title: 'Model Status',
             route: '/model-status',
           ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.view_in_ar,
-            title: 'Spatial Captions Demo',
-            subtitle: 'Test AR caption placement',
-            route: '/spatial-captions-demo',
-          ),
         ],
       ),
     );
@@ -230,16 +223,20 @@ class _AppShellState extends State<AppShell> {
   }) {
     final currentLocation = GoRouterState.of(context).uri.toString();
     final isSelected = currentLocation == route;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final selectedContentColor = colorScheme.onPrimaryContainer;
+    final selectedTileColor = colorScheme.primaryContainer;
 
     return ListTile(
       leading: Icon(
         icon,
-        color: isSelected ? Theme.of(context).primaryColor : null,
+        color: isSelected ? selectedContentColor : null,
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: isSelected ? Theme.of(context).primaryColor : null,
+          color: isSelected ? selectedContentColor : null,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -248,16 +245,16 @@ class _AppShellState extends State<AppShell> {
               subtitle,
               style: TextStyle(
                 color: isSelected
-                    ? Theme.of(context).primaryColor.withAlpha((255 * 0.7).round())
+                    ? selectedContentColor.withOpacity(0.8)
                     : Colors.grey[600],
                 fontSize: 12,
               ),
             )
           : null,
       selected: isSelected,
-      selectedTileColor: Theme.of(context).primaryColor.withAlpha((255 * 0.1).round()),
+      selectedTileColor: selectedTileColor,
       onTap: () {
-        _logger.d('🎯 Navigating to $route', category: LogCategory.ui);
+        _logger.d('?? Navigating to $route', category: LogCategory.ui);
         Navigator.of(context).pop(); // Close drawer
         context.go(route);
       },
