@@ -44,6 +44,7 @@ class Gemma3nService {
   static const Map<String, String> _huggingFaceUrls = {
     'gemma-3n-E2B-it-int4': 'https://huggingface.co/google/gemma-3n-E2B-it/resolve/main/gemma-3n-E2B-it-int4.task',
     'gemma-3n-E4B-it-int4': 'https://huggingface.co/google/gemma-3n-E4B-it/resolve/main/gemma-3n-E4B-it-int4.task',
+    'gemma-2b-it': 'https://huggingface.co/google/gemma-3n-E4B-it/resolve/main/gemma-3n-E4B-it-int4.task',
   };
 
   final Map<String, String> _enhancementCache = {};
@@ -58,7 +59,7 @@ class Gemma3nService {
   Gemma3nService({required ModelDownloadManager modelManager})
       : _modelManager = modelManager;
 
-  Future<void> initialize({String modelKey = 'gemma-2b-it'}) async {
+  Future<void> initialize({String modelKey = 'gemma-3n-E4B-it-int4'}) async {
     if (isReady) {
       _logger.i('? Gemma3nService already initialized',
           category: LogCategory.gemma);

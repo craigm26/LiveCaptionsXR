@@ -15,6 +15,8 @@ import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'shared/theme/app_theme.dart';
 import 'core/services/google_auth_service.dart';
+import 'core/services/native_caption_engine_bridge.dart';
+import 'features/native_engine/cubit/native_engine_cubit.dart';
 
 final AppLogger _appLogger = AppLogger.instance;
 
@@ -23,17 +25,27 @@ class LiveCaptionsXrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp', category: LogCategory.ui);
+    _appLogger.d('🏗️ Building LiveCaptionsXrApp MaterialApp',
+        category: LogCategory.ui);
 
     return MultiBlocProvider(
       providers: [
         BlocProvider<SettingsCubit>(create: (context) => sl<SettingsCubit>()),
         BlocProvider<HomeCubit>(create: (context) => HomeCubit()),
-        BlocProvider<SoundDetectionCubit>(create: (context) => sl<SoundDetectionCubit>()),
-        BlocProvider<LocalizationCubit>(create: (context) => LocalizationCubit()),
-        BlocProvider<VisualIdentificationCubit>(create: (context) => sl<VisualIdentificationCubit>()),
-        BlocProvider<LiveCaptionsCubit>(create: (context) => sl<LiveCaptionsCubit>()),
-        BlocProvider<ARSessionCubit>(create: (context) => ARSessionCubit(hybridLocalizationEngine: sl(), persistenceService: sl())),
+        BlocProvider<SoundDetectionCubit>(
+            create: (context) => sl<SoundDetectionCubit>()),
+        BlocProvider<LocalizationCubit>(
+            create: (context) => LocalizationCubit()),
+        BlocProvider<VisualIdentificationCubit>(
+            create: (context) => sl<VisualIdentificationCubit>()),
+        BlocProvider<LiveCaptionsCubit>(
+            create: (context) => sl<LiveCaptionsCubit>()),
+        BlocProvider<ARSessionCubit>(
+            create: (context) => ARSessionCubit(
+                hybridLocalizationEngine: sl(), persistenceService: sl())),
+        BlocProvider<NativeEngineCubit>(
+            create: (context) =>
+                NativeEngineCubit(sl<NativeCaptionEngineBridge>())),
       ],
       child: MaterialApp.router(
         title: 'Live Captions XR',

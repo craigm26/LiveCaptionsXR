@@ -27,6 +27,8 @@ import 'package:live_captions_xr/core/services/app_logger.dart';
 import 'package:live_captions_xr/spatial_intel/streams/predictive_stream_hub.dart';
 import 'package:live_captions_xr/spatial_intel/predict/predictive_caption_engine.dart';
 import 'package:live_captions_xr/spatial_intel/placement/spatial_anchor_coordinator.dart';
+import 'package:live_captions_xr/core/services/native_caption_engine_bridge.dart';
+import 'package:live_captions_xr/features/native_engine/services/native_spatial_caption_bridge.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -35,51 +37,62 @@ void setupServiceLocator() {
   final logger = AppLogger.instance;
 // ... existing registrations
   if (!sl.isRegistered<ModelDownloadManager>()) {
-    sl.registerLazySingleton<ModelDownloadManager>(() => ModelDownloadManager());
+    sl.registerLazySingleton<ModelDownloadManager>(
+        () => ModelDownloadManager());
   }
   if (!sl.isRegistered<Gemma3nService>()) {
     sl.registerLazySingleton<Gemma3nService>(() => Gemma3nService(
-    modelManager: sl<ModelDownloadManager>(),
-  ));
+          modelManager: sl<ModelDownloadManager>(),
+        ));
   }
   if (!sl.isRegistered<WhisperService>()) {
     sl.registerLazySingleton<WhisperService>(() => WhisperService(
-      modelDownloadManager: sl<ModelDownloadManager>(),
-    ));
+          modelDownloadManager: sl<ModelDownloadManager>(),
+        ));
   }
   if (!sl.isRegistered<AppleSpeechService>()) {
-    logger.d('🍎 Registering AppleSpeechService in service locator', category: LogCategory.system);
+    logger.d('🍎 Registering AppleSpeechService in service locator',
+        category: LogCategory.system);
     sl.registerLazySingleton<AppleSpeechService>(() {
-      logger.d('🍎 Creating AppleSpeechService instance', category: LogCategory.system);
+      logger.d('🍎 Creating AppleSpeechService instance',
+          category: LogCategory.system);
       return AppleSpeechService();
     });
   }
   if (!sl.isRegistered<EnhancedSpeechProcessor>()) {
-    logger.d('🔧 Registering EnhancedSpeechProcessor in service locator', category: LogCategory.system);
+    logger.d('🔧 Registering EnhancedSpeechProcessor in service locator',
+        category: LogCategory.system);
     sl.registerLazySingleton<EnhancedSpeechProcessor>(
       () {
-        logger.d('🔧 Creating EnhancedSpeechProcessor instance', category: LogCategory.system);
-        logger.d('🍎 Getting AppleSpeechService from service locator', category: LogCategory.system);
+        logger.d('🔧 Creating EnhancedSpeechProcessor instance',
+            category: LogCategory.system);
+        logger.d('🍎 Getting AppleSpeechService from service locator',
+            category: LogCategory.system);
         final appleSpeech = sl<AppleSpeechService>();
-        logger.d('🍎 AppleSpeechService retrieved: ${appleSpeech.runtimeType}', category: LogCategory.system);
-        
+        logger.d('🍎 AppleSpeechService retrieved: ${appleSpeech.runtimeType}',
+            category: LogCategory.system);
+
         logger.d('🔧 Getting Gemma3nService...', category: LogCategory.system);
         final gemma = sl<Gemma3nService>();
         logger.d('🔧 Gemma3nService OK', category: LogCategory.system);
-        
-        logger.d('🔧 Getting AudioCaptureService...', category: LogCategory.system);
+
+        logger.d('🔧 Getting AudioCaptureService...',
+            category: LogCategory.system);
         final audio = sl<AudioCaptureService>();
         logger.d('🔧 AudioCaptureService OK', category: LogCategory.system);
-        
+
         logger.d('🔧 Getting WhisperService...', category: LogCategory.system);
         final whisper = sl<WhisperService>();
         logger.d('🔧 WhisperService OK', category: LogCategory.system);
-        
-        logger.d('🔧 Getting FrameCaptureService...', category: LogCategory.system);
+
+        logger.d('🔧 Getting FrameCaptureService...',
+            category: LogCategory.system);
         final frame = sl<FrameCaptureService>();
         logger.d('🔧 FrameCaptureService OK', category: LogCategory.system);
-        
-        logger.d('🔧 About to create EnhancedSpeechProcessor with all services...', category: LogCategory.system);
+
+        logger.d(
+            '🔧 About to create EnhancedSpeechProcessor with all services...',
+            category: LogCategory.system);
         final processor = EnhancedSpeechProcessor(
           gemma3nService: gemma,
           audioCaptureService: audio,
@@ -87,9 +100,22 @@ void setupServiceLocator() {
           appleSpeechService: appleSpeech,
           frameCaptureService: frame,
         );
-        logger.d('🔧 EnhancedSpeechProcessor created successfully!', category: LogCategory.system);
+        logger.d('🔧 EnhancedSpeechProcessor created successfully!',
+            category: LogCategory.system);
         return processor;
       },
+    );
+  }
+  if (!sl.isRegistered<NativeCaptionEngineBridge>()) {
+    sl.registerLazySingleton<NativeCaptionEngineBridge>(
+        () => NativeCaptionEngineBridge());
+  }
+  if (!sl.isRegistered<NativeSpatialCaptionBridge>()) {
+    sl.registerLazySingleton<NativeSpatialCaptionBridge>(
+      () => NativeSpatialCaptionBridge(
+        bridge: sl<NativeCaptionEngineBridge>(),
+        spatialCaptionsCubit: sl<SpatialCaptionsCubit>(),
+      ),
     );
   }
   if (!sl.isRegistered<LiveCaptionsCubit>()) {
@@ -100,7 +126,8 @@ void setupServiceLocator() {
       () => LiveCaptionsCubit(
         speechProcessor: sl<EnhancedSpeechProcessor>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
-        spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
+        spatialCaptionIntegrationService:
+            sl<SpatialCaptionIntegrationService>(),
         speakerAttributionStore: sl<SpeakerAttributionStore>(),
         useEnhancement: false,
         speechConfig: passThroughConfig,
@@ -146,10 +173,12 @@ void setupServiceLocator() {
     sl.registerLazySingleton<ARAnchorManager>(() => ARAnchorManager());
   }
   if (!sl.isRegistered<HybridLocalizationEngine>()) {
-    sl.registerLazySingleton<HybridLocalizationEngine>(() => HybridLocalizationEngine());
+    sl.registerLazySingleton<HybridLocalizationEngine>(
+        () => HybridLocalizationEngine());
   }
   if (!sl.isRegistered<ARSessionPersistenceService>()) {
-    sl.registerLazySingleton<ARSessionPersistenceService>(() => ARSessionPersistenceService());
+    sl.registerLazySingleton<ARSessionPersistenceService>(
+        () => ARSessionPersistenceService());
   }
   // Register SpeechLocalizer
   if (!sl.isRegistered<SpeechLocalizer>()) {
@@ -157,7 +186,8 @@ void setupServiceLocator() {
   }
   // Register SpatialCaptionsCubit
   if (!sl.isRegistered<SpatialCaptionsCubit>()) {
-    sl.registerLazySingleton<SpatialCaptionsCubit>(() => SpatialCaptionsCubit());
+    sl.registerLazySingleton<SpatialCaptionsCubit>(
+        () => SpatialCaptionsCubit());
   }
   // Register SpatialCaptionIntegrationService
   if (!sl.isRegistered<SpatialCaptionIntegrationService>()) {
@@ -186,10 +216,20 @@ void setupServiceLocator() {
       ),
     );
   }
+  if (!sl.isRegistered<NativeSpatialCaptionBridge>()) {
+    sl.registerLazySingleton<NativeSpatialCaptionBridge>(
+      () => NativeSpatialCaptionBridge(
+        bridge: sl<NativeCaptionEngineBridge>(),
+        spatialCaptionsCubit: sl<SpatialCaptionsCubit>(),
+        predictiveStreamHub: sl<PredictiveStreamHub>(),
+      ),
+    );
+  }
   if (!sl.isRegistered<SpeakerTaggingCoordinator>()) {
     sl.registerLazySingleton<SpeakerTaggingCoordinator>(
       () => SpeakerTaggingCoordinator(
-        spatialCaptionIntegrationService: sl<SpatialCaptionIntegrationService>(),
+        spatialCaptionIntegrationService:
+            sl<SpatialCaptionIntegrationService>(),
         attributionStore: sl<SpeakerAttributionStore>(),
       ),
     );
@@ -202,8 +242,8 @@ void setupServiceLocator() {
   // Register SettingsCubit
   if (!sl.isRegistered<SettingsCubit>()) {
     sl.registerFactory<SettingsCubit>(() => SettingsCubit(
-      speechProcessor: sl<EnhancedSpeechProcessor>(),
-    ));
+          speechProcessor: sl<EnhancedSpeechProcessor>(),
+        ));
   }
   // ... existing registrations
 }

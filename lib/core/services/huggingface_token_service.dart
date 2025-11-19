@@ -11,10 +11,11 @@ import '../models/user_settings.dart';
 class HuggingFaceTokenService {
   static final AppLogger _logger = AppLogger.instance;
   static HuggingFaceTokenService? _instance;
-  
-  static HuggingFaceTokenService get instance => 
+  static bool _envLoadAttempted = false;
+
+  static HuggingFaceTokenService get instance =>
       _instance ??= HuggingFaceTokenService._();
-  
+
   HuggingFaceTokenService._();
 
   /// Get HuggingFace token with priority order:
@@ -41,6 +42,8 @@ class HuggingFaceTokenService {
         }
       }
 
+      await _ensureEnvLoaded();
+
       // Priority 2: Check .env file
       final envToken = dotenv.env['HUGGINGFACE_TOKEN'];
       if (envToken != null && envToken.isNotEmpty) {
@@ -49,8 +52,7 @@ class HuggingFaceTokenService {
         return envToken;
       }
 
-      _logger.d('⚠️ No HuggingFace token found',
-          category: LogCategory.system);
+      _logger.d('⚠️ No HuggingFace token found', category: LogCategory.system);
       return null;
     } catch (e, stackTrace) {
       _logger.e('❌ Error retrieving HuggingFace token',
@@ -70,6 +72,9 @@ class HuggingFaceTokenService {
 
   /// Get token from .env file synchronously
   String? getTokenFromEnv() {
+    if (!dotenv.isInitialized) {
+      return null;
+    }
     return dotenv.env['HUGGINGFACE_TOKEN'];
   }
 
@@ -80,9 +85,9 @@ class HuggingFaceTokenService {
     }
     // HuggingFace tokens are typically alphanumeric strings
     // Basic validation: at least 10 characters, contains letters and numbers
-    return token.length >= 10 && 
-           RegExp(r'[a-zA-Z]').hasMatch(token) &&
-           RegExp(r'[0-9]').hasMatch(token);
+    return token.length >= 10 &&
+        RegExp(r'[a-zA-Z]').hasMatch(token) &&
+        RegExp(r'[0-9]').hasMatch(token);
   }
 
   /// Check if token is available (from any source)
@@ -90,5 +95,23 @@ class HuggingFaceTokenService {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
-}
 
+  Future<void> _ensureEnvLoaded() async {
+    if (dotenv.isInitialized || _envLoadAttempted) {
+      return;
+    }
+    _envLoadAttempted = true;
+    try {
+      await dotenv.load(fileName: ".env");
+      _logger.d('📄 Loaded .env file for HuggingFace tokens',
+          category: LogCategory.system);
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Failed to load .env file for HuggingFace tokens',
+        category: LogCategory.system,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+}

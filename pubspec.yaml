@@ -61,7 +61,8 @@ flutter:
     - assets/logos/
     - assets/images/
     - assets/spatial_intel/decoding/
-    - assets/models/
+    - .env
+    #- assets/models/
 
   # fonts:
   #   - family: Roboto

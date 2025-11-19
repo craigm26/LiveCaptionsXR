@@ -1,27 +1,45 @@
 package com.livecaptionsxr.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.livecaptionsxr.engine.bus.EngineEvent
+import com.livecaptionsxr.spatialcaptions.SpatialCaptionsPlugin
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
-import com.livecaptionsxr.spatialcaptions.SpatialCaptionsPlugin
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
-class MainActivity: FlutterActivity() {
+class MainActivity : FlutterActivity() {
     private val VISUAL_CHANNEL = "com.craig.livecaptions/visual"
     private val HYBRID_CHANNEL = "live_captions_xr/hybrid_localization_methods"
     private val AR_NAVIGATION_CHANNEL = "live_captions_xr/ar_navigation"
+    private val ENGINE_CONTROL_CHANNEL = "live_captions_xr/engine_control"
+    private val ENGINE_EVENTS_CHANNEL = "live_captions_xr/engine_events"
 
     private lateinit var visualCaptureController: VisualCaptureController
     private lateinit var hybridLocalizationEngine: HybridLocalizationEngine
 
     private val CAMERA_PERMISSION_REQUEST_CODE = 100
     private var cameraInitialized = false
+
+    private val engineEventsScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var engineEventsJob: Job? = null
+
+    private val liveCaptionsApp: LiveCaptionsApplication?
+        get() = application as? LiveCaptionsApplication
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,11 +111,44 @@ class MainActivity: FlutterActivity() {
             }
         }
 
+        // Engine control channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ENGINE_CONTROL_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startEngine" -> {
+                    liveCaptionsApp?.warmupEngine()
+                    result.success(null)
+                }
+                "stopEngine" -> {
+                    liveCaptionsApp?.shutdownEngine()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, ENGINE_EVENTS_CHANNEL).setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                val bus = liveCaptionsApp?.eventBus ?: return
+                engineEventsJob = engineEventsScope.launch {
+                    bus.events.collect { event ->
+                        events?.success(event.toMap())
+                    }
+                }
+            }
+
+            override fun onCancel(arguments: Any?) {
+                engineEventsJob?.cancel()
+                engineEventsJob = null
+            }
+        })
+
         // AR Navigation Method Channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AR_NAVIGATION_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "showARView" -> {
-                    result.error("UNIMPLEMENTED", "Android AR view not yet available", null)
+                    liveCaptionsApp?.warmupEngine()
+                    startActivity(Intent(this, XrCaptionsActivity::class.java))
+                    result.success(null)
                 }
                 "arViewWillClose" -> {
                     result.success("noop")
@@ -145,6 +196,9 @@ class MainActivity: FlutterActivity() {
     override fun onDestroy() {
         super.onDestroy()
         visualCaptureController.close()
+        engineEventsJob?.cancel()
+        engineEventsScope.cancel()
+        liveCaptionsApp?.shutdownEngine()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -158,4 +212,29 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private fun EngineEvent.toMap(): Map<String, Any?> {
+        return when (this) {
+            is EngineEvent.SpeakerUpdate -> mapOf(
+                "type" to "speaker",
+                "speakerId" to state.id.value,
+                "text" to state.lastText,
+                "direction" to state.direction?.let {
+                    mapOf(
+                        "azimuth" to it.azimuthDeg,
+                        "elevation" to it.elevationDeg,
+                        "confidence" to it.confidence
+                    )
+                },
+                "timestampUs" to state.lastUpdatedUs,
+                "isSpeaking" to state.isSpeaking
+            )
+            is EngineEvent.CaptionUpdate -> mapOf(
+                "type" to "caption",
+                "speakerId" to delta.speaker?.value,
+                "text" to delta.text,
+                "isFinal" to delta.isFinal,
+                "timestampUs" to delta.timestampUs
+            )
+        }
+    }
 }

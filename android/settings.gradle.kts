@@ -23,3 +23,8 @@ plugins {
 }
 
 include(":app")
+include(":engine")
+include(":xr")
+
+project(":engine").projectDir = file("engine")
+project(":xr").projectDir = file("xr")

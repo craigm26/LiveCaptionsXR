@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:camera/camera.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -33,24 +36,25 @@ class CameraService {
         category: LogCategory.camera);
 
     try {
-      if (!kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.android ||
-              defaultTargetPlatform == TargetPlatform.iOS)) {
-        await _ensureCameraPermission();
-        _cameras = await availableCameras();
-        final frontCamera = _cameras!.firstWhere(
-          (c) => c.lensDirection == CameraLensDirection.front,
-          orElse: () => _cameras!.first,
-        );
-        await _initializeCameraController(frontCamera);
-        _isInitialized = true;
-        _logger.i('✅ CameraService initialized successfully',
-            category: LogCategory.camera);
-      } else {
-        _logger.i('ℹ️ CameraService skipped (web platform detected)',
+      final usable = await _canUsePhysicalCamera();
+      if (!usable) {
+        _logger.i('ℹ️ CameraService skipped on this platform/emulator',
             category: LogCategory.camera);
         _isInitialized = false;
+        _initializeCompleter!.complete();
+        return;
       }
+
+      await _ensureCameraPermission();
+      _cameras = await availableCameras();
+      final frontCamera = _cameras!.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => _cameras!.first,
+      );
+      await _initializeCameraController(frontCamera);
+      _isInitialized = true;
+      _logger.i('✅ CameraService initialized successfully',
+          category: LogCategory.camera);
       _initializeCompleter!.complete();
     } catch (e, stackTrace) {
       _logger.e('❌ Camera initialization failed',
@@ -144,6 +148,51 @@ class CameraService {
     _isInitialized = false;
     _logger.i('✅ CameraService disposed successfully',
         category: LogCategory.camera);
+  }
+
+  Future<bool> _canUsePhysicalCamera() async {
+    if (kIsWeb) return false;
+    if (!(defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS)) {
+      return false;
+    }
+    if (await _isEmulator()) {
+      _logger.w(
+        '⚠️ Emulator detected; skipping physical camera initialization.',
+        category: LogCategory.camera,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> _isEmulator() async {
+    if (!Platform.isAndroid && !Platform.isIOS) return false;
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        final fingerprint = info.fingerprint?.toLowerCase() ?? '';
+        final brand = info.brand?.toLowerCase() ?? '';
+        final model = info.model?.toLowerCase() ?? '';
+        final product = info.product?.toLowerCase() ?? '';
+        final isGeneric =
+            fingerprint.contains('generic') || product.contains('sdk');
+        final isEmuBrand =
+            brand.contains('generic') || model.contains('emulator');
+        return !(info.isPhysicalDevice ?? true) || isGeneric || isEmuBrand;
+      } else {
+        final info = await deviceInfo.iosInfo;
+        return !(info.isPhysicalDevice ?? true);
+      }
+    } catch (e) {
+      _logger.w(
+        '⚠️ Failed to determine emulator status, assuming physical device.',
+        category: LogCategory.system,
+        error: e,
+      );
+      return false;
+    }
   }
 
   Future<void> _ensureCameraPermission() async {

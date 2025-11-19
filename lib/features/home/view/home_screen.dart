@@ -32,6 +32,10 @@ import '../../../core/services/audio_service.dart';
 import '../../../core/services/visual_identification_service.dart';
 import '../../../core/services/visual_service.dart';
 import '../../../core/services/enhanced_speech_processor.dart';
+import '../../native_engine/cubit/native_engine_cubit.dart';
+import '../../native_engine/cubit/native_engine_state.dart';
+import '../../../core/models/native_engine_event.dart';
+import '../../native_engine/services/native_spatial_caption_bridge.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -213,6 +217,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    if (!kIsWeb && Platform.isAndroid) {
+      context.read<NativeEngineCubit>().stopEngine();
+      if (sl.isRegistered<NativeSpatialCaptionBridge>()) {
+        sl<NativeSpatialCaptionBridge>().stop();
+      }
+    }
     unawaited(_stopNonARCaptionPipeline());
     super.dispose();
   }
@@ -933,8 +943,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _logger.i('✅ Visual identification stopped');
           }
         },
-        sttBackend:
-            speechProcessor.gemma3nService.isReady ? 'Gemma 3n' : null,
+        sttBackend: speechProcessor.gemma3nService.isReady ? 'Gemma 3n' : null,
         sttIsOnline: false,
       );
       _logger.i(
@@ -1342,11 +1351,39 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      if (!kIsWeb && Platform.isAndroid)
+                        const Positioned(
+                          bottom: 24,
+                          right: 24,
+                          child: _NativeEngineStatusPanel(),
+                        ),
+                      if (!kIsWeb && Platform.isAndroid)
+                        const Positioned(
+                          top: 96,
+                          right: 24,
+                          child: _NativeEngineSpeakersOverlay(),
+                        ),
                     ],
                   ),
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
+                      if (!kIsWeb && Platform.isAndroid) {
+                        final nativeEngineCubit =
+                            context.read<NativeEngineCubit>();
+                        final nativeSpatialBridge =
+                            sl.isRegistered<NativeSpatialCaptionBridge>()
+                                ? sl<NativeSpatialCaptionBridge>()
+                                : null;
+                        if (state is ARSessionReady) {
+                          unawaited(nativeEngineCubit.ensureStarted());
+                          nativeSpatialBridge?.start();
+                        } else if (state is ARSessionInitial ||
+                            state is ARSessionError) {
+                          nativeEngineCubit.stopEngine();
+                          nativeSpatialBridge?.stop();
+                        }
+                      }
                       if (state is ARSessionReady) {
                         // AR session is ready. No need to start services here anymore.
                         _logger.i(
@@ -1604,6 +1641,284 @@ class _SpeakerDetectionOverlay extends StatelessWidget {
         return Stack(children: children);
       },
     );
+  }
+}
+
+class _NativeEngineStatusPanel extends StatelessWidget {
+  const _NativeEngineStatusPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<NativeEngineCubit, NativeEngineState>(
+      builder: (context, state) {
+        if (!state.isSupported) {
+          return const SizedBox.shrink();
+        }
+
+        final statusInfo = _statusMeta(state.status);
+        final captionText = state.lastCaption?.text.trim();
+        final speakerCount = state.speakers.length;
+
+        return Container(
+          width: 320,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.65),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: statusInfo.color.withValues(alpha: 0.7),
+              width: 2,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black54,
+                blurRadius: 12,
+                offset: Offset(0, 8),
+              )
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    statusInfo.icon,
+                    color: statusInfo.color,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      statusInfo.label,
+                      style: TextStyle(
+                        color: statusInfo.color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  if (speakerCount > 0)
+                    Text(
+                      '$speakerCount spk',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                (captionText?.isNotEmpty ?? false)
+                    ? '“${captionText!}”'
+                    : (state.status == NativeEngineStatus.streaming
+                        ? 'Listening for spatial captions...'
+                        : 'Engine warming up...'),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  _NativeEngineStatusMeta _statusMeta(NativeEngineStatus status) {
+    switch (status) {
+      case NativeEngineStatus.streaming:
+        return const _NativeEngineStatusMeta(
+          label: 'Spatial engine online',
+          color: Colors.greenAccent,
+          icon: Icons.spatial_audio,
+        );
+      case NativeEngineStatus.starting:
+        return const _NativeEngineStatusMeta(
+          label: 'Starting native engine',
+          color: Colors.amberAccent,
+          icon: Icons.downloading,
+        );
+      case NativeEngineStatus.error:
+        return const _NativeEngineStatusMeta(
+          label: 'Engine error',
+          color: Colors.redAccent,
+          icon: Icons.error_outline,
+        );
+      case NativeEngineStatus.idle:
+        return const _NativeEngineStatusMeta(
+          label: 'Engine idle',
+          color: Colors.orangeAccent,
+          icon: Icons.pause_circle_outline,
+        );
+      case NativeEngineStatus.unsupported:
+        return const _NativeEngineStatusMeta(
+          label: 'Android only',
+          color: Colors.grey,
+          icon: Icons.block,
+        );
+    }
+  }
+}
+
+class _NativeEngineStatusMeta {
+  const _NativeEngineStatusMeta({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData icon;
+}
+
+class _NativeEngineSpeakersOverlay extends StatelessWidget {
+  const _NativeEngineSpeakersOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<NativeEngineCubit, NativeEngineState>(
+      builder: (context, state) {
+        if (!state.isSupported || state.speakers.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final speakers = state.speakers.values.toList()
+          ..sort(
+            (a, b) => (b.timestampUs ?? 0).compareTo(a.timestampUs ?? 0),
+          );
+        final cards = speakers.take(3).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: cards
+              .map(
+                (speaker) => _NativeSpeakerCard(
+                  event: speaker,
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _NativeSpeakerCard extends StatelessWidget {
+  const _NativeSpeakerCard({required this.event});
+
+  final NativeSpeakerUpdateEvent event;
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = event.direction;
+    final trendColor = event.isSpeaking ? Colors.greenAccent : Colors.orange;
+
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: trendColor.withValues(alpha: 0.7),
+          width: 1.5,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black54,
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                event.isSpeaking ? Icons.record_voice_over : Icons.person,
+                color: trendColor,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  event.speakerId,
+                  style: TextStyle(
+                    color: trendColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (event.timestamp != null)
+                Text(
+                  _timeAgo(event.timestamp!),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 11,
+                  ),
+                ),
+            ],
+          ),
+          if (direction != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(
+                  Icons.explore,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Az ${direction.azimuthDeg.toStringAsFixed(1)}° · El ${direction.elevationDeg.toStringAsFixed(1)}°',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 11,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${(direction.confidence * 100).clamp(0, 100).toStringAsFixed(0)}% conf',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            event.text.isNotEmpty ? event.text : 'Awaiting captions…',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _timeAgo(DateTime timestamp) {
+    final delta = DateTime.now().difference(timestamp);
+    if (delta.inSeconds < 1) return 'now';
+    if (delta.inSeconds < 60) return '${delta.inSeconds}s ago';
+    if (delta.inMinutes < 60) return '${delta.inMinutes}m ago';
+    return '${delta.inHours}h ago';
   }
 }
 

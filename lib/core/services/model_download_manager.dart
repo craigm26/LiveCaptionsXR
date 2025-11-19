@@ -90,7 +90,17 @@ class ModelDownloadManager extends ChangeNotifier {
       expectedSize: 4398046511, // 4.1 GB
       type: ModelType.gemma,
       displayName: 'Gemma 3n Multimodal',
-      assetPath: null, // Too large to bundle; downloaded on demand
+      assetPath: 'assets/models/gemma-3n-E4B-it-int4.task', // Bundled model
+      termsNotice: _gemmaTermsNotice,
+    ),
+    // Legacy/alias key - mapping to bundled E4B model for immediate availability
+    'gemma-2b-it': ModelConfig(
+      fileName: 'gemma-3n-E4B-it-int4.task',
+      url: 'https://livecaptionsxrbucket.com/gemma-3n-E4B-it-int4.task',
+      expectedSize: 4398046511, // 4.1 GB
+      type: ModelType.gemma,
+      displayName: 'Gemma 2B (Mapped to E4B)',
+      assetPath: 'assets/models/gemma-3n-E4B-it-int4.task',
       termsNotice: _gemmaTermsNotice,
     ),
     'whisper-base': ModelConfig(
