@@ -103,3 +103,8 @@ build/web/assets/assets/models/gemma-3n-E4B-it-int4.task
 
 # Ignore all .dill files
 *.dill
+
+# Also make sure key.properties and *.jks are in your .gitignore so they never hit GitHub.
+key.properties
+*.jks
+android/app/livecaptionsxr_upload_cert.pem

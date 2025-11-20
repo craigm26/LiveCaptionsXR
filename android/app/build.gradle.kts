@@ -58,7 +58,7 @@ android {
             // 16 KB page size support for release builds
             externalNativeBuild {
                 cmake {
-                    arguments += listOf("-DANDROID_PAGE_SIZE=16384")
+                    arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
                 }
             }
         }
@@ -69,7 +69,7 @@ android {
             // 16 KB page size support for debug builds
             externalNativeBuild {
                 cmake {
-                    arguments += listOf("-DANDROID_PAGE_SIZE=16384")
+                    arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
                 }
             }
         }
