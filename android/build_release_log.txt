@@ -1,0 +1,1080 @@
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :ffmpeg_kit_flutter_android
+Starting useAar task. Processing AARs from 'libs' directory.
+Processing AAR: com.arthenica.ffmpegkit-flutter-7.0.aar
+  Parsed GAV: GroupId='com.arthenica.ffmpegkit', ArtifactId='flutter', Version='7.0'
+  Copied AAR to: C:\Users\CraigM\source\repos\LiveCaptionsXR\build\ffmpeg_kit_flutter_android\localMaven\com\arthenica\ffmpegkit\flutter\7.0\flutter-7.0.aar
+  Generated POM file: C:\Users\CraigM\source\repos\LiveCaptionsXR\build\ffmpeg_kit_flutter_android\localMaven\com\arthenica\ffmpegkit\flutter\7.0\flutter-7.0.pom
+  Generated Maven metadata: C:\Users\CraigM\source\repos\LiveCaptionsXR\build\ffmpeg_kit_flutter_android\localMaven\com\arthenica\ffmpegkit\flutter/maven-metadata.local.xml
+  Dynamically added dependency: implementation 'com.arthenica.ffmpegkit:flutter:7.0'
+[useAar - Post-Processing] Attempting to resolve compile classpath configurations to ensure AARs are recognized.
+[useAar - Post-Processing] Finished attempt to resolve configurations.
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+[useAar - Post-Processing] Resolving 'debugCompileClasspath' for variant 'debug'...
+Configuration 'debugCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+[useAar - Post-Processing] Successfully resolved 'debugCompileClasspath'. Artifacts found:
+  -> io.flutter:flutter_embedding_debug:1.0.0-ef0cd000916d64fa0c5d09cc809fa7ad244a5767 (File: flutter_embedding_debug-1.0.0-ef0cd000916d64fa0c5d09cc809fa7ad244a5767.jar)
+  -> androidx.fragment:fragment:1.7.1 (File: fragment-1.7.1.aar)
+  -> androidx.activity:activity:1.8.1 (File: activity-1.8.1.aar)
+  -> androidx.loader:loader:1.0.0 (File: loader-1.0.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0 (File: lifecycle-livedata-core-ktx-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata:2.7.0 (File: lifecycle-livedata-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel:2.7.0 (File: lifecycle-viewmodel-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel:2.7.0 (File: lifecycle-viewmodel-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata-core:2.7.0 (File: lifecycle-livedata-core-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0 (File: lifecycle-viewmodel-savedstate-2.7.0.aar)
+  -> androidx.core:core-ktx:1.13.1 (File: core-ktx-1.13.1.aar)
+  -> androidx.viewpager:viewpager:1.0.0 (File: viewpager-1.0.0.aar)
+  -> androidx.customview:customview:1.0.0 (File: customview-1.0.0.aar)
+  -> androidx.core:core:1.13.1 (File: core-1.13.1.aar)
+  -> androidx.core:core:1.13.1 (File: core-1.13.1.aar)
+  -> androidx.lifecycle:lifecycle-runtime:2.7.0 (File: lifecycle-runtime-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-process:2.7.0 (File: lifecycle-process-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-common-java8:2.7.0 (File: lifecycle-common-java8-2.7.0.jar)
+  -> androidx.lifecycle:lifecycle-common:2.7.0 (File: lifecycle-common-2.7.0.jar)
+  -> androidx.window:window:1.2.0 (File: window-1.2.0.aar)
+  -> androidx.window:window-java:1.2.0 (File: window-java-1.2.0.aar)
+  -> androidx.arch.core:core-runtime:2.2.0 (File: core-runtime-2.2.0.aar)
+  -> androidx.arch.core:core-common:2.2.0 (File: core-common-2.2.0.jar)
+  -> androidx.versionedparcelable:versionedparcelable:1.1.1 (File: versionedparcelable-1.1.1.aar)
+  -> androidx.collection:collection:1.1.0 (File: collection-1.1.0.jar)
+  -> androidx.savedstate:savedstate:1.2.1 (File: savedstate-1.2.1.aar)
+  -> androidx.annotation:annotation-jvm:1.9.1 (File: annotation-jvm-1.9.1.jar)
+  -> androidx.annotation:annotation-experimental:1.4.0 (File: annotation-experimental-1.4.0.aar)
+  -> org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1 (File: kotlinx-coroutines-android-1.7.1.jar)
+  -> org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1 (File: kotlinx-coroutines-core-jvm-1.7.1.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20 (File: kotlin-stdlib-jdk8-1.8.20.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.20 (File: kotlin-stdlib-jdk7-1.8.20.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib:2.1.0 (File: kotlin-stdlib-2.1.0.jar)
+  -> com.arthenica:smart-exception-java:0.2.1 (File: smart-exception-java-0.2.1.jar)
+  -> com.arthenica:smart-exception-common:0.2.1 (File: smart-exception-common-0.2.1.jar)
+  -> com.arthenica.ffmpegkit:flutter:7.0 (File: flutter-7.0.aar)
+  -> org.jetbrains:annotations:23.0.0 (File: annotations-23.0.0.jar)
+  -> androidx.startup:startup-runtime:1.1.1 (File: startup-runtime-1.1.1.aar)
+  -> androidx.tracing:tracing:1.2.0 (File: tracing-1.2.0.aar)
+  -> com.getkeepsafe.relinker:relinker:1.4.5 (File: relinker-1.4.5.aar)
+[useAar - Post-Processing] Resolving 'releaseCompileClasspath' for variant 'release'...
+Configuration 'releaseCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'releaseRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+[useAar - Post-Processing] Successfully resolved 'releaseCompileClasspath'. Artifacts found:
+  -> io.flutter:flutter_embedding_release:1.0.0-ef0cd000916d64fa0c5d09cc809fa7ad244a5767 (File: flutter_embedding_release-1.0.0-ef0cd000916d64fa0c5d09cc809fa7ad244a5767.jar)
+  -> androidx.fragment:fragment:1.7.1 (File: fragment-1.7.1.aar)
+  -> androidx.activity:activity:1.8.1 (File: activity-1.8.1.aar)
+  -> androidx.loader:loader:1.0.0 (File: loader-1.0.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0 (File: lifecycle-livedata-core-ktx-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata:2.7.0 (File: lifecycle-livedata-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel:2.7.0 (File: lifecycle-viewmodel-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel:2.7.0 (File: lifecycle-viewmodel-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata-core:2.7.0 (File: lifecycle-livedata-core-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0 (File: lifecycle-viewmodel-savedstate-2.7.0.aar)
+  -> androidx.core:core-ktx:1.13.1 (File: core-ktx-1.13.1.aar)
+  -> androidx.viewpager:viewpager:1.0.0 (File: viewpager-1.0.0.aar)
+  -> androidx.customview:customview:1.0.0 (File: customview-1.0.0.aar)
+  -> androidx.core:core:1.13.1 (File: core-1.13.1.aar)
+  -> androidx.core:core:1.13.1 (File: core-1.13.1.aar)
+  -> androidx.lifecycle:lifecycle-runtime:2.7.0 (File: lifecycle-runtime-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-process:2.7.0 (File: lifecycle-process-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-common-java8:2.7.0 (File: lifecycle-common-java8-2.7.0.jar)
+  -> androidx.lifecycle:lifecycle-common:2.7.0 (File: lifecycle-common-2.7.0.jar)
+  -> androidx.arch.core:core-runtime:2.2.0 (File: core-runtime-2.2.0.aar)
+  -> androidx.arch.core:core-common:2.2.0 (File: core-common-2.2.0.jar)
+  -> androidx.versionedparcelable:versionedparcelable:1.1.1 (File: versionedparcelable-1.1.1.aar)
+  -> androidx.collection:collection:1.1.0 (File: collection-1.1.0.jar)
+  -> androidx.savedstate:savedstate:1.2.1 (File: savedstate-1.2.1.aar)
+  -> androidx.annotation:annotation-jvm:1.9.1 (File: annotation-jvm-1.9.1.jar)
+  -> androidx.window:window:1.2.0 (File: window-1.2.0.aar)
+  -> androidx.window:window-java:1.2.0 (File: window-java-1.2.0.aar)
+  -> androidx.annotation:annotation-experimental:1.4.0 (File: annotation-experimental-1.4.0.aar)
+  -> org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1 (File: kotlinx-coroutines-android-1.7.1.jar)
+  -> org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1 (File: kotlinx-coroutines-core-jvm-1.7.1.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20 (File: kotlin-stdlib-jdk8-1.8.20.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.20 (File: kotlin-stdlib-jdk7-1.8.20.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib:2.1.0 (File: kotlin-stdlib-2.1.0.jar)
+  -> com.arthenica:smart-exception-java:0.2.1 (File: smart-exception-java-0.2.1.jar)
+  -> com.arthenica:smart-exception-common:0.2.1 (File: smart-exception-common-0.2.1.jar)
+  -> com.arthenica.ffmpegkit:flutter:7.0 (File: flutter-7.0.aar)
+  -> org.jetbrains:annotations:23.0.0 (File: annotations-23.0.0.jar)
+  -> androidx.startup:startup-runtime:1.1.1 (File: startup-runtime-1.1.1.aar)
+  -> androidx.tracing:tracing:1.2.0 (File: tracing-1.2.0.aar)
+  -> com.getkeepsafe.relinker:relinker:1.4.5 (File: relinker-1.4.5.aar)
+[useAar - Post-Processing] Resolving 'profileCompileClasspath' for variant 'profile'...
+Configuration 'profileCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'profileRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+[useAar - Post-Processing] Successfully resolved 'profileCompileClasspath'. Artifacts found:
+  -> io.flutter:flutter_embedding_profile:1.0.0-ef0cd000916d64fa0c5d09cc809fa7ad244a5767 (File: flutter_embedding_profile-1.0.0-ef0cd000916d64fa0c5d09cc809fa7ad244a5767.jar)
+  -> androidx.fragment:fragment:1.7.1 (File: fragment-1.7.1.aar)
+  -> androidx.activity:activity:1.8.1 (File: activity-1.8.1.aar)
+  -> androidx.loader:loader:1.0.0 (File: loader-1.0.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0 (File: lifecycle-livedata-core-ktx-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata:2.7.0 (File: lifecycle-livedata-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel:2.7.0 (File: lifecycle-viewmodel-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel:2.7.0 (File: lifecycle-viewmodel-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-livedata-core:2.7.0 (File: lifecycle-livedata-core-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0 (File: lifecycle-viewmodel-savedstate-2.7.0.aar)
+  -> androidx.core:core-ktx:1.13.1 (File: core-ktx-1.13.1.aar)
+  -> androidx.viewpager:viewpager:1.0.0 (File: viewpager-1.0.0.aar)
+  -> androidx.customview:customview:1.0.0 (File: customview-1.0.0.aar)
+  -> androidx.core:core:1.13.1 (File: core-1.13.1.aar)
+  -> androidx.core:core:1.13.1 (File: core-1.13.1.aar)
+  -> androidx.lifecycle:lifecycle-runtime:2.7.0 (File: lifecycle-runtime-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-process:2.7.0 (File: lifecycle-process-2.7.0.aar)
+  -> androidx.lifecycle:lifecycle-common-java8:2.7.0 (File: lifecycle-common-java8-2.7.0.jar)
+  -> androidx.lifecycle:lifecycle-common:2.7.0 (File: lifecycle-common-2.7.0.jar)
+  -> androidx.arch.core:core-runtime:2.2.0 (File: core-runtime-2.2.0.aar)
+  -> androidx.arch.core:core-common:2.2.0 (File: core-common-2.2.0.jar)
+  -> androidx.versionedparcelable:versionedparcelable:1.1.1 (File: versionedparcelable-1.1.1.aar)
+  -> androidx.collection:collection:1.1.0 (File: collection-1.1.0.jar)
+  -> androidx.savedstate:savedstate:1.2.1 (File: savedstate-1.2.1.aar)
+  -> androidx.annotation:annotation-jvm:1.9.1 (File: annotation-jvm-1.9.1.jar)
+  -> androidx.window:window:1.2.0 (File: window-1.2.0.aar)
+  -> androidx.window:window-java:1.2.0 (File: window-java-1.2.0.aar)
+  -> androidx.annotation:annotation-experimental:1.4.0 (File: annotation-experimental-1.4.0.aar)
+  -> org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1 (File: kotlinx-coroutines-android-1.7.1.jar)
+  -> org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1 (File: kotlinx-coroutines-core-jvm-1.7.1.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20 (File: kotlin-stdlib-jdk8-1.8.20.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.20 (File: kotlin-stdlib-jdk7-1.8.20.jar)
+  -> org.jetbrains.kotlin:kotlin-stdlib:2.1.0 (File: kotlin-stdlib-2.1.0.jar)
+  -> com.arthenica:smart-exception-java:0.2.1 (File: smart-exception-java-0.2.1.jar)
+  -> com.arthenica:smart-exception-common:0.2.1 (File: smart-exception-common-0.2.1.jar)
+  -> com.arthenica.ffmpegkit:flutter:7.0 (File: flutter-7.0.aar)
+  -> org.jetbrains:annotations:23.0.0 (File: annotations-23.0.0.jar)
+  -> androidx.startup:startup-runtime:1.1.1 (File: startup-runtime-1.1.1.aar)
+  -> androidx.tracing:tracing:1.2.0 (File: tracing-1.2.0.aar)
+  -> com.getkeepsafe.relinker:relinker:1.4.5 (File: relinker-1.4.5.aar)
+
+> Configure project :ffmpeg_kit_flutter_new
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :flutter_gemma
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :flutter_plugin_android_lifecycle
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :flutter_sound
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :google_sign_in_android
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :large_file_handler
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :path_provider_android
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :permission_handler_android
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :shared_preferences_android
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :spatial_captions
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :speech_to_text
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :url_launcher_android
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :webview_flutter_android
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :whisper_ggml
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :xr
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 36
+
+This Android Gradle plugin (8.7.3) was tested up to compileSdk = 35.
+
+You are strongly encouraged to update your project to use a newer
+Android Gradle plugin that has been tested with compileSdk = 36.
+
+If you are already using the latest version of the Android Gradle plugin,
+you may need to wait until a newer version with support for compileSdk = 36 is available.
+
+For more information refer to the compatibility table:
+https://d.android.com/r/tools/api-level-support
+
+To suppress this warning, add/update
+    android.suppressUnsupportedCompileSdk=36
+to this project's gradle.properties.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:generateReleaseFeatureMetadata UP-TO-DATE
+> Task :engine:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :engine:preBuild UP-TO-DATE
+> Task :engine:preReleaseBuild UP-TO-DATE
+> Task :engine:generateReleaseResValues UP-TO-DATE
+> Task :engine:generateReleaseResources UP-TO-DATE
+> Task :engine:packageReleaseResources UP-TO-DATE
+> Task :engine:parseReleaseLocalResources UP-TO-DATE
+> Task :engine:generateReleaseRFile UP-TO-DATE
+> Task :engine:compileReleaseKotlin UP-TO-DATE
+> Task :engine:javaPreCompileRelease UP-TO-DATE
+> Task :engine:compileReleaseJavaWithJavac NO-SOURCE
+> Task :engine:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :xr:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :xr:preBuild UP-TO-DATE
+> Task :xr:preReleaseBuild UP-TO-DATE
+> Task :xr:generateReleaseResValues UP-TO-DATE
+> Task :xr:generateReleaseResources UP-TO-DATE
+> Task :xr:packageReleaseResources UP-TO-DATE
+> Task :xr:parseReleaseLocalResources UP-TO-DATE
+> Task :xr:generateReleaseRFile UP-TO-DATE
+> Task :xr:compileReleaseKotlin UP-TO-DATE
+> Task :xr:javaPreCompileRelease UP-TO-DATE
+> Task :xr:compileReleaseJavaWithJavac NO-SOURCE
+> Task :xr:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :xr:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :engine:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :engine:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :audio_streamer:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :audio_streamer:preBuild UP-TO-DATE
+> Task :audio_streamer:preReleaseBuild UP-TO-DATE
+> Task :audio_streamer:generateReleaseResValues UP-TO-DATE
+> Task :audio_streamer:generateReleaseResources UP-TO-DATE
+> Task :audio_streamer:packageReleaseResources UP-TO-DATE
+> Task :audio_streamer:parseReleaseLocalResources UP-TO-DATE
+> Task :audio_streamer:generateReleaseRFile UP-TO-DATE
+> Task :audio_streamer:compileReleaseKotlin UP-TO-DATE
+> Task :audio_streamer:javaPreCompileRelease UP-TO-DATE
+> Task :audio_streamer:compileReleaseJavaWithJavac NO-SOURCE
+> Task :audio_streamer:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :audio_streamer:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :background_downloader:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :background_downloader:preBuild UP-TO-DATE
+> Task :background_downloader:preReleaseBuild UP-TO-DATE
+> Task :background_downloader:generateReleaseResValues UP-TO-DATE
+> Task :background_downloader:generateReleaseResources UP-TO-DATE
+> Task :background_downloader:packageReleaseResources UP-TO-DATE
+> Task :background_downloader:parseReleaseLocalResources UP-TO-DATE
+> Task :background_downloader:generateReleaseRFile UP-TO-DATE
+> Task :background_downloader:compileReleaseKotlin UP-TO-DATE
+> Task :background_downloader:javaPreCompileRelease UP-TO-DATE
+> Task :background_downloader:compileReleaseJavaWithJavac NO-SOURCE
+> Task :background_downloader:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :flutter_gemma:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :flutter_gemma:preBuild UP-TO-DATE
+> Task :flutter_gemma:preReleaseBuild UP-TO-DATE
+> Task :flutter_gemma:generateReleaseResValues UP-TO-DATE
+> Task :flutter_gemma:generateReleaseResources UP-TO-DATE
+> Task :flutter_gemma:packageReleaseResources UP-TO-DATE
+> Task :flutter_gemma:parseReleaseLocalResources UP-TO-DATE
+> Task :flutter_gemma:generateReleaseRFile UP-TO-DATE
+> Task :large_file_handler:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :large_file_handler:preBuild UP-TO-DATE
+> Task :large_file_handler:preReleaseBuild UP-TO-DATE
+> Task :large_file_handler:generateReleaseResValues UP-TO-DATE
+> Task :large_file_handler:generateReleaseResources UP-TO-DATE
+> Task :large_file_handler:packageReleaseResources UP-TO-DATE
+> Task :large_file_handler:parseReleaseLocalResources UP-TO-DATE
+> Task :large_file_handler:generateReleaseRFile UP-TO-DATE
+> Task :large_file_handler:compileReleaseKotlin UP-TO-DATE
+> Task :large_file_handler:javaPreCompileRelease UP-TO-DATE
+> Task :large_file_handler:compileReleaseJavaWithJavac NO-SOURCE
+> Task :large_file_handler:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :flutter_gemma:compileReleaseKotlin UP-TO-DATE
+> Task :flutter_gemma:javaPreCompileRelease UP-TO-DATE
+> Task :flutter_gemma:compileReleaseJavaWithJavac NO-SOURCE
+> Task :flutter_gemma:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_gemma:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :background_downloader:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :background_downloader:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :camera_android_camerax:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :camera_android_camerax:preBuild UP-TO-DATE
+> Task :camera_android_camerax:preReleaseBuild UP-TO-DATE
+> Task :camera_android_camerax:generateReleaseResValues UP-TO-DATE
+> Task :camera_android_camerax:generateReleaseResources UP-TO-DATE
+> Task :camera_android_camerax:packageReleaseResources UP-TO-DATE
+> Task :camera_android_camerax:parseReleaseLocalResources UP-TO-DATE
+> Task :camera_android_camerax:generateReleaseRFile UP-TO-DATE
+> Task :camera_android_camerax:compileReleaseKotlin UP-TO-DATE
+> Task :camera_android_camerax:javaPreCompileRelease UP-TO-DATE
+> Task :camera_android_camerax:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :camera_android_camerax:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :camera_android_camerax:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :device_info_plus:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :device_info_plus:preBuild UP-TO-DATE
+> Task :device_info_plus:preReleaseBuild UP-TO-DATE
+> Task :device_info_plus:generateReleaseResValues UP-TO-DATE
+> Task :device_info_plus:generateReleaseResources UP-TO-DATE
+> Task :device_info_plus:packageReleaseResources UP-TO-DATE
+> Task :device_info_plus:parseReleaseLocalResources UP-TO-DATE
+> Task :device_info_plus:generateReleaseRFile UP-TO-DATE
+> Task :device_info_plus:compileReleaseKotlin UP-TO-DATE
+> Task :device_info_plus:javaPreCompileRelease UP-TO-DATE
+> Task :device_info_plus:compileReleaseJavaWithJavac NO-SOURCE
+> Task :device_info_plus:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :device_info_plus:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :ffmpeg_kit_flutter_android:setupDependencies SKIPPED
+> Task :ffmpeg_kit_flutter_android:useAar UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:preBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:preReleaseBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:generateReleaseResValues UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:generateReleaseResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:packageReleaseResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:parseReleaseLocalResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:generateReleaseRFile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:compileReleaseKotlin NO-SOURCE
+> Task :ffmpeg_kit_flutter_android:javaPreCompileRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :ffmpeg_kit_flutter_new:preBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:preReleaseBuild UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:generateReleaseResValues UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:generateReleaseResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:packageReleaseResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:parseReleaseLocalResources UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:generateReleaseRFile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:compileReleaseKotlin NO-SOURCE
+> Task :ffmpeg_kit_flutter_new:javaPreCompileRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :whisper_ggml:preBuild UP-TO-DATE
+> Task :whisper_ggml:preReleaseBuild UP-TO-DATE
+> Task :whisper_ggml:generateReleaseResValues UP-TO-DATE
+> Task :whisper_ggml:generateReleaseResources UP-TO-DATE
+> Task :whisper_ggml:packageReleaseResources UP-TO-DATE
+> Task :whisper_ggml:parseReleaseLocalResources UP-TO-DATE
+> Task :whisper_ggml:generateReleaseRFile UP-TO-DATE
+> Task :whisper_ggml:javaPreCompileRelease UP-TO-DATE
+> Task :whisper_ggml:compileReleaseJavaWithJavac NO-SOURCE
+> Task :whisper_ggml:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :whisper_ggml:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:preReleaseBuild UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateReleaseResValues UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateReleaseResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:packageReleaseResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:parseReleaseLocalResources UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:generateReleaseRFile UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:javaPreCompileRelease UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :flutter_sound:preBuild UP-TO-DATE
+> Task :flutter_sound:preReleaseBuild UP-TO-DATE
+> Task :flutter_sound:generateReleaseResValues UP-TO-DATE
+> Task :flutter_sound:generateReleaseResources UP-TO-DATE
+> Task :flutter_sound:packageReleaseResources UP-TO-DATE
+> Task :flutter_sound:parseReleaseLocalResources UP-TO-DATE
+> Task :flutter_sound:generateReleaseRFile UP-TO-DATE
+> Task :flutter_sound:javaPreCompileRelease UP-TO-DATE
+> Task :flutter_sound:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :flutter_sound:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :flutter_sound:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :google_sign_in_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :google_sign_in_android:preBuild UP-TO-DATE
+> Task :google_sign_in_android:preReleaseBuild UP-TO-DATE
+> Task :google_sign_in_android:generateReleaseResValues UP-TO-DATE
+> Task :google_sign_in_android:generateReleaseResources UP-TO-DATE
+> Task :google_sign_in_android:packageReleaseResources UP-TO-DATE
+> Task :google_sign_in_android:parseReleaseLocalResources UP-TO-DATE
+> Task :google_sign_in_android:generateReleaseRFile UP-TO-DATE
+> Task :google_sign_in_android:compileReleaseKotlin UP-TO-DATE
+> Task :google_sign_in_android:javaPreCompileRelease UP-TO-DATE
+> Task :google_sign_in_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :google_sign_in_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :google_sign_in_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :large_file_handler:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :large_file_handler:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :path_provider_android:preBuild UP-TO-DATE
+> Task :path_provider_android:preReleaseBuild UP-TO-DATE
+> Task :path_provider_android:generateReleaseResValues UP-TO-DATE
+> Task :path_provider_android:generateReleaseResources UP-TO-DATE
+> Task :path_provider_android:packageReleaseResources UP-TO-DATE
+> Task :path_provider_android:parseReleaseLocalResources UP-TO-DATE
+> Task :path_provider_android:generateReleaseRFile UP-TO-DATE
+> Task :path_provider_android:javaPreCompileRelease UP-TO-DATE
+> Task :path_provider_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :path_provider_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :path_provider_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :permission_handler_android:preBuild UP-TO-DATE
+> Task :permission_handler_android:preReleaseBuild UP-TO-DATE
+> Task :permission_handler_android:generateReleaseResValues UP-TO-DATE
+> Task :permission_handler_android:generateReleaseResources UP-TO-DATE
+> Task :permission_handler_android:packageReleaseResources UP-TO-DATE
+> Task :permission_handler_android:parseReleaseLocalResources UP-TO-DATE
+> Task :permission_handler_android:generateReleaseRFile UP-TO-DATE
+> Task :permission_handler_android:javaPreCompileRelease UP-TO-DATE
+> Task :permission_handler_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :permission_handler_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :permission_handler_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :shared_preferences_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared_preferences_android:preBuild UP-TO-DATE
+> Task :shared_preferences_android:preReleaseBuild UP-TO-DATE
+> Task :shared_preferences_android:generateReleaseResValues UP-TO-DATE
+> Task :shared_preferences_android:generateReleaseResources UP-TO-DATE
+> Task :shared_preferences_android:packageReleaseResources UP-TO-DATE
+> Task :shared_preferences_android:parseReleaseLocalResources UP-TO-DATE
+> Task :shared_preferences_android:generateReleaseRFile UP-TO-DATE
+> Task :shared_preferences_android:compileReleaseKotlin UP-TO-DATE
+> Task :shared_preferences_android:javaPreCompileRelease UP-TO-DATE
+> Task :shared_preferences_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :shared_preferences_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :shared_preferences_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :spatial_captions:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :spatial_captions:preBuild UP-TO-DATE
+> Task :spatial_captions:preReleaseBuild UP-TO-DATE
+> Task :spatial_captions:generateReleaseResValues UP-TO-DATE
+> Task :spatial_captions:generateReleaseResources UP-TO-DATE
+> Task :spatial_captions:packageReleaseResources UP-TO-DATE
+> Task :spatial_captions:parseReleaseLocalResources UP-TO-DATE
+> Task :spatial_captions:generateReleaseRFile UP-TO-DATE
+> Task :spatial_captions:compileReleaseKotlin UP-TO-DATE
+> Task :spatial_captions:javaPreCompileRelease UP-TO-DATE
+> Task :spatial_captions:compileReleaseJavaWithJavac NO-SOURCE
+> Task :spatial_captions:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :spatial_captions:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :speech_to_text:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :speech_to_text:preBuild UP-TO-DATE
+> Task :speech_to_text:preReleaseBuild UP-TO-DATE
+> Task :speech_to_text:generateReleaseResValues UP-TO-DATE
+> Task :speech_to_text:generateReleaseResources UP-TO-DATE
+> Task :speech_to_text:packageReleaseResources UP-TO-DATE
+> Task :speech_to_text:parseReleaseLocalResources UP-TO-DATE
+> Task :speech_to_text:generateReleaseRFile UP-TO-DATE
+> Task :speech_to_text:compileReleaseKotlin UP-TO-DATE
+> Task :speech_to_text:javaPreCompileRelease UP-TO-DATE
+> Task :speech_to_text:compileReleaseJavaWithJavac NO-SOURCE
+> Task :speech_to_text:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :speech_to_text:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :url_launcher_android:preBuild UP-TO-DATE
+> Task :url_launcher_android:preReleaseBuild UP-TO-DATE
+> Task :url_launcher_android:generateReleaseBuildConfig UP-TO-DATE
+> Task :url_launcher_android:generateReleaseResValues UP-TO-DATE
+> Task :url_launcher_android:generateReleaseResources UP-TO-DATE
+> Task :url_launcher_android:packageReleaseResources UP-TO-DATE
+> Task :url_launcher_android:parseReleaseLocalResources UP-TO-DATE
+> Task :url_launcher_android:generateReleaseRFile UP-TO-DATE
+> Task :url_launcher_android:javaPreCompileRelease UP-TO-DATE
+> Task :url_launcher_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :url_launcher_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :url_launcher_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :webview_flutter_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :webview_flutter_android:preBuild UP-TO-DATE
+> Task :webview_flutter_android:preReleaseBuild UP-TO-DATE
+> Task :webview_flutter_android:generateReleaseResValues UP-TO-DATE
+> Task :webview_flutter_android:generateReleaseResources UP-TO-DATE
+> Task :webview_flutter_android:packageReleaseResources UP-TO-DATE
+> Task :webview_flutter_android:parseReleaseLocalResources UP-TO-DATE
+> Task :webview_flutter_android:generateReleaseRFile UP-TO-DATE
+> Task :webview_flutter_android:compileReleaseKotlin UP-TO-DATE
+> Task :webview_flutter_android:javaPreCompileRelease UP-TO-DATE
+> Task :webview_flutter_android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :webview_flutter_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :webview_flutter_android:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:compileFlutterBuildRelease UP-TO-DATE
+> Task :app:packJniLibsflutterBuildRelease UP-TO-DATE
+> Task :app:checkReleaseDuplicateClasses UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :audio_streamer:writeReleaseAarMetadata UP-TO-DATE
+> Task :background_downloader:writeReleaseAarMetadata UP-TO-DATE
+> Task :camera_android_camerax:writeReleaseAarMetadata UP-TO-DATE
+> Task :device_info_plus:writeReleaseAarMetadata UP-TO-DATE
+> Task :engine:writeReleaseAarMetadata UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:writeReleaseAarMetadata UP-TO-DATE
+> Task :flutter_gemma:writeReleaseAarMetadata UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:writeReleaseAarMetadata UP-TO-DATE
+> Task :flutter_sound:writeReleaseAarMetadata UP-TO-DATE
+> Task :google_sign_in_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :large_file_handler:writeReleaseAarMetadata UP-TO-DATE
+> Task :path_provider_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :permission_handler_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :shared_preferences_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :spatial_captions:writeReleaseAarMetadata UP-TO-DATE
+> Task :speech_to_text:writeReleaseAarMetadata UP-TO-DATE
+> Task :url_launcher_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :webview_flutter_android:writeReleaseAarMetadata UP-TO-DATE
+> Task :whisper_ggml:writeReleaseAarMetadata UP-TO-DATE
+> Task :xr:writeReleaseAarMetadata UP-TO-DATE
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:cleanMergeReleaseAssets
+> Task :app:mergeReleaseShaders UP-TO-DATE
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :audio_streamer:mergeReleaseShaders UP-TO-DATE
+> Task :audio_streamer:compileReleaseShaders NO-SOURCE
+> Task :audio_streamer:generateReleaseAssets UP-TO-DATE
+> Task :audio_streamer:packageReleaseAssets UP-TO-DATE
+> Task :background_downloader:mergeReleaseShaders UP-TO-DATE
+> Task :background_downloader:compileReleaseShaders NO-SOURCE
+> Task :background_downloader:generateReleaseAssets UP-TO-DATE
+> Task :background_downloader:packageReleaseAssets UP-TO-DATE
+> Task :camera_android_camerax:mergeReleaseShaders UP-TO-DATE
+> Task :camera_android_camerax:compileReleaseShaders NO-SOURCE
+> Task :camera_android_camerax:generateReleaseAssets UP-TO-DATE
+> Task :camera_android_camerax:packageReleaseAssets UP-TO-DATE
+> Task :device_info_plus:mergeReleaseShaders UP-TO-DATE
+> Task :device_info_plus:compileReleaseShaders NO-SOURCE
+> Task :device_info_plus:generateReleaseAssets UP-TO-DATE
+> Task :device_info_plus:packageReleaseAssets UP-TO-DATE
+> Task :engine:mergeReleaseShaders UP-TO-DATE
+> Task :engine:compileReleaseShaders NO-SOURCE
+> Task :engine:generateReleaseAssets UP-TO-DATE
+> Task :engine:packageReleaseAssets UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:mergeReleaseShaders UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:compileReleaseShaders NO-SOURCE
+> Task :ffmpeg_kit_flutter_android:generateReleaseAssets UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:packageReleaseAssets UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:mergeReleaseShaders UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:compileReleaseShaders NO-SOURCE
+> Task :ffmpeg_kit_flutter_new:generateReleaseAssets UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:packageReleaseAssets UP-TO-DATE
+> Task :flutter_gemma:mergeReleaseShaders UP-TO-DATE
+> Task :flutter_gemma:compileReleaseShaders NO-SOURCE
+> Task :flutter_gemma:generateReleaseAssets UP-TO-DATE
+> Task :flutter_gemma:packageReleaseAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeReleaseShaders UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:compileReleaseShaders NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:generateReleaseAssets UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:packageReleaseAssets UP-TO-DATE
+> Task :flutter_sound:mergeReleaseShaders UP-TO-DATE
+> Task :flutter_sound:compileReleaseShaders NO-SOURCE
+> Task :flutter_sound:generateReleaseAssets UP-TO-DATE
+> Task :flutter_sound:packageReleaseAssets UP-TO-DATE
+> Task :google_sign_in_android:mergeReleaseShaders UP-TO-DATE
+> Task :google_sign_in_android:compileReleaseShaders NO-SOURCE
+> Task :google_sign_in_android:generateReleaseAssets UP-TO-DATE
+> Task :google_sign_in_android:packageReleaseAssets UP-TO-DATE
+> Task :large_file_handler:mergeReleaseShaders UP-TO-DATE
+> Task :large_file_handler:compileReleaseShaders NO-SOURCE
+> Task :large_file_handler:generateReleaseAssets UP-TO-DATE
+> Task :large_file_handler:packageReleaseAssets UP-TO-DATE
+> Task :path_provider_android:mergeReleaseShaders UP-TO-DATE
+> Task :path_provider_android:compileReleaseShaders NO-SOURCE
+> Task :path_provider_android:generateReleaseAssets UP-TO-DATE
+> Task :path_provider_android:packageReleaseAssets UP-TO-DATE
+> Task :permission_handler_android:mergeReleaseShaders UP-TO-DATE
+> Task :permission_handler_android:compileReleaseShaders NO-SOURCE
+> Task :permission_handler_android:generateReleaseAssets UP-TO-DATE
+> Task :permission_handler_android:packageReleaseAssets UP-TO-DATE
+> Task :shared_preferences_android:mergeReleaseShaders UP-TO-DATE
+> Task :shared_preferences_android:compileReleaseShaders NO-SOURCE
+> Task :shared_preferences_android:generateReleaseAssets UP-TO-DATE
+> Task :shared_preferences_android:packageReleaseAssets UP-TO-DATE
+> Task :spatial_captions:mergeReleaseShaders UP-TO-DATE
+> Task :spatial_captions:compileReleaseShaders NO-SOURCE
+> Task :spatial_captions:generateReleaseAssets UP-TO-DATE
+> Task :spatial_captions:packageReleaseAssets UP-TO-DATE
+> Task :speech_to_text:mergeReleaseShaders UP-TO-DATE
+> Task :speech_to_text:compileReleaseShaders NO-SOURCE
+> Task :speech_to_text:generateReleaseAssets UP-TO-DATE
+> Task :speech_to_text:packageReleaseAssets UP-TO-DATE
+> Task :url_launcher_android:mergeReleaseShaders UP-TO-DATE
+> Task :url_launcher_android:compileReleaseShaders NO-SOURCE
+> Task :url_launcher_android:generateReleaseAssets UP-TO-DATE
+> Task :url_launcher_android:packageReleaseAssets UP-TO-DATE
+> Task :webview_flutter_android:mergeReleaseShaders UP-TO-DATE
+> Task :webview_flutter_android:compileReleaseShaders NO-SOURCE
+> Task :webview_flutter_android:generateReleaseAssets UP-TO-DATE
+> Task :webview_flutter_android:packageReleaseAssets UP-TO-DATE
+> Task :whisper_ggml:mergeReleaseShaders UP-TO-DATE
+> Task :whisper_ggml:compileReleaseShaders NO-SOURCE
+> Task :whisper_ggml:generateReleaseAssets UP-TO-DATE
+> Task :whisper_ggml:packageReleaseAssets UP-TO-DATE
+> Task :xr:mergeReleaseShaders UP-TO-DATE
+> Task :xr:compileReleaseShaders NO-SOURCE
+> Task :xr:generateReleaseAssets UP-TO-DATE
+> Task :xr:packageReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:copyFlutterAssetsRelease
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :audio_streamer:extractDeepLinksRelease UP-TO-DATE
+> Task :audio_streamer:processReleaseManifest UP-TO-DATE
+> Task :background_downloader:extractDeepLinksRelease UP-TO-DATE
+> Task :background_downloader:processReleaseManifest UP-TO-DATE
+> Task :camera_android_camerax:extractDeepLinksRelease UP-TO-DATE
+> Task :camera_android_camerax:processReleaseManifest UP-TO-DATE
+> Task :device_info_plus:extractDeepLinksRelease UP-TO-DATE
+> Task :device_info_plus:processReleaseManifest UP-TO-DATE
+> Task :engine:extractDeepLinksRelease UP-TO-DATE
+> Task :engine:processReleaseManifest UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:extractDeepLinksRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:processReleaseManifest UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:extractDeepLinksRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:processReleaseManifest UP-TO-DATE
+> Task :flutter_gemma:extractDeepLinksRelease UP-TO-DATE
+> Task :flutter_gemma:processReleaseManifest UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:extractDeepLinksRelease UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:processReleaseManifest UP-TO-DATE
+> Task :flutter_sound:extractDeepLinksRelease UP-TO-DATE
+> Task :flutter_sound:processReleaseManifest UP-TO-DATE
+> Task :google_sign_in_android:extractDeepLinksRelease UP-TO-DATE
+> Task :google_sign_in_android:processReleaseManifest UP-TO-DATE
+> Task :large_file_handler:extractDeepLinksRelease UP-TO-DATE
+> Task :large_file_handler:processReleaseManifest UP-TO-DATE
+> Task :path_provider_android:extractDeepLinksRelease UP-TO-DATE
+> Task :path_provider_android:processReleaseManifest UP-TO-DATE
+> Task :permission_handler_android:extractDeepLinksRelease UP-TO-DATE
+> Task :permission_handler_android:processReleaseManifest UP-TO-DATE
+> Task :shared_preferences_android:extractDeepLinksRelease UP-TO-DATE
+> Task :shared_preferences_android:processReleaseManifest UP-TO-DATE
+> Task :spatial_captions:extractDeepLinksRelease UP-TO-DATE
+> Task :spatial_captions:processReleaseManifest UP-TO-DATE
+> Task :speech_to_text:extractDeepLinksRelease UP-TO-DATE
+> Task :speech_to_text:processReleaseManifest UP-TO-DATE
+> Task :url_launcher_android:extractDeepLinksRelease UP-TO-DATE
+> Task :url_launcher_android:processReleaseManifest UP-TO-DATE
+> Task :webview_flutter_android:extractDeepLinksRelease UP-TO-DATE
+> Task :webview_flutter_android:processReleaseManifest UP-TO-DATE
+> Task :whisper_ggml:extractDeepLinksRelease UP-TO-DATE
+> Task :whisper_ggml:processReleaseManifest UP-TO-DATE
+> Task :xr:extractDeepLinksRelease UP-TO-DATE
+> Task :xr:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseMainManifest UP-TO-DATE
+> Task :app:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseManifestForPackage UP-TO-DATE
+> Task :app:processReleaseResources UP-TO-DATE
+> Task :audio_streamer:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :camera_android_camerax:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :device_info_plus:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :flutter_gemma:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :flutter_sound:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :google_sign_in_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :path_provider_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :permission_handler_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :shared_preferences_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :spatial_captions:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :speech_to_text:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :url_launcher_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :webview_flutter_android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :whisper_ggml:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :xr:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :app:compileReleaseKotlin UP-TO-DATE
+> Task :app:javaPreCompileRelease UP-TO-DATE
+> Task :app:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :audio_streamer:prepareReleaseArtProfile UP-TO-DATE
+> Task :background_downloader:prepareReleaseArtProfile UP-TO-DATE
+> Task :camera_android_camerax:prepareReleaseArtProfile UP-TO-DATE
+> Task :device_info_plus:prepareReleaseArtProfile UP-TO-DATE
+> Task :engine:prepareReleaseArtProfile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:prepareReleaseArtProfile UP-TO-DATE
+> Task :flutter_gemma:prepareReleaseArtProfile UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:prepareReleaseArtProfile UP-TO-DATE
+> Task :flutter_sound:prepareReleaseArtProfile UP-TO-DATE
+> Task :google_sign_in_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :large_file_handler:prepareReleaseArtProfile UP-TO-DATE
+> Task :path_provider_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :permission_handler_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :shared_preferences_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :spatial_captions:prepareReleaseArtProfile UP-TO-DATE
+> Task :speech_to_text:prepareReleaseArtProfile UP-TO-DATE
+> Task :url_launcher_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :webview_flutter_android:prepareReleaseArtProfile UP-TO-DATE
+> Task :whisper_ggml:prepareReleaseArtProfile UP-TO-DATE
+> Task :xr:prepareReleaseArtProfile UP-TO-DATE
+> Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :audio_streamer:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :background_downloader:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :camera_android_camerax:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :device_info_plus:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :engine:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :flutter_gemma:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :flutter_sound:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :google_sign_in_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :large_file_handler:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :path_provider_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :permission_handler_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :shared_preferences_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :spatial_captions:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :speech_to_text:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :url_launcher_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :webview_flutter_android:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :whisper_ggml:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :xr:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :app:expandReleaseArtProfileWildcards UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :app:processReleaseJavaRes UP-TO-DATE
+> Task :audio_streamer:processReleaseJavaRes UP-TO-DATE
+> Task :background_downloader:processReleaseJavaRes UP-TO-DATE
+> Task :camera_android_camerax:processReleaseJavaRes UP-TO-DATE
+> Task :device_info_plus:processReleaseJavaRes UP-TO-DATE
+> Task :engine:processReleaseJavaRes UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:processReleaseJavaRes NO-SOURCE
+> Task :ffmpeg_kit_flutter_new:processReleaseJavaRes NO-SOURCE
+> Task :flutter_gemma:processReleaseJavaRes UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:processReleaseJavaRes NO-SOURCE
+> Task :flutter_sound:processReleaseJavaRes NO-SOURCE
+> Task :google_sign_in_android:processReleaseJavaRes UP-TO-DATE
+> Task :large_file_handler:processReleaseJavaRes UP-TO-DATE
+> Task :path_provider_android:processReleaseJavaRes NO-SOURCE
+> Task :permission_handler_android:processReleaseJavaRes NO-SOURCE
+> Task :shared_preferences_android:processReleaseJavaRes UP-TO-DATE
+> Task :spatial_captions:processReleaseJavaRes UP-TO-DATE
+> Task :speech_to_text:processReleaseJavaRes UP-TO-DATE
+> Task :url_launcher_android:processReleaseJavaRes NO-SOURCE
+> Task :webview_flutter_android:processReleaseJavaRes UP-TO-DATE
+> Task :whisper_ggml:processReleaseJavaRes NO-SOURCE
+> Task :xr:processReleaseJavaRes UP-TO-DATE
+> Task :app:mergeReleaseJavaResource UP-TO-DATE
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:minifyReleaseWithR8 UP-TO-DATE
+> Task :app:processApplicationManifestReleaseForBundle UP-TO-DATE
+> Task :app:bundleReleaseResources UP-TO-DATE
+> Task :app:extractReleaseVersionControlInfo UP-TO-DATE
+> Task :app:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :app:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :app:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :app:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :app:configureCMakeRelWithDebInfo[x86]
+> Task :app:buildCMakeRelWithDebInfo[x86]
+> Task :app:configureCMakeRelWithDebInfo[x86_64]
+> Task :app:buildCMakeRelWithDebInfo[x86_64]
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :audio_streamer:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :audio_streamer:mergeReleaseNativeLibs NO-SOURCE
+> Task :audio_streamer:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :background_downloader:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :background_downloader:mergeReleaseNativeLibs NO-SOURCE
+> Task :background_downloader:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :camera_android_camerax:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :camera_android_camerax:mergeReleaseNativeLibs NO-SOURCE
+> Task :camera_android_camerax:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :device_info_plus:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :device_info_plus:mergeReleaseNativeLibs NO-SOURCE
+> Task :device_info_plus:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :engine:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :engine:mergeReleaseNativeLibs NO-SOURCE
+> Task :engine:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :ffmpeg_kit_flutter_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :ffmpeg_kit_flutter_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :ffmpeg_kit_flutter_new:mergeReleaseNativeLibs NO-SOURCE
+> Task :ffmpeg_kit_flutter_new:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_gemma:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :flutter_gemma:mergeReleaseNativeLibs NO-SOURCE
+> Task :flutter_gemma:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :flutter_plugin_android_lifecycle:mergeReleaseNativeLibs NO-SOURCE
+> Task :flutter_plugin_android_lifecycle:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :flutter_sound:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :flutter_sound:mergeReleaseNativeLibs NO-SOURCE
+> Task :flutter_sound:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :google_sign_in_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :google_sign_in_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :google_sign_in_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :large_file_handler:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :large_file_handler:mergeReleaseNativeLibs NO-SOURCE
+> Task :large_file_handler:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :path_provider_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :path_provider_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :path_provider_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :permission_handler_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :permission_handler_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :permission_handler_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :shared_preferences_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :shared_preferences_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :shared_preferences_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :spatial_captions:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :spatial_captions:mergeReleaseNativeLibs NO-SOURCE
+> Task :spatial_captions:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :speech_to_text:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :speech_to_text:mergeReleaseNativeLibs NO-SOURCE
+> Task :speech_to_text:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :url_launcher_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :url_launcher_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :url_launcher_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :webview_flutter_android:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :webview_flutter_android:mergeReleaseNativeLibs NO-SOURCE
+> Task :webview_flutter_android:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :whisper_ggml:preProfileBuild UP-TO-DATE
+> Task :whisper_ggml:configureCMakeRelease[arm64-v8a]
+> Task :whisper_ggml:buildCMakeRelease[arm64-v8a]
+> Task :whisper_ggml:configureCMakeRelease[armeabi-v7a]
+> Task :whisper_ggml:buildCMakeRelease[armeabi-v7a]
+> Task :whisper_ggml:configureCMakeRelease[x86]
+> Task :whisper_ggml:buildCMakeRelease[x86]
+> Task :whisper_ggml:configureCMakeRelease[x86_64]
+> Task :whisper_ggml:buildCMakeRelease[x86_64]
+> Task :whisper_ggml:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :whisper_ggml:mergeReleaseNativeLibs UP-TO-DATE
+> Task :whisper_ggml:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :xr:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :xr:mergeReleaseNativeLibs NO-SOURCE
+> Task :xr:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :app:mergeReleaseNativeLibs UP-TO-DATE
+> Task :app:stripReleaseDebugSymbols UP-TO-DATE
+> Task :app:writeReleaseAppMetadata UP-TO-DATE
+> Task :app:buildReleasePreBundle UP-TO-DATE
+> Task :app:compileReleaseArtProfile UP-TO-DATE
+> Task :app:collectReleaseDependencies UP-TO-DATE
+> Task :app:configureReleaseDependencies UP-TO-DATE
+> Task :app:extractReleaseNativeSymbolTables UP-TO-DATE
+> Task :app:parseReleaseIntegrityConfig UP-TO-DATE
+> Task :app:packageReleaseBundle UP-TO-DATE
+> Task :app:shrinkBundleReleaseResources UP-TO-DATE
+> Task :app:validateSigningRelease UP-TO-DATE
+> Task :app:signReleaseBundle FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/CraigM/source/repos/LiveCaptionsXR/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:signReleaseBundle'.
+> A failure occurred while executing com.android.build.gradle.internal.tasks.FinalizeBundleTask$BundleToolRunnable
+   > Failed to read key 1 from store "C:\Users\CraigM\source\repos\LiveCaptionsXR\android\app\upload-keystore.jks": No key with alias '1' found in keystore C:\Users\CraigM\source\repos\LiveCaptionsXR\android\app\upload-keystore.jks
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:signReleaseBundle'.
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:40)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing com.android.build.gradle.internal.tasks.FinalizeBundleTask$BundleToolRunnable
+	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:335)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:318)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:323)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
+	at org.gradle.internal.Either$Right.fold(Either.java:175)
+	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:40)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: com.android.ide.common.signing.KeytoolException: Failed to read key 1 from store "C:\Users\CraigM\source\repos\LiveCaptionsXR\android\app\upload-keystore.jks": No key with alias '1' found in keystore C:\Users\CraigM\source\repos\LiveCaptionsXR\android\app\upload-keystore.jks
+	at com.android.ide.common.signing.KeystoreHelper.getCertificateInfo(KeystoreHelper.java:254)
+	at com.android.build.gradle.internal.tasks.FinalizeBundleTask$BundleToolRunnable.run(FinalizeBundleTask.kt:169)
+	at com.android.build.gradle.internal.profile.ProfileAwareWorkAction.execute(ProfileAwareWorkAction.kt:74)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+	... 2 more
+Caused by: com.android.ide.common.signing.KeytoolException: No key with alias '1' found in keystore C:\Users\CraigM\source\repos\LiveCaptionsXR\android\app\upload-keystore.jks
+	at com.android.ide.common.signing.KeystoreHelper.getCertificateInfo(KeystoreHelper.java:241)
+	... 30 more
+
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.12/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 7s
+487 actionable tasks: 20 executed, 467 up-to-date

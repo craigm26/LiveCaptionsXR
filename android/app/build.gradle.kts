@@ -38,10 +38,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = "upload"
-            keyPassword = "livecaptionsxr2024"
+            keyAlias = "livecaptionsxr_upload"
+            keyPassword = "Ctbita@123"
             storeFile = file("upload-keystore.jks")
-            storePassword = "livecaptionsxr2024"
+            storePassword = "Ctbita@123"
         }
     }
 
