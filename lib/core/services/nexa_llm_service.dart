@@ -5,8 +5,10 @@ import 'dart:typed_data';
 import 'package:nexa_ai_flutter/nexa_ai_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../di/service_locator.dart';
 import '../models/device_model_config.dart';
 import 'app_logger.dart';
+import 'download/unified_download_manager.dart';
 import 'gemma_3n_service.dart';
 import 'nexa_asr_service.dart';
 
@@ -214,8 +216,14 @@ class NexaLlmService {
         message: 'Loading $_currentModelName model...',
       ));
 
-      // Get model path
-      _modelPath = modelPath ?? await _getDefaultModelPath(_currentModelName);
+      // Get model path (use provided path or check/download model)
+      if (modelPath != null) {
+        _modelPath = modelPath;
+      } else {
+        // Ensure model is downloaded via UnifiedDownloadManager
+        final downloadedPath = await _ensureModelDownloaded(_currentModelName);
+        _modelPath = downloadedPath ?? await _getDefaultModelPath(_currentModelName);
+      }
 
       // Create appropriate wrapper based on model type
       final pluginId = _inferenceMode == NexaInferenceMode.npu ? 'npu' : 'cpu_gpu';
@@ -680,6 +688,55 @@ Enhanced:''';
   Future<String> _getDefaultModelPath(String modelName) async {
     final appDir = await getApplicationDocumentsDirectory();
     return '${appDir.path}/models/$modelName';
+  }
+
+  /// Ensure the LLM model is downloaded before use
+  Future<String?> _ensureModelDownloaded(String modelName) async {
+    try {
+      final downloadManager = sl<UnifiedDownloadManager>();
+
+      // Check if model is already installed
+      if (await downloadManager.isModelInstalled(modelName)) {
+        _logger.i('Model $modelName already installed', category: LogCategory.gemma);
+        return await downloadManager.getModelPath(modelName);
+      }
+
+      _logger.i('Downloading model $modelName...', category: LogCategory.gemma);
+
+      _emitEvent(NexaLlmEvent(
+        progress: 0.3,
+        message: 'Downloading $modelName model...',
+      ));
+
+      // Download the model
+      await for (final progress in downloadManager.downloadModel(modelName)) {
+        _emitEvent(NexaLlmEvent(
+          progress: 0.3 + (progress.progress * 0.3), // Scale to 0.3-0.6 range
+          message: 'Downloading: ${(progress.progress * 100).toStringAsFixed(0)}%',
+        ));
+
+        if (progress.isComplete) {
+          _logger.i('Model $modelName downloaded successfully', category: LogCategory.gemma);
+          return await downloadManager.getModelPath(modelName);
+        }
+
+        if (progress.hasFailed) {
+          _logger.e('Failed to download model $modelName: ${progress.error}',
+              category: LogCategory.gemma);
+          return null;
+        }
+
+        if (progress.isCancelled) {
+          _logger.w('Model download cancelled', category: LogCategory.gemma);
+          return null;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      _logger.e('Error ensuring model downloaded', error: e, category: LogCategory.gemma);
+      return null;
+    }
   }
 
   /// Emit event to all streams

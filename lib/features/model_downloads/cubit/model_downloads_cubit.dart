@@ -4,18 +4,151 @@ import 'package:equatable/equatable.dart';
 import '../models/model_info.dart';
 import '../services/model_download_service.dart';
 import '../../../core/services/ios_model_config_service.dart';
+import '../../../core/services/download/unified_download_manager.dart';
+import '../../../core/services/download/i_model_download_strategy.dart';
+import '../../../core/di/service_locator.dart';
 
 part 'model_downloads_state.dart';
 
 class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
   final IOSModelConfigService _iosConfig = IOSModelConfigService();
 
+  late final UnifiedDownloadManager _downloadManager;
+  StreamSubscription<UnifiedDownloadProgress>? _progressSubscription;
+
   ModelDownloadsCubit() : super(const ModelDownloadsState()) {
-    _loadModels();
-    _checkDownloadedModels();
+    _downloadManager = sl<UnifiedDownloadManager>();
+    _initialize();
   }
 
-  static const List<ModelInfo> _availableModels = [
+  Future<void> _initialize() async {
+    // Initialize the download manager
+    await _downloadManager.initialize();
+
+    // Listen to unified progress stream
+    _progressSubscription = _downloadManager.progressStream.listen(_onDownloadProgress);
+
+    // Load models from all strategies
+    await _loadModels();
+    await _checkDownloadedModels();
+  }
+
+  void _onDownloadProgress(UnifiedDownloadProgress progress) {
+    // Convert UnifiedDownloadProgress to DownloadProgress for UI compatibility
+    final legacyProgress = DownloadProgress(
+      downloadedBytes: progress.downloadedBytes,
+      totalBytes: progress.totalBytes,
+      progress: progress.progress,
+      status: _mapPhaseToStatus(progress.phase),
+      error: progress.error?.toString(),
+    );
+
+    final newProgress = Map<String, DownloadProgress>.from(state.downloadProgress);
+    newProgress[progress.modelId] = legacyProgress;
+
+    // Update active downloads
+    var activeDownloads = Set<String>.from(state.activeDownloads);
+    var downloadedModels = Set<String>.from(state.downloadedModels);
+
+    if (progress.isActive) {
+      activeDownloads.add(progress.modelId);
+    } else {
+      activeDownloads.remove(progress.modelId);
+      if (progress.isComplete) {
+        downloadedModels.add(progress.modelId);
+      }
+    }
+
+    emit(state.copyWith(
+      downloadProgress: newProgress,
+      activeDownloads: activeDownloads,
+      downloadedModels: downloadedModels,
+      error: progress.hasFailed ? progress.error?.toString() : null,
+    ));
+  }
+
+  DownloadStatus _mapPhaseToStatus(DownloadPhase phase) {
+    switch (phase) {
+      case DownloadPhase.idle:
+        return DownloadStatus.notStarted;
+      case DownloadPhase.checkingCompatibility:
+      case DownloadPhase.preparingDownload:
+      case DownloadPhase.downloading:
+      case DownloadPhase.validating:
+      case DownloadPhase.installing:
+        return DownloadStatus.downloading;
+      case DownloadPhase.completed:
+        return DownloadStatus.completed;
+      case DownloadPhase.failed:
+        return DownloadStatus.failed;
+      case DownloadPhase.cancelled:
+        return DownloadStatus.cancelled;
+      case DownloadPhase.paused:
+        return DownloadStatus.downloading;
+    }
+  }
+
+  Future<void> _loadModels() async {
+    emit(state.copyWith(isLoading: true));
+
+    try {
+      // Get models from UnifiedDownloadManager (combines all strategies)
+      final unifiedModels = await _downloadManager.getAvailableModels();
+
+      // Convert to legacy ModelInfo format for UI compatibility
+      final models = unifiedModels.map((m) => ModelInfo(
+        name: m.displayName,
+        description: m.description ?? _getDefaultDescription(m.category),
+        fileName: m.modelId,
+        downloadUrl: m.downloadUrl ?? '',
+        sizeInBytes: m.estimatedSizeMb * 1024 * 1024,
+        sizeDisplay: _formatSize(m.estimatedSizeMb * 1024 * 1024),
+        version: '1.0.0',
+        isRecommended: m.isRecommended,
+        termsNotice: m.category == ModelCategory.gemma
+          ? 'Gemma is provided under and subject to the Gemma Terms of Use found at ai.google.dev/gemma/terms. Users must comply with the Gemma Prohibited Use Policy at ai.google.dev/gemma/prohibited_use_policy and applicable laws and regulations.'
+          : null,
+      )).toList();
+
+      emit(state.copyWith(
+        models: models,
+        isLoading: false,
+      ));
+    } catch (e) {
+      // Fallback to static models if unified fetch fails
+      emit(state.copyWith(
+        models: _fallbackModels,
+        isLoading: false,
+        error: 'Failed to load models: $e',
+      ));
+    }
+  }
+
+  String _getDefaultDescription(ModelCategory category) {
+    switch (category) {
+      case ModelCategory.nexa:
+        return 'NPU-accelerated on-device AI model';
+      case ModelCategory.gemma:
+        return 'Efficient language model for text generation';
+      case ModelCategory.whisper:
+        return 'Speech recognition model for real-time transcription';
+    }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+    } else if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    } else if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    } else {
+      return '$bytes B';
+    }
+  }
+
+  // Fallback models for when unified fetch fails
+  static const List<ModelInfo> _fallbackModels = [
     ModelInfo(
       name: 'Whisper Base Model',
       description: 'Fast speech recognition model for real-time transcription',
@@ -48,27 +181,19 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
     ),
   ];
 
-  void _loadModels() {
-    emit(state.copyWith(
-      models: _availableModels,
-      isLoading: false,
-    ));
-  }
-
   Future<void> _checkDownloadedModels() async {
     final downloadedModels = <String>{};
     final validationResults = <String, ModelValidationResult>{};
-    
-    for (final model in _availableModels) {
-      final isDownloaded = await ModelDownloadService.isModelDownloaded(model.fileName);
+
+    for (final model in state.models) {
+      final isDownloaded = await _downloadManager.isModelInstalled(model.fileName);
       if (isDownloaded) {
         downloadedModels.add(model.fileName);
-        
-        // Validate downloaded model
+
+        // Use legacy validation for now
         final validation = await ModelDownloadService.validateModel(model.fileName);
         validationResults[model.fileName] = validation;
-        
-        // If validation failed, remove from downloaded models
+
         if (validation.status != ModelValidationStatus.valid) {
           downloadedModels.remove(model.fileName);
         }
@@ -91,87 +216,38 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
     final activeDownloads = Set<String>.from(state.activeDownloads)..add(model.fileName);
     emit(state.copyWith(activeDownloads: activeDownloads));
 
-    // Start download with validation
-    final downloadStream = ModelDownloadService.downloadModel(
-      model.fileName,
-      model.name,
-      validateAfterDownload: true,
-    );
-
-    await for (final progress in downloadStream) {
-      switch (progress.status) {
-        case DownloadStatus.downloading:
-          emit(state.copyWith(
-            downloadProgress: {
-              ...state.downloadProgress,
-              model.fileName: progress,
-            },
-          ));
+    // Use UnifiedDownloadManager to download
+    try {
+      await for (final progress in _downloadManager.downloadModel(model.fileName)) {
+        // Progress updates are handled by _progressSubscription
+        // This just completes when download is done
+        if (progress.isComplete || progress.hasFailed || progress.isCancelled) {
           break;
-
-        case DownloadStatus.completed:
-          final newActiveDownloads = Set<String>.from(state.activeDownloads)..remove(model.fileName);
-          final newDownloadedModels = Set<String>.from(state.downloadedModels)..add(model.fileName);
-          
-          // Validate the downloaded model
-          final validation = await ModelDownloadService.validateModel(model.fileName);
-          final newValidationResults = Map<String, ModelValidationResult>.from(state.validationResults);
-          newValidationResults[model.fileName] = validation;
-          
-          emit(state.copyWith(
-            activeDownloads: newActiveDownloads,
-            downloadedModels: newDownloadedModels,
-            downloadProgress: {
-              ...state.downloadProgress,
-              model.fileName: progress,
-            },
-            validationResults: newValidationResults,
-          ));
-          break;
-
-        case DownloadStatus.failed:
-          final newActiveDownloads = Set<String>.from(state.activeDownloads)..remove(model.fileName);
-          emit(state.copyWith(
-            activeDownloads: newActiveDownloads,
-            downloadProgress: {
-              ...state.downloadProgress,
-              model.fileName: progress,
-            },
-            error: progress.error,
-          ));
-          break;
-
-        case DownloadStatus.cancelled:
-          final newActiveDownloads = Set<String>.from(state.activeDownloads)..remove(model.fileName);
-          emit(state.copyWith(
-            activeDownloads: newActiveDownloads,
-            downloadProgress: {
-              ...state.downloadProgress,
-              model.fileName: progress,
-            },
-          ));
-          break;
-
-        default:
-          break;
+        }
       }
+    } catch (e) {
+      final newActiveDownloads = Set<String>.from(state.activeDownloads)..remove(model.fileName);
+      emit(state.copyWith(
+        activeDownloads: newActiveDownloads,
+        error: e.toString(),
+      ));
     }
   }
 
-  void cancelDownload(String fileName) {
-    ModelDownloadService.cancelDownload(fileName);
-    
+  Future<void> cancelDownload(String fileName) async {
+    await _downloadManager.cancelDownload(fileName);
+
     final newActiveDownloads = Set<String>.from(state.activeDownloads)..remove(fileName);
     emit(state.copyWith(activeDownloads: newActiveDownloads));
   }
 
   Future<void> deleteModel(String fileName) async {
-    final success = await ModelDownloadService.deleteModel(fileName);
+    final success = await _downloadManager.deleteModel(fileName);
     if (success) {
       final newDownloadedModels = Set<String>.from(state.downloadedModels)..remove(fileName);
       final newValidationResults = Map<String, ModelValidationResult>.from(state.validationResults);
       newValidationResults.remove(fileName);
-      
+
       emit(state.copyWith(
         downloadedModels: newDownloadedModels,
         validationResults: newValidationResults,
@@ -204,10 +280,11 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
 
   @override
   Future<void> close() {
-    // Cancel all active downloads
+    _progressSubscription?.cancel();
+    // Cancel all active downloads via the download manager
     for (final fileName in state.activeDownloads) {
-      ModelDownloadService.cancelDownload(fileName);
+      _downloadManager.cancelDownload(fileName);
     }
     return super.close();
   }
-} 
+}

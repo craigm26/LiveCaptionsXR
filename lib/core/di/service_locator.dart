@@ -26,7 +26,9 @@ import 'package:live_captions_xr/core/services/app_logger.dart';
 import 'package:live_captions_xr/core/services/nexa_asr_service.dart';
 import 'package:live_captions_xr/core/services/nexa_llm_service.dart';
 import 'package:live_captions_xr/core/models/device_model_config.dart';
-// ... imports
+import 'package:live_captions_xr/core/services/download/download_state_persistence.dart';
+import 'package:live_captions_xr/core/services/download/unified_download_manager.dart';
+import 'package:live_captions_xr/core/services/ios_model_config_service.dart';
 
 final sl = GetIt.instance;
 
@@ -59,6 +61,28 @@ void setupServiceLocator() {
     sl.registerLazySingleton<DeviceModelRegistry>(() {
       logger.d('📱 Creating DeviceModelRegistry instance', category: LogCategory.system);
       return DeviceModelRegistry();
+    });
+  }
+
+  // Register DownloadStatePersistence for crash recovery
+  if (!sl.isRegistered<DownloadStatePersistence>()) {
+    logger.d('💾 Registering DownloadStatePersistence in service locator', category: LogCategory.system);
+    sl.registerLazySingleton<DownloadStatePersistence>(() {
+      logger.d('💾 Creating DownloadStatePersistence instance', category: LogCategory.system);
+      return DownloadStatePersistence();
+    });
+  }
+
+  // Register UnifiedDownloadManager for package-native model downloads
+  if (!sl.isRegistered<UnifiedDownloadManager>()) {
+    logger.d('📥 Registering UnifiedDownloadManager in service locator', category: LogCategory.system);
+    sl.registerLazySingleton<UnifiedDownloadManager>(() {
+      logger.d('📥 Creating UnifiedDownloadManager instance', category: LogCategory.system);
+      return UnifiedDownloadManager(
+        deviceRegistry: sl<DeviceModelRegistry>(),
+        legacyManager: sl<ModelDownloadManager>(),
+        statePersistence: sl<DownloadStatePersistence>(),
+      );
     });
   }
 

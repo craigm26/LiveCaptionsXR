@@ -5,9 +5,12 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart' as gemma_model;
-import 'model_download_manager.dart';
+
+import '../di/service_locator.dart';
 import 'app_logger.dart';
+import 'download/unified_download_manager.dart';
 import 'ios_model_config_service.dart';
+import 'model_download_manager.dart';
 
 /// Event class for Gemma 3n contextual enhancement progress and status
 class Gemma3nEnhancementEvent {
@@ -83,20 +86,61 @@ class Gemma3nService {
         message: 'Checking Gemma 3n model...',
       ));
 
-      if (!await _modelManager.modelIsComplete(modelKey)) {
-        _logger.w(
-            '⚠️ Gemma 3n model not downloaded or incomplete - service will be disabled',
-            category: LogCategory.gemma);
+      // Use UnifiedDownloadManager to check/download model
+      String? modelPath;
+      try {
+        final downloadManager = sl<UnifiedDownloadManager>();
 
-        // Emit enhancement event for model missing (not an error, just unavailable)
-        _enhancementEventController.add(const Gemma3nEnhancementEvent(
-          progress: 0.0,
-          message: 'Gemma 3n model not available - enhancement disabled',
-          error: 'Model not downloaded',
-        ));
+        if (!await downloadManager.isModelInstalled(modelKey)) {
+          _logger.i('📥 Downloading Gemma model $modelKey...', category: LogCategory.gemma);
 
-        // Don't throw error - just mark as not initialized so app can continue
-        return;
+          _enhancementEventController.add(const Gemma3nEnhancementEvent(
+            progress: 0.3,
+            message: 'Downloading Gemma 3n model...',
+          ));
+
+          // Try to download the model
+          await for (final progress in downloadManager.downloadModel(modelKey)) {
+            _enhancementEventController.add(Gemma3nEnhancementEvent(
+              progress: 0.2 + (progress.progress * 0.3), // Scale to 0.2-0.5 range
+              message: 'Downloading: ${(progress.progress * 100).toStringAsFixed(0)}%',
+            ));
+
+            if (progress.isComplete) {
+              _logger.i('✅ Gemma model downloaded successfully', category: LogCategory.gemma);
+              break;
+            }
+
+            if (progress.hasFailed || progress.isCancelled) {
+              _logger.w('⚠️ Gemma model download failed/cancelled', category: LogCategory.gemma);
+              break;
+            }
+          }
+        }
+
+        // Get the model path
+        modelPath = await downloadManager.getModelPath(modelKey);
+      } catch (e) {
+        _logger.w('⚠️ UnifiedDownloadManager not available, falling back to legacy manager',
+            error: e, category: LogCategory.gemma);
+      }
+
+      // Fallback to legacy ModelDownloadManager if needed
+      if (modelPath == null) {
+        if (!await _modelManager.modelIsComplete(modelKey)) {
+          _logger.w(
+              '⚠️ Gemma 3n model not downloaded or incomplete - service will be disabled',
+              category: LogCategory.gemma);
+
+          _enhancementEventController.add(const Gemma3nEnhancementEvent(
+            progress: 0.0,
+            message: 'Gemma 3n model not available - enhancement disabled',
+            error: 'Model not downloaded',
+          ));
+
+          return;
+        }
+        modelPath = await _modelManager.getModelPath(modelKey);
       }
 
       // Emit enhancement event for model loading
@@ -104,8 +148,6 @@ class Gemma3nService {
         progress: 0.5,
         message: 'Loading Gemma 3n model...',
       ));
-
-      final modelPath = await _modelManager.getModelPath(modelKey);
       _logger.i('📁 Loading Gemma model from: $modelPath',
           category: LogCategory.gemma);
 
