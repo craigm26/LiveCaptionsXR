@@ -15,6 +15,8 @@ import 'frame_capture_service.dart';
 import 'stereo_audio_capture.dart';
 import 'spatial_caption_integration_service.dart';
 import 'app_logger.dart';
+import 'nexa_asr_service.dart';
+import 'nexa_llm_service.dart';
 
 /// Speech processing engine types
 enum SpeechEngine {
@@ -24,6 +26,7 @@ enum SpeechEngine {
   openAI,
   whisper_ggml,  // Android: Whisper GGML
   apple_speech,  // iOS: Apple Speech Recognition
+  nexa_asr,      // Android: Nexa SDK ASR (NPU/GPU/CPU)
 }
 
 /// Enhanced service for processing speech with multiple engine support and Gemma enhancement
@@ -35,6 +38,10 @@ class EnhancedSpeechProcessor {
   final WhisperService _whisperService;
   final AppleSpeechService _appleSpeechService;
   final FrameCaptureService _frameCaptureService;
+
+  // Nexa SDK services for NPU-accelerated inference
+  final NexaAsrService? _nexaAsrService;
+  final NexaLlmService? _nexaLlmService;
   
   // Stereo audio capture for spatial positioning
   late final StereoAudioCapture _stereoAudioCapture;
@@ -78,23 +85,30 @@ class EnhancedSpeechProcessor {
     required WhisperService whisperService,
     required AppleSpeechService appleSpeechService,
     required FrameCaptureService frameCaptureService,
+    NexaAsrService? nexaAsrService,
+    NexaLlmService? nexaLlmService,
     SpeechEngine? defaultEngine,
   })  : _activeEngine = defaultEngine ?? _getDefaultEngine(),
         _audioCaptureService = audioCaptureService,
         _whisperService = whisperService,
         _appleSpeechService = appleSpeechService,
-        _frameCaptureService = frameCaptureService {
+        _frameCaptureService = frameCaptureService,
+        _nexaAsrService = nexaAsrService,
+        _nexaLlmService = nexaLlmService {
     _logger.i('🏗️ [DEBUG] EnhancedSpeechProcessor constructor called', category: LogCategory.speech);
     _logger.i('🎤 [DEBUG] AppleSpeechService instance: ${_appleSpeechService.runtimeType}', category: LogCategory.speech);
     _logger.i('🔧 [DEBUG] Active engine set to: $_activeEngine', category: LogCategory.speech);
     _logger.i('🍎 [DEBUG] Platform.isIOS: ${Platform.isIOS}', category: LogCategory.speech);
-    
+    _logger.i('🚀 [DEBUG] NexaAsrService available: ${_nexaAsrService != null}', category: LogCategory.speech);
+    _logger.i('🚀 [DEBUG] NexaLlmService available: ${_nexaLlmService != null}', category: LogCategory.speech);
+
     // Initialize stereo audio capture for spatial positioning
     _stereoAudioCapture = StereoAudioCapture();
     _logger.i('🎧 [DEBUG] StereoAudioCapture initialized for spatial positioning', category: LogCategory.speech);
   }
 
   /// Get default engine based on platform
+  /// On Android, prefers Nexa ASR if available for NPU acceleration
   static SpeechEngine _getDefaultEngine() {
     final logger = AppLogger.instance;
     logger.i('🔧 [DEBUG] _getDefaultEngine called', category: LogCategory.speech);
@@ -102,8 +116,10 @@ class EnhancedSpeechProcessor {
       logger.i('🍎 [DEBUG] iOS detected - returning apple_speech engine', category: LogCategory.speech);
       return SpeechEngine.apple_speech;
     } else if (Platform.isAndroid) {
-      logger.i('🤖 [DEBUG] Android detected - returning whisper_ggml engine', category: LogCategory.speech);
-      return SpeechEngine.whisper_ggml;
+      // Default to Nexa ASR on Android for NPU acceleration
+      // Falls back to Whisper GGML if Nexa is not available
+      logger.i('🤖 [DEBUG] Android detected - returning nexa_asr engine (NPU accelerated)', category: LogCategory.speech);
+      return SpeechEngine.nexa_asr;
     }
     logger.i('🖥️ [DEBUG] Other platform - returning flutter_sound engine', category: LogCategory.speech);
     return SpeechEngine.flutter_sound;
@@ -111,25 +127,29 @@ class EnhancedSpeechProcessor {
 
   List<SpeechEngine> get availableEngines {
     final engines = <SpeechEngine>[];
-    
+
     // Platform-specific engines
     if (Platform.isAndroid) {
-      // Android: Whisper GGML as primary
+      // Android: Nexa ASR as primary (NPU accelerated)
+      if (_nexaAsrService != null) {
+        engines.add(SpeechEngine.nexa_asr);
+      }
+      // Whisper GGML as fallback
       engines.add(SpeechEngine.whisper_ggml);
     } else if (Platform.isIOS) {
-      // iOS: Apple Speech as primary  
+      // iOS: Apple Speech as primary
       engines.add(SpeechEngine.apple_speech);
     }
-    
+
     // Add fallback engines
     engines.add(SpeechEngine.flutter_sound);
     engines.add(SpeechEngine.native);
-    
+
     // For Gemma3n, only add if available
     if (gemma3nService.isReady) {
       engines.add(SpeechEngine.gemma3n);
     }
-    
+
     return engines;
   }
 
@@ -236,6 +256,26 @@ class EnhancedSpeechProcessor {
           await _initializeAppleSpeech();
           _logger.i('🍎 [DEBUG] Apple Speech initialization completed', category: LogCategory.speech);
           break;
+        case SpeechEngine.nexa_asr:
+          if (Platform.isAndroid) {
+            _logger.i('🚀 [DEBUG] About to initialize Nexa ASR', category: LogCategory.speech);
+            final nexaSuccess = await _initializeNexaAsr();
+            if (!nexaSuccess) {
+              _logger.w('⚠️ Nexa ASR initialization failed, falling back to Whisper GGML', category: LogCategory.speech);
+              _activeEngine = SpeechEngine.whisper_ggml;
+              await _initializeWhisperGgml();
+            }
+            _logger.i('🚀 [DEBUG] Nexa ASR initialization completed', category: LogCategory.speech);
+          } else {
+            _logger.w('⚠️ Nexa ASR only available on Android, falling back to platform default', category: LogCategory.speech);
+            _activeEngine = Platform.isIOS ? SpeechEngine.apple_speech : SpeechEngine.flutter_sound;
+            if (Platform.isIOS) {
+              await _initializeAppleSpeech();
+            } else {
+              await _initializeFlutterSound();
+            }
+          }
+          break;
       }
 
       if (enableGemmaEnhancement && gemma3nService.isReady) {
@@ -280,20 +320,70 @@ class EnhancedSpeechProcessor {
       _logger.i('🍎 [DEBUG] _initializeAppleSpeech called', category: LogCategory.speech);
       _logger.i('🍎 [DEBUG] AppleSpeechService instance check: ${_appleSpeechService != null}', category: LogCategory.speech);
       _logger.i('🍎 [DEBUG] Config: $_config', category: LogCategory.speech);
-      
+
       _logger.i('🍎 [DEBUG] About to call _appleSpeechService.initialize() with 30s timeout', category: LogCategory.speech);
-      
+
       await _appleSpeechService.initialize(config: _config)
           .timeout(Duration(seconds: 30), onTimeout: () {
         _logger.e('⏰ [DEBUG] AppleSpeechService.initialize() timed out after 30 seconds', category: LogCategory.speech);
         throw TimeoutException('Apple Speech initialization timed out', Duration(seconds: 30));
       });
-      
+
       _logger.i('✅ Apple Speech engine initialized', category: LogCategory.speech);
       _logger.i('🍎 [DEBUG] Apple Speech isInitialized: ${_appleSpeechService.isInitialized}', category: LogCategory.speech);
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Apple Speech', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       rethrow;
+    }
+  }
+
+  /// Initialize Nexa ASR service for NPU-accelerated speech recognition
+  Future<bool> _initializeNexaAsr() async {
+    if (_nexaAsrService == null) {
+      _logger.w('⚠️ NexaAsrService not available', category: LogCategory.speech);
+      return false;
+    }
+
+    try {
+      _logger.i('🚀 [DEBUG] _initializeNexaAsr called', category: LogCategory.speech);
+
+      // Check NPU availability
+      final npuAvailable = await _nexaAsrService!.isNpuAvailable();
+      _logger.i('🚀 [DEBUG] NPU available: $npuAvailable', category: LogCategory.speech);
+
+      // Initialize with NPU preference
+      final success = await _nexaAsrService!.initialize(
+        config: _config,
+        preferNpu: true,
+      ).timeout(Duration(seconds: 60), onTimeout: () {
+        _logger.e('⏰ [DEBUG] NexaAsrService.initialize() timed out after 60 seconds', category: LogCategory.speech);
+        return false;
+      });
+
+      if (success) {
+        _logger.i('✅ Nexa ASR engine initialized (mode: ${_nexaAsrService!.inferenceMode.name.toUpperCase()})', category: LogCategory.speech);
+
+        // Also initialize Nexa LLM for text enhancement if available
+        if (_nexaLlmService != null) {
+          _logger.i('🚀 Initializing Nexa LLM for text enhancement...', category: LogCategory.gemma);
+          try {
+            await _nexaLlmService!.initialize(
+              preferNpu: true,
+            ).timeout(Duration(seconds: 60));
+            _logger.i('✅ Nexa LLM initialized for enhancement', category: LogCategory.gemma);
+          } catch (e) {
+            _logger.w('⚠️ Nexa LLM initialization failed, using Gemma fallback', category: LogCategory.gemma, error: e);
+          }
+        }
+
+        return true;
+      } else {
+        _logger.w('⚠️ Nexa ASR initialization returned false', category: LogCategory.speech);
+        return false;
+      }
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to initialize Nexa ASR', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+      return false;
     }
   }
 
@@ -331,6 +421,11 @@ class EnhancedSpeechProcessor {
           _logger.i('🍎 [DEBUG] About to start Apple Speech processing', category: LogCategory.speech);
           await _startAppleSpeechProcessing();
           _logger.i('🍎 [DEBUG] Apple Speech processing started', category: LogCategory.speech);
+          break;
+        case SpeechEngine.nexa_asr:
+          _logger.i('🚀 [DEBUG] About to start Nexa ASR processing', category: LogCategory.speech);
+          await _startNexaAsrProcessing();
+          _logger.i('🚀 [DEBUG] Nexa ASR processing started', category: LogCategory.speech);
           break;
       }
 
@@ -458,7 +553,7 @@ class EnhancedSpeechProcessor {
     try {
       _logger.i('🎤🍎 [APPLE STT] Starting Apple Speech processing...', category: LogCategory.speech);
       _logger.i('🍎 [DEBUG] Apple Speech service initialized check: ${_appleSpeechService.isInitialized}', category: LogCategory.speech);
-      
+
       // Subscribe to Apple Speech results
       _appleSpeechService.speechResults.listen((result) {
         _logger.i('🎤📥 [APPLE STT] Received result from AppleSpeechService: "${result.text}" (confidence: ${result.confidence}, final: ${result.isFinal})', category: LogCategory.speech);
@@ -467,19 +562,172 @@ class EnhancedSpeechProcessor {
       }, onError: (error, stackTrace) {
         _logger.e('❌ [APPLE STT] Error in Apple Speech stream', category: LogCategory.speech, error: error, stackTrace: stackTrace);
       });
-      
+
       // Start Apple Speech processing with offline mode
       bool useOfflineMode = !await _hasInternetConnection() || _config.forceOfflineMode;
       _logger.i('🎤⚙️ [APPLE STT] Starting processing with offline mode: $useOfflineMode, forceOfflineMode: ${_config.forceOfflineMode}', category: LogCategory.speech);
-      
+
       _logger.i('🍎 [DEBUG] About to call _appleSpeechService.startProcessing()', category: LogCategory.speech);
       bool success = await _appleSpeechService.startProcessing(useOfflineMode: useOfflineMode);
       _logger.i('🍎 [DEBUG] _appleSpeechService.startProcessing() returned: $success', category: LogCategory.speech);
-      
+
       _logger.i('✅ [APPLE STT] Apple Speech processing started successfully (offline: $useOfflineMode)', category: LogCategory.speech);
     } catch (e, stackTrace) {
       _logger.e('❌ [APPLE STT] Failed to start Apple Speech processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       rethrow;
+    }
+  }
+
+  /// Start Nexa ASR processing for NPU-accelerated speech recognition
+  Future<void> _startNexaAsrProcessing() async {
+    if (_nexaAsrService == null) {
+      _logger.e('❌ [NEXA STT] NexaAsrService not available', category: LogCategory.speech);
+      throw StateError('NexaAsrService not available');
+    }
+
+    try {
+      _logger.i('🎤🚀 [NEXA STT] Starting Nexa ASR processing...', category: LogCategory.speech);
+      _logger.i('🚀 [DEBUG] Nexa ASR service initialized check: ${_nexaAsrService!.isInitialized}', category: LogCategory.speech);
+      _logger.i('🚀 [DEBUG] Nexa ASR inference mode: ${_nexaAsrService!.inferenceMode.name.toUpperCase()}', category: LogCategory.speech);
+
+      // Subscribe to Nexa ASR results
+      _nexaAsrService!.speechResults.listen((result) {
+        _logger.i('🎤📥 [NEXA STT] Received result from NexaAsrService: "${result.text}" (confidence: ${result.confidence}, final: ${result.isFinal})', category: LogCategory.speech);
+        _logger.i('🔄 [NEXA STT] Forwarding to _processSpeechResult...', category: LogCategory.speech);
+        _processSpeechResultWithNexa(result);
+      }, onError: (error, stackTrace) {
+        _logger.e('❌ [NEXA STT] Error in Nexa ASR stream', category: LogCategory.speech, error: error, stackTrace: stackTrace);
+      });
+
+      // Subscribe to audio capture and feed to Nexa ASR
+      _audioCaptureService.audioStream.listen((audioData) async {
+        _logger.d('🎵 [NEXA STT] Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
+
+        try {
+          // Convert audio data to Uint8List for Nexa processing
+          final audioBytes = Uint8List.fromList(audioData);
+          _logger.d('🔄 [NEXA STT] Converting audio to bytes (${audioBytes.length} bytes)', category: LogCategory.speech);
+
+          // Process with Nexa ASR service
+          _logger.d('🎤 [NEXA STT] Sending audio to Nexa ASR for transcription...', category: LogCategory.speech);
+          await _nexaAsrService!.processAudioBuffer(audioBytes);
+
+        } catch (e, stackTrace) {
+          _logger.e('❌ [NEXA STT] Error processing audio chunk', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+        }
+      }, onError: (error, stackTrace) {
+        _logger.e('❌ [NEXA STT] Error in audio stream', category: LogCategory.speech, error: error, stackTrace: stackTrace);
+      });
+
+      // Start Nexa ASR streaming
+      bool success = await _nexaAsrService!.startProcessing();
+      _logger.i('🚀 [DEBUG] _nexaAsrService.startProcessing() returned: $success', category: LogCategory.speech);
+
+      _logger.i('✅ [NEXA STT] Nexa ASR processing started successfully (mode: ${_nexaAsrService!.inferenceMode.name.toUpperCase()})', category: LogCategory.speech);
+    } catch (e, stackTrace) {
+      _logger.e('❌ [NEXA STT] Failed to start Nexa ASR processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Process speech result with Nexa-specific enhancement
+  void _processSpeechResultWithNexa(SpeechResult result) {
+    _logger.d('🔄📥 [NEXA PROCESSING] Received speech result: "${result.text}" (final: ${result.isFinal}, confidence: ${result.confidence})', category: LogCategory.speech);
+
+    try {
+      // Add to recent texts for enhancement
+      if (result.text.isNotEmpty && result.text != defaultFallbackTranscript) {
+        _recentTexts.add(result.text);
+        if (_recentTexts.length > 10) _recentTexts.removeAt(0);
+        _logger.d('📚 [NEXA PROCESSING] Added to recent texts (${_recentTexts.length} items)', category: LogCategory.speech);
+      }
+
+      // Emit the raw speech result
+      _speechResultController.add(result);
+      _logger.d('📤 [NEXA PROCESSING] Emitted raw speech result to speechResults stream', category: LogCategory.speech);
+
+      // Try to enhance with Nexa LLM first, then fall back to Gemma
+      if (_nexaLlmService != null && _nexaLlmService!.isReady && _useEnhancement) {
+        _logger.i('✨ [NEXA PROCESSING] Nexa LLM available - attempting enhancement...', category: LogCategory.speech);
+        _enhanceWithNexaLlm(result);
+      } else if (gemma3nService.isReady && _useEnhancement) {
+        _logger.i('✨ [NEXA PROCESSING] Falling back to Gemma3n for enhancement...', category: LogCategory.speech);
+        _enhanceWithGemma3n(result);
+      } else {
+        _logger.d('📝 [NEXA PROCESSING] Using raw speech result (nexa llm ready: ${_nexaLlmService?.isReady}, gemma ready: ${gemma3nService.isReady}, enhancement enabled: $_useEnhancement)', category: LogCategory.speech);
+        // Create basic enhanced caption from raw result
+        final basicCaption = EnhancedCaption.fromSpeechResult(result);
+        _enhancedCaptionController.add(basicCaption);
+        _logger.d('📋➡️ [NEXA PROCESSING] Created and emitted basic caption: "${basicCaption.displayText}"', category: LogCategory.speech);
+      }
+    } catch (e, stackTrace) {
+      _logger.e('❌ [NEXA PROCESSING] Error processing speech result', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+    }
+  }
+
+  /// Enhance speech result with Nexa LLM for NPU-accelerated text enhancement
+  void _enhanceWithNexaLlm(SpeechResult result) async {
+    try {
+      _logger.d('🚀 Starting Nexa LLM enhancement for: "${result.text}"', category: LogCategory.gemma);
+
+      if (result.isFinal) {
+        // Check if Gemma/Nexa is already processing
+        if (_gemmaProcessing) {
+          _logger.w('⚠️ Enhancement already processing another request, skipping: "${result.text}"', category: LogCategory.gemma);
+          final basicCaption = EnhancedCaption.fromSpeechResult(result);
+          _enhancedCaptionController.add(basicCaption);
+          return;
+        }
+
+        // Set mutex
+        _gemmaProcessing = true;
+        _logger.d('🔒 Enhancement mutex acquired for: "${result.text}"', category: LogCategory.gemma);
+
+        try {
+          // Use multimodal enhancement with visual context if available
+          String enhancedText;
+          List<int>? currentFrame = await _getCurrentFrame();
+
+          if (currentFrame != null && _nexaLlmService!.supportsVision) {
+            _logger.d('🎥 Using visual context for Nexa LLM enhancement (${currentFrame.length} bytes)', category: LogCategory.gemma);
+            enhancedText = await _nexaLlmService!.enhanceTextWithVisualContext(
+              text: result.text,
+              imageData: Uint8List.fromList(currentFrame),
+            );
+          } else {
+            _logger.d('📝 Using text-only Nexa LLM enhancement', category: LogCategory.gemma);
+            enhancedText = await _nexaLlmService!.enhanceText(result.text);
+          }
+
+          _logger.d('✨ Nexa LLM enhancement result: "$enhancedText"', category: LogCategory.gemma);
+
+          final enhancedCaption = EnhancedCaption(
+            raw: result.text,
+            enhanced: enhancedText,
+            isFinal: true,
+            isEnhanced: enhancedText != result.text,
+          );
+
+          _enhancedCaptionController.add(enhancedCaption);
+          _logger.i('📋 Created Nexa-enhanced caption: "${enhancedCaption.displayText}"', category: LogCategory.gemma);
+        } finally {
+          _gemmaProcessing = false;
+          _logger.d('🔓 Enhancement mutex released', category: LogCategory.gemma);
+        }
+      } else {
+        // For partial results, create a partial caption
+        final partialCaption = EnhancedCaption.partial(result.text);
+        _enhancedCaptionController.add(partialCaption);
+        _logger.d('📋 Created partial caption: "${partialCaption.displayText}"', category: LogCategory.gemma);
+      }
+    } catch (e, stackTrace) {
+      _gemmaProcessing = false;
+      _logger.e('❌ Error enhancing with Nexa LLM', category: LogCategory.gemma, error: e, stackTrace: stackTrace);
+
+      // Fallback to basic caption
+      final fallbackCaption = EnhancedCaption.fallback(result.text);
+      _enhancedCaptionController.add(fallbackCaption);
+      _logger.w('⚠️ Using fallback caption: "${fallbackCaption.displayText}"', category: LogCategory.gemma);
     }
   }
   
@@ -693,6 +941,9 @@ class EnhancedSpeechProcessor {
         case SpeechEngine.apple_speech:
           await _appleSpeechService.stopProcessing();
           break;
+        case SpeechEngine.nexa_asr:
+          await _nexaAsrService?.stopProcessing();
+          break;
       }
 
       // Stop stereo audio capture
@@ -768,4 +1019,8 @@ class EnhancedSpeechProcessor {
   bool get isProcessing => _isProcessing;
   SpeechEngine get activeEngine => _activeEngine;
   bool get hasGemmaEnhancement => gemma3nService.isReady;
+  bool get hasNexaEnhancement => _nexaLlmService?.isReady ?? false;
+  bool get hasEnhancement => hasNexaEnhancement || hasGemmaEnhancement;
+  bool get isNpuAccelerated => _nexaAsrService?.isNpuAccelerated ?? false;
+  NexaInferenceMode? get nexaInferenceMode => _nexaAsrService?.inferenceMode;
 }
