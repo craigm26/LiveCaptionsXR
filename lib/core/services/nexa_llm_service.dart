@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:nexa_ai_flutter/nexa_ai_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../models/device_model_config.dart';
 import 'app_logger.dart';
 import 'gemma_3n_service.dart';
 import 'nexa_asr_service.dart';
@@ -60,6 +61,10 @@ class NexaLlmService {
   String _currentModelName = 'granite-4.0-h-350m-npu';
   NexaInferenceMode _inferenceMode = NexaInferenceMode.cpu;
   bool _supportsVision = false;
+  DeviceModelConfig? _deviceModelConfig;
+
+  // Device model registry for optimal model selection
+  final DeviceModelRegistry _modelRegistry = DeviceModelRegistry();
 
   // Nexa SDK wrappers
   LlmWrapper? _llmWrapper;
@@ -91,6 +96,7 @@ class NexaLlmService {
   NexaInferenceMode get inferenceMode => _inferenceMode;
   bool get supportsVision => _supportsVision;
   bool get isNpuAccelerated => _inferenceMode == NexaInferenceMode.npu;
+  DeviceModelConfig? get deviceModelConfig => _deviceModelConfig;
 
   /// Check if Nexa LLM is available on this platform
   static bool get isAvailable => Platform.isAndroid;
@@ -100,8 +106,12 @@ class NexaLlmService {
     if (!Platform.isAndroid) return false;
 
     try {
+      // Check if any NPU-optimized models are available
       final models = await ModelDownloader.getAvailableModels();
-      return models.any((m) => m.pluginId == 'npu');
+      // NPU models typically have 'npu' in the name or type
+      return models.any((m) =>
+        m.displayName.toLowerCase().contains('npu') ||
+        m.type.toLowerCase().contains('npu'));
     } catch (e) {
       _logger.e('Failed to check NPU availability', error: e);
       return false;
@@ -128,7 +138,7 @@ class NexaLlmService {
   /// Initialize the Nexa LLM service with configuration
   Future<void> initialize({
     String? modelPath,
-    String modelName = 'granite-4.0-h-350m-npu',
+    String? modelName, // If null, uses device-specific model from registry
     bool preferNpu = true,
   }) async {
     if (!Platform.isAndroid) {
@@ -160,32 +170,52 @@ class NexaLlmService {
       }
 
       _emitEvent(const NexaLlmEvent(
+        progress: 0.1,
+        message: 'Detecting device capabilities...',
+      ));
+
+      // Get optimal model configuration for this device
+      _deviceModelConfig = await _modelRegistry.getDeviceConfig();
+
+      // Use provided model name or get from device config
+      final selectedModelName = modelName ?? _deviceModelConfig!.llmModel.name;
+      final selectedModelSpec = modelName != null
+          ? DeviceModelRegistry.allLlmModels.firstWhere(
+              (m) => m.name == modelName,
+              orElse: () => _deviceModelConfig!.llmModel,
+            )
+          : _deviceModelConfig!.llmModel;
+
+      _logger.i('📱 Device config: ${_deviceModelConfig!.deviceId}',
+          category: LogCategory.gemma);
+      _logger.i('🧠 Selected LLM model: $selectedModelName (${selectedModelSpec.displayName})',
+          category: LogCategory.gemma);
+
+      _emitEvent(const NexaLlmEvent(
         progress: 0.2,
         message: 'Checking NPU availability...',
       ));
 
-      // Check NPU availability
+      // Check NPU availability and use device recommendation
       final npuAvailable = await isNpuAvailable();
-      _inferenceMode = preferNpu && npuAvailable
+      _inferenceMode = preferNpu && npuAvailable && _deviceModelConfig!.preferNpu
           ? NexaInferenceMode.npu
-          : NexaInferenceMode.cpu;
+          : _deviceModelConfig!.recommendedInferenceMode;
 
-      _currentModelName = modelName;
-      _supportsVision = modelName.contains('omni') ||
-          modelName.contains('vlm') ||
-          modelName.contains('vision');
+      _currentModelName = selectedModelName;
+      _supportsVision = selectedModelSpec.supportsVision;
 
       _logger.i(
-          '🚀 Initializing Nexa LLM with model: $modelName (mode: ${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
+          '🚀 Initializing Nexa LLM with model: $_currentModelName (mode: ${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
           category: LogCategory.gemma);
 
       _emitEvent(NexaLlmEvent(
         progress: 0.4,
-        message: 'Loading $modelName model...',
+        message: 'Loading $_currentModelName model...',
       ));
 
       // Get model path
-      _modelPath = modelPath ?? await _getDefaultModelPath(modelName);
+      _modelPath = modelPath ?? await _getDefaultModelPath(_currentModelName);
 
       // Create appropriate wrapper based on model type
       final pluginId = _inferenceMode == NexaInferenceMode.npu ? 'npu' : 'cpu_gpu';
@@ -199,7 +229,6 @@ class NexaLlmService {
               modelPath: _modelPath!,
               config: ModelConfig(
                 maxTokens: 2048,
-                enableThinking: false,
               ),
               pluginId: pluginId,
             ),
@@ -232,16 +261,72 @@ class NexaLlmService {
             '✅ Nexa LLM initialized: model=$_currentModelName, mode=${_inferenceMode.name.toUpperCase()}, vision=$_supportsVision',
             category: LogCategory.gemma);
       } catch (e) {
-        _logger.w('⚠️ Failed to create wrapper with $pluginId, trying fallback',
+        _logger.w('⚠️ Failed to create wrapper with $pluginId for $_currentModelName, trying fallbacks',
             error: e, category: LogCategory.gemma);
 
-        // Try CPU fallback if NPU fails
+        // Try fallback models from registry
+        final fallbacks = _deviceModelConfig?.llmFallbacks ?? [];
+        for (final fallbackModel in fallbacks) {
+          _logger.i('🔄 Trying fallback model: ${fallbackModel.name}',
+              category: LogCategory.gemma);
+
+          _emitEvent(NexaLlmEvent(
+            progress: 0.7,
+            message: 'Trying ${fallbackModel.displayName}...',
+          ));
+
+          try {
+            final fallbackPluginId = fallbackModel.supportsNpu && _inferenceMode == NexaInferenceMode.npu
+                ? 'npu'
+                : 'cpu_gpu';
+            final fallbackModelPath = await _getDefaultModelPath(fallbackModel.name);
+
+            if (fallbackModel.supportsVision) {
+              _vlmWrapper = await VlmWrapper.create(
+                VlmCreateInput(
+                  modelName: fallbackModel.name,
+                  modelPath: fallbackModelPath,
+                  config: ModelConfig(maxTokens: 2048),
+                  pluginId: fallbackPluginId,
+                ),
+              );
+            } else {
+              _llmWrapper = await LlmWrapper.create(
+                LlmCreateInput(
+                  modelPath: fallbackModelPath,
+                  config: ModelConfig(nCtx: 4096, maxTokens: 2048),
+                  pluginId: fallbackPluginId,
+                ),
+              );
+            }
+
+            _currentModelName = fallbackModel.name;
+            _supportsVision = fallbackModel.supportsVision;
+            _isInitialized = true;
+
+            _emitEvent(NexaLlmEvent(
+              progress: 1.0,
+              message: 'Nexa LLM ready (${fallbackModel.displayName})',
+              isComplete: true,
+            ));
+
+            _logger.i('✅ LLM initialized with fallback: ${fallbackModel.name}',
+                category: LogCategory.gemma);
+            return;
+          } catch (fallbackError) {
+            _logger.w('⚠️ Fallback ${fallbackModel.name} also failed',
+                error: fallbackError, category: LogCategory.gemma);
+          }
+        }
+
+        // Try CPU mode as last resort with original model
         if (_inferenceMode == NexaInferenceMode.npu) {
           _inferenceMode = NexaInferenceMode.cpu;
           try {
             if (_supportsVision) {
               _vlmWrapper = await VlmWrapper.create(
                 VlmCreateInput(
+                  modelName: _currentModelName,
                   modelPath: _modelPath!,
                   config: ModelConfig(maxTokens: 2048),
                   pluginId: 'cpu_gpu',
@@ -262,14 +347,16 @@ class NexaLlmService {
               message: 'Nexa LLM ready (CPU fallback)',
               isComplete: true,
             ));
+            return;
           } catch (fallbackError) {
-            _logger.e('❌ LLM fallback also failed',
+            _logger.e('❌ All LLM fallbacks failed',
                 error: fallbackError, category: LogCategory.gemma);
-            rethrow;
           }
-        } else {
-          rethrow;
         }
+
+        // If we get here, all fallbacks failed
+        _logger.e('❌ Failed to initialize any LLM model', category: LogCategory.gemma);
+        rethrow;
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Nexa LLM',
@@ -337,14 +424,14 @@ class NexaLlmService {
         final buffer = StringBuffer();
         await for (final result in _llmWrapper!.generateStream(
           prompt,
-          GenerationConfig(maxTokens: 128, temperature: 0.3),
+          GenerationConfig(maxTokens: 128, samplerConfig: SamplerConfig(temperature: 0.3)),
         )) {
           if (result is LlmStreamToken) {
             buffer.write(result.text);
           } else if (result is LlmStreamCompleted) {
             break;
           } else if (result is LlmStreamError) {
-            throw result.throwable;
+            throw Exception('LLM stream error: ${result.message}');
           }
         }
         enhancedText = _cleanEnhancedText(buffer.toString());
@@ -353,16 +440,12 @@ class NexaLlmService {
         final chatMessage = VlmChatMessage('user', [
           VlmContent('text', prompt),
         ]);
-        final template = await _vlmWrapper!.applyChatTemplate(
-          [chatMessage],
-          null,
-          false,
-        );
+        final template = await _vlmWrapper!.applyChatTemplate([chatMessage]);
 
         final buffer = StringBuffer();
-        await for (final result in _vlmWrapper!.generateStreamFlow(
+        await for (final result in _vlmWrapper!.generateStream(
           template.formattedText,
-          GenerationConfig(maxTokens: 128, temperature: 0.3),
+          GenerationConfig(maxTokens: 128, samplerConfig: SamplerConfig(temperature: 0.3)),
         )) {
           if (result is LlmStreamToken) {
             buffer.write(result.text);
@@ -446,24 +529,20 @@ class NexaLlmService {
         ];
 
         final chatMessage = VlmChatMessage('user', contents);
-        final template = await _vlmWrapper!.applyChatTemplate(
-          [chatMessage],
-          null,
-          false,
-        );
+        final template = await _vlmWrapper!.applyChatTemplate([chatMessage]);
 
         _emitEvent(const NexaLlmEvent(
           progress: 0.5,
           message: 'Running Nexa VLM inference...',
         ));
 
-        final config = await _vlmWrapper!.injectMediaPathsToConfig(
+        final config = _vlmWrapper!.injectMediaPathsToConfig(
           [chatMessage],
-          GenerationConfig(maxTokens: 256, temperature: 0.5),
+          GenerationConfig(maxTokens: 256, samplerConfig: SamplerConfig(temperature: 0.5)),
         );
 
         final buffer = StringBuffer();
-        await for (final result in _vlmWrapper!.generateStreamFlow(
+        await for (final result in _vlmWrapper!.generateStream(
           template.formattedText,
           config,
         )) {

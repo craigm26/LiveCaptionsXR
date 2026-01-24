@@ -25,6 +25,7 @@ import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/app_logger.dart';
 import 'package:live_captions_xr/core/services/nexa_asr_service.dart';
 import 'package:live_captions_xr/core/services/nexa_llm_service.dart';
+import 'package:live_captions_xr/core/models/device_model_config.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -52,6 +53,15 @@ void setupServiceLocator() {
       return AppleSpeechService();
     });
   }
+  // Register DeviceModelRegistry for device-specific model selection
+  if (!sl.isRegistered<DeviceModelRegistry>()) {
+    logger.d('📱 Registering DeviceModelRegistry in service locator', category: LogCategory.system);
+    sl.registerLazySingleton<DeviceModelRegistry>(() {
+      logger.d('📱 Creating DeviceModelRegistry instance', category: LogCategory.system);
+      return DeviceModelRegistry();
+    });
+  }
+
   // Register Nexa SDK services for NPU-accelerated AI (Android only)
   if (Platform.isAndroid) {
     if (!sl.isRegistered<NexaAsrService>()) {

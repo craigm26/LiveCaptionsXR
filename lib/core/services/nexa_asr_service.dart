@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:nexa_ai_flutter/nexa_ai_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../models/device_model_config.dart';
 import '../models/speech_config.dart';
 import '../models/speech_result.dart';
 import 'app_logger.dart';
@@ -121,10 +121,15 @@ class NexaAsrService {
   SpeechConfig _config = const SpeechConfig();
   NexaInferenceMode _inferenceMode = NexaInferenceMode.cpu;
   NexaDeviceInfo? _deviceInfo;
+  DeviceModelConfig? _deviceModelConfig;
+
+  // Device model registry for optimal model selection
+  final DeviceModelRegistry _modelRegistry = DeviceModelRegistry();
 
   // Nexa SDK ASR wrapper
   AsrWrapper? _asrWrapper;
   String? _modelPath;
+  String _currentModelName = 'parakeet'; // Default, will be overridden by registry
 
   final StreamController<SpeechResult> _speechResultController =
       StreamController<SpeechResult>.broadcast();
@@ -150,6 +155,8 @@ class NexaAsrService {
   bool get isProcessing => _isProcessing;
   NexaInferenceMode get inferenceMode => _inferenceMode;
   NexaDeviceInfo? get deviceInfo => _deviceInfo;
+  DeviceModelConfig? get deviceModelConfig => _deviceModelConfig;
+  String get currentModelName => _currentModelName;
   bool get isNpuAccelerated => _inferenceMode == NexaInferenceMode.npu;
 
   /// Check if Nexa ASR is available on this platform
@@ -169,7 +176,9 @@ class NexaAsrService {
       try {
         final models = await ModelDownloader.getAvailableModels();
         // If we can get NPU-compatible models, NPU is likely available
-        return models.any((m) => m.pluginId == 'npu');
+        return models.any((m) =>
+          m.displayName.toLowerCase().contains('npu') ||
+          m.type.toLowerCase().contains('npu'));
       } catch (_) {
         return false;
       }
@@ -248,15 +257,29 @@ class NexaAsrService {
       }
 
       _emitEvent(const NexaAsrEvent(
+        progress: 0.1,
+        message: 'Detecting device capabilities...',
+      ));
+
+      // Get optimal model configuration for this device
+      _deviceModelConfig = await _modelRegistry.getDeviceConfig();
+      _currentModelName = _deviceModelConfig!.asrModel.name;
+
+      _logger.i('📱 Device config: ${_deviceModelConfig!.deviceId}',
+          category: LogCategory.speech);
+      _logger.i('🎤 Selected ASR model: $_currentModelName (${_deviceModelConfig!.asrModel.displayName})',
+          category: LogCategory.speech);
+
+      _emitEvent(const NexaAsrEvent(
         progress: 0.2,
         message: 'Checking NPU availability...',
       ));
 
-      // Check NPU availability
+      // Check NPU availability and use device recommendation
       final npuAvailable = await isNpuAvailable();
-      _inferenceMode = preferNpu && npuAvailable
+      _inferenceMode = preferNpu && npuAvailable && _deviceModelConfig!.preferNpu
           ? NexaInferenceMode.npu
-          : NexaInferenceMode.cpu;
+          : _deviceModelConfig!.recommendedInferenceMode;
 
       _logger.i('🚀 Selected inference mode: ${_inferenceMode.name.toUpperCase()}',
           category: LogCategory.speech);
@@ -269,9 +292,9 @@ class NexaAsrService {
       // Get model path
       _modelPath = modelPath ?? await _getDefaultModelPath();
 
-      _emitEvent(const NexaAsrEvent(
+      _emitEvent(NexaAsrEvent(
         progress: 0.6,
-        message: 'Loading ASR model...',
+        message: 'Loading $_currentModelName model...',
       ));
 
       // Create ASR wrapper with appropriate plugin
@@ -280,7 +303,7 @@ class NexaAsrService {
       try {
         _asrWrapper = await AsrWrapper.create(
           AsrCreateInput(
-            modelName: 'parakeet', // Nexa's ASR model for NPU
+            modelName: _currentModelName, // Device-specific model from registry
             modelPath: _modelPath!,
             config: ModelConfig(
               maxTokens: 2048,
@@ -306,15 +329,58 @@ class NexaAsrService {
 
         return true;
       } catch (e) {
-        _logger.w('⚠️ Failed to create ASR wrapper with $pluginId, trying fallback',
+        _logger.w('⚠️ Failed to create ASR wrapper with $pluginId for $_currentModelName, trying fallbacks',
             error: e, category: LogCategory.speech);
 
-        // Try CPU fallback if NPU fails
+        // Try fallback models from registry
+        final fallbacks = _deviceModelConfig?.asrFallbacks ?? [];
+        for (final fallbackModel in fallbacks) {
+          _logger.i('🔄 Trying fallback model: ${fallbackModel.name}',
+              category: LogCategory.speech);
+
+          _emitEvent(NexaAsrEvent(
+            progress: 0.7,
+            message: 'Trying ${fallbackModel.displayName}...',
+          ));
+
+          try {
+            final fallbackPluginId = fallbackModel.supportsNpu && _inferenceMode == NexaInferenceMode.npu
+                ? 'npu'
+                : 'cpu_gpu';
+
+            _asrWrapper = await AsrWrapper.create(
+              AsrCreateInput(
+                modelName: fallbackModel.name,
+                modelPath: await _getDefaultModelPath(),
+                config: ModelConfig(maxTokens: 2048),
+                pluginId: fallbackPluginId,
+              ),
+            );
+
+            _currentModelName = fallbackModel.name;
+            _isInitialized = true;
+            _emitEvent(NexaAsrEvent(
+              progress: 1.0,
+              message: 'Nexa ASR ready (${fallbackModel.displayName})',
+              isComplete: true,
+            ));
+
+            _logger.i('✅ ASR initialized with fallback: ${fallbackModel.name}',
+                category: LogCategory.speech);
+            return true;
+          } catch (fallbackError) {
+            _logger.w('⚠️ Fallback ${fallbackModel.name} also failed',
+                error: fallbackError, category: LogCategory.speech);
+          }
+        }
+
+        // Try CPU mode as last resort with original model
         if (_inferenceMode == NexaInferenceMode.npu) {
           _inferenceMode = NexaInferenceMode.cpu;
           try {
             _asrWrapper = await AsrWrapper.create(
               AsrCreateInput(
+                modelName: _currentModelName,
                 modelPath: _modelPath!,
                 config: ModelConfig(maxTokens: 2048),
                 pluginId: 'cpu_gpu',
@@ -329,7 +395,7 @@ class NexaAsrService {
             ));
             return true;
           } catch (fallbackError) {
-            _logger.e('❌ ASR fallback also failed',
+            _logger.e('❌ All ASR fallbacks failed',
                 error: fallbackError, category: LogCategory.speech);
           }
         }

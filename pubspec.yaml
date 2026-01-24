@@ -45,7 +45,7 @@ dependencies:
   youtube_player_iframe: ^5.2.1
   # Nexa AI SDK for NPU-accelerated on-device AI (Android only)
   # For Qualcomm x Nexa On-Device AI Bounty Program
-  nexa_ai_flutter: ^0.0.2
+  nexa_ai_flutter: ^0.0.4
   # youtube_player_iframe: ^5.2.1  # Removed due to webview dependency issues
   # Add your other dependencies here
 

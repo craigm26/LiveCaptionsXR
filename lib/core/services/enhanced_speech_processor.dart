@@ -470,6 +470,10 @@ class EnhancedSpeechProcessor {
                 transcript = defaultFallbackTranscript;
               }
               break;
+            case SpeechEngine.nexa_asr:
+              // Nexa ASR uses its own streaming pipeline; flutter_sound buffer is not used
+              transcript = defaultFallbackTranscript;
+              break;
             case SpeechEngine.apple_speech:
               // Apple Speech uses continuous listening, not buffer processing
               // Results are handled via stream subscription

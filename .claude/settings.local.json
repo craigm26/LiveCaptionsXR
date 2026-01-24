@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(flutter upgrade:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(del \"c:\\\\Users\\\\CraigM\\\\source\\\\repos\\\\LiveCaptionsXR\\\\lib\\\\core\\\\services\\\\nexa_sdk_stub.dart\")",
+      "WebFetch(domain:pub.dev)",
+      "Bash(flutter analyze:*)",
+      "Bash(cmd /c \"flutter analyze lib/core/models/device_model_config.dart lib/core/services/nexa_asr_service.dart lib/core/services/nexa_llm_service.dart lib/core/di/service_locator.dart 2>&1\")",
+      "Bash(flutter run)"
+    ]
+  }
+}
