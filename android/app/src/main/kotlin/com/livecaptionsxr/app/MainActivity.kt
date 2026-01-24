@@ -33,6 +33,10 @@ class MainActivity: FlutterActivity() {
         // Register the stereo audio capture plugin
         flutterEngine.plugins.add(StereoAudioCapturePlugin())
 
+        // Register Nexa SDK plugins for on-device AI
+        flutterEngine.plugins.add(NexaAsrPlugin())
+        flutterEngine.plugins.add(NexaLlmPlugin())
+
         // Visual Capture Method Channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VISUAL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {

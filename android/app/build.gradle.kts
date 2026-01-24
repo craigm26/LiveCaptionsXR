@@ -10,6 +10,13 @@ android {
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
+    // Required for Nexa SDK native libraries
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -71,6 +78,10 @@ android {
 }
 
 dependencies {
+    // Nexa SDK for on-device AI inference (NPU/GPU/CPU)
+    // Enables ASR, LLM, and VLM on Qualcomm Hexagon NPU
+    implementation("ai.nexa:core:0.0.19")
+
     // CameraX
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
@@ -88,6 +99,9 @@ dependencies {
 
     // Guava (for ListenableFuture, etc.)
     implementation("com.google.guava:guava:31.1-android")
+
+    // Kotlin Coroutines for Nexa async operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // Sceneform (optional, if used)
     // implementation("com.gorisse.thomas.sceneform:sceneform:1.21.0")

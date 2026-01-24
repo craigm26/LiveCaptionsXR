@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 import 'package:live_captions_xr/core/services/ar_anchor_manager.dart';
@@ -21,6 +23,8 @@ import 'package:live_captions_xr/core/services/speech_localizer.dart';
 import 'package:live_captions_xr/core/services/spatial_caption_integration_service.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import 'package:live_captions_xr/core/services/app_logger.dart';
+import 'package:live_captions_xr/core/services/nexa_asr_service.dart';
+import 'package:live_captions_xr/core/services/nexa_llm_service.dart';
 // ... imports
 
 final sl = GetIt.instance;
@@ -48,6 +52,23 @@ void setupServiceLocator() {
       return AppleSpeechService();
     });
   }
+  // Register Nexa SDK services for NPU-accelerated AI (Android only)
+  if (Platform.isAndroid) {
+    if (!sl.isRegistered<NexaAsrService>()) {
+      logger.d('🚀 Registering NexaAsrService in service locator', category: LogCategory.system);
+      sl.registerLazySingleton<NexaAsrService>(() {
+        logger.d('🚀 Creating NexaAsrService instance', category: LogCategory.system);
+        return NexaAsrService();
+      });
+    }
+    if (!sl.isRegistered<NexaLlmService>()) {
+      logger.d('🚀 Registering NexaLlmService in service locator', category: LogCategory.system);
+      sl.registerLazySingleton<NexaLlmService>(() {
+        logger.d('🚀 Creating NexaLlmService instance', category: LogCategory.system);
+        return NexaLlmService();
+      });
+    }
+  }
   if (!sl.isRegistered<EnhancedSpeechProcessor>()) {
     logger.d('🔧 Registering EnhancedSpeechProcessor in service locator', category: LogCategory.system);
     sl.registerLazySingleton<EnhancedSpeechProcessor>(
@@ -56,23 +77,36 @@ void setupServiceLocator() {
         logger.d('🍎 Getting AppleSpeechService from service locator', category: LogCategory.system);
         final appleSpeech = sl<AppleSpeechService>();
         logger.d('🍎 AppleSpeechService retrieved: ${appleSpeech.runtimeType}', category: LogCategory.system);
-        
+
         logger.d('🔧 Getting Gemma3nService...', category: LogCategory.system);
         final gemma = sl<Gemma3nService>();
         logger.d('🔧 Gemma3nService OK', category: LogCategory.system);
-        
+
         logger.d('🔧 Getting AudioCaptureService...', category: LogCategory.system);
         final audio = sl<AudioCaptureService>();
         logger.d('🔧 AudioCaptureService OK', category: LogCategory.system);
-        
+
         logger.d('🔧 Getting WhisperService...', category: LogCategory.system);
         final whisper = sl<WhisperService>();
         logger.d('🔧 WhisperService OK', category: LogCategory.system);
-        
+
         logger.d('🔧 Getting FrameCaptureService...', category: LogCategory.system);
         final frame = sl<FrameCaptureService>();
         logger.d('🔧 FrameCaptureService OK', category: LogCategory.system);
-        
+
+        // Get Nexa services if available (Android only)
+        NexaAsrService? nexaAsr;
+        NexaLlmService? nexaLlm;
+        if (Platform.isAndroid) {
+          logger.d('🚀 Getting NexaAsrService...', category: LogCategory.system);
+          nexaAsr = sl.isRegistered<NexaAsrService>() ? sl<NexaAsrService>() : null;
+          logger.d('🚀 NexaAsrService: ${nexaAsr != null ? "OK" : "not available"}', category: LogCategory.system);
+
+          logger.d('🚀 Getting NexaLlmService...', category: LogCategory.system);
+          nexaLlm = sl.isRegistered<NexaLlmService>() ? sl<NexaLlmService>() : null;
+          logger.d('🚀 NexaLlmService: ${nexaLlm != null ? "OK" : "not available"}', category: LogCategory.system);
+        }
+
         logger.d('🔧 About to create EnhancedSpeechProcessor with all services...', category: LogCategory.system);
         final processor = EnhancedSpeechProcessor(
           gemma3nService: gemma,
@@ -80,6 +114,8 @@ void setupServiceLocator() {
           whisperService: whisper,
           appleSpeechService: appleSpeech,
           frameCaptureService: frame,
+          nexaAsrService: nexaAsr,
+          nexaLlmService: nexaLlm,
         );
         logger.d('🔧 EnhancedSpeechProcessor created successfully!', category: LogCategory.system);
         return processor;
