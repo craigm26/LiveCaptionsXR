@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
+import 'package:nexa_ai_flutter/nexa_ai_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'app_logger.dart';
 import 'gemma_3n_service.dart';
@@ -44,6 +45,8 @@ class NexaLlmEvent {
 /// - GPU fallback for other Android devices
 /// - CPU fallback for unsupported hardware
 ///
+/// Uses the nexa_ai_flutter package for direct Flutter integration.
+///
 /// Recommended models:
 /// - Granite-4.0-h-350M-NPU: Fast text enhancement
 /// - OmniNeural-4B: Multimodal with vision+text
@@ -52,17 +55,16 @@ class NexaLlmEvent {
 class NexaLlmService {
   static final AppLogger _logger = AppLogger.instance;
 
-  static const MethodChannel _methodChannel =
-      MethodChannel('live_captions_xr/nexa_llm');
-  static const EventChannel _eventChannel =
-      EventChannel('live_captions_xr/nexa_llm_events');
-
   bool _isInitialized = false;
+  bool _sdkInitialized = false;
   String _currentModelName = 'granite-4.0-h-350m-npu';
   NexaInferenceMode _inferenceMode = NexaInferenceMode.cpu;
   bool _supportsVision = false;
 
-  StreamSubscription? _eventSubscription;
+  // Nexa SDK wrappers
+  LlmWrapper? _llmWrapper;
+  VlmWrapper? _vlmWrapper;
+  String? _modelPath;
 
   // Cache for common phrase enhancements
   final Map<String, String> _enhancementCache = {};
@@ -98,10 +100,27 @@ class NexaLlmService {
     if (!Platform.isAndroid) return false;
 
     try {
-      final result = await _methodChannel.invokeMethod<bool>('isNpuAvailable');
-      return result ?? false;
+      final models = await ModelDownloader.getAvailableModels();
+      return models.any((m) => m.pluginId == 'npu');
     } catch (e) {
       _logger.e('Failed to check NPU availability', error: e);
+      return false;
+    }
+  }
+
+  /// Initialize the Nexa SDK
+  Future<bool> _initializeSdk() async {
+    if (_sdkInitialized) return true;
+
+    try {
+      _logger.i('🚀 Initializing Nexa SDK for LLM...', category: LogCategory.gemma);
+      await NexaSdk.getInstance().init();
+      _sdkInitialized = true;
+      _logger.i('✅ Nexa SDK initialized', category: LogCategory.gemma);
+      return true;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Failed to initialize Nexa SDK',
+          error: e, stackTrace: stackTrace, category: LogCategory.gemma);
       return false;
     }
   }
@@ -129,43 +148,132 @@ class NexaLlmService {
         message: 'Initializing Nexa LLM service...',
       ));
 
-      // Start listening to native events
-      _startEventListening();
+      // Initialize Nexa SDK first
+      final sdkReady = await _initializeSdk();
+      if (!sdkReady) {
+        _emitEvent(const NexaLlmEvent(
+          progress: 0.0,
+          message: 'Failed to initialize Nexa SDK',
+          error: 'SDK initialization failed',
+        ));
+        return;
+      }
+
+      _emitEvent(const NexaLlmEvent(
+        progress: 0.2,
+        message: 'Checking NPU availability...',
+      ));
+
+      // Check NPU availability
+      final npuAvailable = await isNpuAvailable();
+      _inferenceMode = preferNpu && npuAvailable
+          ? NexaInferenceMode.npu
+          : NexaInferenceMode.cpu;
+
+      _currentModelName = modelName;
+      _supportsVision = modelName.contains('omni') ||
+          modelName.contains('vlm') ||
+          modelName.contains('vision');
 
       _logger.i(
-          '🚀 Initializing Nexa LLM service with model: $modelName (preferNpu: $preferNpu)');
+          '🚀 Initializing Nexa LLM with model: $modelName (mode: ${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
+          category: LogCategory.gemma);
 
-      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
-        'initialize',
-        {
-          'modelPath': modelPath,
-          'modelName': modelName,
-          'preferNpu': preferNpu,
-        },
-      );
+      _emitEvent(NexaLlmEvent(
+        progress: 0.4,
+        message: 'Loading $modelName model...',
+      ));
 
-      if (result != null && result['success'] == true) {
+      // Get model path
+      _modelPath = modelPath ?? await _getDefaultModelPath(modelName);
+
+      // Create appropriate wrapper based on model type
+      final pluginId = _inferenceMode == NexaInferenceMode.npu ? 'npu' : 'cpu_gpu';
+
+      try {
+        if (_supportsVision) {
+          // Use VLM wrapper for vision models
+          _vlmWrapper = await VlmWrapper.create(
+            VlmCreateInput(
+              modelName: modelName,
+              modelPath: _modelPath!,
+              config: ModelConfig(
+                maxTokens: 2048,
+                enableThinking: false,
+              ),
+              pluginId: pluginId,
+            ),
+          );
+          _logger.i('✅ VLM wrapper created for vision support', category: LogCategory.gemma);
+        } else {
+          // Use LLM wrapper for text-only models
+          _llmWrapper = await LlmWrapper.create(
+            LlmCreateInput(
+              modelPath: _modelPath!,
+              config: ModelConfig(
+                nCtx: 4096,
+                maxTokens: 2048,
+              ),
+              pluginId: pluginId,
+            ),
+          );
+          _logger.i('✅ LLM wrapper created', category: LogCategory.gemma);
+        }
+
         _isInitialized = true;
-        _currentModelName = result['modelName'] as String? ?? modelName;
-        _inferenceMode =
-            _parseInferenceMode(result['inferenceMode'] as String?);
-        _supportsVision = result['supportsVision'] as bool? ?? false;
-
-        _logger.i(
-            '✅ Nexa LLM initialized: model=$_currentModelName, mode=${_inferenceMode.name.toUpperCase()}, vision=$_supportsVision');
 
         _emitEvent(NexaLlmEvent(
           progress: 1.0,
-          message:
-              'Nexa LLM ready (${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
+          message: 'Nexa LLM ready (${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
           isComplete: true,
         ));
-      } else {
-        throw Exception('Initialization returned failure');
+
+        _logger.i(
+            '✅ Nexa LLM initialized: model=$_currentModelName, mode=${_inferenceMode.name.toUpperCase()}, vision=$_supportsVision',
+            category: LogCategory.gemma);
+      } catch (e) {
+        _logger.w('⚠️ Failed to create wrapper with $pluginId, trying fallback',
+            error: e, category: LogCategory.gemma);
+
+        // Try CPU fallback if NPU fails
+        if (_inferenceMode == NexaInferenceMode.npu) {
+          _inferenceMode = NexaInferenceMode.cpu;
+          try {
+            if (_supportsVision) {
+              _vlmWrapper = await VlmWrapper.create(
+                VlmCreateInput(
+                  modelPath: _modelPath!,
+                  config: ModelConfig(maxTokens: 2048),
+                  pluginId: 'cpu_gpu',
+                ),
+              );
+            } else {
+              _llmWrapper = await LlmWrapper.create(
+                LlmCreateInput(
+                  modelPath: _modelPath!,
+                  config: ModelConfig(nCtx: 4096, maxTokens: 2048),
+                  pluginId: 'cpu_gpu',
+                ),
+              );
+            }
+            _isInitialized = true;
+            _emitEvent(NexaLlmEvent(
+              progress: 1.0,
+              message: 'Nexa LLM ready (CPU fallback)',
+              isComplete: true,
+            ));
+          } catch (fallbackError) {
+            _logger.e('❌ LLM fallback also failed',
+                error: fallbackError, category: LogCategory.gemma);
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Nexa LLM',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace, category: LogCategory.gemma);
 
       _emitEvent(NexaLlmEvent(
         progress: 0.0,
@@ -208,41 +316,80 @@ class NexaLlmService {
     }
 
     try {
-      _logger.d('🔮 Enhancing text with Nexa LLM: "$rawText"');
+      _logger.d('🔮 Enhancing text with Nexa LLM: "$rawText"', category: LogCategory.gemma);
 
       _emitEvent(const NexaLlmEvent(
         progress: 0.0,
         message: 'Starting text enhancement...',
       ));
 
-      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
-        'enhanceText',
-        {'text': rawText},
-      );
+      final prompt = _buildEnhancementPrompt(rawText);
 
-      if (result != null) {
-        final enhancedText = result['enhanced'] as String? ?? rawText;
+      _emitEvent(const NexaLlmEvent(
+        progress: 0.3,
+        message: 'Running Nexa LLM inference...',
+      ));
 
-        if (enhancedText != rawText && enhancedText.isNotEmpty) {
-          _addToCache(rawText, enhancedText);
+      String enhancedText = rawText;
+
+      if (_llmWrapper != null) {
+        // Use LLM streaming for text enhancement
+        final buffer = StringBuffer();
+        await for (final result in _llmWrapper!.generateStream(
+          prompt,
+          GenerationConfig(maxTokens: 128, temperature: 0.3),
+        )) {
+          if (result is LlmStreamToken) {
+            buffer.write(result.text);
+          } else if (result is LlmStreamCompleted) {
+            break;
+          } else if (result is LlmStreamError) {
+            throw result.throwable;
+          }
         }
+        enhancedText = _cleanEnhancedText(buffer.toString());
+      } else if (_vlmWrapper != null) {
+        // Use VLM for text (without image)
+        final chatMessage = VlmChatMessage('user', [
+          VlmContent('text', prompt),
+        ]);
+        final template = await _vlmWrapper!.applyChatTemplate(
+          [chatMessage],
+          null,
+          false,
+        );
 
-        _logger.d('✨ Enhanced text: "$enhancedText"');
-
-        _emitEvent(NexaLlmEvent(
-          progress: 1.0,
-          message: 'Text enhancement complete',
-          isComplete: true,
-          enhancedText: enhancedText,
-        ));
-
-        return enhancedText;
-      } else {
-        return rawText;
+        final buffer = StringBuffer();
+        await for (final result in _vlmWrapper!.generateStreamFlow(
+          template.formattedText,
+          GenerationConfig(maxTokens: 128, temperature: 0.3),
+        )) {
+          if (result is LlmStreamToken) {
+            buffer.write(result.text);
+          } else if (result is LlmStreamCompleted) {
+            break;
+          }
+        }
+        enhancedText = _cleanEnhancedText(buffer.toString());
       }
+
+      if (enhancedText != rawText && enhancedText.isNotEmpty) {
+        _addToCache(rawText, enhancedText);
+      }
+
+      _logger.d('✨ Enhanced text: "$enhancedText"', category: LogCategory.gemma);
+
+      _emitEvent(NexaLlmEvent(
+        progress: 1.0,
+        message: 'Text enhancement complete',
+        isComplete: true,
+        enhancedText: enhancedText,
+      ));
+
+      return enhancedText;
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to enhance text',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace, category: LogCategory.gemma);
 
       _emitEvent(NexaLlmEvent(
         progress: 0.0,
@@ -266,43 +413,88 @@ class NexaLlmService {
 
     if (imageData != null && !_supportsVision) {
       _logger.w("Current model doesn't support vision, using text-only inference");
+      return await enhanceText(text);
+    }
+
+    if (_vlmWrapper == null) {
+      _logger.w('VLM wrapper not available, using text-only enhancement');
+      return await enhanceText(text);
     }
 
     try {
-      _logger.d('🧠 Performing multimodal inference for text: "$text"');
+      _logger.d('🧠 Performing multimodal inference for text: "$text"', category: LogCategory.gemma);
 
       _emitEvent(const NexaLlmEvent(
         progress: 0.0,
         message: 'Starting multimodal enhancement...',
       ));
 
-      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
-        'multimodalInference',
-        {
-          'text': text,
-          'imageData': imageData,
-        },
-      );
+      // Save image to temp file if provided
+      String? imagePath;
+      File? tempImageFile;
+      if (imageData != null) {
+        final tempDir = await getTemporaryDirectory();
+        tempImageFile = File('${tempDir.path}/nexa_image_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        await tempImageFile.writeAsBytes(imageData);
+        imagePath = tempImageFile.path;
+      }
 
-      if (result != null) {
-        final enhancedText = result['result'] as String? ?? text;
+      try {
+        final contents = <VlmContent>[
+          if (imagePath != null) VlmContent('image', imagePath),
+          VlmContent('text', text),
+        ];
 
-        _logger.d('🔍 Multimodal inference response: $enhancedText');
+        final chatMessage = VlmChatMessage('user', contents);
+        final template = await _vlmWrapper!.applyChatTemplate(
+          [chatMessage],
+          null,
+          false,
+        );
+
+        _emitEvent(const NexaLlmEvent(
+          progress: 0.5,
+          message: 'Running Nexa VLM inference...',
+        ));
+
+        final config = await _vlmWrapper!.injectMediaPathsToConfig(
+          [chatMessage],
+          GenerationConfig(maxTokens: 256, temperature: 0.5),
+        );
+
+        final buffer = StringBuffer();
+        await for (final result in _vlmWrapper!.generateStreamFlow(
+          template.formattedText,
+          config,
+        )) {
+          if (result is LlmStreamToken) {
+            buffer.write(result.text);
+          } else if (result is LlmStreamCompleted) {
+            break;
+          }
+        }
+
+        final response = _cleanEnhancedText(buffer.toString());
+
+        _logger.d('🔍 Multimodal inference response: $response', category: LogCategory.gemma);
 
         _emitEvent(NexaLlmEvent(
           progress: 1.0,
           message: 'Multimodal enhancement complete',
           isComplete: true,
-          enhancedText: enhancedText,
+          enhancedText: response,
         ));
 
-        return enhancedText;
+        return response;
+      } finally {
+        // Clean up temp image file
+        try {
+          await tempImageFile?.delete();
+        } catch (_) {}
       }
-
-      return text;
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to perform multimodal inference',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace, category: LogCategory.gemma);
 
       _emitEvent(NexaLlmEvent(
         progress: 0.0,
@@ -320,7 +512,19 @@ class NexaLlmService {
     required Uint8List imageData,
     String? spatialDirection,
   }) async {
-    return await multimodalInference(text: text, imageData: imageData) ?? text;
+    final prompt = '''Enhance this caption with visual context from the image:
+
+Original: "$text"
+
+Provide an enhanced caption that:
+- Keeps the original meaning intact
+- Adds relevant visual details from the image
+- Mentions spatial context if applicable
+- Remains natural and concise
+
+Enhanced:''';
+
+    return await multimodalInference(text: prompt, imageData: imageData) ?? text;
   }
 
   /// Analyze an image to provide scene description for visual context
@@ -331,7 +535,7 @@ class NexaLlmService {
     }
 
     try {
-      _logger.d('📸 Analyzing image for context (${imageData.length} bytes)');
+      _logger.d('📸 Analyzing image for context (${imageData.length} bytes)', category: LogCategory.gemma);
 
       final result = await multimodalInference(
         text: 'Describe this scene briefly in 1-2 sentences, focusing on main objects, activities, setting, and any visible text.',
@@ -345,78 +549,23 @@ class NexaLlmService {
     }
   }
 
-  /// Generate a custom response from the LLM
-  Future<String?> generateResponse({
-    required String prompt,
-    int maxTokens = 256,
-    double temperature = 0.7,
-  }) async {
-    if (!_isInitialized) {
-      _logger.w('Nexa LLM not initialized');
-      return null;
-    }
-
-    try {
-      _logger.d('💬 Generating response for prompt');
-
-      _emitEvent(const NexaLlmEvent(
-        progress: 0.0,
-        message: 'Generating response...',
-      ));
-
-      final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
-        'generateResponse',
-        {
-          'prompt': prompt,
-          'maxTokens': maxTokens,
-          'temperature': temperature,
-        },
-      );
-
-      if (result != null) {
-        final response = result['response'] as String?;
-
-        _emitEvent(NexaLlmEvent(
-          progress: 1.0,
-          message: 'Response generated',
-          isComplete: true,
-          enhancedText: response,
-        ));
-
-        return response;
-      }
-
-      return null;
-    } catch (e, stackTrace) {
-      _logger.e('❌ Failed to generate response',
-          error: e, stackTrace: stackTrace);
-
-      _emitEvent(NexaLlmEvent(
-        progress: 0.0,
-        message: 'Failed to generate response',
-        error: e,
-      ));
-
-      return null;
-    }
-  }
-
   /// Clear the enhancement cache
   void clearCache() {
     _enhancementCache.clear();
-    if (Platform.isAndroid && _isInitialized) {
-      _methodChannel.invokeMethod('clearCache');
-    }
     _logger.d('🧹 Enhancement cache cleared');
   }
 
   /// Dispose resources
   Future<void> dispose() async {
     try {
-      await _eventSubscription?.cancel();
+      if (_llmWrapper != null) {
+        await _llmWrapper!.destroy();
+        _llmWrapper = null;
+      }
 
-      if (Platform.isAndroid) {
-        await _methodChannel.invokeMethod('dispose');
+      if (_vlmWrapper != null) {
+        await _vlmWrapper!.destroy();
+        _vlmWrapper = null;
       }
 
       _enhancementCache.clear();
@@ -424,74 +573,34 @@ class NexaLlmService {
       await _nexaEventController.close();
 
       _isInitialized = false;
-      _logger.i('🗑️ Nexa LLM service disposed');
+      _logger.i('🗑️ Nexa LLM service disposed', category: LogCategory.gemma);
     } catch (e, stackTrace) {
       _logger.e('Error disposing Nexa LLM service',
           error: e, stackTrace: stackTrace);
     }
   }
 
-  /// Start listening to native events
-  void _startEventListening() {
-    _eventSubscription = _eventChannel
-        .receiveBroadcastStream()
-        .listen(_handleNativeEvent, onError: _handleNativeError);
+  /// Build enhancement prompt
+  String _buildEnhancementPrompt(String rawText) {
+    return '''Improve the following transcription by adding punctuation, correcting errors, and ensuring proper capitalization.
+Raw: "$rawText"
+Enhanced:''';
   }
 
-  /// Handle native events from Nexa SDK
-  void _handleNativeEvent(dynamic event) {
-    if (event is Map) {
-      final type = event['type'] as String?;
-      final data = event['data'] as Map<dynamic, dynamic>?;
-
-      _logger.d('Nexa LLM event: $type');
-
-      switch (type) {
-        case 'status':
-        case 'enhancing':
-        case 'inference':
-        case 'generating':
-          _emitEvent(NexaLlmEvent(
-            progress: (data?['progress'] as num?)?.toDouble() ?? 0.0,
-            message: data?['message'] as String? ?? '',
-            isComplete: data?['isComplete'] as bool? ?? false,
-          ));
-          break;
-
-        case 'enhancement':
-        case 'inferenceResult':
-        case 'generated':
-          final enhancedText = data?['enhanced'] as String? ??
-              data?['result'] as String? ??
-              data?['response'] as String?;
-
-          _emitEvent(NexaLlmEvent(
-            progress: 1.0,
-            message: 'Processing complete',
-            isComplete: true,
-            enhancedText: enhancedText,
-          ));
-          break;
-
-        case 'error':
-          _emitEvent(NexaLlmEvent(
-            progress: 0.0,
-            message: data?['message'] as String? ?? 'Unknown error',
-            error: data?['message'],
-          ));
-          break;
-      }
+  /// Clean enhanced text output
+  String _cleanEnhancedText(String text) {
+    var cleaned = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
     }
+    return cleaned;
   }
 
-  /// Handle native errors
-  void _handleNativeError(dynamic error) {
-    _logger.e('Nexa LLM native error', error: error);
-    _emitEvent(NexaLlmEvent(
-      progress: 0.0,
-      message: 'Native error occurred',
-      error: error,
-    ));
+  /// Get the default model path for the specified model
+  Future<String> _getDefaultModelPath(String modelName) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    return '${appDir.path}/models/$modelName';
   }
 
   /// Emit event to all streams
@@ -506,17 +615,5 @@ class NexaLlmService {
       _enhancementCache.remove(_enhancementCache.keys.first);
     }
     _enhancementCache[original] = enhanced;
-  }
-
-  /// Parse inference mode from string
-  NexaInferenceMode _parseInferenceMode(String? mode) {
-    switch (mode?.toUpperCase()) {
-      case 'NPU':
-        return NexaInferenceMode.npu;
-      case 'GPU':
-        return NexaInferenceMode.gpu;
-      default:
-        return NexaInferenceMode.cpu;
-    }
   }
 }
