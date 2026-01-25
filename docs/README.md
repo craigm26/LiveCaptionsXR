@@ -18,7 +18,6 @@ LiveCaptionsXR is an AR-powered accessibility application that provides real-tim
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design patterns
 - **[TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md)** - Comprehensive technical implementation details
 - **[TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md)** - Detailed technical reference
-- **[HACKATHON_SUBMISSION.md](HACKATHON_SUBMISSION.md)** - Project description and hackathon submission
 
 ### Implementation Guides
 
@@ -84,9 +83,8 @@ LiveCaptionsXR is an AR-powered accessibility application that provides real-tim
 
 ### For Project Understanding
 
-1. **[HACKATHON_SUBMISSION.md](HACKATHON_SUBMISSION.md)** - Project vision and goals
-2. **[prd/](../prd/)** - Product requirements and specifications
-3. **[README.md](../README.md)** - Main project overview
+1. **[prd/](../prd/)** - Product requirements and specifications
+2. **[README.md](../README.md)** - Main project overview
 
 ## 🔧 Development Workflow
 

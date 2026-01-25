@@ -29,9 +29,6 @@ import 'app_logger.dart';
 ///
 /// This service showcases how we integrate Gemma 3n's audio capabilities
 /// with visual context for comprehensive environmental understanding.
-///
-/// For Google Gemma 3n Hackathon: This demonstrates the multimodal fusion
-/// that makes our accessibility solution uniquely powerful.
 class AudioService {
   static final AppLogger _logger = AppLogger.instance;
 

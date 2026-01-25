@@ -1,10 +1,7 @@
 /// Model representing a visually detected object with accessibility context
-/// 
+///
 /// This model demonstrates how we structure visual data for Gemma 3n integration,
 /// providing spatial and contextual information crucial for accessibility applications.
-/// 
-/// For Google Gemma 3n Hackathon: Shows comprehensive visual object modeling
-/// that supports multimodal understanding and spatial reasoning.
 import 'dart:ui';
 import 'multimodal_event.dart';
 
@@ -12,9 +9,6 @@ import 'multimodal_event.dart';
 ///
 /// This model demonstrates how we structure visual data for Gemma 3n integration,
 /// providing spatial and contextual information crucial for accessibility applications.
-///
-/// For Google Gemma 3n Hackathon: Shows comprehensive visual object modeling
-/// that supports multimodal understanding and spatial reasoning.
 class VisualObject extends MultimodalEvent {
   /// Object label/category (e.g., 'microwave', 'door', 'person')
   final String label;

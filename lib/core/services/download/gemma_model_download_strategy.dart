@@ -17,16 +17,21 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
   bool _downloadCancelled = false;
 
   // Model URL mappings (HuggingFace)
+  // Note: ?download=true is required for direct file downloads from HuggingFace
   static const Map<String, _GemmaModelConfig> _modelConfigs = {
     'gemma-3n-E2B-it-int4': _GemmaModelConfig(
       displayName: 'Gemma 3N E2B (Efficient)',
-      url: 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+      fileName: 'gemma-3n-E2B-it-int4.task',
+      url: 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task?download=true',
+      modelCardUrl: 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview',
       estimatedSizeMb: 2920,
       supportsVision: false,
     ),
     'gemma-3n-E4B-it-int4': _GemmaModelConfig(
       displayName: 'Gemma 3N E4B (Multimodal)',
-      url: 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+      fileName: 'gemma-3n-E4B-it-int4.task',
+      url: 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task?download=true',
+      modelCardUrl: 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview',
       estimatedSizeMb: 4100,
       supportsVision: true,
     ),
@@ -257,6 +262,7 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
   }
 
   /// Download model using HTTP (fallback method)
+  /// Following gemma-vision pattern: download to app documents directory
   Stream<UnifiedDownloadProgress> _downloadWithHttp(
     String modelId,
     _GemmaModelConfig config,
@@ -264,8 +270,10 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
     final modelPath = await _getGemmaModelPath(modelId);
     final file = File(modelPath);
 
-    // Create directory if needed
-    await file.parent.create(recursive: true);
+    // Ensure parent directory exists (though for root app dir this is usually not needed)
+    if (!await file.parent.exists()) {
+      await file.parent.create(recursive: true);
+    }
 
     // Use HTTP to download
     final client = HttpClient();
@@ -368,7 +376,12 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
 
   Future<String> _getGemmaModelPath(String modelId) async {
     final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/models/$modelId.task';
+    final config = _modelConfigs[modelId];
+    // Use the actual filename from config, or fall back to modelId.task
+    final fileName = config?.fileName ?? '$modelId.task';
+    // Store in app documents directory (same as gemma-vision)
+    // Note: flutter_gemma's modelManager.setModelPath() points to this location
+    return '${dir.path}/$fileName';
   }
 
   @override
@@ -410,13 +423,17 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
 /// Internal model configuration
 class _GemmaModelConfig {
   final String displayName;
+  final String fileName;
   final String url;
+  final String modelCardUrl;
   final int estimatedSizeMb;
   final bool supportsVision;
 
   const _GemmaModelConfig({
     required this.displayName,
+    required this.fileName,
     required this.url,
+    required this.modelCardUrl,
     required this.estimatedSizeMb,
     required this.supportsVision,
   });

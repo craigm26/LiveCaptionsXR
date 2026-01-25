@@ -11,7 +11,11 @@
       "Bash(cmd /c \"flutter analyze lib/core/models/device_model_config.dart lib/core/services/nexa_asr_service.dart lib/core/services/nexa_llm_service.dart lib/core/di/service_locator.dart 2>&1\")",
       "Bash(flutter run)",
       "Bash(find:*)",
-      "Bash(flutter.bat analyze:*)"
+      "Bash(flutter.bat analyze:*)",
+      "Bash(gh api:*)",
+      "Bash(flutter pub:*)",
+      "Bash(cmd /c \"flutter analyze 2>&1 | head -50\")",
+      "Bash(/c/Users/CraigM/fvm/default/bin/flutter.bat analyze:*)"
     ]
   }
 }

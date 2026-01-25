@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart' as gemma_model;
+import 'package:flutter_gemma/pigeon.g.dart' show PreferredBackend;
 
 import '../di/service_locator.dart';
 import 'app_logger.dart';
@@ -213,47 +214,58 @@ class Gemma3nService {
   }
 
   /// Create model with fallback configurations to handle iOS XNNPACK crashes
+  /// Following gemma-vision pattern: try GPU first, then CPU as fallback
   Future<InferenceModel?> _createModelWithFallback(
     FlutterGemmaPlugin gemmaPlugin,
-    String modelKey,
-  ) async {
+    String modelKey, {
+    PreferredBackend? preferredBackend,
+  }) async {
     final configs = [
       _currentConfig!,
       _iosConfig.getDeviceOptimizedConfig(),
       _iosConfig.getFallbackConfig(),
     ];
 
-    for (int i = 0; i < configs.length; i++) {
-      final config = configs[i];
-      try {
-        _logger.i('🔄 Trying configuration ${i + 1}/${configs.length} for $modelKey',
-            category: LogCategory.gemma);
-        _iosConfig.logConfiguration(config, modelKey);
+    // Backend fallback order: GPU -> CPU (following gemma-vision pattern)
+    final backends = preferredBackend != null
+        ? [preferredBackend]
+        : [PreferredBackend.gpu, PreferredBackend.cpu];
 
-        // Add timeout to prevent freezing during model creation
-        final model = await gemmaPlugin
-            .createModel(
-              modelType: gemma_model.ModelType.gemmaIt,
-              maxTokens: config.maxTokens,
-              supportImage: config.maxNumImages > 0,
-              maxNumImages: config.maxNumImages,
-            )
-            .timeout(Duration(seconds: 300)); // 5 minutes timeout
+    for (final backend in backends) {
+      for (int i = 0; i < configs.length; i++) {
+        final config = configs[i];
+        try {
+          _logger.i('🔄 Trying backend ${backend.name}, config ${i + 1}/${configs.length} for $modelKey',
+              category: LogCategory.gemma);
+          _iosConfig.logConfiguration(config, modelKey);
 
-        _logger.i('✅ Model created successfully with configuration ${i + 1}',
-            category: LogCategory.gemma);
-        _currentConfig = config;
-        return model;
-      } catch (e) {
-        _logger.w('⚠️ Configuration ${i + 1} failed: $e', category: LogCategory.gemma);
-        
-        // If this is the last configuration, rethrow the error
-        if (i == configs.length - 1) {
-          rethrow;
+          // Add timeout to prevent freezing during model creation
+          // Using gemma-vision's createModel pattern with preferredBackend
+          final model = await gemmaPlugin
+              .createModel(
+                preferredBackend: backend,
+                modelType: gemma_model.ModelType.gemmaIt,
+                maxTokens: config.maxTokens,
+                supportImage: config.maxNumImages > 0,
+                maxNumImages: config.maxNumImages,
+              )
+              .timeout(Duration(seconds: 300)); // 5 minutes timeout
+
+          _logger.i('✅ Model created successfully with backend ${backend.name}, config ${i + 1}',
+              category: LogCategory.gemma);
+          _currentConfig = config;
+          return model;
+        } catch (e) {
+          _logger.w('⚠️ Backend ${backend.name}, config ${i + 1} failed: $e', category: LogCategory.gemma);
+
+          // If this is the last configuration for the last backend, rethrow
+          if (backend == backends.last && i == configs.length - 1) {
+            rethrow;
+          }
+
+          // Brief delay between attempts
+          await Future.delayed(Duration(seconds: 1));
         }
-        
-        // Otherwise, continue to next configuration
-        await Future.delayed(Duration(seconds: 2)); // Brief delay between attempts
       }
     }
 

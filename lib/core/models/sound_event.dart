@@ -4,9 +4,6 @@ import 'multimodal_event.dart';
 ///
 /// This model demonstrates how we structure data for Gemma 3n integration,
 /// combining audio analysis with spatial and visual context for accessibility.
-///
-/// For Google Gemma 3n Hackathon: Shows comprehensive event modeling
-/// that leverages Gemma 3n's multimodal understanding capabilities.
 class SoundEvent extends MultimodalEvent {
   /// Type of sound detected (e.g., 'doorbell', 'fire alarm', 'voice')
   final String type;

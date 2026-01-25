@@ -12,8 +12,6 @@ import 'app_logger.dart';
 ///
 /// This service shows how we use Gemma 3n's MobileNet-V5 vision encoder
 /// for sophisticated object detection and scene understanding in accessibility contexts.
-///
-/// For Google Gemma 3n Hackathon: Demonstrates vision component of multimodal AI
 class VisualIdentificationService {
   static final AppLogger _logger = AppLogger.instance;
 
