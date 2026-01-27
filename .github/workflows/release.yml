@@ -1,0 +1,37 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          channel: 'master'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Build release APK
+        run: flutter build apk --release
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk LiveCaptionsXR.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LiveCaptionsXR.apk
+          generate_release_notes: true

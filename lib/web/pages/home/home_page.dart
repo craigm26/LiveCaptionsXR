@@ -99,6 +99,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             _buildTestFlightSection(context, screenSize),
             // let's build a open source section
             _buildOpenSourceSection(context, screenSize),
+            _buildDownloadsCallout(context, screenSize),
             //_buildCtaSection(context, screenSize),
           ],
         ),
@@ -985,6 +986,58 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDownloadsCallout(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
+      ),
+      color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
+      child: Column(
+        children: [
+          Text(
+            'Download Our Apps',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Text(
+            'Get LiveCaptionsXR and ContinuonXR — both powered by Nexa SDK for on-device AI.',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey[600],
+                  height: 1.4,
+                  fontSize: isMobile ? 14 : 16,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: isMobile ? 20 : 28),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/downloads'),
+            icon: const Icon(Icons.download),
+            label: const Text('View Downloads'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 24 : 32,
+                vertical: isMobile ? 14 : 18,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

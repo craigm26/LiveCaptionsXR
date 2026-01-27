@@ -161,6 +161,12 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
           route: '/docs',
           selected: location == '/docs',
         ),
+        SizedBox(width: spacing),
+        _NavLink(
+          label: 'Downloads',
+          route: '/downloads',
+          selected: location == '/downloads',
+        ),
       ],
     );
   }
@@ -409,6 +415,15 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                         onTap: () {
                           Navigator.of(context).pop();
                           context.go('/docs');
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.download_rounded,
+                        title: 'Downloads',
+                        selected: location == '/downloads',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/downloads');
                         },
                       ),
                       const Divider(),
