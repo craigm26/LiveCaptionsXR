@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get_it/get_it.dart';
 import 'package:live_captions_xr/core/services/audio_capture_service.dart';
 import 'package:live_captions_xr/core/services/ar_anchor_manager.dart';
@@ -86,8 +85,8 @@ void setupServiceLocator() {
     });
   }
 
-  // Register Nexa SDK services for NPU-accelerated AI (Android only)
-  if (Platform.isAndroid) {
+  // Register Nexa SDK services for NPU-accelerated AI (Android only, not web)
+  if (!kIsWeb) {
     if (!sl.isRegistered<NexaAsrService>()) {
       logger.d('🚀 Registering NexaAsrService in service locator', category: LogCategory.system);
       sl.registerLazySingleton<NexaAsrService>(() {
@@ -128,10 +127,10 @@ void setupServiceLocator() {
         final frame = sl<FrameCaptureService>();
         logger.d('🔧 FrameCaptureService OK', category: LogCategory.system);
 
-        // Get Nexa services if available (Android only)
+        // Get Nexa services if available (Android only, not web)
         NexaAsrService? nexaAsr;
         NexaLlmService? nexaLlm;
-        if (Platform.isAndroid) {
+        if (!kIsWeb) {
           logger.d('🚀 Getting NexaAsrService...', category: LogCategory.system);
           nexaAsr = sl.isRegistered<NexaAsrService>() ? sl<NexaAsrService>() : null;
           logger.d('🚀 NexaAsrService: ${nexaAsr != null ? "OK" : "not available"}', category: LogCategory.system);
@@ -175,7 +174,8 @@ void setupServiceLocator() {
       hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
     ));
   }
-  if (!sl.isRegistered<GoogleAuthService>()) {
+  // Skip GoogleAuthService on web (requires OAuth client ID configuration)
+  if (!kIsWeb && !sl.isRegistered<GoogleAuthService>()) {
     sl.registerLazySingleton<GoogleAuthService>(() => GoogleAuthService());
   }
   if (!sl.isRegistered<AudioCaptureService>()) {
