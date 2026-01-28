@@ -103,3 +103,8 @@ build/web/assets/assets/models/gemma-3n-E4B-it-int4.task
 
 # Ignore all .dill files
 *.dill
+
+# Signing
+android/app/key.properties
+android/app/upload-keystore.jks
+*.jks
