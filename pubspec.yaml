@@ -1,7 +1,7 @@
 # Use whisper_ggml 1.3.0 for iOS compatibility
 dependency_overrides:
-  whisper_ggml: 1.3.0
-  ffmpeg_kit_flutter_new: 1.6.1
+  whisper_ggml:
+    path: plugins/whisper_ggml_patched
 publish_to: none
 
 name: live_captions_xr
