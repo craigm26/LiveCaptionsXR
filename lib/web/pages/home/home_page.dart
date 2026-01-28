@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
 import '../../utils/google_play_utils.dart';
@@ -21,27 +20,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _pulseAnimation;
-  
-  // YouTube player controller
-  late YoutubePlayerController _youtubeController;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize YouTube player controller
-    _youtubeController = YoutubePlayerController.fromVideoId(
-      videoId: 'Oz8nzt2cc3Q', // Extracted from https://youtu.be/Oz8nzt2cc3Q
-      autoPlay: false,
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-        enableCaption: true,
-        mute: false,
-      ),
-    );
-
-    // Use optimized animation durations from performance config
     _fadeController = AnimationController(
       duration: WebPerformanceConfig.normalAnimationDuration,
       vsync: this,
@@ -66,7 +49,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Start animations
     _fadeController.forward();
     _slideController.forward();
     _pulseController.repeat(reverse: true);
@@ -77,15 +59,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _fadeController.dispose();
     _slideController.dispose();
     _pulseController.dispose();
-    _youtubeController.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = ResponsiveUtils.getScreenSize(context);
-    final isMobile = ResponsiveUtils.isMobile(context);
-    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
@@ -93,14 +72,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         child: Column(
           children: [
             _buildHeroSection(context, screenSize),
-            _buildYoutubeEmbedSection(context, screenSize),
+            _buildDownloadSection(context, screenSize),
             _buildTechnologyHighlights(context, screenSize),
             _buildFeaturesPreview(context, screenSize),
-            _buildTestFlightSection(context, screenSize),
-            // let's build a open source section
+            _buildSnapdragonSection(context, screenSize),
             _buildOpenSourceSection(context, screenSize),
-            _buildDownloadsCallout(context, screenSize),
-            //_buildCtaSection(context, screenSize),
           ],
         ),
       ),
@@ -134,7 +110,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           opacity: _fadeAnimation,
           child: Row(
             children: [
-              // Logo with pulse animation
               AnimatedBuilder(
                 animation: _pulseAnimation,
                 builder: (context, child) {
@@ -145,9 +120,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context)
-                                .primaryColor
-                                .withValues(alpha: 0.3),
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -182,7 +155,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                     SizedBox(height: isMobile ? 8 : 12),
                     Text(
-                      'Advanced accessibility application providing real-time, spatially-aware closed captioning with platform-specific speech recognition and on-device AI.',
+                      'Real-time, spatially-aware closed captioning powered by on-device AI. Optimized for Qualcomm Snapdragon devices with NPU acceleration.',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.grey[600],
                             height: 1.4,
@@ -195,10 +168,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       runSpacing: isMobile ? 8 : 12,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => context.go('/features'),
-                          icon: const Icon(Icons.explore),
+                          onPressed: () => context.go('/downloads'),
+                          icon: const Icon(Icons.download),
                           label: Text(
-                            isMobile ? 'Features' : 'Explore Features',
+                            'Download Now',
                             style: TextStyle(fontSize: isMobile ? 14 : 16),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -214,10 +187,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ),
                         ),
                         OutlinedButton.icon(
-                          onPressed: () => context.go('/technology'),
-                          icon: const Icon(Icons.psychology),
+                          onPressed: () => context.go('/features'),
+                          icon: const Icon(Icons.explore),
                           label: Text(
-                            isMobile ? 'Technology' : 'Learn Technology',
+                            'Explore Features',
                             style: TextStyle(fontSize: isMobile ? 14 : 16),
                           ),
                           style: OutlinedButton.styleFrom(
@@ -240,6 +213,358 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDownloadSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.03),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Get the App',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Text(
+            'Available on iOS, Android, and optimized APKs for Snapdragon devices with Nexa SDK',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey[600],
+                  fontSize: isMobile ? 14 : 16,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: isMobile ? 24 : 32),
+          Wrap(
+            spacing: isMobile ? 12 : 16,
+            runSpacing: isMobile ? 12 : 16,
+            alignment: WrapAlignment.center,
+            children: [
+              // iOS TestFlight
+              _buildDownloadButton(
+                context,
+                icon: Icons.apple,
+                label: 'iOS TestFlight',
+                subtitle: 'iPhone & iPad',
+                color: Colors.black87,
+                onPressed: () async {
+                  try {
+                    await TestFlightUtils.openTestFlight();
+                  } catch (e) {
+                    debugPrint('Could not open TestFlight: $e');
+                  }
+                },
+                isMobile: isMobile,
+              ),
+              // Google Play
+              _buildDownloadButton(
+                context,
+                icon: Icons.android,
+                label: 'Google Play',
+                subtitle: 'Android Devices',
+                color: Colors.green[700]!,
+                onPressed: () async {
+                  try {
+                    await GooglePlayUtils.openGooglePlayBeta();
+                  } catch (e) {
+                    debugPrint('Could not open Google Play: $e');
+                  }
+                },
+                isMobile: isMobile,
+              ),
+              // Snapdragon APK
+              _buildDownloadButton(
+                context,
+                icon: Icons.memory,
+                label: 'Snapdragon APK',
+                subtitle: 'Nexa NPU Optimized',
+                color: Colors.deepOrange,
+                onPressed: () => context.go('/downloads'),
+                isMobile: isMobile,
+                highlighted: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDownloadButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onPressed,
+    required bool isMobile,
+    bool highlighted = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: highlighted
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: highlighted ? color : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 20 : 28,
+              vertical: isMobile ? 16 : 20,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: highlighted ? null : Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: isMobile ? 28 : 32,
+                  color: highlighted ? Colors.white : color,
+                ),
+                SizedBox(width: isMobile ? 12 : 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: isMobile ? 16 : 18,
+                        fontWeight: FontWeight.bold,
+                        color: highlighted ? Colors.white : Colors.grey[800],
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: isMobile ? 12 : 14,
+                        color: highlighted ? Colors.white70 : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSnapdragonSection(BuildContext context, ScreenSize screenSize) {
+    final isMobile = screenSize == ScreenSize.mobile;
+    final isTablet = screenSize == ScreenSize.tablet;
+    
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getHorizontalPadding(context),
+        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.deepOrange.withValues(alpha: 0.05),
+            Colors.orange.withValues(alpha: 0.03),
+            Colors.white,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.memory, size: isMobile ? 32 : 40, color: Colors.deepOrange),
+              SizedBox(width: isMobile ? 12 : 16),
+              Text(
+                'Optimized for Snapdragon',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                      fontSize: isMobile ? 22 : isTablet ? 26 : 30,
+                    ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 16 : 20),
+          Container(
+            constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
+            child: Text(
+              'Our Nexa SDK-powered APK runs AI directly on the Qualcomm Hexagon NPU for 2x faster inference and 9x better power efficiency compared to CPU/GPU.',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
+                    height: 1.5,
+                    fontSize: isMobile ? 15 : 17,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: isMobile ? 24 : 32),
+          // Supported Devices
+          Text(
+            'Supported Devices',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                  fontSize: isMobile ? 18 : 20,
+                ),
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Wrap(
+            spacing: isMobile ? 8 : 12,
+            runSpacing: isMobile ? 8 : 12,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildDeviceChip(context, 'Snapdragon 8 Gen 3', isMobile),
+              _buildDeviceChip(context, 'Snapdragon 8 Gen 2', isMobile),
+              _buildDeviceChip(context, 'Snapdragon 8+ Gen 1', isMobile),
+              _buildDeviceChip(context, 'Samsung Galaxy S24/S23', isMobile),
+              _buildDeviceChip(context, 'OnePlus 12/11', isMobile),
+              _buildDeviceChip(context, 'Xiaomi 14/13', isMobile),
+              _buildDeviceChip(context, 'Android XR Devices', isMobile),
+            ],
+          ),
+          SizedBox(height: isMobile ? 24 : 32),
+          // Installation Steps
+          Container(
+            constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'How to Install',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                ),
+                SizedBox(height: isMobile ? 12 : 16),
+                _buildInstallStep(context, '1', 'Download the APK from the Downloads page', isMobile),
+                _buildInstallStep(context, '2', 'On your device: Settings → Security → Enable "Install unknown apps"', isMobile),
+                _buildInstallStep(context, '3', 'Open the downloaded APK and tap Install', isMobile),
+                _buildInstallStep(context, '4', 'Grant microphone and camera permissions when prompted', isMobile),
+              ],
+            ),
+          ),
+          SizedBox(height: isMobile ? 20 : 28),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/downloads'),
+            icon: const Icon(Icons.download),
+            label: const Text('Download Snapdragon APK'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 24 : 32,
+                vertical: isMobile ? 14 : 18,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceChip(BuildContext context, String label, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 16,
+        vertical: isMobile ? 8 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.deepOrange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.deepOrange.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: isMobile ? 13 : 14,
+          fontWeight: FontWeight.w500,
+          color: Colors.deepOrange[800],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInstallStep(BuildContext context, String number, String text, bool isMobile) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isMobile ? 10 : 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: isMobile ? 24 : 28,
+            height: isMobile ? 24 : 28,
+            decoration: BoxDecoration(
+              color: Colors.deepOrange,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: isMobile ? 12 : 14,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: isMobile ? 10 : 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: isMobile ? 14 : 15,
+                color: Colors.grey[700],
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -270,7 +595,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
             ),
             child: Text(
-              'Live Captions XR combines cutting-edge on-device AI technologies to deliver the most advanced accessibility experience.',
+              'Combining cutting-edge on-device AI technologies for the most advanced accessibility experience.',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.grey[600],
                     height: 1.4,
@@ -293,26 +618,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             itemBuilder: (context, index) {
               final technologies = [
                 {
-                  'title': 'Platform Speech Recognition',
-                  'description': 'Android: whisper_ggml with Whisper base model. iOS: Native Apple Speech Recognition framework for optimal performance.',
+                  'title': 'Nexa ASR on NPU',
+                  'description': 'Whisper-based speech recognition accelerated on Qualcomm Hexagon NPU for real-time transcription with minimal battery drain.',
                   'icon': Icons.mic,
                   'color': Colors.blue,
                 },
                 {
                   'title': 'Gemma 3n Multimodal AI',
-                  'description': 'Google\'s state-of-the-art multimodal AI for contextual enhancement, visual understanding, and intelligent caption generation.',
+                  'description': 'Google\'s multimodal AI for contextual enhancement, visual understanding, and intelligent caption generation.',
                   'icon': Icons.psychology,
                   'color': Colors.green,
                 },
                 {
                   'title': 'Hybrid Localization',
-                  'description': 'Advanced stereo audio with GCC-PHAT direction estimation and Kalman filter fusion for precise speaker positioning.',
+                  'description': 'Stereo audio with GCC-PHAT direction estimation and Kalman filter fusion for precise speaker positioning.',
                   'icon': Icons.hearing,
                   'color': Colors.purple,
                 },
                 {
                   'title': 'AR Spatial Captions',
-                  'description': 'Real-time face detection and speaker identification using ARKit/ARCore for 3D spatial caption placement.',
+                  'description': 'ARKit/ARCore-powered face detection for 3D spatial caption placement at the speaker\'s location.',
                   'icon': Icons.visibility,
                   'color': Colors.orange,
                 },
@@ -329,7 +654,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildTechCard(BuildContext context, String title, String description,
       IconData icon, Color color, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
     
     return Card(
       elevation: 2,
@@ -347,11 +671,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: isMobile ? 24 : 28,
-                  ),
+                  child: Icon(icon, color: color, size: isMobile ? 24 : 28),
                 ),
                 SizedBox(width: isMobile ? 12 : 16),
                 Expanded(
@@ -395,19 +715,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       {
         'icon': Icons.hearing,
         'title': 'Real-Time Audio',
-        'desc': 'Platform-native speech recognition with advanced spatial audio processing and direction estimation',
+        'desc': 'Platform-native speech recognition with spatial audio processing',
         'color': Colors.blue,
       },
       {
         'icon': Icons.visibility,
         'title': 'Visual Recognition',
-        'desc': 'ARKit/ARCore-powered face detection and speaker identification for precise visual tracking',
+        'desc': 'AR-powered face detection and speaker identification',
         'color': Colors.green,
       },
       {
         'icon': Icons.psychology,
         'title': 'Multimodal AI',
-        'desc': 'Gemma 3n multimodal AI for contextual enhancement and intelligent caption generation',
+        'desc': 'Contextual enhancement and intelligent caption generation',
         'color': Colors.purple,
       },
     ];
@@ -427,21 +747,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   fontSize: isMobile ? 24 : isTablet ? 28 : 32,
                 ),
             textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 16 : 20),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
-            ),
-            child: Text(
-              'Core features that make Live Captions XR the most advanced accessibility solution available.',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[600],
-                    height: 1.4,
-                    fontSize: isMobile ? 16 : isTablet ? 18 : 20,
-                  ),
-              textAlign: TextAlign.center,
-            ),
           ),
           SizedBox(height: isMobile ? 24 : 32),
           GridView.builder(
@@ -466,7 +771,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildFeatureCard(BuildContext context, Map<String, dynamic> feature, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
     
     return Card(
       elevation: 2,
@@ -515,533 +819,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCtaSection(BuildContext context, ScreenSize screenSize) {
-    final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveUtils.getHorizontalPadding(context),
-        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(isMobile ? 12 : 16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.rocket_launch,
-              size: isMobile ? 32 : 36,
-              color: Theme.of(context).primaryColor,
-            ),
-          ),
-          SizedBox(height: isMobile ? 12 : 16),
-          Text(
-            'Ready to Experience the Future?',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                  fontSize: isMobile ? 20 : isTablet ? 22 : 24,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 6 : 8),
-          Text(
-            'Join the accessibility revolution with Live Captions XR',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.grey[600],
-                  fontSize: isMobile ? 16 : isTablet ? 18 : 20,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 24 : 32),
-          Wrap(
-            spacing: isMobile ? 8 : 12,
-            runSpacing: isMobile ? 8 : 12,
-            alignment: WrapAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    await TestFlightUtils.openTestFlight();
-                  } catch (e) {
-                    debugPrint('Could not open TestFlight: $e');
-                  }
-                },
-                icon: const Icon(Icons.apple),
-                label: Text(isMobile ? 'iOS' : 'iOS TestFlight'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 16 : 24,
-                    vertical: isMobile ? 12 : 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    await GooglePlayUtils.openGooglePlayBeta();
-                  } catch (e) {
-                    debugPrint('Could not open Google Play Beta: $e');
-                  }
-                },
-                icon: const Icon(Icons.android),
-                label: Text(isMobile ? 'Android' : 'Google Play Store'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[600],
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 16 : 24,
-                    vertical: isMobile ? 12 : 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => context.go('/technology'),
-                icon: const Icon(Icons.code),
-                label: Text(isMobile ? 'Technology' : 'View Technology'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).primaryColor,
-                  side: BorderSide(color: Theme.of(context).primaryColor),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 16 : 24,
-                    vertical: isMobile ? 12 : 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTestFlightSection(BuildContext context, ScreenSize screenSize) {
-    final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveUtils.getHorizontalPadding(context),
-        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).primaryColor.withValues(alpha: 0.03),
-            Colors.blue.withValues(alpha: 0.02),
-            Colors.white,
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Available on Mobile',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 16 : 20),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
-            ),
-            child: Text(
-              'Join our beta programs to get early access to Live Captions XR and help us improve the experience for everyone.',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[600],
-                    height: 1.4,
-                    fontSize: isMobile ? 16 : isTablet ? 18 : 20,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          SizedBox(height: isMobile ? 24 : 32),
-          // Platform Icons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // iOS App Icon
-              Container(
-                padding: EdgeInsets.all(isMobile ? 12 : 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.apple,
-                  size: isMobile ? 48 : isTablet ? 56 : 64,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-              SizedBox(width: isMobile ? 20 : 32),
-              // Android App Icon
-              Container(
-                padding: EdgeInsets.all(isMobile ? 12 : 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.android,
-                  size: isMobile ? 48 : isTablet ? 56 : 64,
-                  color: Colors.green[600],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isMobile ? 24 : 32),
-          // Beta Features
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isMobile ? 1 : isTablet ? 2 : 3,
-              childAspectRatio: isMobile ? 2.5 : isTablet ? 3.0 : 3.5,
-              mainAxisSpacing: isMobile ? 12 : 16,
-              crossAxisSpacing: isMobile ? 12 : 16,
-            ),
-            itemCount: 3,
-            itemBuilder: (context, index) {
-              final features = [
-                {'icon': Icons.science, 'title': 'Early Access', 'description': 'Get the latest features before public release'},
-                {'icon': Icons.feedback, 'title': 'Direct Feedback', 'description': 'Help shape the future of the app'},
-                {'icon': Icons.security, 'title': 'Secure Testing', 'description': 'Safe and secure beta testing environment'},
-              ];
-              final feature = features[index];
-              return _buildTestFlightFeature(context, feature['icon'] as IconData, feature['title'] as String, feature['description'] as String, screenSize);
-            },
-          ),
-          SizedBox(height: isMobile ? 24 : 32),
-          // Download Buttons
-          Wrap(
-            spacing: isMobile ? 12 : 16,
-            runSpacing: isMobile ? 8 : 12,
-            alignment: WrapAlignment.center,
-            children: [
-              // iOS TestFlight Button
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).primaryColor,
-                      Theme.of(context).primaryColor.withValues(alpha: 0.8),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await TestFlightUtils.openTestFlight();
-                    } catch (e) {
-                      debugPrint('Could not open TestFlight: $e');
-                    }
-                  },
-                  icon: const Icon(Icons.apple, color: Colors.white, size: 20),
-                  label: Text(
-                    isMobile ? 'iOS' : 'iOS TestFlight',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isMobile ? 14 : 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 20 : 24,
-                      vertical: isMobile ? 12 : 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ),
-              // Android Google Play Beta Button
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.green[600]!,
-                      Colors.green[600]!.withValues(alpha: 0.8),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green[600]!.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await GooglePlayUtils.openGooglePlayBeta();
-                    } catch (e) {
-                      debugPrint('Could not open Google Play Beta: $e');
-                    }
-                  },
-                  icon: const Icon(Icons.android, color: Colors.white, size: 20),
-                  label: Text(
-                    isMobile ? 'Android' : 'Google Play Store',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isMobile ? 14 : 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 20 : 24,
-                      vertical: isMobile ? 12 : 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildYoutubeEmbedSection(BuildContext context, ScreenSize screenSize) {
-    final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(
-        horizontal: ResponsiveUtils.getHorizontalPadding(context),
-        vertical: isMobile ? 16 : 24,
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : 24,
-        vertical: isMobile ? 24 : 32,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            'See Live Captions XR in Action',
-            style: TextStyle(
-              fontSize: isMobile ? 20 : isTablet ? 24 : 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 8 : 12),
-          Text(
-            'Watch our demo video to see how Live Captions XR transforms accessibility in augmented reality',
-            style: TextStyle(
-              fontSize: isMobile ? 14 : isTablet ? 16 : 18,
-              color: Colors.grey[600],
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 16 : 24),
-          Center(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: isMobile ? double.infinity : isTablet ? 700 : 800,
-                maxHeight: isMobile ? 250 : isTablet ? 350 : 450,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: YoutubePlayer(
-                  controller: _youtubeController,
-                  aspectRatio: 16 / 9,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTestFlightFeature(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String description,
-    ScreenSize screenSize,
-  ) {
-    final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(isMobile ? 12 : 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                size: isMobile ? 24 : 28,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            SizedBox(height: isMobile ? 8 : 12),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: isMobile ? 14 : 16,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: isMobile ? 4 : 6),
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontSize: isMobile ? 12 : 13,
-                  ),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDownloadsCallout(BuildContext context, ScreenSize screenSize) {
-    final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveUtils.getHorizontalPadding(context),
-        vertical: isMobile ? 32.0 : isTablet ? 40.0 : 48.0,
-      ),
-      color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
-      child: Column(
-        children: [
-          Text(
-            'Download Our Apps',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                  fontSize: isMobile ? 24 : isTablet ? 28 : 32,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 12 : 16),
-          Text(
-            'Get LiveCaptionsXR and ContinuonXR — both powered by Nexa SDK for on-device AI.',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
-                  height: 1.4,
-                  fontSize: isMobile ? 14 : 16,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: isMobile ? 20 : 28),
-          ElevatedButton.icon(
-            onPressed: () => context.go('/downloads'),
-            icon: const Icon(Icons.download),
-            label: const Text('View Downloads'),
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 24 : 32,
-                vertical: isMobile ? 14 : 18,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildOpenSourceSection(BuildContext context, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
     final isTablet = screenSize == ScreenSize.tablet;
@@ -1071,6 +848,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   fontSize: isMobile ? 16 : isTablet ? 18 : 20,
                 ),
             textAlign: TextAlign.center,
+          ),
+          SizedBox(height: isMobile ? 20 : 24),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/technology'),
+            icon: const Icon(Icons.code),
+            label: const Text('View on GitHub'),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 20 : 28,
+                vertical: isMobile ? 12 : 16,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ],
       ),
