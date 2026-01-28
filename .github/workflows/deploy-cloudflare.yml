@@ -19,9 +19,17 @@ jobs:
       - name: Build Web
         run: flutter build web --release
 
+      - name: Create Cloudflare Pages Project
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 71d59adbd067633aca3e95f915fbf2b4
+          command: pages project create live-captions-xr --production-branch main
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 71d59adbd067633aca3e95f915fbf2b4
-          command: pages deploy build/web --project-name=live-captions-xr
+          command: pages deploy build/web --project-name=live-captions-xr --commit-dirty=true
