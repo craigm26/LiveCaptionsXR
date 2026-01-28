@@ -407,15 +407,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.memory, size: isMobile ? 32 : 40, color: Colors.deepOrange),
+              Icon(Icons.vrpano, size: isMobile ? 32 : 40, color: Colors.blue[700]),
               SizedBox(width: isMobile ? 12 : 16),
-              Text(
-                'Optimized for Snapdragon',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                      fontSize: isMobile ? 22 : isTablet ? 26 : 30,
-                    ),
+              Flexible(
+                child: Text(
+                  'Built for XR Headsets & AR Glasses',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                        fontSize: isMobile ? 20 : isTablet ? 24 : 28,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),
@@ -423,7 +426,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Container(
             constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
             child: Text(
-              'Our Nexa SDK-powered APK runs AI directly on the Qualcomm Hexagon NPU for 2x faster inference and 9x better power efficiency compared to CPU/GPU.',
+              'Designed for Samsung Galaxy XR (Project Moohan) and future Snapdragon-powered AR glasses. '
+              'Uses Nexa SDK on the Hexagon NPU for 2x faster AI inference and 9x better power efficiency.',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.grey[600],
                     height: 1.5,
@@ -433,9 +437,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ),
           SizedBox(height: isMobile ? 24 : 32),
-          // Supported Devices
+          // Target Hardware
           Text(
-            'Supported Devices',
+            'Target Hardware',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
@@ -448,13 +452,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             runSpacing: isMobile ? 8 : 12,
             alignment: WrapAlignment.center,
             children: [
-              _buildDeviceChip(context, 'Snapdragon 8 Gen 3', isMobile),
-              _buildDeviceChip(context, 'Snapdragon 8 Gen 2', isMobile),
-              _buildDeviceChip(context, 'Snapdragon 8+ Gen 1', isMobile),
-              _buildDeviceChip(context, 'Samsung Galaxy S24/S23', isMobile),
-              _buildDeviceChip(context, 'OnePlus 12/11', isMobile),
-              _buildDeviceChip(context, 'Xiaomi 14/13', isMobile),
-              _buildDeviceChip(context, 'Android XR Devices', isMobile),
+              _buildDeviceChip(context, '🥽 Samsung Galaxy XR', isMobile, primary: true),
+              _buildDeviceChip(context, '🥽 Android XR Devices', isMobile, primary: true),
+              _buildDeviceChip(context, '👓 Future AR Glasses', isMobile, primary: true),
+              _buildDeviceChip(context, 'Galaxy S24/S23 (testing)', isMobile),
+              _buildDeviceChip(context, 'OnePlus 12/11 (testing)', isMobile),
+              _buildDeviceChip(context, 'Xiaomi 14/13 (testing)', isMobile),
             ],
           ),
           SizedBox(height: isMobile ? 24 : 32),
@@ -507,23 +510,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildDeviceChip(BuildContext context, String label, bool isMobile) {
+  Widget _buildDeviceChip(BuildContext context, String label, bool isMobile, {bool primary = false}) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 16,
-        vertical: isMobile ? 8 : 10,
+        horizontal: isMobile ? 14 : 18,
+        vertical: isMobile ? 10 : 12,
       ),
       decoration: BoxDecoration(
-        color: Colors.deepOrange.withValues(alpha: 0.1),
+        gradient: primary ? LinearGradient(
+          colors: [
+            Colors.blue.withValues(alpha: 0.15),
+            Colors.purple.withValues(alpha: 0.1),
+          ],
+        ) : null,
+        color: primary ? null : Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.deepOrange.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: primary ? Colors.blue.withValues(alpha: 0.4) : Colors.grey.withValues(alpha: 0.3),
+          width: primary ? 2 : 1,
+        ),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: isMobile ? 13 : 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.deepOrange[800],
+          fontWeight: primary ? FontWeight.bold : FontWeight.w500,
+          color: primary ? Colors.blue[800] : Colors.grey[700],
         ),
       ),
     );

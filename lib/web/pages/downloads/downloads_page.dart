@@ -9,9 +9,9 @@ class DownloadsPage extends StatelessWidget {
   const DownloadsPage({super.key});
 
   static const String _liveCaptionsApkUrl =
-      'https://github.com/craigm26/LiveCaptionsXR/releases/latest/download/LiveCaptionsXR.apk';
+      'https://github.com/craigm26/LiveCaptionsXR/releases/latest/download/app-release.apk';
   static const String _continuonApkUrl =
-      'https://github.com/continuonai/ContinuonXR/releases/latest/download/ContinuonXR.apk';
+      'https://github.com/continuonai/ContinuonXR/releases/latest/download/app-release.apk';
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
@@ -195,15 +195,39 @@ class DownloadsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'For the best experience on Qualcomm Snapdragon devices, download our Nexa SDK-powered APKs. '
-            'These run AI models directly on the Hexagon NPU for 2x faster inference and 9x better power efficiency.',
+            'Built for Samsung Project Moohan (Galaxy XR headset) and future Snapdragon-powered AR glasses. '
+            'Uses Nexa SDK to run AI directly on the Hexagon NPU for 2x faster inference and 9x better power efficiency.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.grey[700],
                   height: 1.5,
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.vrpano, color: Colors.blue[700], size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Target: Samsung Galaxy XR • Android XR • Future AR Glasses',
+                  style: TextStyle(
+                    color: Colors.blue[800],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -216,7 +240,7 @@ class DownloadsPage extends StatelessWidget {
                 Icon(Icons.bolt, color: Colors.deepOrange[600]),
                 const SizedBox(width: 8),
                 Text(
-                  'Requires: Snapdragon 8 Gen 1 or newer with Hexagon NPU',
+                  'Also works on: Snapdragon 8 Gen 1+ phones for testing',
                   style: TextStyle(
                     color: Colors.grey[800],
                     fontWeight: FontWeight.w500,
@@ -293,13 +317,15 @@ class DownloadsPage extends StatelessWidget {
   }
 
   Widget _buildSupportedDevices(BuildContext context, bool isMobile, bool isTablet) {
-    final devices = [
-      {'name': 'Samsung Galaxy S24 Ultra/S24+/S24', 'chip': 'Snapdragon 8 Gen 3'},
-      {'name': 'Samsung Galaxy S23 Ultra/S23+/S23', 'chip': 'Snapdragon 8 Gen 2'},
-      {'name': 'OnePlus 12 / OnePlus 11', 'chip': 'Snapdragon 8 Gen 3/2'},
-      {'name': 'Xiaomi 14 Pro / Xiaomi 13', 'chip': 'Snapdragon 8 Gen 3/2'},
-      {'name': 'Google Pixel 8 Pro (limited)', 'chip': 'Tensor G3'},
-      {'name': 'Android XR Reference Devices', 'chip': 'Snapdragon XR2'},
+    final xrDevices = [
+      {'name': 'Samsung Galaxy XR (Project Moohan)', 'chip': 'Snapdragon XR2+ Gen 2', 'primary': true},
+      {'name': 'Android XR Reference Devices', 'chip': 'Snapdragon XR2', 'primary': true},
+      {'name': 'Future Snapdragon AR Glasses', 'chip': 'Coming Soon', 'primary': true},
+    ];
+    final phoneDevices = [
+      {'name': 'Samsung Galaxy S24/S23 Series', 'chip': 'Snapdragon 8 Gen 3/2', 'primary': false},
+      {'name': 'OnePlus 12 / 11', 'chip': 'Snapdragon 8 Gen 3/2', 'primary': false},
+      {'name': 'Xiaomi 14 / 13 Series', 'chip': 'Snapdragon 8 Gen 3/2', 'primary': false},
     ];
 
     return Padding(
@@ -310,7 +336,7 @@ class DownloadsPage extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Supported Devices',
+            'Target Hardware',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[800],
@@ -319,20 +345,82 @@ class DownloadsPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Nexa SDK APKs work best on these devices with NPU support',
+            'Built for XR headsets and AR glasses, with phone support for development testing',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.grey[600],
                 ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
+          // XR Devices - Primary targets
+          Text(
+            '🥽 Primary XR Targets',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800],
+                ),
+          ),
+          const SizedBox(height: 12),
           Container(
             constraints: const BoxConstraints(maxWidth: 700),
             child: Wrap(
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: devices.map((device) {
+              children: xrDevices.map((device) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.blue.withValues(alpha: 0.1),
+                        Colors.purple.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        device['name'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        device['chip'] as String,
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Phone Devices - For testing
+          Text(
+            '📱 Phone Testing Support',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 700),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: phoneDevices.map((device) {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
@@ -343,7 +431,7 @@ class DownloadsPage extends StatelessWidget {
                   child: Column(
                     children: [
                       Text(
-                        device['name']!,
+                        device['name'] as String,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -351,7 +439,7 @@ class DownloadsPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        device['chip']!,
+                        device['chip'] as String,
                         style: TextStyle(
                           color: Colors.deepOrange[700],
                           fontSize: 12,
