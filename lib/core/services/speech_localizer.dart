@@ -1,4 +1,3 @@
-// import 'dart:ffi'; // Not available on web
 import 'dart:math';
 import 'dart:typed_data';
 import 'stereo_audio_capture.dart';
@@ -44,29 +43,6 @@ class SpeechLocalizer {
     _logger.i('🏗️ Initializing SpeechLocalizer...');
     _logger.d('RMS threshold: $minRmsThreshold, Smoothing: $smoothing');
   }
-
-  // static const MethodChannel _channel =
-  //     MethodChannel('live_captions_xr/speech_localizer');
-
-  // /// Basic amplitude-based direction estimation (native).
-  // static Future<double> estimateDirectionNative({
-  //   required Float32List left,
-  //   required Float32List right,
-  //   double sampleRate = 16000.0,
-  // }) async {
-  //   final result = await _channel.invokeMethod<double>(
-  //     'estimateDirection',
-  //     {
-  //       'left': left,
-  //       'right': right,
-  //       'sampleRate': sampleRate,
-  //     },
-  //   );
-  //   if (result == null) throw Exception('No result from native code');
-  //   return result;
-  // }
-
-  
 
   /// Estimate horizontal angle from a stereo audio frame.
   ///
