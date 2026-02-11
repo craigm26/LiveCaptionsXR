@@ -68,10 +68,10 @@ class TranslationCubit extends Cubit<TranslationState> {
         isNpuAccelerated: _translationService.isNpuAccelerated,
       ));
 
-      _logger.i('✅ Translation cubit initialized', category: LogCategory.model);
+      _logger.i('✅ Translation cubit initialized', category: LogCategory.speech);
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize translation',
-          category: LogCategory.model, error: e, stackTrace: stackTrace);
+          category: LogCategory.speech, error: e, stackTrace: stackTrace);
       emit(TranslationError(message: 'Failed to initialize translation', error: e));
     }
   }
@@ -79,7 +79,7 @@ class TranslationCubit extends Cubit<TranslationState> {
   void _handleEvent(TranslationEvent event) {
     if (event.error != null) {
       _logger.w('⚠️ Translation event error: ${event.error}',
-          category: LogCategory.model);
+          category: LogCategory.speech);
     }
   }
 
@@ -99,7 +99,7 @@ class TranslationCubit extends Cubit<TranslationState> {
     emit(currentState.copyWith(isEnabled: newEnabled));
 
     _logger.i('🌐 Translation ${newEnabled ? "enabled" : "disabled"}',
-        category: LogCategory.model);
+        category: LogCategory.speech);
   }
 
   /// Set source language
