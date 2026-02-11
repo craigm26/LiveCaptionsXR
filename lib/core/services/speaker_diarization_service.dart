@@ -312,7 +312,7 @@ class SpeakerDiarizationService {
       weightedSum += i * spectrum[i];
       totalSum += spectrum[i];
     }
-    final centroid = totalSum > 0 ? weightedSum / totalSum / spectrum.length : 0.5;
+    final double centroid = totalSum > 0 ? weightedSum / totalSum / spectrum.length : 0.5;
     
     // Spectral bandwidth
     double bandwidthSum = 0;
@@ -320,7 +320,7 @@ class SpeakerDiarizationService {
       final diff = i / spectrum.length - centroid;
       bandwidthSum += diff * diff * spectrum[i];
     }
-    final bandwidth = totalSum > 0 ? sqrt(bandwidthSum / totalSum) : 0;
+    final double bandwidth = totalSum > 0 ? sqrt(bandwidthSum / totalSum) : 0.0;
     
     // Spectral rolloff (frequency below which 85% of energy is contained)
     double cumulativeEnergy = 0;
@@ -333,7 +333,7 @@ class SpeakerDiarizationService {
         break;
       }
     }
-    final rolloffNorm = rolloff / spectrum.length;
+    final double rolloffNorm = rolloff.toDouble() / spectrum.length;
     
     // Spectral flatness (Wiener entropy)
     double geometricMean = 0;
