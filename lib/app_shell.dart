@@ -216,6 +216,13 @@ class _AppShellState extends State<AppShell> {
             subtitle: 'Test AR caption placement',
             route: '/spatial-captions-demo',
           ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.ondemand_video,
+            title: 'Video Test',
+            subtitle: 'Test with YouTube videos',
+            route: '/video-test',
+          ),
         ],
       ),
     );
