@@ -7,18 +7,27 @@ import 'package:spatial_captions/spatial_captions.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import '../models/speech_result.dart';
 import '../models/enhanced_caption.dart';
+import '../models/speaker_profile.dart';
 import 'speech_localizer.dart';
 import 'stereo_audio_capture.dart';
 import 'gemma_3n_service.dart';
 import 'app_logger.dart';
 import 'hybrid_localization_engine.dart';
+import 'speaker_diarization_service.dart';
 
 /// Service that integrates live captions with spatial positioning in AR
+/// 
+/// Implements 3D/4D spatial intelligence by:
+/// - Using speaker diarization to identify unique speakers
+/// - Tracking speaker positions in 3D space over time (4D)
+/// - Mapping translations to speaker locations
+/// - Smoothing position estimates with temporal filtering
 class SpatialCaptionIntegrationService {
   final SpatialCaptionsCubit _spatialCaptionsCubit;
   final SpeechLocalizer _speechLocalizer;
   final Gemma3nService _gemmaService;
   final HybridLocalizationEngine _hybridLocalizationEngine;
+  final SpeakerDiarizationService _speakerDiarizationService;
   final AppLogger _logger = AppLogger.instance;
   
   // Removed: Method channel for AR session events (no longer needed)
@@ -33,15 +42,20 @@ class SpatialCaptionIntegrationService {
   // Track last audio frame for direction estimation
   StereoAudioFrame? _lastAudioFrame;
   
+  // Speaker diarization enabled flag
+  bool _diarizationEnabled = true;
+  
   SpatialCaptionIntegrationService({
     required SpatialCaptionsCubit spatialCaptionsCubit,
     required SpeechLocalizer speechLocalizer,
     required Gemma3nService gemmaService,
     required HybridLocalizationEngine hybridLocalizationEngine,
+    required SpeakerDiarizationService speakerDiarizationService,
   })  : _spatialCaptionsCubit = spatialCaptionsCubit,
         _speechLocalizer = speechLocalizer,
         _gemmaService = gemmaService,
-        _hybridLocalizationEngine = hybridLocalizationEngine;
+        _hybridLocalizationEngine = hybridLocalizationEngine,
+        _speakerDiarizationService = speakerDiarizationService;
 
   /// Initialize the service and set landscape orientation
   Future<void> initialize() async {
@@ -101,18 +115,37 @@ class SpatialCaptionIntegrationService {
     _lastAudioFrame = frame;
   }
 
-  /// Process a partial speech result
-  Future<void> processPartialResult(SpeechResult result) async {
+  /// Process a partial speech result with speaker diarization
+  Future<SpeechResult> processPartialResult(SpeechResult result) async {
     _logger.i('🎤 [SPATIAL INTEGRATION] Processing partial result: "${result.text}" (confidence: ${result.confidence})', category: LogCategory.captions);
     
     try {
-      // Get position from audio direction
-      final position = await _calculateCaptionPosition(result);
-      _logger.d('📍 [SPATIAL INTEGRATION] Calculated position for partial caption: $position', category: LogCategory.captions);
+      SpeakerIdentificationResult? speakerResult;
+      Vector3 position;
+      String speakerId;
       
-      // Use speaker direction as a simple speaker ID
-      final speakerId = result.speakerDirection ?? 'default';
-      _logger.d('👤 [SPATIAL INTEGRATION] Using speaker ID: $speakerId for partial caption', category: LogCategory.captions);
+      // Try speaker diarization if audio frame is available
+      if (_diarizationEnabled && _lastAudioFrame != null) {
+        try {
+          speakerResult = await _speakerDiarizationService.identifySpeaker(_lastAudioFrame!);
+          position = speakerResult.estimatedPosition;
+          speakerId = speakerResult.speakerId;
+          
+          _logger.i('👤 [DIARIZATION] Speaker identified: ${speakerResult.profile.displayName ?? speakerId} '
+              '(confidence: ${speakerResult.confidence.toStringAsFixed(2)}, '
+              'new: ${speakerResult.isNewSpeaker})', category: LogCategory.captions);
+        } catch (e) {
+          _logger.w('⚠️ [DIARIZATION] Failed, falling back to direction: $e', category: LogCategory.captions);
+          position = await _calculateCaptionPosition(result);
+          speakerId = result.speakerDirection ?? 'default';
+        }
+      } else {
+        // Fall back to audio direction
+        position = await _calculateCaptionPosition(result);
+        speakerId = result.speakerDirection ?? 'default';
+      }
+      
+      _logger.d('📍 [SPATIAL INTEGRATION] Position: $position, Speaker: $speakerId', category: LogCategory.captions);
       
       // Add partial caption through spatial plugin
       await _spatialCaptionsCubit.addPartialCaption(
@@ -122,23 +155,49 @@ class SpatialCaptionIntegrationService {
         confidence: result.confidence,
       );
       
-      _logger.i('✅ [SPATIAL INTEGRATION] Partial caption added successfully at position: $position', category: LogCategory.captions);
+      _logger.i('✅ [SPATIAL INTEGRATION] Partial caption added at position: $position', category: LogCategory.captions);
+      
+      // Return enriched result with speaker data
+      return result.copyWith(
+        speakerId: speakerId,
+        speakerDisplayName: speakerResult?.profile.displayName,
+        speakerColor: speakerResult?.profile.colorValue,
+        speakerPosition: position,
+        speakerConfidence: speakerResult?.confidence,
+      );
     } catch (e, stackTrace) {
       _logger.e('❌ [SPATIAL INTEGRATION] Error processing partial result: $e', category: LogCategory.captions, error: e, stackTrace: stackTrace);
-      rethrow; // Re-throw to allow fallback in LiveCaptionsCubit
+      rethrow;
     }
   }
 
-  /// Process a final speech result
-  Future<void> processFinalResult(SpeechResult result) async {
+  /// Process a final speech result with speaker diarization
+  Future<SpeechResult> processFinalResult(SpeechResult result) async {
     _logger.i('📝 [SPATIAL INTEGRATION] Processing final result: "${result.text}" (confidence: ${result.confidence})', category: LogCategory.captions);
     
     try {
-      // Get position from audio direction
-      final position = await _calculateCaptionPosition(result);
+      SpeakerIdentificationResult? speakerResult;
+      Vector3 position;
+      String speakerId;
       
-      // Use speaker direction as a simple speaker ID
-      final speakerId = result.speakerDirection ?? 'default';
+      // Try speaker diarization if audio frame is available
+      if (_diarizationEnabled && _lastAudioFrame != null) {
+        try {
+          speakerResult = await _speakerDiarizationService.identifySpeaker(_lastAudioFrame!);
+          position = speakerResult.estimatedPosition;
+          speakerId = speakerResult.speakerId;
+          
+          _logger.i('👤 [DIARIZATION] Final caption speaker: ${speakerResult.profile.displayName ?? speakerId} '
+              'at ${position.toString()}', category: LogCategory.captions);
+        } catch (e) {
+          _logger.w('⚠️ [DIARIZATION] Failed, falling back to direction: $e', category: LogCategory.captions);
+          position = await _calculateCaptionPosition(result);
+          speakerId = result.speakerDirection ?? 'default';
+        }
+      } else {
+        position = await _calculateCaptionPosition(result);
+        speakerId = result.speakerDirection ?? 'default';
+      }
       
       // Add final caption (will replace partial)
       await _spatialCaptionsCubit.finalizeCaption(
@@ -152,8 +211,18 @@ class SpatialCaptionIntegrationService {
       _scheduleEnhancement(result, speakerId);
       
       _logger.i('✅ Final caption added and enhancement scheduled', category: LogCategory.captions);
-    } catch (e) {
-      _logger.e('❌ Error processing final result: $e', category: LogCategory.captions);
+      
+      // Return enriched result with speaker data
+      return result.copyWith(
+        speakerId: speakerId,
+        speakerDisplayName: speakerResult?.profile.displayName,
+        speakerColor: speakerResult?.profile.colorValue,
+        speakerPosition: position,
+        speakerConfidence: speakerResult?.confidence,
+      );
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error processing final result: $e', category: LogCategory.captions, error: e, stackTrace: stackTrace);
+      rethrow;
     }
   }
 
@@ -339,6 +408,58 @@ class SpatialCaptionIntegrationService {
     _spatialCaptionsCubit.setCaptionDuration(duration);
   }
 
+  /// Enable or disable speaker diarization
+  void setDiarizationEnabled(bool enabled) {
+    _diarizationEnabled = enabled;
+    _logger.i('🎙️ Speaker diarization ${enabled ? "enabled" : "disabled"}', category: LogCategory.captions);
+  }
+  
+  /// Check if speaker diarization is enabled
+  bool get isDiarizationEnabled => _diarizationEnabled;
+  
+  /// Get all tracked speakers
+  List<SpeakerProfile> get speakers => _speakerDiarizationService.speakers;
+  
+  /// Get currently active speaker
+  SpeakerProfile? get currentSpeaker => _speakerDiarizationService.currentSpeaker;
+  
+  /// Get speaker by ID
+  SpeakerProfile? getSpeaker(String id) => _speakerDiarizationService.getSpeaker(id);
+  
+  /// Name a speaker for display
+  void nameSpeaker(String speakerId, String name) {
+    _speakerDiarizationService.nameSpeaker(speakerId, name);
+  }
+  
+  /// Update speaker position from external source (e.g., visual tracking)
+  void updateSpeakerPosition(String speakerId, Vector3 position, {double confidence = 1.0}) {
+    _speakerDiarizationService.updateSpeakerPosition(speakerId, position, confidence: confidence);
+  }
+  
+  /// Clear all speaker profiles
+  void clearSpeakers() {
+    _speakerDiarizationService.clearSpeakers();
+  }
+  
+  /// Stream of speaker changes
+  Stream<SpeakerIdentificationResult> get speakerChanges => _speakerDiarizationService.speakerChanges;
+  
+  /// Export speaker profiles for persistence
+  List<Map<String, dynamic>> exportSpeakerProfiles() {
+    return _speakerDiarizationService.exportProfiles();
+  }
+  
+  /// Import speaker profiles from persistence
+  void importSpeakerProfiles(List<Map<String, dynamic>> profiles) {
+    _speakerDiarizationService.importProfiles(profiles);
+  }
+  
+  /// Predict future position for a speaker (useful for smooth animation)
+  Vector3? predictSpeakerPosition(String speakerId, Duration ahead) {
+    final speaker = _speakerDiarizationService.getSpeaker(speakerId);
+    return speaker?.predictPosition(ahead);
+  }
+  
   /// Dispose of resources
   void dispose() {
     // Cancel all timers
@@ -346,5 +467,6 @@ class SpatialCaptionIntegrationService {
       timer.cancel();
     }
     _enhancementTimers.clear();
+    _speakerDiarizationService.dispose();
   }
 } 

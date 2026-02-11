@@ -1,3 +1,5 @@
+import 'package:vector_math/vector_math_64.dart';
+
 /// Model representing a speech recognition result
 class SpeechResult {
   final String text;
@@ -6,6 +8,13 @@ class SpeechResult {
   final DateTime timestamp;
   final String? speakerDirection;
   final Map<String, dynamic>? metadata;
+  
+  // Speaker diarization fields
+  final String? speakerId;
+  final String? speakerDisplayName;
+  final int? speakerColor;
+  final Vector3? speakerPosition;
+  final double? speakerConfidence;
 
   const SpeechResult({
     required this.text,
@@ -14,6 +23,11 @@ class SpeechResult {
     required this.timestamp,
     this.speakerDirection,
     this.metadata,
+    this.speakerId,
+    this.speakerDisplayName,
+    this.speakerColor,
+    this.speakerPosition,
+    this.speakerConfidence,
   });
 
   /// Create a copy with modified properties
@@ -24,6 +38,11 @@ class SpeechResult {
     DateTime? timestamp,
     String? speakerDirection,
     Map<String, dynamic>? metadata,
+    String? speakerId,
+    String? speakerDisplayName,
+    int? speakerColor,
+    Vector3? speakerPosition,
+    double? speakerConfidence,
   }) {
     return SpeechResult(
       text: text ?? this.text,
@@ -32,6 +51,11 @@ class SpeechResult {
       timestamp: timestamp ?? this.timestamp,
       speakerDirection: speakerDirection ?? this.speakerDirection,
       metadata: metadata ?? this.metadata,
+      speakerId: speakerId ?? this.speakerId,
+      speakerDisplayName: speakerDisplayName ?? this.speakerDisplayName,
+      speakerColor: speakerColor ?? this.speakerColor,
+      speakerPosition: speakerPosition ?? this.speakerPosition,
+      speakerConfidence: speakerConfidence ?? this.speakerConfidence,
     );
   }
 
@@ -44,11 +68,28 @@ class SpeechResult {
       'timestamp': timestamp.millisecondsSinceEpoch,
       'speakerDirection': speakerDirection,
       'metadata': metadata,
+      'speakerId': speakerId,
+      'speakerDisplayName': speakerDisplayName,
+      'speakerColor': speakerColor,
+      'speakerPosition': speakerPosition != null
+          ? {'x': speakerPosition!.x, 'y': speakerPosition!.y, 'z': speakerPosition!.z}
+          : null,
+      'speakerConfidence': speakerConfidence,
     };
   }
 
   /// Create from JSON
   factory SpeechResult.fromJson(Map<String, dynamic> json) {
+    Vector3? position;
+    if (json['speakerPosition'] != null) {
+      final pos = json['speakerPosition'] as Map<String, dynamic>;
+      position = Vector3(
+        (pos['x'] as num).toDouble(),
+        (pos['y'] as num).toDouble(),
+        (pos['z'] as num).toDouble(),
+      );
+    }
+    
     return SpeechResult(
       text: json['text'] as String,
       confidence: (json['confidence'] as num).toDouble(),
@@ -56,8 +97,20 @@ class SpeechResult {
       timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
       speakerDirection: json['speakerDirection'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
+      speakerId: json['speakerId'] as String?,
+      speakerDisplayName: json['speakerDisplayName'] as String?,
+      speakerColor: json['speakerColor'] as int?,
+      speakerPosition: position,
+      speakerConfidence: json['speakerConfidence'] as double?,
     );
   }
+  
+  /// Check if this result has speaker diarization data
+  bool get hasSpeakerDiarization => speakerId != null;
+  
+  /// Get display name for speaker (falls back to ID or direction)
+  String get speakerLabel => 
+      speakerDisplayName ?? speakerId ?? speakerDirection ?? 'Unknown';
 
   @override
   String toString() {
@@ -87,7 +140,8 @@ class SpeechResult {
         other.confidence == confidence &&
         other.isFinal == isFinal &&
         other.timestamp == timestamp &&
-        other.speakerDirection == speakerDirection;
+        other.speakerDirection == speakerDirection &&
+        other.speakerId == speakerId;
   }
 
   @override
@@ -98,6 +152,7 @@ class SpeechResult {
       isFinal,
       timestamp,
       speakerDirection,
+      speakerId,
     );
   }
 }

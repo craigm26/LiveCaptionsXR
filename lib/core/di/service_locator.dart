@@ -30,6 +30,7 @@ import 'package:live_captions_xr/core/services/download/unified_download_manager
 import 'package:live_captions_xr/core/services/ios_model_config_service.dart';
 import 'package:live_captions_xr/core/services/translation_service.dart';
 import 'package:live_captions_xr/features/translation/cubit/translation_cubit.dart';
+import 'package:live_captions_xr/core/services/speaker_diarization_service.dart';
 
 final sl = GetIt.instance;
 
@@ -229,7 +230,17 @@ void setupServiceLocator() {
   if (!sl.isRegistered<SpatialCaptionsCubit>()) {
     sl.registerLazySingleton<SpatialCaptionsCubit>(() => SpatialCaptionsCubit());
   }
-  // Register SpatialCaptionIntegrationService
+  // Register SpeakerDiarizationService for 3D/4D spatial speaker tracking
+  if (!sl.isRegistered<SpeakerDiarizationService>()) {
+    logger.d('🎙️ Registering SpeakerDiarizationService in service locator', category: LogCategory.system);
+    sl.registerLazySingleton<SpeakerDiarizationService>(() {
+      logger.d('🎙️ Creating SpeakerDiarizationService instance', category: LogCategory.system);
+      return SpeakerDiarizationService(
+        speechLocalizer: sl<SpeechLocalizer>(),
+      );
+    });
+  }
+  // Register SpatialCaptionIntegrationService (with speaker diarization)
   if (!sl.isRegistered<SpatialCaptionIntegrationService>()) {
     sl.registerLazySingleton<SpatialCaptionIntegrationService>(
       () => SpatialCaptionIntegrationService(
@@ -237,6 +248,7 @@ void setupServiceLocator() {
         speechLocalizer: sl<SpeechLocalizer>(),
         gemmaService: sl<Gemma3nService>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
+        speakerDiarizationService: sl<SpeakerDiarizationService>(),
       ),
     );
   }

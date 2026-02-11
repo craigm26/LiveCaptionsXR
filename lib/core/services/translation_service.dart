@@ -37,6 +37,7 @@ enum TranslationLanguage {
 }
 
 /// Translation result containing original and translated text
+/// with optional speaker spatial mapping for 3D/4D positioning
 class TranslationResult {
   final String originalText;
   final String translatedText;
@@ -44,6 +45,13 @@ class TranslationResult {
   final TranslationLanguage targetLanguage;
   final Duration processingTime;
   final bool isOnDevice;
+  
+  // Speaker spatial mapping (3D/4D intelligence)
+  final String? speakerId;
+  final String? speakerDisplayName;
+  final int? speakerColor;
+  final List<double>? speakerPosition; // [x, y, z]
+  final double? speakerConfidence;
 
   const TranslationResult({
     required this.originalText,
@@ -52,14 +60,48 @@ class TranslationResult {
     required this.targetLanguage,
     required this.processingTime,
     this.isOnDevice = true,
+    this.speakerId,
+    this.speakerDisplayName,
+    this.speakerColor,
+    this.speakerPosition,
+    this.speakerConfidence,
   });
 
   /// Check if translation actually occurred (different languages)
   bool get wasTranslated => sourceLanguage != targetLanguage;
+  
+  /// Check if this result has speaker spatial data
+  bool get hasSpeakerData => speakerId != null;
+  
+  /// Get speaker label for display
+  String get speakerLabel => speakerDisplayName ?? speakerId ?? 'Unknown';
+  
+  /// Create a copy with speaker data added
+  TranslationResult withSpeakerData({
+    String? speakerId,
+    String? speakerDisplayName,
+    int? speakerColor,
+    List<double>? speakerPosition,
+    double? speakerConfidence,
+  }) {
+    return TranslationResult(
+      originalText: originalText,
+      translatedText: translatedText,
+      sourceLanguage: sourceLanguage,
+      targetLanguage: targetLanguage,
+      processingTime: processingTime,
+      isOnDevice: isOnDevice,
+      speakerId: speakerId ?? this.speakerId,
+      speakerDisplayName: speakerDisplayName ?? this.speakerDisplayName,
+      speakerColor: speakerColor ?? this.speakerColor,
+      speakerPosition: speakerPosition ?? this.speakerPosition,
+      speakerConfidence: speakerConfidence ?? this.speakerConfidence,
+    );
+  }
 
   @override
   String toString() =>
-      'TranslationResult(${sourceLanguage.code} → ${targetLanguage.code}): "$translatedText"';
+      'TranslationResult(${sourceLanguage.code} → ${targetLanguage.code}, speaker: ${speakerLabel}): "$translatedText"';
 }
 
 /// Event for translation progress
