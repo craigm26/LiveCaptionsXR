@@ -169,7 +169,7 @@ class TranslationService {
 
     try {
       _logger.i('🌐 Initializing translation service...',
-          category: LogCategory.model);
+          category: LogCategory.speech);
 
       _eventController.add(const TranslationEvent(
         progress: 0.1,
@@ -190,10 +190,10 @@ class TranslationService {
       ));
 
       _logger.i('✅ Translation service initialized',
-          category: LogCategory.model);
+          category: LogCategory.speech);
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize translation service',
-          category: LogCategory.model, error: e, stackTrace: stackTrace);
+          category: LogCategory.speech, error: e, stackTrace: stackTrace);
 
       _eventController.add(TranslationEvent(
         progress: 0.0,
@@ -211,7 +211,7 @@ class TranslationService {
     _enabled = enabled;
     _logger.i(
         '🌐 Translation ${enabled ? "enabled" : "disabled"}: ${_sourceLanguage.code} → ${_targetLanguage.code}',
-        category: LogCategory.model);
+        category: LogCategory.speech);
   }
 
   /// Set whether to show original text alongside translation
@@ -224,7 +224,7 @@ class TranslationService {
     _sourceLanguage = language;
     _translationCache.clear(); // Clear cache when language changes
     _logger.i('🌐 Source language set to: ${language.displayName}',
-        category: LogCategory.model);
+        category: LogCategory.speech);
   }
 
   /// Set the target language (language to translate to)
@@ -232,7 +232,7 @@ class TranslationService {
     _targetLanguage = language;
     _translationCache.clear(); // Clear cache when language changes
     _logger.i('🌐 Target language set to: ${language.displayName}',
-        category: LogCategory.model);
+        category: LogCategory.speech);
   }
 
   /// Translate text from source to target language
@@ -260,24 +260,20 @@ class TranslationService {
     final cacheKey = '${_sourceLanguage.code}:${_targetLanguage.code}:$text';
     if (_translationCache.containsKey(cacheKey)) {
       _logger.d('📦 Translation cache hit: "$text"',
-          category: LogCategory.model);
+          category: LogCategory.speech);
       return _translationCache[cacheKey]!;
     }
 
     try {
       _logger.i(
           '🌐 Translating: "$text" (${_sourceLanguage.code} → ${_targetLanguage.code})',
-          category: LogCategory.model);
+          category: LogCategory.speech);
 
       // Build translation prompt for Nexa LLM
       final prompt = _buildTranslationPrompt(text);
 
       // Use Nexa LLM for translation
-      final translatedText = await _nexaLlmService.enhanceText(
-        prompt,
-        context: 'translation',
-        skipEnhancement: true, // Direct inference, no enhancement
-      );
+      final translatedText = await _nexaLlmService.enhanceText(prompt);
 
       stopwatch.stop();
 
@@ -298,7 +294,7 @@ class TranslationService {
 
       _logger.i(
           '✅ Translation complete in ${stopwatch.elapsedMilliseconds}ms: "$cleanedTranslation"',
-          category: LogCategory.model);
+          category: LogCategory.speech);
 
       _eventController.add(TranslationEvent(
         progress: 1.0,
@@ -310,7 +306,7 @@ class TranslationService {
       return result;
     } catch (e, stackTrace) {
       _logger.e('❌ Translation failed: $e',
-          category: LogCategory.model, error: e, stackTrace: stackTrace);
+          category: LogCategory.speech, error: e, stackTrace: stackTrace);
 
       stopwatch.stop();
 
@@ -367,7 +363,7 @@ Translation:''';
   /// Clear the translation cache
   void clearCache() {
     _translationCache.clear();
-    _logger.i('🗑️ Translation cache cleared', category: LogCategory.model);
+    _logger.i('🗑️ Translation cache cleared', category: LogCategory.speech);
   }
 
   /// Get list of available target languages

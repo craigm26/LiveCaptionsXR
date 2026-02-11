@@ -111,7 +111,7 @@ class SpeakerDiarizationService {
       highFreq: 8000,
     );
     
-    _logger.i('🎙️ SpeakerDiarizationService initialized', category: LogCategory.model);
+    _logger.i('🎙️ SpeakerDiarizationService initialized', category: LogCategory.speech);
   }
   
   /// Create Mel filterbank
@@ -350,7 +350,7 @@ class SpeakerDiarizationService {
         ? exp(geometricMean / count) / (arithmeticMean / count)
         : 0.0;
     
-    return [centroid, bandwidth, rolloffNorm, flatness.clamp(0, 1)];
+    return [centroid, bandwidth, rolloffNorm, flatness.clamp(0.0, 1.0)];
   }
   
   /// Estimate fundamental frequency (pitch)
@@ -460,7 +460,7 @@ class SpeakerDiarizationService {
       profile.updateVoiceCharacteristics(pitch: pitch, energy: energy);
       
       _logger.d('👤 Matched speaker ${profile.id} (similarity: ${bestSimilarity.toStringAsFixed(2)})', 
-          category: LogCategory.model);
+          category: LogCategory.speech);
     } else {
       // New speaker
       isNewSpeaker = true;
@@ -478,7 +478,7 @@ class SpeakerDiarizationService {
       _speakers[speakerId] = profile;
       
       _logger.i('🆕 New speaker detected: $speakerId at position $position', 
-          category: LogCategory.model);
+          category: LogCategory.speech);
       
       // Enforce max speakers limit
       _pruneInactiveSpeakers();
@@ -515,7 +515,7 @@ class SpeakerDiarizationService {
     while (_speakers.length > config.maxSpeakers) {
       final oldest = sorted.removeAt(0);
       _speakers.remove(oldest.key);
-      _logger.i('🗑️ Pruned inactive speaker: ${oldest.key}', category: LogCategory.model);
+      _logger.i('🗑️ Pruned inactive speaker: ${oldest.key}', category: LogCategory.speech);
     }
   }
   
@@ -534,7 +534,7 @@ class SpeakerDiarizationService {
     final speaker = _speakers[speakerId];
     if (speaker != null) {
       speaker.addSpatialObservation(position, confidence: confidence);
-      _logger.d('📍 Updated ${speakerId} position to $position', category: LogCategory.model);
+      _logger.d('📍 Updated ${speakerId} position to $position', category: LogCategory.speech);
     }
   }
   
@@ -556,7 +556,7 @@ class SpeakerDiarizationService {
         utteranceCount: speaker.utteranceCount,
         colorValue: speaker.colorValue,
       );
-      _logger.i('🏷️ Named speaker $speakerId as "$name"', category: LogCategory.model);
+      _logger.i('🏷️ Named speaker $speakerId as "$name"', category: LogCategory.speech);
     }
   }
   
@@ -564,7 +564,7 @@ class SpeakerDiarizationService {
   void clearSpeakers() {
     _speakers.clear();
     _currentSpeakerId = null;
-    _logger.i('🧹 Cleared all speaker profiles', category: LogCategory.model);
+    _logger.i('🧹 Cleared all speaker profiles', category: LogCategory.speech);
   }
   
   /// Export speaker profiles for persistence
@@ -579,10 +579,10 @@ class SpeakerDiarizationService {
         final profile = SpeakerProfile.fromJson(json);
         _speakers[profile.id] = profile;
       } catch (e) {
-        _logger.w('⚠️ Failed to import speaker profile: $e', category: LogCategory.model);
+        _logger.w('⚠️ Failed to import speaker profile: $e', category: LogCategory.speech);
       }
     }
-    _logger.i('📥 Imported ${profiles.length} speaker profiles', category: LogCategory.model);
+    _logger.i('📥 Imported ${profiles.length} speaker profiles', category: LogCategory.speech);
   }
   
   void dispose() {
