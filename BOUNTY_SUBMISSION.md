@@ -12,6 +12,7 @@
 |-----------|-----------------|---------|
 | **Speech Recognition** | Nexa ASR on Hexagon NPU | Real-time speech-to-text, 2x faster and 9x more energy efficient than CPU |
 | **Text Enhancement** | Granite-4.0-h-350M via Nexa LLM | On-device punctuation, capitalization, and context refinement |
+| **Real-Time Translation** | Nexa LLM on Hexagon NPU | On-device translation to 15+ languages, 100% private |
 | **Multimodal Vision** | OmniNeural-4B VLM | Visual context awareness for speaker identification |
 | **Fallback** | Whisper GGML | Non-NPU device support via Nexa's GGML runtime |
 
@@ -19,8 +20,9 @@
 
 1. **NPU-Accelerated ASR**: Audio captured at 16kHz stereo is processed through Nexa's ASR pipeline running on the Qualcomm Hexagon NPU, achieving real-time transcription with minimal battery impact.
 2. **On-Device LLM Enhancement**: Raw transcriptions are refined by Nexa's LLM inference (Granite-4.0-h-350M) for proper punctuation and formatting — all on-device.
-3. **Vision Pipeline**: Camera frames are processed through Nexa's multimodal VLM for speaker identification and visual context.
-4. **Zero Cloud Dependency**: All AI inference runs locally via Nexa SDK. No data ever leaves the device.
+3. **Real-Time Translation**: Transcribed text is optionally translated to 15+ languages using Nexa LLM on the Hexagon NPU. Supported languages include Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi, Russian, and more. Translation runs entirely on-device with no cloud dependency.
+4. **Vision Pipeline**: Camera frames are processed through Nexa's multimodal VLM for speaker identification and visual context.
+5. **Zero Cloud Dependency**: All AI inference runs locally via Nexa SDK. No data ever leaves the device.
 
 ### NPU Acceleration Benefits
 - **2x faster** inference compared to CPU-only

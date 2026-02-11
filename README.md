@@ -30,6 +30,7 @@ LiveCaptionsXR leverages the **Nexa SDK** for Qualcomm Hexagon NPU-accelerated A
 ## Key Features
 
 - **Spatial AR Captions:** Captions anchored in 3D space at the speaker's location using ARCore
+- **Real-Time Translation:** On-device translation to 15+ languages including Spanish, French, German, Chinese, Japanese, Korean, Arabic, and more — 100% private
 - **On-Device Hybrid Localization:** Kalman filter fusing stereo audio, visual face detection, and IMU data for real-time speaker tracking
 - **Privacy-First by Design:** 100% on-device processing - no data ever leaves the device
 - **NPU-Accelerated AI:** Qualcomm Hexagon NPU optimization via Nexa SDK
