@@ -5,6 +5,7 @@ import 'package:live_captions_xr/features/home/view/home_screen.dart';
 import 'package:live_captions_xr/features/settings/view/settings_screen.dart';
 import 'package:live_captions_xr/app.dart';
 import 'package:live_captions_xr/features/model_status/view/model_status_page.dart';
+import 'package:live_captions_xr/features/model_downloads/view/model_downloads_page.dart';
 import 'package:live_captions_xr/features/spatial_captions_demo/view/spatial_captions_demo_page.dart';
 import 'package:live_captions_xr/features/video_test/view/video_test_page.dart';
 import '../services/app_logger.dart';
@@ -16,7 +17,7 @@ final GoRouter router = GoRouter(
   debugLogDiagnostics: true,
   redirect: (context, state) {
     _routerLogger.d('🔄 Router redirect called for: ${state.uri}', category: LogCategory.system);
-    _routerLogger.d('🗺️ Available routes: /home, /settings, /about, /model-status, /spatial-captions-demo, /video-test', category: LogCategory.system);
+    _routerLogger.d('🗺️ Available routes: /home, /settings, /about, /model-status, /model-downloads, /spatial-captions-demo, /video-test', category: LogCategory.system);
     return null;
   },
   errorBuilder: (context, state) {
@@ -78,6 +79,13 @@ final GoRouter router = GoRouter(
           path: '/model-status',
           builder: (BuildContext context, GoRouterState state) {
             return const ModelStatusPage();
+          },
+        ),
+        GoRoute(
+          path: '/model-downloads',
+          builder: (BuildContext context, GoRouterState state) {
+            _routerLogger.d('🗺️ Building ModelDownloadsPage route', category: LogCategory.system);
+            return const ModelDownloadsPage();
           },
         ),
         GoRoute(

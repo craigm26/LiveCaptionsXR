@@ -1,6 +1,6 @@
-         
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/models/user_settings.dart';
 import '../../../core/services/enhanced_speech_processor.dart'
     show SpeechEngine;
@@ -201,7 +201,7 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: 'Download and manage AI models',
                   trailing: ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.of(context).pushNamed('/model-status');
+                      context.push('/model-status');
                     },
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Open'),

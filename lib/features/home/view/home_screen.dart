@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
 import '../../localization/cubit/localization_cubit.dart';
@@ -45,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isGemmaInitialized = false;
   bool _isGemmaInitializing = false;
   bool? _nexaDevice; // cached result of Nexa device check
+  bool _modelsMissing = false; // Track if required models are missing
+  bool _isNexaDeviceDetected = false; // Track if this is a Nexa device
 
   @override
   void initState() {
@@ -130,24 +133,25 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasMissingModels =
         (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
 
-    // Also check if optional models are missing (to offer download)
-    final hasOptionalMissing =
-        (!gemmaExists || !whisperExists) && !hasMissingModels;
+    // Store model status for UI indicator (no blocking modal)
+    if (mounted) {
+      setState(() {
+        _modelsMissing = hasMissingModels;
+        _isNexaDeviceDetected = isNexa;
+      });
+    }
 
-    if (hasMissingModels && mounted) {
-      _logger.w(
-          '⚠️ Missing required models detected, showing download dialog. Needs - Gemma: $needsGemma, Whisper: $needsWhisper',
-          category: LogCategory.system);
-      _showModelDownloadDialog(
-        gemmaExists: gemmaExists,
-        whisperExists: whisperExists,
-        isNexaDevice: isNexa,
-      );
-    } else if (hasOptionalMissing && mounted) {
+    // Log status but DON'T show blocking modal
+    // Users are guided to Settings → AI Models via onboarding tour
+    if (hasMissingModels) {
       _logger.i(
-          '📦 Optional models missing but not required for this device (isNexa: $isNexa)',
+          '📦 Models needed: Gemma=$needsGemma (exists: $gemmaExists), Whisper=$needsWhisper (exists: $whisperExists). '
+          'User can download via Settings → AI Models.',
           category: LogCategory.system);
-      // On Nexa devices, optionally show dialog so user can still download
+    } else if (isNexa) {
+      _logger.i(
+          '✅ Nexa device - models download automatically via SDK',
+          category: LogCategory.system);
       // Whisper/Gemma if they want. Skip for now to not block.
     } else {
       _logger.i(
@@ -258,336 +262,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _isGemmaInitializing = false;
       if (mounted) setState(() {});
     }
-  }
-
-  void _showModelDownloadDialog({
-    required bool gemmaExists,
-    required bool whisperExists,
-    bool isNexaDevice = false,
-  }) {
-    // On Nexa devices, all downloads are optional - dialog is dismissible
-    final allOptional = isNexaDevice;
-
-    showDialog(
-      context: context,
-      barrierDismissible: allOptional,
-      builder: (context) {
-        return ChangeNotifierProvider<ModelDownloadManager>.value(
-          value: _modelDownloadManager,
-          child: Consumer<ModelDownloadManager>(
-            builder: (context, manager, _) {
-              const gemmaKey = 'gemma-3n-E4B-it-int4';
-              const whisperKey = 'whisper-base';
-
-              final gemmaDownloading = manager.isDownloading(gemmaKey);
-              final gemmaProgress = manager.getProgress(gemmaKey);
-              final gemmaError = manager.getError(gemmaKey);
-              final gemmaCompleted = manager.isCompleted(gemmaKey);
-
-              final whisperDownloading = manager.isDownloading(whisperKey);
-              final whisperProgress = manager.getProgress(whisperKey);
-              final whisperError = manager.getError(whisperKey);
-              final whisperCompleted = manager.isCompleted(whisperKey);
-
-              final optionalLabel = isNexaDevice ? ' (Optional)' : '';
-
-              return AlertDialog(
-                title: Text(isNexaDevice
-                    ? 'Optional Model Downloads'
-                    : 'Required Models Setup'),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Nexa device info banner
-                      if (isNexaDevice) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            border: Border.all(color: Colors.green.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.check_circle,
-                                  color: Colors.green.shade600),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'Nexa SDK models download automatically via the SDK. '
-                                  'You can use AR mode now. The models below are optional enhancements.',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ] else
-                        ...[
-                          const Text(
-                            'LiveCaptionsXR requires AI models to function. '
-                            'Please download the required models before proceeding:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                      // Gemma Model Section
-                      if (!gemmaExists || !gemmaCompleted)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.auto_awesome,
-                                      color: Colors.blue.shade600),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Gemma 3n Multimodal Model$optionalLabel',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'For caption enhancement and multimodal processing (4.1 GB)',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 8),
-                              if (gemmaDownloading)
-                                Column(
-                                  children: [
-                                    LinearProgressIndicator(
-                                        value: gemmaProgress),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Downloading: ${(gemmaProgress * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                )
-                              else if (gemmaError != null)
-                                Column(
-                                  children: [
-                                    Text(
-                                      'Error: $gemmaError',
-                                      style: const TextStyle(
-                                          color: Colors.red, fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        manager.resetModel(gemmaKey);
-                                        manager.downloadModel(gemmaKey);
-                                      },
-                                      child: const Text('Retry'),
-                                    ),
-                                  ],
-                                )
-                              else if (!gemmaCompleted)
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      manager.downloadModel(gemmaKey),
-                                  child: const Text('Download Gemma Model'),
-                                ),
-                              if (gemmaCompleted)
-                                const Text('✅ Gemma model ready',
-                                    style: TextStyle(color: Colors.green)),
-                            ],
-                          ),
-                        ),
-
-                      const SizedBox(height: 12),
-
-                      // Whisper Model Section
-                      if (!whisperExists || !whisperCompleted)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.green.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!kIsWeb && !Platform.isIOS) ...[
-                                Row(
-                                  children: [
-                                    Icon(Icons.mic,
-                                        color: Colors.green.shade600),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Whisper Speech Recognition Model$optionalLabel',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'For speech-to-text transcription (147.95 MB)',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 8),
-                                if (whisperDownloading)
-                                  Column(
-                                    children: [
-                                      LinearProgressIndicator(
-                                          value: whisperProgress),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Downloading: ${(whisperProgress * 100).toStringAsFixed(1)}%',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ],
-                                  )
-                                else if (whisperError != null)
-                                  Column(
-                                    children: [
-                                      Text(
-                                        'Error: $whisperError',
-                                        style: const TextStyle(
-                                            color: Colors.red, fontSize: 12),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          manager.resetModel(whisperKey);
-                                          manager.downloadModel(whisperKey);
-                                        },
-                                        child: const Text('Retry'),
-                                      ),
-                                    ],
-                                  )
-                                else if (!whisperCompleted)
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        manager.downloadModel(whisperKey),
-                                    child:
-                                        const Text('Download Whisper Model'),
-                                  ),
-                                if (whisperCompleted)
-                                  const Text('✅ Whisper model ready',
-                                      style: TextStyle(color: Colors.green)),
-                                const SizedBox(height: 16),
-                              ] else if (!kIsWeb && Platform.isIOS) ...[
-                                Row(
-                                  children: [
-                                    Icon(Icons.mic,
-                                        color: Colors.blue.shade600),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Apple Speech Recognition',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Built-in iOS speech recognition (no download required)',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text('✅ iOS Speech Recognition ready',
-                                    style: TextStyle(color: Colors.green)),
-                                const SizedBox(height: 16),
-                              ],
-                            ],
-                          ),
-                        ),
-
-                      const SizedBox(height: 16),
-
-                      // Info section
-                      Row(
-                        children: [
-                          Icon(Icons.info_outline,
-                              size: 16, color: Colors.blueGrey),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: const Text(
-                              'Estimated total download time: ~20-45 min on a 50 Mbps connection',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () => launchUrl(Uri.parse(
-                            'https://huggingface.co/google/gemma-3n-E2B-it')),
-                        child: const Text(
-                          'Learn more about the models',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  // On Nexa devices, always show a skip/continue button
-                  if (allOptional)
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Skip Optional Downloads'),
-                    ),
-                  Builder(
-                    builder: (context) {
-                      // Check if any downloads are active
-                      final hasActiveDownloads =
-                          gemmaDownloading || whisperDownloading;
-
-                      // Check if all models are completed
-                      final allCompleted = (gemmaExists || gemmaCompleted) &&
-                          (whisperExists || whisperCompleted);
-
-                      // Show Close button when all models are done
-                      if (!hasActiveDownloads && allCompleted) {
-                        return TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Close'),
-                        );
-                      }
-
-                      // On non-Nexa devices with required downloads pending,
-                      // don't show any dismiss button
-                      if (!allOptional) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      },
-    );
   }
 
   /// Start all services needed for AR mode using the ARSessionCubit
@@ -781,6 +455,40 @@ class _HomeScreenState extends State<HomeScreen> {
     _logger.i('🗑️ HomeScreen disposing...');
     super.dispose();
     _logger.d('✅ HomeScreen disposed successfully');
+  }
+
+  /// Build a non-blocking model status bar
+  Widget _buildModelStatusBar(BuildContext context) {
+    return Container(
+      color: Colors.orange.shade800,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            const Icon(Icons.download_for_offline, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'AI models needed for full functionality',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                context.push('/model-downloads');
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.orange.shade800,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('Download'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildCameraOrFallback() {
@@ -1091,6 +799,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
+                  // Model status indicator (non-blocking)
+                  bottomNavigationBar: _modelsMissing && !_isNexaDeviceDetected
+                      ? _buildModelStatusBar(context)
+                      : null,
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
