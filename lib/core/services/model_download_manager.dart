@@ -45,7 +45,7 @@ class ModelDownloadManager extends ChangeNotifier {
   static const Map<String, ModelConfig> _modelConfigs = {
     'gemma-3n-E2B-it-int4': ModelConfig(
       fileName: 'gemma-3n-E2B-it-int4.task',
-      url: 'https://livecaptionsxrbucket.com/gemma-3n-E2B-it-int4.task',
+      url: 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task?download=true',
       expectedSize: 3133601792, // 2.92 GB
       type: ModelType.gemma,
       displayName: 'Gemma 3n E2B',
@@ -54,7 +54,7 @@ class ModelDownloadManager extends ChangeNotifier {
     ),
     'gemma-3n-E4B-it-int4': ModelConfig(
       fileName: 'gemma-3n-E4B-it-int4.task',
-      url: 'https://livecaptionsxrbucket.com/gemma-3n-E4B-it-int4.task',
+      url: 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task?download=true',
       expectedSize: 4398046511, // 4.1 GB
       type: ModelType.gemma,
       displayName: 'Gemma 3n Multimodal',
@@ -63,7 +63,7 @@ class ModelDownloadManager extends ChangeNotifier {
     ),
     'whisper-base': ModelConfig(
       fileName: 'ggml-base.bin',
-      url: 'https://livecaptionsxrbucket.com/whisper_base.bin',
+      url: 'https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin',
       expectedSize: 147951465, // Actual size from server
       type: ModelType.whisper,
       displayName: 'Whisper Base',

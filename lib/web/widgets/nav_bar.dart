@@ -224,12 +224,12 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
       ),
       itemBuilder: (context) => [
         PopupMenuItem<String>(
-          value: 'ios',
+          value: 'nexa_apk',
           child: Row(
             children: [
-              const Icon(Icons.apple, color: Colors.grey),
+              Icon(Icons.memory, color: Colors.deepOrange[600]),
               const SizedBox(width: 12),
-              const Text('iOS TestFlight'),
+              const Text('Nexa APK (Snapdragon)'),
             ],
           ),
         ),
@@ -243,9 +243,21 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
             ],
           ),
         ),
+        PopupMenuItem<String>(
+          value: 'ios',
+          child: Row(
+            children: [
+              const Icon(Icons.apple, color: Colors.grey),
+              const SizedBox(width: 12),
+              const Text('iOS TestFlight'),
+            ],
+          ),
+        ),
       ],
       onSelected: (value) async {
-        if (value == 'ios') {
+        if (value == 'nexa_apk') {
+          context.go('/downloads');
+        } else if (value == 'ios') {
           try {
             await TestFlightUtils.openTestFlight();
           } catch (e) {
@@ -449,16 +461,13 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async {
-                              try {
-                                await TestFlightUtils.openTestFlight();
-                              } catch (e) {
-                                debugPrint('Could not open TestFlight: $e');
-                              }
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              context.go('/downloads');
                             },
-                            icon: const Icon(Icons.apple, color: Colors.white, size: 20),
+                            icon: const Icon(Icons.memory, color: Colors.white, size: 20),
                             label: const Text(
-                              'iOS TestFlight',
+                              'Nexa APK (Snapdragon)',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -466,7 +475,7 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
+                              backgroundColor: Colors.deepOrange,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -496,6 +505,35 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green[600],
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await TestFlightUtils.openTestFlight();
+                              } catch (e) {
+                                debugPrint('Could not open TestFlight: $e');
+                              }
+                            },
+                            icon: const Icon(Icons.apple, color: Colors.white, size: 20),
+                            label: const Text(
+                              'iOS TestFlight',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),

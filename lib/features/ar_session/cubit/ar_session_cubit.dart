@@ -9,6 +9,7 @@ import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/ar_session_persistence_service.dart';
 import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/apple_speech_service.dart';
+import '../../../core/services/nexa_asr_service.dart';
 import '../../../core/services/gemma_3n_service.dart';
 import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
@@ -32,7 +33,11 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   // Store Whisper service for STT event listening
   WhisperService? _whisperService;
   StreamSubscription<WhisperSTTEvent>? _whisperSTTSubscription;
-  
+
+  // Store Nexa ASR service for STT event listening (Snapdragon devices)
+  NexaAsrService? _nexaAsrService;
+  StreamSubscription<WhisperSTTEvent>? _nexaAsrSubscription;
+
   // Store Gemma 3n service for enhancement event listening
   Gemma3nService? _gemma3nService;
   StreamSubscription<Gemma3nEnhancementEvent>? _gemma3nEnhancementSubscription;
@@ -91,6 +96,52 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     _whisperSTTSubscription?.cancel();
     _whisperSTTSubscription = null;
     _whisperService = null;
+  }
+
+  /// Listen to Nexa ASR STT events and emit AR session states (Snapdragon devices)
+  void listenToNexaASR(NexaAsrService nexaAsrService) {
+    _nexaAsrService = nexaAsrService;
+
+    // Cancel any existing subscription
+    _nexaAsrSubscription?.cancel();
+
+    // NexaAsrService.sttEvents emits WhisperSTTEvent objects for compatibility
+    _nexaAsrSubscription = nexaAsrService.sttEvents.listen((event) {
+      _logger.d('🎤 Nexa ASR STT event: ${event.message} (progress: ${event.progress})',
+          category: LogCategory.speech);
+
+      if (event.error != null) {
+        _logger.e('❌ Nexa ASR STT error: ${event.error}',
+            category: LogCategory.speech);
+        emit(ARSessionError(
+          message: 'STT failed: ${event.message}',
+          details: event.error.toString(),
+          errorCode: 'STT_ERROR',
+        ));
+      } else {
+        emit(ARSessionSTTProcessing(
+          backend: 'Nexa ASR',
+          isOnline: false, // Always on-device
+          progress: event.progress,
+          message: event.message,
+        ));
+      }
+    }, onError: (error) {
+      _logger.e('❌ Error in Nexa ASR STT event stream',
+          category: LogCategory.speech, error: error);
+      emit(ARSessionError(
+        message: 'STT event stream error',
+        details: error.toString(),
+        errorCode: 'STT_STREAM_ERROR',
+      ));
+    });
+  }
+
+  /// Stop listening to Nexa ASR STT events
+  void stopListeningToNexaASR() {
+    _nexaAsrSubscription?.cancel();
+    _nexaAsrSubscription = null;
+    _nexaAsrService = null;
   }
 
   /// Listen to Apple Speech events and emit AR session states (iOS only)
@@ -889,6 +940,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
         stopListeningToWhisperSTT();
         _logger.d('🎤 Whisper STT event listening stopped', category: LogCategory.speech);
       }
+      // Also stop Nexa ASR if active
+      stopListeningToNexaASR();
+      _logger.d('🎤 Nexa ASR STT event listening stopped', category: LogCategory.speech);
 
       // Stop listening to Gemma 3n enhancement events
       stopListeningToGemma3nEnhancement();
@@ -1028,7 +1082,8 @@ class ARSessionCubit extends Cubit<ARSessionState> {
     } else {
       stopListeningToWhisperSTT();
     }
-    
+    stopListeningToNexaASR();
+
     // Stop listening to Gemma 3n enhancement events
     stopListeningToGemma3nEnhancement();
     

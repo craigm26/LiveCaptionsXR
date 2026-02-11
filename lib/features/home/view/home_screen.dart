@@ -28,6 +28,8 @@ import '../../../core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
 import '../../../core/services/apple_speech_service.dart';
+import '../../../core/services/nexa_asr_service.dart';
+import '../../../core/models/device_model_config.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late ModelDownloadManager _modelDownloadManager;
   bool _isGemmaInitialized = false;
   bool _isGemmaInitializing = false;
+  bool? _nexaDevice; // cached result of Nexa device check
 
   @override
   void initState() {
@@ -56,11 +59,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// Check if the current device uses Nexa/Parakeet ASR (Snapdragon with NPU).
+  /// On such devices, Whisper and Gemma are optional since Nexa SDK handles ASR/LLM.
+  Future<bool> _isNexaDevice() async {
+    if (_nexaDevice != null) return _nexaDevice!;
+    if (kIsWeb || !Platform.isAndroid) {
+      _nexaDevice = false;
+      return false;
+    }
+    try {
+      final registry = DeviceModelRegistry();
+      final config = await registry.getDeviceConfig();
+      // Nexa device if ASR model is Parakeet-based (not Whisper)
+      _nexaDevice = config.asrModel.name.startsWith('parakeet');
+      _logger.i(
+          '📱 Device config: ${config.deviceId}, ASR: ${config.asrModel.name}, isNexa: $_nexaDevice',
+          category: LogCategory.system);
+      return _nexaDevice!;
+    } catch (e) {
+      _logger.w('⚠️ Could not detect device config, assuming non-Nexa',
+          category: LogCategory.system);
+      _nexaDevice = false;
+      return false;
+    }
+  }
+
   Future<void> _checkAndPromptModelDownload() async {
     _logger.d('🔍 Checking model availability on app startup...',
         category: LogCategory.system);
 
-    // Check if required models exist
+    // Check if this is a Nexa-capable device (Snapdragon with Parakeet ASR)
+    final isNexa = await _isNexaDevice();
+
+    // Check if optional models exist
     _logger.d('🔍 Checking Gemma model availability...',
         category: LogCategory.gemma);
     final gemmaExists =
@@ -76,31 +107,58 @@ class _HomeScreenState extends State<HomeScreen> {
         category: LogCategory.speech);
 
     _logger.d(
-        '📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists',
+        '📊 Model availability summary - Gemma: $gemmaExists, Whisper: $whisperExists, isNexaDevice: $isNexa',
         category: LogCategory.system);
 
-    // Determine which models are needed for this platform
-    final needsWhisper = !kIsWeb && !Platform.isIOS;
-    final needsGemma = true; // Gemma needed on all platforms
+    // On Nexa devices: Whisper and Gemma are optional (Nexa SDK handles ASR/LLM)
+    // On iOS: Whisper not needed (Apple Speech), Gemma optional
+    // On generic Android: Whisper required for ASR, Gemma required for enhancement
+    final bool needsWhisper;
+    final bool needsGemma;
+    if (isNexa) {
+      needsWhisper = false; // Nexa Parakeet handles ASR
+      needsGemma = false;   // Nexa Granite/OmniNeural handles LLM
+    } else if (!kIsWeb && Platform.isIOS) {
+      needsWhisper = false;  // Apple Speech handles ASR
+      needsGemma = true;     // Gemma needed for enhancement on iOS
+    } else {
+      needsWhisper = !kIsWeb; // Whisper needed on non-Nexa Android
+      needsGemma = true;      // Gemma needed on non-Nexa Android
+    }
 
     // Check if any required models are missing
     final hasMissingModels =
         (needsGemma && !gemmaExists) || (needsWhisper && !whisperExists);
 
+    // Also check if optional models are missing (to offer download)
+    final hasOptionalMissing =
+        (!gemmaExists || !whisperExists) && !hasMissingModels;
+
     if (hasMissingModels && mounted) {
       _logger.w(
-          '⚠️ Missing models detected, showing download dialog. Platform needs - Gemma: $needsGemma, Whisper: $needsWhisper',
+          '⚠️ Missing required models detected, showing download dialog. Needs - Gemma: $needsGemma, Whisper: $needsWhisper',
           category: LogCategory.system);
       _showModelDownloadDialog(
-          gemmaExists: gemmaExists, whisperExists: whisperExists);
+        gemmaExists: gemmaExists,
+        whisperExists: whisperExists,
+        isNexaDevice: isNexa,
+      );
+    } else if (hasOptionalMissing && mounted) {
+      _logger.i(
+          '📦 Optional models missing but not required for this device (isNexa: $isNexa)',
+          category: LogCategory.system);
+      // On Nexa devices, optionally show dialog so user can still download
+      // Whisper/Gemma if they want. Skip for now to not block.
     } else {
       _logger.i(
-          '✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper)',
+          '✅ All required models are available for this platform (Gemma: $needsGemma, Whisper: $needsWhisper, isNexa: $isNexa)',
           category: LogCategory.system);
     }
   }
 
-  /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session
+  /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session.
+  /// On Nexa devices, this runs as fire-and-forget in the background since
+  /// the Nexa LLM service handles text enhancement; Gemma is a bonus.
   Future<void> _initializeGemmaBeforeAR() async {
     if (_isGemmaInitialized || _isGemmaInitializing) {
       _logger.i('🤖 Gemma already initialized or initializing, skipping',
@@ -108,6 +166,52 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final isNexa = await _isNexaDevice();
+
+    // On Nexa devices, fire-and-forget Gemma init in background (non-blocking)
+    if (isNexa) {
+      _logger.i(
+          '🤖 Nexa device detected - initializing Gemma in background (non-blocking)',
+          category: LogCategory.gemma);
+      _initializeGemmaInBackground();
+      return;
+    }
+
+    // On non-Nexa devices, initialize synchronously (blocks FAB until ready)
+    await _initializeGemmaSync();
+  }
+
+  /// Background Gemma init for Nexa devices - does not block the FAB
+  void _initializeGemmaInBackground() {
+    _isGemmaInitializing = true;
+    if (mounted) setState(() {});
+
+    Future(() async {
+      try {
+        final gemma3nService = sl<Gemma3nService>();
+        if (gemma3nService.isReady) {
+          _isGemmaInitialized = true;
+          return;
+        }
+        final timeout = Duration(seconds: 120);
+        await gemma3nService.initialize().timeout(timeout);
+        if (gemma3nService.isReady) {
+          _logger.i('✅ Gemma 3n background init succeeded',
+              category: LogCategory.gemma);
+          _isGemmaInitialized = true;
+        }
+      } catch (e) {
+        _logger.w('⚠️ Gemma background init failed (non-critical on Nexa): $e',
+            category: LogCategory.gemma);
+      } finally {
+        _isGemmaInitializing = false;
+        if (mounted) setState(() {});
+      }
+    });
+  }
+
+  /// Synchronous Gemma init for non-Nexa devices
+  Future<void> _initializeGemmaSync() async {
     try {
       _isGemmaInitializing = true;
       _logger.i('🤖 Pre-initializing Gemma 3n service before AR launch...',
@@ -122,12 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      // Show loading state if needed
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
 
-      // Initialize with platform-specific timeout
       final timeout =
           Platform.isIOS ? Duration(seconds: 90) : Duration(seconds: 120);
       _logger.i(
@@ -156,17 +256,21 @@ class _HomeScreenState extends State<HomeScreen> {
           category: LogCategory.gemma);
     } finally {
       _isGemmaInitializing = false;
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     }
   }
 
-  void _showModelDownloadDialog(
-      {required bool gemmaExists, required bool whisperExists}) {
+  void _showModelDownloadDialog({
+    required bool gemmaExists,
+    required bool whisperExists,
+    bool isNexaDevice = false,
+  }) {
+    // On Nexa devices, all downloads are optional - dialog is dismissible
+    final allOptional = isNexaDevice;
+
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: allOptional,
       builder: (context) {
         return ChangeNotifierProvider<ModelDownloadManager>.value(
           value: _modelDownloadManager,
@@ -185,18 +289,51 @@ class _HomeScreenState extends State<HomeScreen> {
               final whisperError = manager.getError(whisperKey);
               final whisperCompleted = manager.isCompleted(whisperKey);
 
+              final optionalLabel = isNexaDevice ? ' (Optional)' : '';
+
               return AlertDialog(
-                title: const Text('Required Models Setup'),
+                title: Text(isNexaDevice
+                    ? 'Optional Model Downloads'
+                    : 'Required Models Setup'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'LiveCaptionsXR requires AI models to function. Please download the required models before proceeding:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
+                      // Nexa device info banner
+                      if (isNexaDevice) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            border: Border.all(color: Colors.green.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.check_circle,
+                                  color: Colors.green.shade600),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Nexa SDK models download automatically via the SDK. '
+                                  'You can use AR mode now. The models below are optional enhancements.',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ] else
+                        ...[
+                          const Text(
+                            'LiveCaptionsXR requires AI models to function. '
+                            'Please download the required models before proceeding:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                       // Gemma Model Section
                       if (!gemmaExists || !gemmaCompleted)
@@ -214,10 +351,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Icon(Icons.auto_awesome,
                                       color: Colors.blue.shade600),
                                   const SizedBox(width: 8),
-                                  const Text(
-                                    'Gemma 3n Multimodal Model',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
+                                  Expanded(
+                                    child: Text(
+                                      'Gemma 3n Multimodal Model$optionalLabel',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -290,10 +429,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Icon(Icons.mic,
                                         color: Colors.green.shade600),
                                     const SizedBox(width: 8),
-                                    const Text(
-                                      'Whisper Speech Recognition Model',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold),
+                                    Expanded(
+                                      child: Text(
+                                        'Whisper Speech Recognition Model$optionalLabel',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -338,7 +479,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ElevatedButton(
                                     onPressed: () =>
                                         manager.downloadModel(whisperKey),
-                                    child: const Text('Download Whisper Model'),
+                                    child:
+                                        const Text('Download Whisper Model'),
                                   ),
                                 if (whisperCompleted)
                                   const Text('✅ Whisper model ready',
@@ -406,32 +548,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 actions: [
+                  // On Nexa devices, always show a skip/continue button
+                  if (allOptional)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Skip Optional Downloads'),
+                    ),
                   Builder(
                     builder: (context) {
-                      // Determine which models are needed for this platform
-                      final needsWhisper = !kIsWeb && !Platform.isIOS;
-                      final needsGemma = true; // Gemma needed on all platforms
-
-                      // Check if any required models are currently downloading
+                      // Check if any downloads are active
                       final hasActiveDownloads =
-                          (needsGemma && gemmaDownloading) ||
-                              (needsWhisper && whisperDownloading);
+                          gemmaDownloading || whisperDownloading;
 
-                      // Check if all required models are completed
-                      final allRequiredCompleted =
-                          (!needsGemma || gemmaCompleted) &&
-                              (!needsWhisper || whisperCompleted);
+                      // Check if all models are completed
+                      final allCompleted = (gemmaExists || gemmaCompleted) &&
+                          (whisperExists || whisperCompleted);
 
-                      // Only show Close button when all required models are completed
-                      // No Cancel option - models must be downloaded
-                      if (!hasActiveDownloads && allRequiredCompleted) {
+                      // Show Close button when all models are done
+                      if (!hasActiveDownloads && allCompleted) {
                         return TextButton(
                           onPressed: () => Navigator.of(context).pop(),
                           child: const Text('Close'),
                         );
                       }
 
-                      // No button during download or if models not completed
+                      // On non-Nexa devices with required downloads pending,
+                      // don't show any dismiss button
+                      if (!allOptional) {
+                        return const SizedBox.shrink();
+                      }
+
                       return const SizedBox.shrink();
                     },
                   ),
@@ -485,6 +631,15 @@ class _HomeScreenState extends State<HomeScreen> {
         arSessionCubit.listenToAppleSpeechSTT(appleSpeechService);
         _logger.i(
             '✅ [HOME] Step 4 complete: Apple Speech STT event listener configured',
+            category: LogCategory.speech);
+      } else if (_nexaDevice == true) {
+        _logger.i(
+            '🔍 [HOME] Step 4: Setting up Nexa ASR STT event listener (Snapdragon device)...',
+            category: LogCategory.ui);
+        final nexaAsrService = sl<NexaAsrService>();
+        arSessionCubit.listenToNexaASR(nexaAsrService);
+        _logger.i(
+            '✅ [HOME] Step 4 complete: Nexa ASR STT event listener configured',
             category: LogCategory.speech);
       } else {
         _logger.i('🔍 [HOME] Step 4: Setting up Whisper STT event listener...',
@@ -991,7 +1146,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     child: FloatingActionButton(
                       heroTag: "ar_view_fab",
-                      onPressed: _isGemmaInitializing
+                      // On Nexa devices, don't block FAB while Gemma initializes in background
+                      onPressed: (_isGemmaInitializing && (_nexaDevice != true))
                           ? null
                           : () async {
                               _logger.i('🥽 Enter AR Mode button pressed...',
@@ -1003,8 +1159,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   category: LogCategory.ui);
 
                               try {
-                                // Ensure Gemma is initialized before starting AR
-                                if (!_isGemmaInitialized &&
+                                // On non-Nexa devices, ensure Gemma is initialized before starting AR
+                                if (_nexaDevice != true &&
+                                    !_isGemmaInitialized &&
                                     !_isGemmaInitializing) {
                                   _logger.i(
                                       '🤖 Gemma not yet initialized, initializing now...',
@@ -1042,10 +1199,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 );
                               }
                             },
-                      tooltip: _isGemmaInitializing
+                      tooltip: (_isGemmaInitializing && (_nexaDevice != true))
                           ? 'Initializing Gemma...'
                           : 'Enter AR Mode',
-                      child: _isGemmaInitializing
+                      child: (_isGemmaInitializing && (_nexaDevice != true))
                           ? const SizedBox(
                               width: 24,
                               height: 24,
