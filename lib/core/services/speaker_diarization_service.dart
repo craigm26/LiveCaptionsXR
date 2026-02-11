@@ -206,13 +206,13 @@ class SpeakerDiarizationService {
     
     // Add pitch information
     if (idx < config.embeddingDim) {
-      embedding[idx++] = (pitch / 500.0).clamp(0.0, 1.0); // Normalize pitch (0-500 Hz)
+      embedding[idx++] = (pitch / 500.0).clamp(0.0, 1.0).toDouble(); // Normalize pitch (0-500 Hz)
     }
     
     // Fill remaining with energy statistics
     final energy = _calculateEnergy(mono);
     while (idx < config.embeddingDim) {
-      embedding[idx++] = energy.clamp(0.0, 1.0);
+      embedding[idx++] = energy.clamp(0.0, 1.0).toDouble();
     }
     
     // L2 normalize the embedding
@@ -350,7 +350,7 @@ class SpeakerDiarizationService {
         ? exp(geometricMean / count) / (arithmeticMean / count)
         : 0.0;
     
-    return [centroid, bandwidth, rolloffNorm, flatness.clamp(0.0, 1.0)];
+    return [centroid, bandwidth, rolloffNorm, flatness.clamp(0.0, 1.0).toDouble()];
   }
   
   /// Estimate fundamental frequency (pitch)
