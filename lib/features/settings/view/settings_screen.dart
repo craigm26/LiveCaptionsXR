@@ -4,7 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/user_settings.dart';
 import '../../../core/services/enhanced_speech_processor.dart'
     show SpeechEngine;
-import '../cubit/settings_cubit.dart';     
+import '../cubit/settings_cubit.dart';
+import '../../translation/widgets/translation_settings_card.dart';     
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -207,6 +208,10 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              _buildSectionHeader('Translation'),
+              const SizedBox(height: 8),
+              const TranslationSettingsCard(),
             ],
           );
         },

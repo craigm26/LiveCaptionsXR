@@ -28,6 +28,8 @@ import 'package:live_captions_xr/core/models/device_model_config.dart';
 import 'package:live_captions_xr/core/services/download/download_state_persistence.dart';
 import 'package:live_captions_xr/core/services/download/unified_download_manager.dart';
 import 'package:live_captions_xr/core/services/ios_model_config_service.dart';
+import 'package:live_captions_xr/core/services/translation_service.dart';
+import 'package:live_captions_xr/features/translation/cubit/translation_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -99,6 +101,26 @@ void setupServiceLocator() {
       sl.registerLazySingleton<NexaLlmService>(() {
         logger.d('🚀 Creating NexaLlmService instance', category: LogCategory.system);
         return NexaLlmService();
+      });
+    }
+    // Register TranslationService (depends on NexaLlmService)
+    if (!sl.isRegistered<TranslationService>()) {
+      logger.d('🌐 Registering TranslationService in service locator', category: LogCategory.system);
+      sl.registerLazySingleton<TranslationService>(() {
+        logger.d('🌐 Creating TranslationService instance', category: LogCategory.system);
+        return TranslationService(
+          nexaLlmService: sl<NexaLlmService>(),
+        );
+      });
+    }
+    // Register TranslationCubit
+    if (!sl.isRegistered<TranslationCubit>()) {
+      logger.d('🌐 Registering TranslationCubit in service locator', category: LogCategory.system);
+      sl.registerLazySingleton<TranslationCubit>(() {
+        logger.d('🌐 Creating TranslationCubit instance', category: LogCategory.system);
+        return TranslationCubit(
+          translationService: sl<TranslationService>(),
+        );
       });
     }
   }

@@ -13,6 +13,7 @@ import 'features/localization/cubit/localization_cubit.dart';
 import 'features/settings/cubit/settings_cubit.dart';
 import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
+import 'features/translation/cubit/translation_cubit.dart';
 import 'shared/theme/app_theme.dart';
 import 'core/services/google_auth_service.dart';
 
@@ -34,6 +35,7 @@ class LiveCaptionsXrApp extends StatelessWidget {
         BlocProvider<VisualIdentificationCubit>(create: (context) => sl<VisualIdentificationCubit>()),
         BlocProvider<LiveCaptionsCubit>(create: (context) => sl<LiveCaptionsCubit>()),
         BlocProvider<ARSessionCubit>(create: (context) => ARSessionCubit(hybridLocalizationEngine: sl(), persistenceService: sl())),
+        BlocProvider<TranslationCubit>(create: (context) => sl<TranslationCubit>()..initialize()),
       ],
       child: MaterialApp.router(
         title: 'Live Captions XR',

@@ -8,6 +8,8 @@ import '../../../core/services/enhanced_speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
+import '../../../core/services/translation_service.dart';
+import '../../../core/di/service_locator.dart';
 import 'live_captions_state.dart';
 
 /// A unified Cubit for managing live captions, with optional enhancement.
@@ -145,7 +147,30 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       if (_captionHistory.length > 50) _captionHistory.removeAt(0);
       _logger.i('📚 [CAPTIONS CUBIT] Added FINAL caption to history (${_captionHistory.length} total)', category: LogCategory.captions);
 
-      final displayText = caption.displayText;
+      var displayText = caption.displayText;
+      
+      // Apply translation if enabled
+      if (sl.isRegistered<TranslationService>()) {
+        final translationService = sl<TranslationService>();
+        if (translationService.isEnabled) {
+          try {
+            _logger.d('🌐 Translating caption: "$displayText"', category: LogCategory.captions);
+            final result = await translationService.translate(displayText);
+            if (result.wasTranslated) {
+              // Format: show translation, optionally with original
+              if (translationService.showOriginal) {
+                displayText = '${result.translatedText}\n[${result.originalText}]';
+              } else {
+                displayText = result.translatedText;
+              }
+              _logger.i('🌐 Translated: "${result.originalText}" → "${result.translatedText}"', category: LogCategory.captions);
+            }
+          } catch (e) {
+            _logger.w('⚠️ Translation failed, using original: $e', category: LogCategory.captions);
+          }
+        }
+      }
+      
       _logger.d('🎯 Processing final caption through spatial integration: "$displayText"');
       
       // Create speech result for spatial caption integration
