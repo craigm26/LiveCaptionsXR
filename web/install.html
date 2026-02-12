@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install LiveCaptionsXR — Android XR Device Guide</title>
+  <meta name="description" content="How to install LiveCaptionsXR on Android XR headsets. Choose between Play Store or sideloaded APK with NPU acceleration.">
+  <meta property="og:title" content="Install LiveCaptionsXR on Android XR">
+  <meta property="og:description" content="Two install paths, multiple AI engines — pick the right setup for your device.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HYLHMMC8FV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HYLHMMC8FV');
+  </script>
+
+  <style>
+    :root {
+      --blue: #2563EB;
+      --blue-light: #3B82F6;
+      --blue-50: #EFF6FF;
+      --green: #059669;
+      --green-50: #ECFDF5;
+      --purple: #7C3AED;
+      --purple-50: #F5F3FF;
+      --orange: #D97706;
+      --orange-50: #FFFBEB;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --gray-800: #1F2937;
+      --gray-900: #111827;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+      color: var(--gray-800);
+      line-height: 1.6;
+      background: var(--gray-50);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Nav */
+    nav {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--blue);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-brand svg { flex-shrink: 0; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a {
+      color: var(--gray-600);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--blue); }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+      color: white;
+      padding: 64px 24px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .hero p {
+      font-size: 18px;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Content */
+    .content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* Decision cards */
+    .decision-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: 32px 0 48px;
+    }
+    @media (max-width: 640px) {
+      .decision-grid { grid-template-columns: 1fr; }
+    }
+
+    .option-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 32px;
+      border: 2px solid var(--gray-200);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .option-card:hover {
+      border-color: var(--blue-light);
+      box-shadow: 0 4px 24px rgba(37, 99, 235, 0.1);
+    }
+    .option-card.recommended::before {
+      content: 'RECOMMENDED';
+      position: absolute;
+      top: -12px;
+      left: 24px;
+      background: var(--green);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .option-card.performance::before {
+      content: 'BEST PERFORMANCE';
+      position: absolute;
+      top: -12px;
+      left: 24px;
+      background: var(--purple);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .option-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 24px;
+    }
+    .option-card.recommended .option-icon { background: var(--green-50); }
+    .option-card.performance .option-icon { background: var(--purple-50); }
+    .option-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .option-card .subtitle {
+      color: var(--gray-500);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .option-card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .option-card li {
+      padding: 6px 0;
+      font-size: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .option-card li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 56px;
+    }
+    .section h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--gray-900);
+    }
+    .section .section-sub {
+      color: var(--gray-500);
+      margin-bottom: 24px;
+      font-size: 16px;
+    }
+    .section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px;
+      color: var(--gray-800);
+    }
+
+    /* Step list */
+    .steps {
+      list-style: none;
+      padding: 0;
+      counter-reset: step;
+    }
+    .steps li {
+      counter-increment: step;
+      padding: 16px 16px 16px 56px;
+      position: relative;
+      background: white;
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      border: 1px solid var(--gray-200);
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      width: 28px;
+      height: 28px;
+      background: var(--blue);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .steps li strong { color: var(--gray-900); }
+
+    /* Code block */
+    pre {
+      background: var(--gray-900);
+      color: #E5E7EB;
+      padding: 20px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.7;
+      margin: 16px 0;
+    }
+    pre code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+    .code-comment { color: #6B7280; }
+
+    /* AI comparison table */
+    .ai-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .ai-table thead {
+      background: var(--gray-800);
+      color: white;
+    }
+    .ai-table th {
+      padding: 14px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+    .ai-table td {
+      padding: 14px 16px;
+      border-top: 1px solid var(--gray-100);
+    }
+    .ai-table tbody tr { background: white; }
+    .ai-table tbody tr:nth-child(even) { background: var(--gray-50); }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-green { background: var(--green-50); color: var(--green); }
+    .badge-blue { background: var(--blue-50); color: var(--blue); }
+    .badge-purple { background: var(--purple-50); color: var(--purple); }
+    .badge-orange { background: var(--orange-50); color: var(--orange); }
+
+    /* Info box */
+    .info-box {
+      background: var(--blue-50);
+      border: 1px solid #BFDBFE;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .info-box.green {
+      background: var(--green-50);
+      border-color: #A7F3D0;
+    }
+    .info-box strong { display: block; margin-bottom: 4px; }
+
+    /* Accordion / collapsible */
+    details {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+    }
+    details summary {
+      padding: 16px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    details summary::before {
+      content: '▸';
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    details[open] summary::before { transform: rotate(90deg); }
+    details summary::-webkit-details-marker { display: none; }
+    details .detail-body { padding: 0 20px 20px; font-size: 14px; }
+    details .detail-body p { margin-bottom: 12px; }
+
+    /* CTA */
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn-blue { background: var(--blue); color: white; }
+    .btn-outline { background: white; color: var(--gray-700); border: 2px solid var(--gray-300); }
+
+    /* Footer */
+    footer {
+      background: var(--gray-900);
+      color: var(--gray-300);
+      padding: 40px 24px;
+      text-align: center;
+      font-size: 14px;
+    }
+    footer a { color: var(--blue-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* Privacy shield */
+    .privacy-strip {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      padding: 24px;
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 14px;
+      color: var(--gray-600);
+    }
+    .privacy-strip span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#2563EB"/></svg>
+      LiveCaptionsXR
+    </a>
+    <div class="nav-links">
+      <a href="/">App</a>
+      <a href="install.html" style="color:var(--blue)">Install Guide</a>
+      <a href="https://github.com/craigm26/LiveCaptionsXR" target="_blank">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Install LiveCaptionsXR on Android XR</h1>
+  <p>Two installation paths. Multiple AI engines. One goal: real-time captions that stay on your device.</p>
+</div>
+
+<!-- Privacy strip -->
+<div class="privacy-strip">
+  <span>🔒 100% on-device — no audio leaves your headset</span>
+  <span>🎯 Auto-detects your hardware</span>
+  <span>⚡ NPU acceleration on supported devices</span>
+</div>
+
+<div class="content">
+
+  <!-- Decision cards -->
+  <div class="section">
+    <h2>Choose Your Install Path</h2>
+    <p class="section-sub">Both paths give you fully private, on-device captioning. The difference is which AI models run and how fast they run.</p>
+
+    <div class="decision-grid">
+      <div class="option-card recommended">
+        <div class="option-icon">🏪</div>
+        <h3>Google Play Store</h3>
+        <p class="subtitle">Works on any Android XR device</p>
+        <ul>
+          <li><strong>Whisper</strong> speech-to-text (CPU/GPU)</li>
+          <li><strong>Gemma 3n</strong> text enhancement</li>
+          <li>One-tap install, automatic updates</li>
+          <li>No developer setup required</li>
+          <li>Samsung Galaxy XR, all ARCore devices</li>
+        </ul>
+        <div class="cta-row">
+          <a href="#store-install" class="btn btn-blue">Install Steps ↓</a>
+        </div>
+      </div>
+
+      <div class="option-card performance">
+        <div class="option-icon">⚡</div>
+        <h3>Sideload APK (Nexa AI)</h3>
+        <p class="subtitle">Qualcomm Snapdragon 8-series with NPU</p>
+        <ul>
+          <li><strong>Parakeet ASR</strong> via Nexa SDK (NPU-accelerated)</li>
+          <li><strong>Granite / OmniNeural</strong> LLM (NPU-accelerated)</li>
+          <li>~2–3× faster inference than CPU Whisper</li>
+          <li>Lower power consumption (dedicated NPU)</li>
+          <li>Galaxy XR, QRD reference boards</li>
+        </ul>
+        <div class="cta-row">
+          <a href="#sideload-install" class="btn btn-blue">Install Steps ↓</a>
+          <a href="https://github.com/craigm26/LiveCaptionsXR/releases" class="btn btn-outline" target="_blank">Download APK</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Comparison -->
+  <div class="section">
+    <h2>Understanding the AI Options</h2>
+    <p class="section-sub">LiveCaptionsXR auto-detects your hardware and selects the best pipeline. Here's what runs under the hood.</p>
+
+    <table class="ai-table">
+      <thead>
+        <tr>
+          <th>AI Engine</th>
+          <th>Speech-to-Text</th>
+          <th>Text Enhancement</th>
+          <th>Runs On</th>
+          <th>Install Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Whisper + Gemma</strong></td>
+          <td>Whisper GGML (OpenAI)</td>
+          <td>Gemma 3n 2B (Google)</td>
+          <td><span class="badge badge-blue">CPU / GPU</span></td>
+          <td>Play Store</td>
+        </tr>
+        <tr>
+          <td><strong>Nexa NPU</strong></td>
+          <td>Parakeet ASR (NVIDIA)</td>
+          <td>Granite / OmniNeural</td>
+          <td><span class="badge badge-purple">Qualcomm NPU</span></td>
+          <td>Sideload APK</td>
+        </tr>
+        <tr>
+          <td><strong>Apple Speech</strong></td>
+          <td>Apple Speech Framework</td>
+          <td>—</td>
+          <td><span class="badge badge-green">System API</span></td>
+          <td>App Store (iOS)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box green">
+      <strong>🔒 All options are fully on-device.</strong>
+      No audio or text is sent to the cloud. Models download once over WiFi (~200–500 MB), then everything runs locally.
+    </div>
+
+    <h3>Device-Tier Auto-Detection (Store Version)</h3>
+    <table class="ai-table">
+      <thead>
+        <tr>
+          <th>Your Device</th>
+          <th>ASR Model</th>
+          <th>LLM Model</th>
+          <th>Expected Latency</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Flagship</strong> — Snapdragon 8 Elite, 8 Gen 3</td>
+          <td>Whisper base</td>
+          <td>Gemma 3n 2B</td>
+          <td><span class="badge badge-green">&lt;500ms</span></td>
+        </tr>
+        <tr>
+          <td><strong>High-end</strong> — Snapdragon 8 Gen 2, 8 Gen 1</td>
+          <td>Whisper base</td>
+          <td>Gemma 3n 2B</td>
+          <td><span class="badge badge-blue">&lt;800ms</span></td>
+        </tr>
+        <tr>
+          <td><strong>Mid-range</strong> — Snapdragon 7-series</td>
+          <td>Whisper tiny</td>
+          <td>Gemma 3n 2B (quantized)</td>
+          <td><span class="badge badge-orange">~1s</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>NPU Auto-Detection (Sideloaded Version)</h3>
+    <table class="ai-table">
+      <thead>
+        <tr>
+          <th>Detection Result</th>
+          <th>ASR Model</th>
+          <th>LLM Model</th>
+          <th>Acceleration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>NPU detected</strong> — Snapdragon 8-series</td>
+          <td>Parakeet ASR (Nexa)</td>
+          <td>Granite / OmniNeural</td>
+          <td><span class="badge badge-purple">Hexagon NPU</span></td>
+        </tr>
+        <tr>
+          <td><strong>NPU not detected</strong> — automatic fallback</td>
+          <td>Whisper GGML (CPU)</td>
+          <td>Gemma 3n (CPU/GPU)</td>
+          <td><span class="badge badge-blue">CPU / GPU</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Store install -->
+  <div class="section" id="store-install">
+    <h2>🏪 Option 1: Google Play Store</h2>
+    <p class="section-sub">The simplest path — install like any other app.</p>
+
+    <ol class="steps">
+      <li>Open the <strong>Google Play Store</strong> on your Android XR headset</li>
+      <li>Search for <strong>"LiveCaptionsXR"</strong></li>
+      <li>Tap <strong>Install</strong></li>
+      <li>Grant permissions when prompted:<br>
+        <strong>Microphone</strong> — required for speech capture<br>
+        <strong>Camera</strong> — optional, enables speaker localization &amp; visual context</li>
+      <li>Launch the app — models will download on first run (~200–500 MB over WiFi)</li>
+      <li>Point your headset toward a speaker and captions appear in your field of view</li>
+    </ol>
+  </div>
+
+  <!-- Sideload install -->
+  <div class="section" id="sideload-install">
+    <h2>⚡ Option 2: Sideload APK (Nexa AI / NPU)</h2>
+    <p class="section-sub">For Qualcomm Snapdragon devices that can leverage the dedicated neural processor.</p>
+
+    <div class="info-box">
+      <strong>Supported NPU Devices</strong>
+      Samsung Galaxy XR (Snapdragon 8 Elite) · Qualcomm QRD8750 / QRD8650 reference boards · Any Snapdragon 8-series (2022+) with Hexagon NPU
+    </div>
+
+    <h3>Download</h3>
+    <div class="cta-row" style="margin-bottom:24px">
+      <a href="https://github.com/craigm26/LiveCaptionsXR/releases" class="btn btn-blue" target="_blank">📦 Download Latest APK from GitHub Releases</a>
+    </div>
+
+    <h3>Method A: Sideload via ADB (developers)</h3>
+    <pre><code><span class="code-comment"># Connect your headset via USB or wireless ADB</span>
+adb devices
+
+<span class="code-comment"># Install the APK</span>
+adb install app-release.apk
+
+<span class="code-comment"># Upgrading from a previous version?</span>
+adb install -r app-release.apk
+
+<span class="code-comment"># Launch</span>
+adb shell am start -n com.livecaptionsxr.app/.MainActivity</code></pre>
+
+    <h3>Method B: Sideload without a computer</h3>
+    <ol class="steps">
+      <li>On your headset, go to <strong>Settings → Security → Install unknown apps</strong></li>
+      <li>Enable installation from your <strong>browser</strong> (Chrome, etc.)</li>
+      <li>Open the <a href="https://github.com/craigm26/LiveCaptionsXR/releases" target="_blank">GitHub Releases</a> page in the headset's browser</li>
+      <li>Download the <strong>app-release.apk</strong> file</li>
+      <li>Tap the downloaded APK to install</li>
+      <li>Grant permissions (Microphone, Camera) when prompted</li>
+    </ol>
+
+    <h3>Method C: Qualcomm Device Cloud (QDC)</h3>
+    <pre><code><span class="code-comment"># Upload APK to your QDC session</span>
+adb -s &lt;device-serial&gt; install app-release.apk
+
+<span class="code-comment"># Verify installation</span>
+adb shell pm list packages | grep livecaptionsxr
+
+<span class="code-comment"># Verify NPU detection in logs</span>
+adb logcat -s NexaAsrPlugin | grep "NPU"
+<span class="code-comment"># Expected: "NPU availability check: chipset=qcom, hardware=qcom, supported=true"</span></code></pre>
+  </div>
+
+  <!-- First launch -->
+  <div class="section">
+    <h2>🚀 First Launch — What to Expect</h2>
+    <ol class="steps">
+      <li><strong>Permission prompts</strong> — Allow microphone (required) and camera (recommended for speaker localization)</li>
+      <li><strong>Model download</strong> — AI models download once over WiFi (~200–500 MB). This is a one-time setup.</li>
+      <li><strong>Hardware detection</strong> — The app auto-detects your chipset and selects the optimal AI pipeline. You'll see a brief loading indicator.</li>
+      <li><strong>Ready</strong> — Point toward a speaker. Captions appear in your field of view, spatially anchored near the speaker's position.</li>
+    </ol>
+  </div>
+
+  <!-- Troubleshooting -->
+  <div class="section">
+    <h2>Troubleshooting</h2>
+
+    <details>
+      <summary>App crashes on launch (sideloaded version)</summary>
+      <div class="detail-body">
+        <p>Ensure your device has a Qualcomm Snapdragon 8-series chipset. Check logcat for the specific error:</p>
+        <pre><code>adb logcat *:E | grep livecaptionsxr</code></pre>
+        <p>Try clearing app data: <strong>Settings → Apps → LiveCaptionsXR → Clear Data</strong></p>
+        <p>If using v1.0.20 or earlier, upgrade to v1.0.22+ which fixes the Nexa SDK initialization crash.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>NPU not detected on a supported device</summary>
+      <div class="detail-body">
+        <p>Some reference boards report non-standard chipset names. We support QRD board IDs and Qualcomm internal codenames (pineapple, kalama, waipio, taro).</p>
+        <p>Check what your device reports:</p>
+        <pre><code>adb shell getprop ro.board.platform
+adb shell cat /proc/cpuinfo | grep Hardware</code></pre>
+        <p>If your device isn't detected, <a href="https://github.com/craigm26/LiveCaptionsXR/issues" target="_blank">file an issue on GitHub</a> with the output above.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Models won't download</summary>
+      <div class="detail-body">
+        <p>Models need ~1 GB free storage and a WiFi connection (200–500 MB download).</p>
+        <p>On QDC sessions, WiFi may need to be enabled manually:</p>
+        <pre><code>adb shell svc wifi enable</code></pre>
+      </div>
+    </details>
+
+    <details>
+      <summary>Captions are delayed or laggy</summary>
+      <div class="detail-body">
+        <p>Close other resource-heavy apps. The sideloaded Nexa NPU version has significantly lower latency than the CPU-based Whisper path — consider sideloading if you're on a supported Snapdragon device.</p>
+        <p>Ensure the headset isn't in power-saving mode, which throttles the CPU/NPU.</p>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<footer>
+  <p style="margin-bottom:8px"><strong>LiveCaptionsXR</strong> — Real-time AI captioning for accessibility</p>
+  <p>
+    <a href="https://github.com/craigm26/LiveCaptionsXR">GitHub</a> ·
+    <a href="https://github.com/craigm26/LiveCaptionsXR/releases">Releases</a> ·
+    <a href="https://github.com/craigm26/LiveCaptionsXR/issues">Report an Issue</a>
+  </p>
+</footer>
+
+</body>
+</html>
