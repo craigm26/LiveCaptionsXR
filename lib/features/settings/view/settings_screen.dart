@@ -194,10 +194,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               Tooltip(
                 message:
-                    'Enable to improve captions with context-aware enhancements (may use more processing).',
+                    'Select which LLM/enhancement engine to use for caption improvement and translation.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.auto_awesome,
+                  title: 'LLM Backend',
+                  subtitle: _llmBackendSubtitle(state.llmBackend),
+                  trailing: DropdownButton<LlmBackend>(
+                    value: state.llmBackend,
+                    items: _llmBackendDropdownItems(context),
+                    onChanged: (backend) {
+                      if (backend != null) {
+                        context.read<SettingsCubit>().setLlmBackend(backend);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              Tooltip(
+                message:
+                    'Enable to improve captions with context-aware enhancements (may use more processing).',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.auto_fix_high,
                   title: 'Enhancement',
                   subtitle: 'Enable contextual enhancement of captions',
                   trailing: Switch(
@@ -365,8 +384,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _infoRow('Device Tier', config.tier.name.toUpperCase()),
               _infoRow(
                   'Chipset Family', _snapdragonFamilyName(config.snapdragonFamily)),
-              _infoRow('ASR Engine', config.asrModel.displayName),
-              _infoRow('LLM Engine', config.llmModel.displayName),
+              _infoRow('ASR Engine', 'Nexa ${config.asrModel.displayName}'),
+              _infoRow('LLM Engine', 'Nexa ${config.llmModel.displayName}'),
               _infoRow('Inference', _inferenceModeName),
               _infoRow('NPU', isNpu ? 'Available ✅' : 'Not available'),
             ],
@@ -420,6 +439,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case SnapdragonFamily.other:
         return 'Other';
     }
+  }
+
+  String _llmBackendSubtitle(LlmBackend backend) {
+    switch (backend) {
+      case LlmBackend.omniNeural4B:
+        return 'Multimodal (vision + language) — recommended for XR';
+      case LlmBackend.smolVlm256M:
+        return 'Lightweight multimodal (0.48 GB)';
+      case LlmBackend.lfm2_1_2B:
+        return 'Chat-only, lightweight NPU model (0.75 GB)';
+      case LlmBackend.gemma3n:
+        return 'CPU/GPU fallback';
+      case LlmBackend.granite:
+        return 'Legacy NPU model';
+    }
+  }
+
+  List<DropdownMenuItem<LlmBackend>> _llmBackendDropdownItems(BuildContext context) {
+    return LlmBackend.values.map((backend) {
+      String displayName;
+      bool isRecommended = false;
+
+      switch (backend) {
+        case LlmBackend.omniNeural4B:
+          displayName = 'OmniNeural 4B';
+          isRecommended = _isNpuDevice;
+          break;
+        case LlmBackend.smolVlm256M:
+          displayName = 'SmolVLM 256M';
+          break;
+        case LlmBackend.lfm2_1_2B:
+          displayName = 'LFM2 1.2B';
+          break;
+        case LlmBackend.gemma3n:
+          displayName = 'Gemma 3n';
+          isRecommended = !_isNpuDevice;
+          break;
+        case LlmBackend.granite:
+          displayName = 'Granite';
+          break;
+      }
+
+      return DropdownMenuItem<LlmBackend>(
+        value: backend,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isRecommended)
+              Icon(Icons.star, size: 16, color: _isNpuDevice ? Colors.green : Colors.amber),
+            Flexible(child: Text(displayName)),
+            if (isRecommended && _isNpuDevice)
+              Text(' (NPU)', style: TextStyle(fontSize: 11, color: Colors.green)),
+          ],
+        ),
+      );
+    }).toList();
   }
 
   List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(

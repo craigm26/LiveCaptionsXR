@@ -128,15 +128,39 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                     _buildAsrModelsSection(),
                     const SizedBox(height: 32),
                     
+                    // Multimodal (Vision + Language) Models
+                    if (_deviceConfig?.npuAvailable ?? false) ...[
+                      _buildSectionHeader(
+                        'Multimodal (Vision + Language)',
+                        Icons.visibility,
+                        Colors.teal,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMultimodalModelsSection(),
+                      const SizedBox(height: 32),
+                    ],
+                    
                     // Language Models (LLM)
                     _buildSectionHeader(
-                      'AI Enhancement (LLM)',
+                      'Chat / LLM',
                       Icons.auto_awesome,
                       Colors.purple,
                     ),
                     const SizedBox(height: 12),
                     _buildLlmModelsSection(),
                     const SizedBox(height: 32),
+                    
+                    // Utility Models
+                    if (_deviceConfig?.npuAvailable ?? false) ...[
+                      _buildSectionHeader(
+                        'Utility Models',
+                        Icons.build,
+                        Colors.grey,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildUtilityModelsSection(),
+                      const SizedBox(height: 32),
+                    ],
                     
                     // Storage Info
                     _buildStorageCard(),
@@ -377,12 +401,14 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
               children: [
                 Icon(Icons.bolt, color: Colors.green.shade700, size: 24),
                 const SizedBox(width: 8),
-                Text(
-                  'Nexa SDK Models (Auto-Download)',
-                  style: TextStyle(
-                    color: Colors.green.shade700,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Expanded(
+                  child: Text(
+                    'Nexa SDK — Full Model Catalog',
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ],
@@ -390,25 +416,99 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             const SizedBox(height: 12),
             Text(
               'Your device supports Qualcomm NPU acceleration! '
-              'The Nexa SDK will automatically download optimized models '
-              'when you start AR mode.',
+              'Models are auto-downloaded via the Nexa SDK.',
               style: TextStyle(color: Colors.green.shade800),
             ),
             const SizedBox(height: 16),
+            // Primary ASR
             _buildRecommendedModelRow(
-              'Parakeet',
-              _deviceConfig?.asrModel.displayName ?? 'Parakeet',
-              '${_deviceConfig?.asrModel.estimatedSizeMb ?? 350} MB',
+              'ASR',
+              'Parakeet TDT 0.6B',
+              '600 MB',
               Icons.mic,
               Colors.blue,
               isAutoDownload: true,
             ),
             const SizedBox(height: 12),
+            // Primary multimodal — KEY model
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal.shade300, width: 2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.visibility, color: Colors.teal, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'OmniNeural-4B',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '⭐ RECOMMENDED',
+                                style: TextStyle(color: Colors.teal.shade800, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '4 GB • Multimodal — Vision + Language for live captions',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Auto',
+                      style: TextStyle(color: Colors.blue.shade700, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             _buildRecommendedModelRow(
-              'Granite/OmniNeural',
-              _deviceConfig?.llmModel.displayName ?? 'Granite',
-              '${_deviceConfig?.llmModel.estimatedSizeMb ?? 1000} MB',
-              Icons.psychology,
+              'VLM',
+              'SmolVLM 256M (lightweight)',
+              '480 MB',
+              Icons.visibility,
+              Colors.teal,
+              isAutoDownload: true,
+            ),
+            const SizedBox(height: 12),
+            _buildRecommendedModelRow(
+              'Chat',
+              'LFM2 1.2B (chat-only)',
+              '750 MB',
+              Icons.chat,
               Colors.purple,
               isAutoDownload: true,
             ),
@@ -425,7 +525,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Optional: Download Whisper/Gemma below as offline fallback.',
+                      'OmniNeural-4B handles both visual context AND text enhancement — ideal for live captions in XR.',
                       style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
                     ),
                   ),
@@ -721,7 +821,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Your device uses Nexa Parakeet for speech recognition (auto-download via SDK)',
+                    'Your device uses Nexa parakeet-tdt-0.6b-v3-npu for speech recognition (auto-download via SDK)',
                     style: TextStyle(color: Colors.green.shade700, fontSize: 13),
                   ),
                 ),
@@ -790,7 +890,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Your device uses Nexa ${_deviceConfig?.llmModel.displayName ?? "LLM"} for AI enhancement (auto-download via SDK)',
+                    'NPU chat-only models (for text enhancement without vision):',
                     style: TextStyle(color: Colors.green.shade700, fontSize: 13),
                   ),
                 ),
@@ -798,8 +898,25 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             ),
           ),
           const SizedBox(height: 12),
+          _buildNexaModelInfoCard(
+            name: 'LFM2-1.2B NPU',
+            description: 'Lightweight chat model for text enhancement. Use if OmniNeural is too large.',
+            size: '750 MB',
+            icon: Icons.chat,
+            color: Colors.purple,
+            useCaseTag: 'Chat Only',
+          ),
+          const SizedBox(height: 12),
+          _buildNexaModelInfoCard(
+            name: 'LFM2-1.2B-GGUF',
+            description: 'GGUF variant of LFM2 for broader compatibility.',
+            size: '750 MB',
+            icon: Icons.chat,
+            color: Colors.purple,
+          ),
+          const SizedBox(height: 16),
           Text(
-            'Optional Fallback Models:',
+            'CPU/GPU Fallback Models:',
             style: TextStyle(
               color: Colors.grey[600],
               fontWeight: FontWeight.w500,
@@ -812,6 +929,182 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
           child: _buildFullModelCard(modelKey),
         )),
       ],
+    );
+  }
+
+  Widget _buildMultimodalModelsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.teal.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.teal.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'These models combine vision and language — they can see what\'s on screen and enhance captions with visual context.',
+                style: TextStyle(color: Colors.teal.shade800, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildNexaModelInfoCard(
+          name: 'OmniNeural-4B',
+          description: 'Full multimodal: Chat + Vision (VLM). Best for live captions with visual context.',
+          size: '4 GB',
+          icon: Icons.visibility,
+          color: Colors.teal,
+          isRecommended: true,
+          useCaseTag: 'Live Captions',
+        ),
+        const SizedBox(height: 12),
+        _buildNexaModelInfoCard(
+          name: 'SmolVLM-256M-Instruct',
+          description: 'Lightweight multimodal: Chat + Vision. Lower resource usage.',
+          size: '480 MB',
+          icon: Icons.visibility,
+          color: Colors.teal,
+          useCaseTag: 'Lightweight Alt',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUtilityModelsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'General-purpose Nexa models available for NPU devices. These are not required for live captions.',
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildNexaModelInfoCard(
+          name: 'PaddleOCR NPU',
+          description: 'On-device OCR for text recognition.',
+          size: '250 MB',
+          icon: Icons.document_scanner,
+          color: Colors.grey,
+        ),
+        const SizedBox(height: 12),
+        _buildNexaModelInfoCard(
+          name: 'EmbeddingGemma 300M',
+          description: 'Text embedding model for semantic search.',
+          size: '250 MB',
+          icon: Icons.data_array,
+          color: Colors.grey,
+        ),
+        const SizedBox(height: 12),
+        _buildNexaModelInfoCard(
+          name: 'Jina v2 Rerank NPU',
+          description: 'Reranker model for search result optimization.',
+          size: '1 GB',
+          icon: Icons.sort,
+          color: Colors.grey,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNexaModelInfoCard({
+    required String name,
+    required String description,
+    required String size,
+    required IconData icon,
+    required Color color,
+    bool isRecommended = false,
+    String? useCaseTag,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isRecommended ? color.withOpacity(0.5) : Colors.grey.shade200,
+          width: isRecommended ? 2 : 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                      ),
+                      if (useCaseTag != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            useCaseTag,
+                            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(description, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.storage, size: 14, color: Colors.grey[500]),
+                      const SizedBox(width: 4),
+                      Text(size, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Auto-download via Nexa SDK',
+                          style: TextStyle(color: Colors.blue.shade700, fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1241,15 +1534,24 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
               ),
               const SizedBox(height: 16),
               _buildHelpSection(
-                'AI Enhancement (LLM)',
-                'Improves transcription accuracy, adds punctuation, '
-                'and enables translation features.',
+                'Multimodal (VLM)',
+                'OmniNeural-4B combines vision + language — it can see '
+                'visual context and enhance captions accordingly. '
+                'Recommended for XR/AR use cases.',
+              ),
+              const SizedBox(height: 16),
+              _buildHelpSection(
+                'Chat / LLM',
+                'Text-only models for caption enhancement, punctuation, '
+                'and translation. LFM2-1.2B is lightweight; Gemma 3n is a CPU fallback.',
               ),
               const SizedBox(height: 16),
               _buildHelpSection(
                 'Nexa Devices',
                 'Devices with Qualcomm NPU (Snapdragon 8 Gen 2+) '
-                'automatically download optimized models via the Nexa SDK.',
+                'automatically download optimized models via the Nexa SDK. '
+                'Full catalog: Parakeet (ASR), OmniNeural-4B (VLM), '
+                'SmolVLM-256M, LFM2-1.2B, PaddleOCR, and more.',
               ),
             ],
           ),

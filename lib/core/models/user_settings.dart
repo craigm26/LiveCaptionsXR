@@ -8,6 +8,20 @@ enum AsrBackend {
   whisperGgml,
 }
 
+/// Enum for selecting the LLM/enhancement backend.
+enum LlmBackend {
+  /// OmniNeural 4B — multimodal (vision + language), recommended for XR
+  omniNeural4B,
+  /// SmolVLM 256M — lightweight multimodal option
+  smolVlm256M,
+  /// LFM2 1.2B — chat-only, lighter weight NPU model
+  lfm2_1_2B,
+  /// Gemma 3n — CPU/GPU fallback
+  gemma3n,
+  /// Granite — legacy NPU option
+  granite,
+}
+
 /// Enum for selecting the Speech-to-Text (STT) mode.
 enum SttMode {
   /// Uses a cloud-based STT service for higher accuracy.
@@ -26,6 +40,9 @@ class UserSettings {
 
   /// The selected ASR backend/engine.
   final AsrBackend asrBackend;
+
+  /// The selected LLM/enhancement backend.
+  final LlmBackend llmBackend;
 
   /// Whether contextual enhancement of captions is enabled.
   final bool enhancementEnabled;
@@ -46,6 +63,7 @@ class UserSettings {
   const UserSettings({
     this.sttMode = SttMode.offline,
     this.asrBackend = AsrBackend.whisperGgml,
+    this.llmBackend = LlmBackend.gemma3n,
     this.enhancementEnabled = true,
     this.hapticsEnabled = true,
     this.ledAlertsEnabled = true,
@@ -58,6 +76,7 @@ class UserSettings {
   UserSettings copyWith({
     SttMode? sttMode,
     AsrBackend? asrBackend,
+    LlmBackend? llmBackend,
     bool? enhancementEnabled,
     bool? hapticsEnabled,
     bool? ledAlertsEnabled,
@@ -68,6 +87,7 @@ class UserSettings {
     return UserSettings(
       sttMode: sttMode ?? this.sttMode,
       asrBackend: asrBackend ?? this.asrBackend,
+      llmBackend: llmBackend ?? this.llmBackend,
       enhancementEnabled: enhancementEnabled ?? this.enhancementEnabled,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       ledAlertsEnabled: ledAlertsEnabled ?? this.ledAlertsEnabled,
@@ -83,6 +103,7 @@ class UserSettings {
     return {
       'sttMode': sttMode.name,
       'asrBackend': asrBackend.name,
+      'llmBackend': llmBackend.name,
       'enhancementEnabled': enhancementEnabled,
       'hapticsEnabled': hapticsEnabled,
       'ledAlertsEnabled': ledAlertsEnabled,
@@ -100,11 +121,20 @@ class UserSettings {
     }
   }
 
+  static LlmBackend _parseLlmBackend(String name) {
+    try {
+      return LlmBackend.values.byName(name);
+    } catch (_) {
+      return LlmBackend.gemma3n;
+    }
+  }
+
   /// Create from JSON.
   factory UserSettings.fromJson(Map<String, dynamic> json) {
     return UserSettings(
       sttMode: SttMode.values.byName(json['sttMode'] as String? ?? 'online'),
       asrBackend: _parseAsrBackend(json['asrBackend'] as String? ?? 'whisperGgml'),
+      llmBackend: _parseLlmBackend(json['llmBackend'] as String? ?? 'gemma3n'),
       enhancementEnabled: json['enhancementEnabled'] as bool? ?? true,
       hapticsEnabled: json['hapticsEnabled'] as bool? ?? true,
       ledAlertsEnabled: json['ledAlertsEnabled'] as bool? ?? true,

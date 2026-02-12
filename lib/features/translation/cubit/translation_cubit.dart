@@ -36,7 +36,7 @@ class TranslationCubit extends Cubit<TranslationState> {
       final prefs = await SharedPreferences.getInstance();
       final enabled = prefs.getBool(_prefEnabled) ?? false;
       final sourceCode = prefs.getString(_prefSourceLang) ?? 'en';
-      final targetCode = prefs.getString(_prefTargetLang) ?? 'es';
+      final targetCode = prefs.getString(_prefTargetLang) ?? 'en';
       final showOriginal = prefs.getBool(_prefShowOriginal) ?? true;
 
       // Apply saved settings

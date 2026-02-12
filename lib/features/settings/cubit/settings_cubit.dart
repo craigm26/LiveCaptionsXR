@@ -55,6 +55,11 @@ class SettingsCubit extends Cubit<UserSettings> {
     _saveSettings(state.copyWith(asrBackend: backend));
   }
 
+  /// Set the LLM/enhancement backend.
+  void setLlmBackend(LlmBackend backend) {
+    _saveSettings(state.copyWith(llmBackend: backend));
+  }
+
   void toggleHaptics(bool value) {
     _saveSettings(state.copyWith(hapticsEnabled: value));
   }
