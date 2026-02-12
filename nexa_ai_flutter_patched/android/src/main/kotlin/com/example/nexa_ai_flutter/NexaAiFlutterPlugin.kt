@@ -91,8 +91,8 @@ class NexaAiFlutterPlugin : FlutterPlugin, MethodCallHandler {
                 override fun onSuccess() {
                     result.success(null)
                 }
-                override fun onFailure(error: String?) {
-                    result.error("INIT_ERROR", error ?: "SDK init failed", null)
+                override fun onFailure(reason: String) {
+                    result.error("INIT_ERROR", reason, null)
                 }
             })
         } catch (e: Exception) {
@@ -379,7 +379,7 @@ class NexaAiFlutterPlugin : FlutterPlugin, MethodCallHandler {
                 wrapper.embed(texts, config)
                     .onSuccess { embeddings ->
                         withContext(Dispatchers.Main) {
-                            result.success(embeddings.toList())
+                            result.success(embeddings.embeddings.toList())
                         }
                     }
                     .onFailure { error ->
