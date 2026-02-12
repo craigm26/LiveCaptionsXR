@@ -42,11 +42,8 @@ class NexaModelDownloadStrategy implements IModelDownloadStrategy {
     if (!Platform.isAndroid) return false;
 
     try {
-      final modelPath = await getModelPath(modelId);
-      if (modelPath == null) return false;
-
-      final file = File(modelPath);
-      return await file.exists();
+      // Use Nexa SDK's native check (checks SharedPreferences + file existence)
+      return await ModelDownloader.isModelDownloaded(modelId);
     } catch (e) {
       _logger.e('Failed to check if model is installed: $modelId', error: e);
       return false;
@@ -256,16 +253,9 @@ class NexaModelDownloadStrategy implements IModelDownloadStrategy {
   @override
   Future<bool> deleteModel(String modelId) async {
     try {
-      final modelPath = await getModelPath(modelId);
-      if (modelPath != null) {
-        final file = File(modelPath);
-        if (await file.exists()) {
-          await file.delete();
-          _logger.i('Deleted Nexa model: $modelId');
-          return true;
-        }
-      }
-      return false;
+      await ModelDownloader.deleteModel(modelId);
+      _logger.i('Deleted Nexa model: $modelId');
+      return true;
     } catch (e) {
       _logger.e('Failed to delete model: $modelId', error: e);
       return false;
@@ -275,23 +265,24 @@ class NexaModelDownloadStrategy implements IModelDownloadStrategy {
   @override
   Future<String?> getModelPath(String modelId) async {
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      // Nexa models are stored in the app's models directory
-      return '${appDir.path}/models/nexa/$modelId';
+      // Use Nexa SDK's native path lookup (matches where Kotlin downloads to)
+      return await ModelDownloader.getModelPath(modelId);
     } catch (e) {
       _logger.e('Failed to get model path: $modelId', error: e);
-      return null;
+      // Fallback to convention-based path
+      try {
+        final appDir = await getApplicationDocumentsDirectory();
+        return '${appDir.parent.path}/files/models/$modelId';
+      } catch (_) {
+        return null;
+      }
     }
   }
 
   @override
   Future<bool> canResume(String modelId) async {
-    // Check if there's a partial download
-    final modelPath = await getModelPath(modelId);
-    if (modelPath == null) return false;
-
-    final partFile = File('$modelPath.part');
-    return await partFile.exists();
+    // Nexa SDK handles resume internally
+    return false;
   }
 
   @override

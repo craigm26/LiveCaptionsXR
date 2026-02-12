@@ -298,8 +298,21 @@ class NexaAsrService {
         // Ensure model is downloaded via UnifiedDownloadManager
         final modelDownloaded = await _ensureModelDownloaded(_currentModelName);
         if (!modelDownloaded) {
-          // Fall back to default path if download management fails
-          _modelPath = await _getDefaultModelPath();
+          _logger.w('⚠️ Model download failed/skipped, checking native SDK path...',
+              category: LogCategory.speech);
+          // Try Nexa SDK's native path lookup as fallback
+          try {
+            final nativePath = await ModelDownloader.getModelPath(_currentModelName);
+            if (nativePath != null) {
+              _modelPath = nativePath;
+              _logger.i('✅ Found model at native SDK path: $nativePath',
+                  category: LogCategory.speech);
+            } else {
+              _modelPath = await _getDefaultModelPath();
+            }
+          } catch (_) {
+            _modelPath = await _getDefaultModelPath();
+          }
         }
       }
 

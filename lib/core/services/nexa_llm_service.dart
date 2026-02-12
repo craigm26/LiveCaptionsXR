@@ -222,7 +222,17 @@ class NexaLlmService {
       } else {
         // Ensure model is downloaded via UnifiedDownloadManager
         final downloadedPath = await _ensureModelDownloaded(_currentModelName);
-        _modelPath = downloadedPath ?? await _getDefaultModelPath(_currentModelName);
+        if (downloadedPath != null) {
+          _modelPath = downloadedPath;
+        } else {
+          // Try Nexa SDK's native path lookup as fallback
+          try {
+            final nativePath = await ModelDownloader.getModelPath(_currentModelName);
+            _modelPath = nativePath ?? await _getDefaultModelPath(_currentModelName);
+          } catch (_) {
+            _modelPath = await _getDefaultModelPath(_currentModelName);
+          }
+        }
       }
 
       // Create appropriate wrapper based on model type

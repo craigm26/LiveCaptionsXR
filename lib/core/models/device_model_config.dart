@@ -157,10 +157,10 @@ class DeviceModelRegistry {
   );
 
   static const ModelSpec asrParakeet = ModelSpec(
-    name: 'parakeet',
-    displayName: 'Parakeet',
+    name: 'parakeet-tdt-0.6b-v3-npu',
+    displayName: 'Parakeet TDT 0.6B',
     size: ModelSize.medium,
-    estimatedSizeMb: 350,
+    estimatedSizeMb: 600,
     supportsNpu: true,
   );
 
@@ -220,7 +220,7 @@ class DeviceModelRegistry {
   );
 
   static const ModelSpec llmOmniNeural = ModelSpec(
-    name: 'omnineural-4b',
+    name: 'OmniNeural-4B',
     displayName: 'OmniNeural 4B',
     size: ModelSize.large,
     estimatedSizeMb: 4000,
@@ -273,9 +273,9 @@ class DeviceModelRegistry {
     availableRamMb: 8000,
     npuAvailable: true,
     asrModel: asrParakeetSmall,
-    llmModel: llmGraniteSmall,
+    llmModel: llmOmniNeural, // Multimodal: vision + language
     asrFallbacks: [asrParakeetTiny, asrWhisperBase],
-    llmFallbacks: [llmGraniteTiny, llmGemma3nSmall],
+    llmFallbacks: [llmGraniteSmall, llmGraniteTiny, llmGemma3nSmall],
   );
 
   /// Mid-range phone configuration
@@ -315,9 +315,9 @@ class DeviceModelRegistry {
     availableRamMb: 8000,
     npuAvailable: true,
     asrModel: asrParakeet,
-    llmModel: llmGraniteSmall, // Battery optimized
+    llmModel: llmOmniNeural, // Multimodal: vision + language for XR
     asrFallbacks: [asrParakeetSmall],
-    llmFallbacks: [llmGraniteTiny],
+    llmFallbacks: [llmGraniteSmall, llmGraniteTiny],
   );
 
   /// Samsung AR glasses configuration
