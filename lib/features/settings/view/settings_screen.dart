@@ -201,7 +201,7 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: 'Download and manage AI models',
                   trailing: ElevatedButton.icon(
                     onPressed: () {
-                      context.push('/model-status');
+                      context.push('/models');
                     },
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Open'),

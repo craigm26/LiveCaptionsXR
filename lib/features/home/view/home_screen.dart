@@ -476,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton(
               onPressed: () {
-                context.push('/model-downloads');
+                context.push('/models');
               },
               style: TextButton.styleFrom(
                 backgroundColor: Colors.white,
