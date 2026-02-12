@@ -1227,11 +1227,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       : (_modelsMissing
                           ? _buildModelStatusBar(context)
                           : null),
+                  // Unified Start/Stop button (no separate AR FAB)
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
                       if (state is ARSessionReady) {
-                        // AR session is ready. No need to start services here anymore.
                         _logger.i(
                             '🔄 AR session ready. Services should already be started.');
                       } else if (state is ARSessionError) {
@@ -1280,75 +1280,74 @@ class _HomeScreenState extends State<HomeScreen> {
                             '✅ All services verified as stopped after AR session end');
                       }
                     },
-                    child: FloatingActionButton(
-                      heroTag: "ar_view_fab",
-                      // On Nexa devices, don't block FAB while Gemma initializes in background
-                      onPressed: (_isGemmaInitializing && (_nexaDevice != true))
-                          ? null
-                          : () async {
-                              _logger.i('🥽 Enter AR Mode button pressed...',
-                                  category: LogCategory.ui);
+                    child: BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+                      builder: (context, captionsState) {
+                        final isActive = captionsState is LiveCaptionsActive && captionsState.isListening;
+                        final isLoading = captionsState is LiveCaptionsLoading;
 
-                              final arSessionCubit =
-                                  context.read<ARSessionCubit>();
-                              _logger.i('🎯 Got ARSessionCubit instance',
-                                  category: LogCategory.ui);
-
-                              try {
-                                // On non-Nexa devices, ensure Gemma is initialized before starting AR
-                                if (_nexaDevice != true &&
-                                    !_isGemmaInitialized &&
-                                    !_isGemmaInitializing) {
-                                  _logger.i(
-                                      '🤖 Gemma not yet initialized, initializing now...',
-                                      category: LogCategory.ar);
-                                  await _initializeGemmaBeforeAR();
-                                }
-
-                                // Start all AR services
-                                await _startAllServicesForARMode();
-                                _logger.i(
-                                    '✅ [HOME] All AR services started successfully',
-                                    category: LogCategory.ui);
-
-                                // Initialize AR session (this will block until AR view is closed)
-                                _logger.i(
-                                    '🎯 [HOME] Now calling initializeARSession...',
-                                    category: LogCategory.ui);
-                                await arSessionCubit.initializeARSession(
-                                    restoreFromPersistence: false);
-                                _logger.i('✅ [HOME] AR session completed',
-                                    category: LogCategory.ui);
-                              } catch (e, stackTrace) {
-                                _logger.e('❌ Failed to enter AR mode',
-                                    error: e, stackTrace: stackTrace);
-
-                                ScaffoldMessenger.of(context)
-                                    .hideCurrentSnackBar();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        '❌ Failed to enter AR mode: ${e.toString()}'),
-                                    backgroundColor: Colors.red,
-                                    duration: const Duration(seconds: 5),
+                        return FloatingActionButton.extended(
+                          heroTag: "unified_captions_fab",
+                          backgroundColor: isActive ? Colors.red.shade700 : Colors.blue.shade700,
+                          onPressed: isLoading
+                              ? null
+                              : () async {
+                                  if (isActive) {
+                                    // Stop everything
+                                    _logger.i('⏹️ Stop Captions pressed', category: LogCategory.ui);
+                                    final arSessionCubit = context.read<ARSessionCubit>();
+                                    if (arSessionCubit.state is ARSessionReady) {
+                                      await arSessionCubit.stopAllARServices();
+                                    }
+                                    context.read<LiveCaptionsCubit>().stopCaptions();
+                                  } else {
+                                    // Start captions + AR if available
+                                    _logger.i('▶️ Start Captions pressed', category: LogCategory.ui);
+                                    try {
+                                      if (_nexaDevice != true &&
+                                          !_isGemmaInitialized &&
+                                          !_isGemmaInitializing) {
+                                        await _initializeGemmaBeforeAR();
+                                      }
+                                      await _startAllServicesForARMode();
+                                      // Try to start AR session (spatial captions)
+                                      // Falls back to flat captions if AR unavailable
+                                      try {
+                                        final arSessionCubit = context.read<ARSessionCubit>();
+                                        await arSessionCubit.initializeARSession(
+                                            restoreFromPersistence: false);
+                                      } catch (arError) {
+                                        _logger.w('⚠️ AR not available, using flat captions: $arError',
+                                            category: LogCategory.ar);
+                                      }
+                                    } catch (e, stackTrace) {
+                                      _logger.e('❌ Failed to start captions',
+                                          error: e, stackTrace: stackTrace);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('❌ Failed to start: ${e.toString()}'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  }
+                                },
+                          icon: isLoading
+                              ? const SizedBox(
+                                  width: 20, height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                   ),
-                                );
-                              }
-                            },
-                      tooltip: (_isGemmaInitializing && (_nexaDevice != true))
-                          ? 'Initializing Gemma...'
-                          : 'Enter AR Mode',
-                      child: (_isGemmaInitializing && (_nexaDevice != true))
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.view_in_ar),
+                                )
+                              : Icon(isActive ? Icons.stop_circle : Icons.play_circle_fill),
+                          label: Text(
+                            isLoading ? 'Starting...' : (isActive ? 'Stop' : 'Start Captions'),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),

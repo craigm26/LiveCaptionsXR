@@ -133,13 +133,40 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
             else -> "CPU"
         }
 
+        // Build a more descriptive chipset string combining all sources
+        val rawChipset = getChipsetName()
+        val socModel = try { Build.SOC_MODEL } catch (_: Exception) { "" }
+        val hardware = Build.HARDWARE
+        // Use the most specific identifier available
+        val chipset = when {
+            socModel.isNotEmpty && socModel != "unknown" -> socModel
+            rawChipset != hardware -> rawChipset
+            else -> hardware
+        }
+
+        // Estimate total RAM in MB
+        val totalRam = try {
+            val runtime = Runtime.getRuntime()
+            (runtime.maxMemory() / (1024 * 1024)).toInt()
+        } catch (_: Exception) { 4000 }
+
+        // Also read ActivityManager for real device RAM
+        val actualRamMb = try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            val memInfo = android.app.ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memInfo)
+            (memInfo.totalMem / (1024 * 1024)).toInt()
+        } catch (_: Exception) { 4000 }
+
         return mapOf(
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
             "device" to Build.DEVICE,
-            "hardware" to Build.HARDWARE,
-            "chipset" to getChipsetName(),
+            "hardware" to hardware,
+            "chipset" to chipset,
+            "socModel" to socModel,
             "sdkVersion" to Build.VERSION.SDK_INT,
+            "totalRam" to actualRamMb,
             "npuAvailable" to npuAvailable,
             "gpuAvailable" to gpuAvailable,
             "currentInferenceMode" to currentInferenceMode

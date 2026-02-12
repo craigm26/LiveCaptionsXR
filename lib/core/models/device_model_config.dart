@@ -140,21 +140,11 @@ class DeviceModelRegistry {
   // ASR Model Definitions
   // ============================================
 
-  static const ModelSpec asrParakeetTiny = ModelSpec(
-    name: 'parakeet-tiny',
-    displayName: 'Parakeet Tiny',
-    size: ModelSize.tiny,
-    estimatedSizeMb: 50,
-    supportsNpu: true,
-  );
-
-  static const ModelSpec asrParakeetSmall = ModelSpec(
-    name: 'parakeet-small',
-    displayName: 'Parakeet Small',
-    size: ModelSize.small,
-    estimatedSizeMb: 150,
-    supportsNpu: true,
-  );
+  // NOTE: There is only ONE Parakeet model in the Nexa SDK.
+  // All tiers that use Nexa ASR must use asrParakeet.
+  // These aliases exist for backward compatibility but point to the same model.
+  static const ModelSpec asrParakeetTiny = asrParakeet;
+  static const ModelSpec asrParakeetSmall = asrParakeet;
 
   static const ModelSpec asrParakeet = ModelSpec(
     name: 'parakeet-tdt-0.6b-v3-npu',
@@ -192,32 +182,20 @@ class DeviceModelRegistry {
   // LLM Model Definitions
   // ============================================
 
-  static const ModelSpec llmGraniteTiny = ModelSpec(
-    name: 'granite-4.0-h-100m-npu',
-    displayName: 'Granite 100M',
-    size: ModelSize.tiny,
-    estimatedSizeMb: 100,
-    supportsNpu: true,
-    supportsVision: false,
-  );
-
-  static const ModelSpec llmGraniteSmall = ModelSpec(
-    name: 'granite-4.0-h-350m-npu',
-    displayName: 'Granite 350M',
-    size: ModelSize.small,
-    estimatedSizeMb: 350,
-    supportsNpu: true,
-    supportsVision: false,
-  );
-
-  static const ModelSpec llmGraniteMedium = ModelSpec(
-    name: 'granite-4.0-h-1b-npu',
-    displayName: 'Granite 1B',
+  // LFM2 1.2B — the only small chat model in the Nexa SDK
+  static const ModelSpec llmLfm2 = ModelSpec(
+    name: 'LFM2-1.2B-npu',
+    displayName: 'LFM2 1.2B NPU',
     size: ModelSize.medium,
-    estimatedSizeMb: 1000,
+    estimatedSizeMb: 750,
     supportsNpu: true,
     supportsVision: false,
   );
+
+  // Backward-compat aliases — all point to LFM2 since Granite doesn't exist in SDK
+  static const ModelSpec llmGraniteTiny = llmLfm2;
+  static const ModelSpec llmGraniteSmall = llmLfm2;
+  static const ModelSpec llmGraniteMedium = llmLfm2;
 
   static const ModelSpec llmOmniNeural = ModelSpec(
     name: 'OmniNeural-4B',
@@ -260,8 +238,8 @@ class DeviceModelRegistry {
     npuAvailable: true,
     asrModel: asrParakeet,
     llmModel: llmOmniNeural,
-    asrFallbacks: [asrParakeetSmall, asrWhisperSmall],
-    llmFallbacks: [llmGraniteMedium, llmGemma3n],
+    asrFallbacks: [asrWhisperSmall],
+    llmFallbacks: [llmLfm2, llmGemma3n],
   );
 
   /// High-end phone configuration
@@ -272,10 +250,10 @@ class DeviceModelRegistry {
     snapdragonFamily: SnapdragonFamily.gen2,
     availableRamMb: 8000,
     npuAvailable: true,
-    asrModel: asrParakeetSmall,
-    llmModel: llmOmniNeural, // Multimodal: vision + language
-    asrFallbacks: [asrParakeetTiny, asrWhisperBase],
-    llmFallbacks: [llmGraniteSmall, llmGraniteTiny, llmGemma3nSmall],
+    asrModel: asrParakeet,
+    llmModel: llmOmniNeural,
+    asrFallbacks: [asrWhisperBase],
+    llmFallbacks: [llmLfm2, llmGemma3nSmall],
   );
 
   /// Mid-range phone configuration
@@ -286,10 +264,10 @@ class DeviceModelRegistry {
     snapdragonFamily: SnapdragonFamily.series7,
     availableRamMb: 6000,
     npuAvailable: true,
-    asrModel: asrParakeetSmall,
-    llmModel: llmGraniteSmall,
-    asrFallbacks: [asrParakeetTiny, asrWhisperTiny],
-    llmFallbacks: [llmGraniteTiny],
+    asrModel: asrParakeet,
+    llmModel: llmLfm2,
+    asrFallbacks: [asrWhisperTiny],
+    llmFallbacks: [],
   );
 
   /// Low-end phone configuration
@@ -315,21 +293,21 @@ class DeviceModelRegistry {
     availableRamMb: 8000,
     npuAvailable: true,
     asrModel: asrParakeet,
-    llmModel: llmOmniNeural, // Multimodal: vision + language for XR
-    asrFallbacks: [asrParakeetSmall],
-    llmFallbacks: [llmGraniteSmall, llmGraniteTiny],
+    llmModel: llmOmniNeural,
+    asrFallbacks: [],
+    llmFallbacks: [llmLfm2],
   );
 
   /// Samsung AR glasses configuration
   static DeviceModelConfig get samsungArGlasses => const DeviceModelConfig(
     deviceId: 'samsung_ar_glasses',
     formFactor: DeviceFormFactor.arGlasses,
-    tier: DeviceTier.midRange, // Limited by form factor
+    tier: DeviceTier.midRange,
     snapdragonFamily: SnapdragonFamily.xrPlatform,
     availableRamMb: 4000,
     npuAvailable: true,
-    asrModel: asrParakeetTiny, // Minimal memory
-    llmModel: llmGraniteTiny,  // Minimal memory
+    asrModel: asrParakeet,
+    llmModel: llmLfm2,
     asrFallbacks: [asrWhisperTiny],
     llmFallbacks: [],
   );
@@ -512,6 +490,11 @@ class DeviceModelRegistry {
     // XR Platform
     if (chip.contains('xr') || chip.contains('snapdragon xr')) {
       return SnapdragonFamily.xrPlatform;
+    }
+    // Generic Qualcomm identifier (e.g. QDC boards reporting just "qcom")
+    // Treat as gen4 since QDC reference boards are typically latest-gen
+    if (chip == 'qcom' || chip.contains('qualcomm')) {
+      return SnapdragonFamily.gen4;
     }
 
     return SnapdragonFamily.other;

@@ -1446,7 +1446,13 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   }
 
   bool _areRecommendedModelsReady() {
-    if (_deviceConfig?.npuAvailable == true) return true;
+    // NPU devices still need models downloaded — don't assume ready
+    if (_deviceConfig?.npuAvailable == true) {
+      // Check if Nexa SDK has actually initialized (models downloaded)
+      // For now, rely on the model status map — if it's empty we haven't checked yet
+      // The Nexa SDK auto-downloads, but we shouldn't show "Ready" until confirmed
+      return false; // Will be updated when real download status is available
+    }
     if (!kIsWeb && Platform.isIOS) {
       // iOS needs Gemma
       return _modelStatuses['gemma-3n-E4B-it-int4']?.complete ?? false;
