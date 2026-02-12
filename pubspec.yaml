@@ -2,6 +2,8 @@
 dependency_overrides:
   whisper_ggml:
     path: plugins/whisper_ggml_patched
+  nexa_ai_flutter:
+    path: nexa_ai_flutter_patched
 publish_to: none
 
 name: live_captions_xr
