@@ -1,14 +1,68 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/user_settings.dart';
+import '../../../core/models/device_model_config.dart';
 import '../../../core/services/enhanced_speech_processor.dart'
     show SpeechEngine;
+import '../../../core/services/nexa_asr_service.dart';
+import '../../../core/di/service_locator.dart';
 import '../cubit/settings_cubit.dart';
-import '../../translation/widgets/translation_settings_card.dart';     
+import '../../translation/widgets/translation_settings_card.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  DeviceModelConfig? _deviceConfig;
+  bool _loadingDeviceInfo = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceConfig();
+  }
+
+  Future<void> _loadDeviceConfig() async {
+    if (kIsWeb || !Platform.isAndroid) {
+      setState(() => _loadingDeviceInfo = false);
+      return;
+    }
+    try {
+      final registry = DeviceModelRegistry();
+      final config = await registry.getDeviceConfig();
+      if (mounted) {
+        setState(() {
+          _deviceConfig = config;
+          _loadingDeviceInfo = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingDeviceInfo = false);
+    }
+  }
+
+  bool get _isNpuDevice =>
+      _deviceConfig != null && _deviceConfig!.npuAvailable;
+
+  String get _inferenceModeName {
+    if (_deviceConfig == null) return 'CPU';
+    switch (_deviceConfig!.recommendedInferenceMode) {
+      case NexaInferenceMode.npu:
+        return 'NPU';
+      case NexaInferenceMode.gpu:
+        return 'GPU';
+      case NexaInferenceMode.cpu:
+        return 'CPU';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +76,13 @@ class SettingsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // ── Device & AI Section ──
+              if (!_loadingDeviceInfo) ...[
+                _buildSectionHeader('Device & AI'),
+                _buildDeviceInfoCard(context, state),
+                const SizedBox(height: 16),
+              ],
+
               _buildSectionHeader('Caption Settings'),
               Tooltip(
                 message:
@@ -113,7 +174,9 @@ class SettingsScreen extends StatelessWidget {
                   context,
                   icon: Icons.settings_voice,
                   title: 'ASR Backend',
-                  subtitle: 'Choose the speech engine backend',
+                  subtitle: _isNpuDevice
+                      ? 'Nexa Parakeet recommended for this device'
+                      : 'Choose the speech engine backend',
                   trailing: DropdownButton<AsrBackend>(
                     value: state.asrBackend,
                     items: _asrBackendDropdownItems(context),
@@ -121,7 +184,9 @@ class SettingsScreen extends StatelessWidget {
                       if (backend != null && backend != AsrBackend.openAI) {
                         final engine = _asrBackendToSpeechEngine(backend);
                         context.read<SettingsCubit>().setAsrBackend(backend);
-                        await context.read<SettingsCubit>().setSpeechEngine(engine);
+                        await context
+                            .read<SettingsCubit>()
+                            .setSpeechEngine(engine);
                       }
                     },
                   ),
@@ -161,7 +226,8 @@ class SettingsScreen extends StatelessWidget {
               ),
 
               Tooltip(
-                message: 'Show a debug logging overlay for troubleshooting and developer support.',
+                message:
+                    'Show a debug logging overlay for troubleshooting and developer support.',
                 child: _buildSettingTile(
                   context,
                   icon: Icons.bug_report,
@@ -170,7 +236,9 @@ class SettingsScreen extends StatelessWidget {
                   trailing: Switch(
                     value: state.debugLoggingOverlayEnabled,
                     onChanged: (value) {
-                      context.read<SettingsCubit>().toggleDebugLoggingOverlay(value);
+                      context
+                          .read<SettingsCubit>()
+                          .toggleDebugLoggingOverlay(value);
                     },
                   ),
                 ),
@@ -192,22 +260,46 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              Tooltip(
-                message: 'Manage AI model downloads for speech recognition and enhancement.',
-                child: _buildSettingTile(
-                  context,
-                  icon: Icons.storage,
-                  title: 'Model Management',
-                  subtitle: 'Download and manage AI models',
-                  trailing: ElevatedButton.icon(
-                    onPressed: () {
-                      context.push('/models');
-                    },
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Open'),
+              // Model Management — less prominent on NPU devices
+              if (!_isNpuDevice)
+                Tooltip(
+                  message:
+                      'Manage AI model downloads for speech recognition and enhancement.',
+                  child: _buildSettingTile(
+                    context,
+                    icon: Icons.storage,
+                    title: 'Model Management',
+                    subtitle: 'Download and manage AI models',
+                    trailing: ElevatedButton.icon(
+                      onPressed: () {
+                        context.push('/models');
+                      },
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Open'),
+                    ),
                   ),
                 ),
-              ),
+              if (_isNpuDevice)
+                Opacity(
+                  opacity: 0.6,
+                  child: Tooltip(
+                    message:
+                        'Models are managed automatically by the Nexa SDK on this device.',
+                    child: _buildSettingTile(
+                      context,
+                      icon: Icons.storage,
+                      title: 'Model Management',
+                      subtitle: 'Models auto-managed by Nexa SDK',
+                      trailing: ElevatedButton.icon(
+                        onPressed: () {
+                          context.push('/models');
+                        },
+                        icon: const Icon(Icons.open_in_new),
+                        label: const Text('Open'),
+                      ),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
               _buildSectionHeader('Translation'),
               const SizedBox(height: 8),
@@ -218,55 +310,176 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
-    BuildContext context) {
-  return AsrBackend.values.map((backend) {
-    String displayName;
-    bool isEnabled = true;
-    
-    switch (backend) {
-      case AsrBackend.flutterSound:
-        displayName = 'Flutter Sound';
-        break;
-      case AsrBackend.gemma3n:
-        displayName = 'Gemma 3n';
-        break;
-      case AsrBackend.native:
-        displayName = 'Native';
-        break;
-      case AsrBackend.openAI:
-        displayName = 'OpenAI';
-        isEnabled = false;
-        break;
-      case AsrBackend.whisperGgml:
-        displayName = 'Whisper';
-        break;
-    }
-    
-    return DropdownMenuItem<AsrBackend>(
-      value: backend,
-      enabled: isEnabled,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (backend == AsrBackend.whisperGgml)
-            Icon(Icons.star, size: 16, color: Colors.amber),
-          Flexible(
-            child: !isEnabled
-                ? Opacity(opacity: 0.5, child: Text(displayName))
-                : Text(displayName),
-          ),
-          if (!isEnabled)
-            Tooltip(
-              message: 'Disabled for now (requires paid API)',
-              child: Icon(Icons.lock, size: 16, color: Colors.grey),
+  /// Device & AI info card showing NPU status, engine selection, inference mode
+  Widget _buildDeviceInfoCard(BuildContext context, UserSettings state) {
+    final config = _deviceConfig;
+    final isNpu = _isNpuDevice;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: isNpu ? Colors.green.shade50 : null,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isNpu ? Icons.memory : Icons.phone_android,
+                  color: isNpu ? Colors.green.shade700 : Colors.grey,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isNpu ? 'NPU Accelerated' : 'Standard Device',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isNpu ? Colors.green.shade700 : null,
+                  ),
+                ),
+                const Spacer(),
+                if (isNpu)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _inferenceModeName,
+                      style: TextStyle(
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
             ),
+            if (config != null) ...[
+              const SizedBox(height: 12),
+              _infoRow('Device Tier', config.tier.name.toUpperCase()),
+              _infoRow(
+                  'Chipset Family', _snapdragonFamilyName(config.snapdragonFamily)),
+              _infoRow('ASR Engine', config.asrModel.displayName),
+              _infoRow('LLM Engine', config.llmModel.displayName),
+              _infoRow('Inference', _inferenceModeName),
+              _infoRow('NPU', isNpu ? 'Available ✅' : 'Not available'),
+            ],
+            if (config == null && !kIsWeb && Platform.isAndroid) ...[
+              const SizedBox(height: 8),
+              const Text('Could not detect device capabilities',
+                  style: TextStyle(color: Colors.grey)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label,
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          ),
+          Expanded(
+            child: Text(value,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+          ),
         ],
       ),
     );
-  }).toList();
+  }
+
+  String _snapdragonFamilyName(SnapdragonFamily family) {
+    switch (family) {
+      case SnapdragonFamily.gen4:
+        return 'Snapdragon 8 Elite';
+      case SnapdragonFamily.gen3:
+        return 'Snapdragon 8 Gen 3';
+      case SnapdragonFamily.gen2:
+        return 'Snapdragon 8 Gen 2';
+      case SnapdragonFamily.gen1:
+        return 'Snapdragon 8 Gen 1';
+      case SnapdragonFamily.series7:
+        return 'Snapdragon 7 Series';
+      case SnapdragonFamily.series6:
+        return 'Snapdragon 6 Series';
+      case SnapdragonFamily.xrPlatform:
+        return 'Snapdragon XR';
+      case SnapdragonFamily.other:
+        return 'Other';
+    }
+  }
+
+  List<DropdownMenuItem<AsrBackend>> _asrBackendDropdownItems(
+      BuildContext context) {
+    return AsrBackend.values.map((backend) {
+      String displayName;
+      bool isEnabled = true;
+
+      switch (backend) {
+        case AsrBackend.flutterSound:
+          displayName = 'Flutter Sound';
+          break;
+        case AsrBackend.gemma3n:
+          displayName = 'Gemma 3n';
+          break;
+        case AsrBackend.native:
+          displayName = 'Native';
+          break;
+        case AsrBackend.nexaParakeet:
+          displayName = 'Nexa Parakeet';
+          break;
+        case AsrBackend.openAI:
+          displayName = 'OpenAI';
+          isEnabled = false;
+          break;
+        case AsrBackend.whisperGgml:
+          displayName = 'Whisper';
+          break;
+      }
+
+      final isRecommended = _isNpuDevice && backend == AsrBackend.nexaParakeet;
+
+      return DropdownMenuItem<AsrBackend>(
+        value: backend,
+        enabled: isEnabled,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (backend == AsrBackend.whisperGgml && !_isNpuDevice)
+              Icon(Icons.star, size: 16, color: Colors.amber),
+            if (isRecommended)
+              Icon(Icons.star, size: 16, color: Colors.green),
+            Flexible(
+              child: !isEnabled
+                  ? Opacity(opacity: 0.5, child: Text(displayName))
+                  : Text(displayName),
+            ),
+            if (isRecommended)
+              Text(' (NPU)',
+                  style: TextStyle(fontSize: 11, color: Colors.green)),
+            if (!isEnabled)
+              Tooltip(
+                message: 'Disabled for now (requires paid API)',
+                child: Icon(Icons.lock, size: 16, color: Colors.grey),
+              ),
+          ],
+        ),
+      );
+    }).toList();
+  }
 }
 
 SpeechEngine _asrBackendToSpeechEngine(AsrBackend backend) {
@@ -277,6 +490,8 @@ SpeechEngine _asrBackendToSpeechEngine(AsrBackend backend) {
       return SpeechEngine.gemma3n;
     case AsrBackend.native:
       return SpeechEngine.native;
+    case AsrBackend.nexaParakeet:
+      return SpeechEngine.nexa_asr;
     case AsrBackend.openAI:
       return SpeechEngine.openAI;
     case AsrBackend.whisperGgml:

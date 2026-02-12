@@ -49,6 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _modelsMissing = false; // Track if required models are missing
   bool _isNexaDeviceDetected = false; // Track if this is a Nexa device
 
+  // Nexa SDK progress tracking
+  StreamSubscription<NexaAsrEvent>? _nexaEventSubscription;
+  double _nexaProgress = 0.0;
+  String _nexaStatusMessage = 'Detecting device...';
+  bool _nexaReady = false;
+  bool _nexaInitializing = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptModelDownload();
+      // On NPU devices, start Nexa initialization immediately
+      if (_isNexaDeviceDetected) {
+        _startNexaInitialization();
+      }
       // Initialize Gemma after model checks
       await _initializeGemmaBeforeAR();
     });
@@ -450,8 +461,179 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Start Nexa SDK initialization and listen to progress events
+  void _startNexaInitialization() {
+    if (_nexaInitializing || _nexaReady) return;
+    _nexaInitializing = true;
+
+    try {
+      final nexaService = sl<NexaAsrService>();
+
+      // Listen to Nexa events for progress
+      _nexaEventSubscription = nexaService.nexaEvents.listen((event) {
+        if (!mounted) return;
+        setState(() {
+          _nexaProgress = event.progress;
+          _nexaStatusMessage = event.message;
+          if (event.isComplete) {
+            _nexaReady = true;
+            _nexaInitializing = false;
+          }
+          if (event.error != null) {
+            _nexaStatusMessage = 'Error: ${event.error}';
+            _nexaInitializing = false;
+          }
+        });
+      });
+
+      // Fire-and-forget initialization
+      nexaService.initialize(preferNpu: true).then((success) {
+        if (mounted) {
+          setState(() {
+            _nexaReady = success;
+            _nexaInitializing = false;
+            if (success) {
+              _nexaStatusMessage = 'Nexa ASR Ready';
+              _nexaProgress = 1.0;
+            }
+          });
+        }
+      }).catchError((e) {
+        _logger.e('❌ Nexa initialization failed', error: e);
+        if (mounted) {
+          setState(() {
+            _nexaInitializing = false;
+            _nexaStatusMessage = 'Initialization failed';
+          });
+        }
+      });
+    } catch (e) {
+      _logger.e('❌ Could not start Nexa initialization', error: e);
+      _nexaInitializing = false;
+    }
+  }
+
+  /// Build NPU download progress card for home screen
+  Widget _buildNexaProgressCard() {
+    final Color statusColor;
+    final IconData statusIcon;
+
+    if (_nexaReady) {
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+    } else if (_nexaProgress > 0) {
+      statusColor = Colors.blue;
+      statusIcon = Icons.downloading;
+    } else {
+      statusColor = Colors.orange;
+      statusIcon = Icons.hourglass_top;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withAlpha(100), width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.memory, color: statusColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Nexa NPU Engine',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+              Icon(statusIcon, color: statusColor, size: 20),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (!_nexaReady) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _nexaProgress > 0 ? _nexaProgress : null,
+                backgroundColor: Colors.white12,
+                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          Text(
+            _nexaStatusMessage,
+            style: TextStyle(
+              color: _nexaReady ? Colors.green.shade300 : Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+          if (_nexaReady)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'NPU-accelerated speech recognition active',
+                style: TextStyle(color: Colors.green.shade400, fontSize: 11),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Build NPU-specific bottom bar (replaces orange "models missing" bar)
+  Widget _buildNexaBottomBar(BuildContext context) {
+    final Color barColor = _nexaReady ? Colors.green.shade700 : Colors.blue.shade700;
+
+    return Container(
+      color: barColor,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Icon(
+              _nexaReady ? Icons.check_circle : Icons.downloading,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _nexaReady
+                    ? 'Nexa NPU ready — tap AR to start'
+                    : 'Setting up NPU models... ${(_nexaProgress * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
+            if (!_nexaReady && _nexaProgress > 0)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  value: _nexaProgress,
+                  strokeWidth: 2,
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _nexaEventSubscription?.cancel();
     _logger.i('🗑️ HomeScreen disposing...');
     super.dispose();
     _logger.d('✅ HomeScreen disposed successfully');
@@ -602,6 +784,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.black,
                         child: _buildCameraOrFallback(),
                       ),
+
+                      // Nexa NPU progress card (for NPU devices)
+                      if (_isNexaDeviceDetected)
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 8,
+                          left: 0,
+                          right: 0,
+                          child: _buildNexaProgressCard(),
+                        ),
 
                       // AR Session Status Widget (top of screen)
                       BlocBuilder<ARSessionCubit, ARSessionState>(
@@ -800,9 +991,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   // Model status indicator (non-blocking)
-                  bottomNavigationBar: _modelsMissing && !_isNexaDeviceDetected
-                      ? _buildModelStatusBar(context)
-                      : null,
+                  bottomNavigationBar: _isNexaDeviceDetected
+                      ? _buildNexaBottomBar(context)
+                      : (_modelsMissing
+                          ? _buildModelStatusBar(context)
+                          : null),
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {

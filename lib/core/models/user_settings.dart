@@ -3,6 +3,7 @@ enum AsrBackend {
   flutterSound,
   gemma3n,
   native,
+  nexaParakeet,
   openAI,
   whisperGgml,
 }
@@ -91,12 +92,19 @@ class UserSettings {
     };
   }
 
+  static AsrBackend _parseAsrBackend(String name) {
+    try {
+      return AsrBackend.values.byName(name);
+    } catch (_) {
+      return AsrBackend.whisperGgml;
+    }
+  }
+
   /// Create from JSON.
   factory UserSettings.fromJson(Map<String, dynamic> json) {
     return UserSettings(
       sttMode: SttMode.values.byName(json['sttMode'] as String? ?? 'online'),
-      asrBackend: AsrBackend.values
-          .byName(json['asrBackend'] as String? ?? 'whisperGgml'),
+      asrBackend: _parseAsrBackend(json['asrBackend'] as String? ?? 'whisperGgml'),
       enhancementEnabled: json['enhancementEnabled'] as bool? ?? true,
       hapticsEnabled: json['hapticsEnabled'] as bool? ?? true,
       ledAlertsEnabled: json['ledAlertsEnabled'] as bool? ?? true,
