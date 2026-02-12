@@ -25,7 +25,7 @@ enum DeviceTier {
 
 /// Qualcomm chipset family for NPU optimization
 enum SnapdragonFamily {
-  gen4,         // Snapdragon 8 Gen 4 - Latest, best NPU
+  gen4,         // Snapdragon 8 Elite (8 Gen 4) - Latest, best NPU
   gen3,         // Snapdragon 8 Gen 3 - Excellent NPU
   gen2,         // Snapdragon 8 Gen 2 - Great NPU
   gen1,         // Snapdragon 8 Gen 1 - Good NPU
@@ -474,8 +474,8 @@ class DeviceModelRegistry {
   SnapdragonFamily _detectSnapdragonFamily(String chipset) {
     final chip = chipset.toLowerCase();
 
-    // Snapdragon 8 Gen 4
-    if (chip.contains('8 gen 4') || chip.contains('sm8750')) {
+    // Snapdragon 8 Elite (aka 8 Gen 4)
+    if (chip.contains('8 elite') || chip.contains('8 gen 4') || chip.contains('sm8750') || chip.contains('sm8735')) {
       return SnapdragonFamily.gen4;
     }
     // Snapdragon 8 Gen 3

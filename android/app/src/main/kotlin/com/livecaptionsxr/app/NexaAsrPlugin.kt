@@ -28,13 +28,15 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
 
         // Supported Snapdragon chipsets for NPU acceleration
         private val NPU_SUPPORTED_CHIPSETS = listOf(
-            "SM8750",  // Snapdragon 8 Gen 4
+            "SM8750",  // Snapdragon 8 Elite (aka 8 Gen 4)
+            "SM8735",  // Snapdragon 8s Elite
             "SM8650",  // Snapdragon 8 Gen 3
             "SM8550",  // Snapdragon 8 Gen 2
             "SM8475",  // Snapdragon 8+ Gen 1
             "SM8450",  // Snapdragon 8 Gen 1
             "qcom",    // Generic Qualcomm identifier
-            "Qualcomm" // Alternative Qualcomm identifier
+            "Qualcomm", // Alternative Qualcomm identifier
+            "elite"    // Snapdragon Elite series identifier
         )
     }
 
@@ -84,7 +86,8 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
         // Also check hardware string for Qualcomm indicators
         val hardwareSupported = hardware.contains("qcom") ||
                                hardware.contains("qualcomm") ||
-                               hardware.contains("snapdragon")
+                               hardware.contains("snapdragon") ||
+                               hardware.contains("elite")
 
         val isSupported = chipsetSupported || hardwareSupported
         Log.d(TAG, "NPU availability check: chipset=$chipset, hardware=$hardware, supported=$isSupported")

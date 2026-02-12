@@ -37,13 +37,15 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     _logger.d('✅ Flutter widgets binding initialized', category: LogCategory.system);
 
-    // Force landscape orientation
+    // Allow all orientations (portrait + landscape)
     if (!kIsWeb) {
       await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-      _logger.d('🔄 Forced landscape orientation', category: LogCategory.system);
+      _logger.d('🔄 All orientations enabled', category: LogCategory.system);
     }
 
     // Load environment variables (optional, skip if file not found)

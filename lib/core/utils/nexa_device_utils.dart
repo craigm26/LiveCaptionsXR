@@ -22,7 +22,8 @@ class NexaDeviceUtils {
   /// Supported Snapdragon chipsets for NPU acceleration
   /// These chipsets have optimized Qualcomm Hexagon NPU support
   static const List<String> npuSupportedChipsets = [
-    'SM8750', // Snapdragon 8 Gen 4
+    'SM8750', // Snapdragon 8 Elite (aka 8 Gen 4)
+    'SM8735', // Snapdragon 8s Elite
     'SM8650', // Snapdragon 8 Gen 3
     'SM8550', // Snapdragon 8 Gen 2
     'SM8475', // Snapdragon 8+ Gen 1
@@ -31,7 +32,8 @@ class NexaDeviceUtils {
 
   /// Marketing names for supported chipsets (for user-friendly display)
   static const Map<String, String> chipsetMarketingNames = {
-    'SM8750': 'Snapdragon 8 Gen 4',
+    'SM8750': 'Snapdragon 8 Elite',
+    'SM8735': 'Snapdragon 8s Elite',
     'SM8650': 'Snapdragon 8 Gen 3',
     'SM8550': 'Snapdragon 8 Gen 2',
     'SM8475': 'Snapdragon 8+ Gen 1',
