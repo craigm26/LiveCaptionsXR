@@ -118,6 +118,22 @@ class SettingsCubit extends Cubit<UserSettings> {
     _saveSettings(state.copyWith(captionFontSize: size));
   }
 
+  void toggleSpatialLocalization(bool value) {
+    _saveSettings(state.copyWith(spatialLocalizationEnabled: value));
+  }
+
+  void setLocalizationSensitivity(double value) {
+    _saveSettings(state.copyWith(localizationSensitivity: value));
+  }
+
+  void setCaptionDuration(double seconds) {
+    _saveSettings(state.copyWith(captionDurationSeconds: seconds));
+  }
+
+  void setMaxVisibleCaptions(int count) {
+    _saveSettings(state.copyWith(maxVisibleCaptions: count));
+  }
+
   Future<void> resetSettings() async {
     try {
       _logger.i('🔄 Resetting all settings to defaults...');

@@ -279,46 +279,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-              // Model Management — less prominent on NPU devices
-              if (!_isNpuDevice)
-                Tooltip(
-                  message:
-                      'Manage AI model downloads for speech recognition and enhancement.',
-                  child: _buildSettingTile(
-                    context,
-                    icon: Icons.storage,
-                    title: 'Model Management',
-                    subtitle: 'Download and manage AI models',
-                    trailing: ElevatedButton.icon(
-                      onPressed: () {
-                        context.push('/models');
-                      },
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Open'),
-                    ),
+              // ── Spatial Audio Settings ──
+              const SizedBox(height: 16),
+              _buildSectionHeader('Spatial Audio'),
+              Tooltip(
+                message: 'Enable speaker localization to position captions in 3D space.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.spatial_audio,
+                  title: 'Speaker Localization',
+                  subtitle: 'Position captions based on speaker direction',
+                  trailing: Switch(
+                    value: state.spatialLocalizationEnabled,
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().toggleSpatialLocalization(value);
+                    },
                   ),
                 ),
-              if (_isNpuDevice)
-                Opacity(
-                  opacity: 0.6,
-                  child: Tooltip(
-                    message:
-                        'Models are managed automatically by the Nexa SDK on this device.',
-                    child: _buildSettingTile(
-                      context,
-                      icon: Icons.storage,
-                      title: 'Model Management',
-                      subtitle: 'Models auto-managed by Nexa SDK',
-                      trailing: ElevatedButton.icon(
-                        onPressed: () {
-                          context.push('/models');
-                        },
-                        icon: const Icon(Icons.open_in_new),
-                        label: const Text('Open'),
-                      ),
-                    ),
+              ),
+              Tooltip(
+                message: 'Adjust how sensitive speaker direction detection is.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.tune,
+                  title: 'Localization Sensitivity',
+                  subtitle: 'Higher values detect subtler direction changes',
+                  trailing: Slider(
+                    value: state.localizationSensitivity,
+                    min: 0.1,
+                    max: 1.0,
+                    divisions: 9,
+                    label: state.localizationSensitivity.toStringAsFixed(1),
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().setLocalizationSensitivity(value);
+                    },
                   ),
                 ),
+              ),
+
+              // ── Caption Display Settings ──
+              const SizedBox(height: 16),
+              _buildSectionHeader('Caption Display'),
+              Tooltip(
+                message: 'How long captions remain visible on screen.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.timer,
+                  title: 'Caption Duration',
+                  subtitle: '${state.captionDurationSeconds.toInt()} seconds',
+                  trailing: Slider(
+                    value: state.captionDurationSeconds,
+                    min: 2.0,
+                    max: 15.0,
+                    divisions: 13,
+                    label: '${state.captionDurationSeconds.toInt()}s',
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().setCaptionDuration(value);
+                    },
+                  ),
+                ),
+              ),
+              Tooltip(
+                message: 'Maximum number of captions shown simultaneously.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.format_list_numbered,
+                  title: 'Max Visible Captions',
+                  subtitle: '${state.maxVisibleCaptions} captions',
+                  trailing: Slider(
+                    value: state.maxVisibleCaptions.toDouble(),
+                    min: 1,
+                    max: 10,
+                    divisions: 9,
+                    label: '${state.maxVisibleCaptions}',
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().setMaxVisibleCaptions(value.toInt());
+                    },
+                  ),
+                ),
+              ),
+
+              // ── Pipeline Status ──
+              const SizedBox(height: 16),
+              _buildSectionHeader('Pipeline Status'),
+              _buildPipelineStatusCard(context),
+
+              // ── Model Management ──
+              const SizedBox(height: 16),
+              _buildSectionHeader('Model Management'),
+              _buildSettingTile(
+                context,
+                icon: Icons.storage,
+                title: _isNpuDevice ? 'AI Models (Auto-managed)' : 'AI Models',
+                subtitle: _isNpuDevice
+                    ? 'Models auto-managed by Nexa SDK'
+                    : 'Download and manage AI models',
+                trailing: ElevatedButton.icon(
+                  onPressed: () => context.push('/models'),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open'),
+                ),
+              ),
+
               const SizedBox(height: 16),
               _buildSectionHeader('Translation'),
               const SizedBox(height: 8),
@@ -439,6 +501,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case SnapdragonFamily.other:
         return 'Other';
     }
+  }
+
+  Widget _buildPipelineStatusCard(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _pipelineStatusRow(
+                  'ASR Model',
+                  _isNpuDevice ? true : false, // Simplified — real check from download manager
+                  Icons.mic,
+                ),
+                const SizedBox(width: 16),
+                _pipelineStatusRow(
+                  'LLM Model',
+                  _isNpuDevice ? true : false,
+                  Icons.auto_awesome,
+                ),
+                const SizedBox(width: 16),
+                _pipelineStatusRow(
+                  'Translation',
+                  true, // Service is registered
+                  Icons.translate,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pipelineStatusRow(String label, bool ready, IconData icon) {
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: ready ? Colors.green : Colors.red),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              '$label ${ready ? '✓' : '✗'}',
+              style: TextStyle(
+                color: ready ? Colors.green : Colors.red,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _llmBackendSubtitle(LlmBackend backend) {

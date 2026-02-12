@@ -15,6 +15,8 @@ import '../../live_captions/widgets/live_captions_widget.dart';
 import '../../settings/cubit/settings_cubit.dart';
 import '../../ar_session/cubit/ar_session_cubit.dart';
 import '../../ar_session/cubit/ar_session_state.dart';
+import '../../translation/cubit/translation_cubit.dart';
+import '../../translation/cubit/translation_state.dart';
 import '../cubit/home_cubit.dart';
 import '../../../core/models/sound_event.dart';
 import '../../../core/models/visual_object.dart';
@@ -31,6 +33,7 @@ import 'package:live_captions_xr/core/services/camera_service.dart';
 import '../../../core/services/apple_speech_service.dart';
 import '../../../core/services/nexa_asr_service.dart';
 import '../../../core/models/device_model_config.dart';
+import '../../../core/services/translation_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -631,6 +634,181 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Pipeline status dashboard showing model status, spatial, and translation info
+  Widget _buildPipelineStatusDashboard(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(200),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title row
+          Row(
+            children: [
+              const Icon(Icons.dashboard, color: Colors.white70, size: 16),
+              const SizedBox(width: 6),
+              const Text(
+                'Caption Pipeline',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const Spacer(),
+              // Settings gear
+              GestureDetector(
+                onTap: () => context.push('/settings'),
+                child: const Icon(Icons.settings, color: Colors.white54, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Model status row
+          Row(
+            children: [
+              _buildStatusChip(
+                label: 'ASR',
+                ready: _isNexaDeviceDetected ? _nexaReady : _isGemmaInitialized,
+                loading: _isNexaDeviceDetected ? _nexaInitializing : _isGemmaInitializing,
+                icon: Icons.mic,
+              ),
+              const SizedBox(width: 8),
+              _buildStatusChip(
+                label: 'LLM',
+                ready: _isGemmaInitialized || (_isNexaDeviceDetected && _nexaReady),
+                loading: _isGemmaInitializing,
+                icon: Icons.auto_awesome,
+              ),
+              const SizedBox(width: 8),
+              _buildTranslationStatusChip(context),
+              const SizedBox(width: 8),
+              _buildLocalizationStatusChip(context),
+            ],
+          ),
+          // Nexa NPU progress (if applicable)
+          if (_isNexaDeviceDetected && !_nexaReady) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _nexaProgress > 0 ? _nexaProgress : null,
+                backgroundColor: Colors.white12,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                minHeight: 4,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _nexaStatusMessage,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
+          ],
+          // Download models prompt
+          if (_modelsMissing && !_isNexaDeviceDetected) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => context.push('/models'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.download, color: Colors.orangeAccent, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'Download AI Models',
+                      style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip({
+    required String label,
+    required bool ready,
+    required bool loading,
+    required IconData icon,
+  }) {
+    final Color color;
+    final IconData statusIcon;
+    if (ready) {
+      color = Colors.greenAccent;
+      statusIcon = Icons.check_circle;
+    } else if (loading) {
+      color = Colors.orangeAccent;
+      statusIcon = Icons.hourglass_top;
+    } else {
+      color = Colors.grey;
+      statusIcon = Icons.cancel_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 12),
+          const SizedBox(width: 3),
+          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 3),
+          Icon(statusIcon, color: color, size: 10),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTranslationStatusChip(BuildContext context) {
+    try {
+      return BlocBuilder<TranslationCubit, TranslationState>(
+        builder: (context, state) {
+          final ready = state is TranslationReady && state.isEnabled;
+          final loading = state is TranslationLoading;
+          return _buildStatusChip(
+            label: 'Trans',
+            ready: ready,
+            loading: loading,
+            icon: Icons.translate,
+          );
+        },
+      );
+    } catch (_) {
+      return _buildStatusChip(label: 'Trans', ready: false, loading: false, icon: Icons.translate);
+    }
+  }
+
+  Widget _buildLocalizationStatusChip(BuildContext context) {
+    return BlocBuilder<LocalizationCubit, LocalizationState>(
+      builder: (context, state) {
+        final active = state is LocalizationLoaded;
+        return _buildStatusChip(
+          label: 'Spatial',
+          ready: active,
+          loading: false,
+          icon: Icons.spatial_audio,
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _nexaEventSubscription?.cancel();
@@ -728,29 +906,83 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           );
         } else {
-          // Real device: show actual camera/AR widget (replace with your AR widget)
-          return const Center(
+          // Real device: show start captions area
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.view_in_ar, color: Colors.white24, size: 120),
-                SizedBox(height: 16),
-                Text(
-                  'AR Experience Ready',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const Icon(Icons.spatial_audio_off, color: Colors.white24, size: 100),
+                const SizedBox(height: 16),
+                const Text(
+                  'Spatial Captions',
+                  style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Tap "Enter AR Mode" to begin',
+                const SizedBox(height: 8),
+                const Text(
+                  'Real-time captions anchored to speakers in AR',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white38, fontSize: 14),
+                ),
+                const SizedBox(height: 32),
+                // Big Start Captions button
+                BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+                  builder: (context, captionsState) {
+                    final isActive = captionsState is LiveCaptionsActive && captionsState.isListening;
+                    final isLoading = captionsState is LiveCaptionsLoading;
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 220,
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: isLoading ? null : () {
+                              final cubit = context.read<LiveCaptionsCubit>();
+                              if (isActive) {
+                                cubit.stopCaptions();
+                              } else {
+                                cubit.startCaptions();
+                              }
+                            },
+                            icon: isLoading
+                                ? const SizedBox(
+                                    width: 20, height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : Icon(isActive ? Icons.stop_circle : Icons.play_circle_fill, size: 28),
+                            label: Text(
+                              isLoading ? 'Starting...' : (isActive ? 'Stop Captions' : 'Start Captions'),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isActive ? Colors.red.shade700 : Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                              elevation: 4,
+                            ),
+                          ),
+                        ),
+                        // Live preview area when captions are active
+                        if (isActive) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 360),
+                            child: LiveCaptionsWidget(
+                              onToggle: () {
+                                final cubit = context.read<LiveCaptionsCubit>();
+                                if (isActive) cubit.stopCaptions();
+                                else cubit.startCaptions();
+                              },
+                              onClear: () => context.read<LiveCaptionsCubit>().clearCaptions(),
+                              maxWidth: 360,
+                              showHistory: true,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -785,14 +1017,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildCameraOrFallback(),
                       ),
 
-                      // Nexa NPU progress card (for NPU devices)
-                      if (_isNexaDeviceDetected)
-                        Positioned(
-                          top: MediaQuery.of(context).padding.top + 8,
-                          left: 0,
-                          right: 0,
-                          child: _buildNexaProgressCard(),
-                        ),
+                      // Pipeline Status Dashboard (top area)
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + 8,
+                        left: 0,
+                        right: 0,
+                        child: _buildPipelineStatusDashboard(context),
+                      ),
 
                       // AR Session Status Widget (top of screen)
                       BlocBuilder<ARSessionCubit, ARSessionState>(

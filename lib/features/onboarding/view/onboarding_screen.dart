@@ -91,10 +91,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       color: Colors.blue,
     ),
     _OnboardingPageData(
+      title: 'Permissions Needed',
+      description:
+          '🎤 Microphone — to hear and transcribe speech\n'
+          '📷 Camera — for AR scene understanding\n'
+          '📍 Motion Sensors — for spatial tracking\n\n'
+          'All data stays on your device. Nothing is sent to the cloud.',
+      icon: Icons.shield,
+      color: Colors.teal,
+    ),
+    _OnboardingPageData(
       title: 'Spatial Audio Intelligence',
       description:
           'Our AI uses stereo audio, camera, and motion sensors to track speakers in 3D space. '
-          'Captions follow the speaker as they move.',
+          'Captions follow the speaker as they move — left, right, center.',
       icon: Icons.surround_sound,
       color: Colors.purple,
     ),
@@ -102,7 +112,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Real-Time Translation',
       description:
           'Translate speech into 15+ languages instantly. '
-          'All processing happens on-device for complete privacy.',
+          'All processing happens on-device for complete privacy.\n\n'
+          'Powered by Nexa SDK on Qualcomm Snapdragon NPU.',
       icon: Icons.translate,
       color: Colors.green,
     ),
@@ -114,10 +125,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       isDevicePage: true,
     ),
     _OnboardingPageData(
-      title: 'Find AI Models',
+      title: _isNexaDevice ? 'Ready to Go!' : 'Download AI Models',
       description: _getModelInstructions(),
-      icon: Icons.settings,
-      color: Colors.indigo,
+      icon: _isNexaDevice ? Icons.check_circle : Icons.download_for_offline,
+      color: _isNexaDevice ? Colors.green : Colors.indigo,
       showModelPath: true,
     ),
   ];

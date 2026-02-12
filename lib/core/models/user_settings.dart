@@ -60,6 +60,18 @@ class UserSettings {
   final bool highContrastEnabled;
   final bool debugLoggingOverlayEnabled;
 
+  /// Whether spatial localization (speaker direction tracking) is enabled.
+  final bool spatialLocalizationEnabled;
+
+  /// Sensitivity for speaker localization (0.1–1.0).
+  final double localizationSensitivity;
+
+  /// How long captions stay visible (seconds).
+  final double captionDurationSeconds;
+
+  /// Maximum number of captions shown at once.
+  final int maxVisibleCaptions;
+
   const UserSettings({
     this.sttMode = SttMode.offline,
     this.asrBackend = AsrBackend.whisperGgml,
@@ -70,6 +82,10 @@ class UserSettings {
     this.captionFontSize = 1.0,
     this.highContrastEnabled = false,
     this.debugLoggingOverlayEnabled = true,
+    this.spatialLocalizationEnabled = true,
+    this.localizationSensitivity = 0.5,
+    this.captionDurationSeconds = 6.0,
+    this.maxVisibleCaptions = 5,
   });
 
   /// Create a copy of the settings with modified properties.
@@ -83,6 +99,10 @@ class UserSettings {
     double? captionFontSize,
     bool? highContrastEnabled,
     bool? debugLoggingOverlayEnabled,
+    bool? spatialLocalizationEnabled,
+    double? localizationSensitivity,
+    double? captionDurationSeconds,
+    int? maxVisibleCaptions,
   }) {
     return UserSettings(
       sttMode: sttMode ?? this.sttMode,
@@ -95,6 +115,13 @@ class UserSettings {
       highContrastEnabled: highContrastEnabled ?? this.highContrastEnabled,
       debugLoggingOverlayEnabled:
           debugLoggingOverlayEnabled ?? this.debugLoggingOverlayEnabled,
+      spatialLocalizationEnabled:
+          spatialLocalizationEnabled ?? this.spatialLocalizationEnabled,
+      localizationSensitivity:
+          localizationSensitivity ?? this.localizationSensitivity,
+      captionDurationSeconds:
+          captionDurationSeconds ?? this.captionDurationSeconds,
+      maxVisibleCaptions: maxVisibleCaptions ?? this.maxVisibleCaptions,
     );
   }
 
@@ -110,6 +137,10 @@ class UserSettings {
       'captionFontSize': captionFontSize,
       'highContrastEnabled': highContrastEnabled,
       'debugLoggingOverlayEnabled': debugLoggingOverlayEnabled,
+      'spatialLocalizationEnabled': spatialLocalizationEnabled,
+      'localizationSensitivity': localizationSensitivity,
+      'captionDurationSeconds': captionDurationSeconds,
+      'maxVisibleCaptions': maxVisibleCaptions,
     };
   }
 
@@ -142,6 +173,14 @@ class UserSettings {
       highContrastEnabled: json['highContrastEnabled'] as bool? ?? false,
       debugLoggingOverlayEnabled:
           json['debugLoggingOverlayEnabled'] as bool? ?? false,
+      spatialLocalizationEnabled:
+          json['spatialLocalizationEnabled'] as bool? ?? true,
+      localizationSensitivity:
+          (json['localizationSensitivity'] as num?)?.toDouble() ?? 0.5,
+      captionDurationSeconds:
+          (json['captionDurationSeconds'] as num?)?.toDouble() ?? 6.0,
+      maxVisibleCaptions:
+          json['maxVisibleCaptions'] as int? ?? 5,
     );
   }
 }

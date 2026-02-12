@@ -152,6 +152,29 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
               'Caption Controls',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            // Pipeline diagram
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _pipelineStep(Icons.mic, 'Mic', Colors.blue),
+                  const Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+                  _pipelineStep(Icons.record_voice_over, 'ASR', Colors.indigo),
+                  const Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+                  _pipelineStep(Icons.spatial_audio, 'Spatial', Colors.orange),
+                  const Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+                  _pipelineStep(Icons.translate, 'Translate', Colors.green),
+                  const Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+                  _pipelineStep(Icons.subtitles, 'Display', Colors.purple),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             
             // Add Partial Caption
@@ -177,11 +200,24 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
             ),
             const SizedBox(height: 8),
             
-            // Simulate Speech Flow
-            OutlinedButton.icon(
+            // Simulate Full Pipeline
+            ElevatedButton.icon(
               onPressed: _simulateSpeechFlow,
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Simulate Speech Flow'),
+              label: const Text('Simulate Full Pipeline'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            // Simulate Multi-Speaker
+            OutlinedButton.icon(
+              onPressed: _simulateMultiSpeaker,
+              icon: const Icon(Icons.group),
+              label: const Text('Simulate Multi-Speaker'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
               ),
@@ -189,6 +225,17 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _pipelineStep(IconData icon, String label, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w600)),
+      ],
     );
   }
 
@@ -452,6 +499,52 @@ class _SpatialCaptionsDemoPageState extends State<SpatialCaptionsDemoPage> {
     );
     
     // Enhancement will happen automatically after a delay
+  }
+
+  Future<void> _simulateMultiSpeaker() async {
+    // Simulate two speakers having a conversation
+    await _integrationService.processFinalResult(
+      SpeechResult(
+        text: "Hey, have you tried the spatial captions?",
+        confidence: 0.92,
+        isFinal: true,
+        timestamp: DateTime.now(),
+        speakerDirection: 'left',
+        speakerId: 'speaker-A',
+        speakerDisplayName: 'Alice',
+        speakerColor: 0xFF42A5F5,
+      ),
+    );
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    await _integrationService.processFinalResult(
+      SpeechResult(
+        text: "Yes! The captions follow where I'm standing.",
+        confidence: 0.88,
+        isFinal: true,
+        timestamp: DateTime.now(),
+        speakerDirection: 'right',
+        speakerId: 'speaker-B',
+        speakerDisplayName: 'Bob',
+        speakerColor: 0xFFEF5350,
+      ),
+    );
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    await _integrationService.processFinalResult(
+      SpeechResult(
+        text: "And translation works in real-time too!",
+        confidence: 0.95,
+        isFinal: true,
+        timestamp: DateTime.now(),
+        speakerDirection: 'left',
+        speakerId: 'speaker-A',
+        speakerDisplayName: 'Alice',
+        speakerColor: 0xFF42A5F5,
+      ),
+    );
   }
 
   void _clearAllCaptions() {

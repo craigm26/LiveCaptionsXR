@@ -151,7 +151,7 @@ class TranslationSettingsCard extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: Column(
                 children: [
-                  // Source language
+                  // Source language with auto-detect hint
                   _LanguageSelector(
                     label: 'Speak in',
                     selectedLanguage: state.sourceLanguage,
@@ -159,17 +159,55 @@ class TranslationSettingsCard extends StatelessWidget {
                     onChanged: state.isEnabled
                         ? (lang) => cubit.setSourceLanguage(lang)
                         : null,
+                    hint: 'Auto-detect coming soon',
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-                  // Arrow indicator
-                  Icon(
-                    Icons.arrow_downward,
-                    color: state.isEnabled ? Colors.blue : Colors.grey,
+                  // Arrow with active animation
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.arrow_downward,
+                        color: state.isEnabled ? Colors.blue : Colors.grey,
+                      ),
+                      if (state.isEnabled) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 10,
+                                height: 10,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade400),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Active',
+                                style: TextStyle(
+                                  color: Colors.blue.shade600,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Target language
                   _LanguageSelector(
@@ -234,12 +272,14 @@ class _LanguageSelector extends StatelessWidget {
   final TranslationLanguage selectedLanguage;
   final List<TranslationLanguage> languages;
   final ValueChanged<TranslationLanguage>? onChanged;
+  final String? hint;
 
   const _LanguageSelector({
     required this.label,
     required this.selectedLanguage,
     required this.languages,
     this.onChanged,
+    this.hint,
   });
 
   @override

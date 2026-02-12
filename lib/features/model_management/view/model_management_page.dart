@@ -162,6 +162,12 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                       const SizedBox(height: 32),
                     ],
                     
+                    // Required Models Alert
+                    if (!_areRecommendedModelsReady()) ...[
+                      _buildRequiredModelsAlert(),
+                      const SizedBox(height: 24),
+                    ],
+                    
                     // Storage Info
                     _buildStorageCard(),
                     const SizedBox(height: 24),
@@ -1449,6 +1455,86 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
     final whisperReady = _modelStatuses['whisper-base']?.complete ?? false;
     final gemmaReady = _modelStatuses['gemma-3n-E4B-it-int4']?.complete ?? false;
     return whisperReady && gemmaReady;
+  }
+
+  Widget _buildRequiredModelsAlert() {
+    return Card(
+      elevation: 0,
+      color: Colors.red.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.red.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.red.shade700, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Required Models Missing',
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'The caption pipeline requires Parakeet (ASR) and OmniNeural-4B (LLM) '
+              'models to function. Download them to enable spatial captions.',
+              style: TextStyle(color: Colors.red.shade800),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _pipelineModelChip('Parakeet ASR',
+                    _modelStatuses['parakeet-tdt-0.6b-v3-npu']?.complete ?? false),
+                const SizedBox(width: 8),
+                _pipelineModelChip('OmniNeural-4B',
+                    _modelStatuses['OmniNeural-4B']?.complete ?? false),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pipelineModelChip(String label, bool ready) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: ready ? Colors.green.shade100 : Colors.red.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            ready ? Icons.check_circle : Icons.cancel,
+            size: 14,
+            color: ready ? Colors.green.shade700 : Colors.red.shade700,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: ready ? Colors.green.shade700 : Colors.red.shade700,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatSize(int bytes) {
