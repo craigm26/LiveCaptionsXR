@@ -170,27 +170,27 @@ class AppLogger {
     );
 
     if (_config.enableConsoleOutput) {
-      if (kDebugMode) {
-        switch (level) {
-          case LogLevel.trace:
-            developer.log(logMessage, name: category.name);
-            break;
-          case LogLevel.debug:
-            developer.log(logMessage, name: category.name);
-            break;
-          case LogLevel.info:
-            developer.log(logMessage, name: category.name);
-            break;
-          case LogLevel.warning:
-            developer.log(logMessage, name: category.name, level: 900);
-            break;
-          case LogLevel.error:
-            developer.log(logMessage, name: category.name, level: 1000, error: error, stackTrace: stackTrace);
-            break;
-          case LogLevel.fatal:
-            developer.log(logMessage, name: category.name, level: 1200, error: error, stackTrace: stackTrace);
-            break;
-        }
+      // Use debugPrint for adb logcat visibility in both debug and release
+      final tag = '[${category.name}]';
+      switch (level) {
+        case LogLevel.trace:
+          debugPrint('$tag $logMessage');
+          break;
+        case LogLevel.debug:
+          debugPrint('$tag $logMessage');
+          break;
+        case LogLevel.info:
+          debugPrint('$tag $logMessage');
+          break;
+        case LogLevel.warning:
+          debugPrint('$tag ⚠️ $logMessage');
+          break;
+        case LogLevel.error:
+          debugPrint('$tag ❌ $logMessage ${error ?? ''}');
+          break;
+        case LogLevel.fatal:
+          debugPrint('$tag 💀 $logMessage ${error ?? ''}');
+          break;
       }
     }
 
