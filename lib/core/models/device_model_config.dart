@@ -425,8 +425,14 @@ class DeviceModelRegistry {
     final snapdragonFamily = _detectSnapdragonFamily(chipset);
 
     // Select based on device tier
-    if (snapdragonFamily == SnapdragonFamily.other || !npuAvailable) {
+    // If NPU is detected but chipset family is unknown, treat as high-end
+    if (!npuAvailable && snapdragonFamily == SnapdragonFamily.other) {
       return genericAndroid;
+    }
+    if (npuAvailable && snapdragonFamily == SnapdragonFamily.other) {
+      _logger.w('NPU detected but chipset family unknown (chipset=$chipset). '
+          'Treating as high-end device.');
+      return highEndPhone;
     }
 
     // Determine tier based on RAM and chipset
@@ -474,20 +480,25 @@ class DeviceModelRegistry {
   SnapdragonFamily _detectSnapdragonFamily(String chipset) {
     final chip = chipset.toLowerCase();
 
-    // Snapdragon 8 Elite (aka 8 Gen 4)
-    if (chip.contains('8 elite') || chip.contains('8 gen 4') || chip.contains('sm8750') || chip.contains('sm8735')) {
+    // Snapdragon 8 Elite (aka 8 Gen 4) — codename "pineapple", board "QRD8750"
+    if (chip.contains('8 elite') || chip.contains('8 gen 4') ||
+        chip.contains('sm8750') || chip.contains('sm8735') ||
+        chip.contains('pineapple') || chip.contains('qrd8750')) {
       return SnapdragonFamily.gen4;
     }
-    // Snapdragon 8 Gen 3
-    if (chip.contains('8 gen 3') || chip.contains('sm8650')) {
+    // Snapdragon 8 Gen 3 — codename "kalama"
+    if (chip.contains('8 gen 3') || chip.contains('sm8650') ||
+        chip.contains('kalama') || chip.contains('qrd8650')) {
       return SnapdragonFamily.gen3;
     }
-    // Snapdragon 8 Gen 2
-    if (chip.contains('8 gen 2') || chip.contains('sm8550')) {
+    // Snapdragon 8 Gen 2 — codename "waipio"
+    if (chip.contains('8 gen 2') || chip.contains('sm8550') ||
+        chip.contains('waipio') || chip.contains('qrd8550')) {
       return SnapdragonFamily.gen2;
     }
-    // Snapdragon 8 Gen 1
-    if (chip.contains('8 gen 1') || chip.contains('sm8450')) {
+    // Snapdragon 8 Gen 1 — codename "taro"
+    if (chip.contains('8 gen 1') || chip.contains('sm8450') ||
+        chip.contains('taro') || chip.contains('qrd8450')) {
       return SnapdragonFamily.gen1;
     }
     // Snapdragon 7 series

@@ -34,6 +34,10 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
             "SM8550",  // Snapdragon 8 Gen 2
             "SM8475",  // Snapdragon 8+ Gen 1
             "SM8450",  // Snapdragon 8 Gen 1
+            "QRD8750", // Qualcomm Reference Design — 8 Elite
+            "QRD8650", // Qualcomm Reference Design — 8 Gen 3
+            "pineapple", // Codename for Snapdragon 8 Elite
+            "kalama",    // Codename for Snapdragon 8 Gen 3
             "qcom",    // Generic Qualcomm identifier
             "Qualcomm", // Alternative Qualcomm identifier
             "elite"    // Snapdragon Elite series identifier
