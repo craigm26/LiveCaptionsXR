@@ -139,7 +139,7 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
         val hardware = Build.HARDWARE
         // Use the most specific identifier available
         val chipset = when {
-            socModel.isNotEmpty && socModel != "unknown" -> socModel
+            socModel.isNotEmpty() && socModel != "unknown" -> socModel
             rawChipset != hardware -> rawChipset
             else -> hardware
         }
