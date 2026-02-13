@@ -327,29 +327,51 @@ class NexaAsrService {
       _logger.i('📂 ASR model path: $_modelPath', category: LogCategory.speech);
       _logger.i('🔌 Plugin ID: $pluginId, Model: $_currentModelName', category: LogCategory.speech);
 
-      // Nexa SDK expects the model directory, not the file path
+      // Try both: first the exact path from SDK, then directory path
       String asrModelPath = _modelPath!;
-      if (asrModelPath.endsWith('.nexa') || asrModelPath.contains('.')) {
-        // Strip filename to get directory
+      String? asrDirPath;
+      if (asrModelPath.endsWith('.nexa')) {
+        // Save directory path as fallback
         final lastSlash = asrModelPath.lastIndexOf('/');
         if (lastSlash > 0) {
-          asrModelPath = asrModelPath.substring(0, lastSlash);
-          _logger.i('📂 Using directory path for ASR: $asrModelPath', category: LogCategory.speech);
+          asrDirPath = asrModelPath.substring(0, lastSlash);
+        }
+      }
+      _logger.i('📂 Will try file path first: $asrModelPath', category: LogCategory.speech);
+      if (asrDirPath != null) {
+        _logger.i('📂 Then directory path: $asrDirPath', category: LogCategory.speech);
+      }
+
+      // Try file path first, then directory path, then directory with modelName
+      final pathsToTry = <String>[
+        asrModelPath,
+        if (asrDirPath != null) asrDirPath,
+      ];
+
+      Exception? lastError;
+      for (final tryPath in pathsToTry) {
+        try {
+          _logger.i('🔄 Trying ASR create with path: $tryPath', category: LogCategory.speech);
+          _asrWrapper = await AsrWrapper.create(
+            AsrCreateInput(
+              modelName: _currentModelName,
+              modelPath: tryPath,
+              config: ModelConfig(
+                maxTokens: 2048,
+              ),
+              pluginId: pluginId,
+            ),
+          );
+          _logger.i('✅ ASR create succeeded with path: $tryPath', category: LogCategory.speech);
+          break; // Success!
+        } catch (e) {
+          _logger.w('⚠️ ASR create failed with path $tryPath: $e', category: LogCategory.speech);
+          lastError = e is Exception ? e : Exception(e.toString());
+          _asrWrapper = null;
         }
       }
 
-      try {
-        _asrWrapper = await AsrWrapper.create(
-          AsrCreateInput(
-            modelName: _currentModelName, // Device-specific model from registry
-            modelPath: asrModelPath,
-            config: ModelConfig(
-              maxTokens: 2048,
-            ),
-            pluginId: pluginId,
-          ),
-        );
-
+      if (_asrWrapper != null) {
         _isInitialized = true;
 
         _emitEvent(NexaAsrEvent(
@@ -366,9 +388,9 @@ class NexaAsrService {
         await getDeviceInfo();
 
         return true;
-      } catch (e) {
+      } else {
         _logger.w('⚠️ Failed to create ASR wrapper with $pluginId for $_currentModelName, trying fallbacks',
-            error: e, category: LogCategory.speech);
+            error: lastError, category: LogCategory.speech);
 
         // Try fallback models from registry
         final fallbacks = _deviceModelConfig?.asrFallbacks ?? [];
@@ -437,7 +459,7 @@ class NexaAsrService {
                 error: fallbackError, category: LogCategory.speech);
           }
         }
-        rethrow;
+        throw lastError ?? Exception('All ASR create attempts failed');
       }
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Nexa ASR',
