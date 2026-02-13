@@ -186,12 +186,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isNexa = await _isNexaDevice();
 
-    // On Nexa devices, fire-and-forget Gemma init in background (non-blocking)
+    // On Nexa devices, skip Gemma entirely — Nexa SDK provides its own LLM
     if (isNexa) {
       _logger.i(
-          '🤖 Nexa device detected - initializing Gemma in background (non-blocking)',
+          '🤖 Nexa device detected - skipping Gemma init (using Nexa LLM instead)',
           category: LogCategory.gemma);
-      _initializeGemmaInBackground();
       return;
     }
 

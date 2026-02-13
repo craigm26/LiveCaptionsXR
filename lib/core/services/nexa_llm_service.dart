@@ -238,6 +238,18 @@ class NexaLlmService {
       // Create appropriate wrapper based on model type
       final pluginId = _inferenceMode == NexaInferenceMode.npu ? 'npu' : 'cpu_gpu';
 
+      _logger.i('📂 LLM model path: $_modelPath', category: LogCategory.gemma);
+      _logger.i('🔌 Plugin: $pluginId, Model: $modelName, Vision: $_supportsVision', category: LogCategory.gemma);
+
+      // Nexa SDK expects the model directory, not the file path
+      if (_modelPath != null && (_modelPath!.endsWith('.nexa') || _modelPath!.contains('files-'))) {
+        final lastSlash = _modelPath!.lastIndexOf('/');
+        if (lastSlash > 0) {
+          _modelPath = _modelPath!.substring(0, lastSlash);
+          _logger.i('📂 Using directory path for LLM: $_modelPath', category: LogCategory.gemma);
+        }
+      }
+
       try {
         if (_supportsVision) {
           // Use VLM wrapper for vision models

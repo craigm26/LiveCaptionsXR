@@ -324,11 +324,25 @@ class NexaAsrService {
       // Create ASR wrapper with appropriate plugin
       final pluginId = _inferenceMode == NexaInferenceMode.npu ? 'npu' : 'cpu_gpu';
 
+      _logger.i('📂 ASR model path: $_modelPath', category: LogCategory.speech);
+      _logger.i('🔌 Plugin ID: $pluginId, Model: $_currentModelName', category: LogCategory.speech);
+
+      // Nexa SDK expects the model directory, not the file path
+      String asrModelPath = _modelPath!;
+      if (asrModelPath.endsWith('.nexa') || asrModelPath.contains('.')) {
+        // Strip filename to get directory
+        final lastSlash = asrModelPath.lastIndexOf('/');
+        if (lastSlash > 0) {
+          asrModelPath = asrModelPath.substring(0, lastSlash);
+          _logger.i('📂 Using directory path for ASR: $asrModelPath', category: LogCategory.speech);
+        }
+      }
+
       try {
         _asrWrapper = await AsrWrapper.create(
           AsrCreateInput(
             modelName: _currentModelName, // Device-specific model from registry
-            modelPath: _modelPath!,
+            modelPath: asrModelPath,
             config: ModelConfig(
               maxTokens: 2048,
             ),
