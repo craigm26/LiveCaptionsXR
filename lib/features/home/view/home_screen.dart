@@ -1296,7 +1296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     _logger.i('⏹️ Stop Captions pressed', category: LogCategory.ui);
                                     final arSessionCubit = context.read<ARSessionCubit>();
                                     if (arSessionCubit.state is ARSessionReady) {
-                                      await arSessionCubit.stopAllARServices();
+                                      await arSessionCubit.stopARSession();
                                     }
                                     context.read<LiveCaptionsCubit>().stopCaptions();
                                   } else {
