@@ -42,7 +42,8 @@ class AudioCaptureService {
           _logger.d('🗣️ Potential speech detected (RMS: ${rmsLevel.toStringAsFixed(4)})', category: LogCategory.audio);
         }
         
-        final intBuffer = buffer.map((d) => d.toInt()).toList();
+        // Scale normalized doubles [-1.0, 1.0] to 16-bit PCM [-32768, 32767]
+        final intBuffer = buffer.map((d) => (d * 32767).clamp(-32768, 32767).toInt()).toList();
         _streamController.add(intBuffer);
         _logger.d('📤 Sent audio chunk to stream (${intBuffer.length} samples)', category: LogCategory.audio);
         

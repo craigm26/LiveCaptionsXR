@@ -96,7 +96,11 @@ class _VideoTestPageState extends State<VideoTestPage> {
     // Close previous controller if any
     _ytController?.close();
 
-    final controller = YoutubePlayerController(
+    // Use fromVideoId so the video loads when the WebView initializes,
+    // rather than calling loadVideoById before the WebView is ready.
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: videoId,
+      autoPlay: true,
       params: const YoutubePlayerParams(
         showFullscreenButton: false,
         mute: false,
@@ -104,8 +108,6 @@ class _VideoTestPageState extends State<VideoTestPage> {
         enableCaption: false,
       ),
     );
-
-    controller.loadVideoById(videoId: videoId);
 
     setState(() {
       _ytController = controller;

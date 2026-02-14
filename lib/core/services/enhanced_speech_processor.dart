@@ -614,9 +614,13 @@ class EnhancedSpeechProcessor {
         _logger.d('🎵 [NEXA STT] Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
 
         try {
-          // Convert audio data to Uint8List for Nexa processing
-          final audioBytes = Uint8List.fromList(audioData);
-          _logger.d('🔄 [NEXA STT] Converting audio to bytes (${audioBytes.length} bytes)', category: LogCategory.speech);
+          // Convert 16-bit PCM int samples to little-endian byte pairs
+          final byteData = ByteData(audioData.length * 2);
+          for (int i = 0; i < audioData.length; i++) {
+            byteData.setInt16(i * 2, audioData[i], Endian.little);
+          }
+          final audioBytes = byteData.buffer.asUint8List();
+          _logger.d('🔄 [NEXA STT] Converting ${audioData.length} samples to ${audioBytes.length} PCM bytes', category: LogCategory.speech);
 
           // Process with Nexa ASR service
           _logger.d('🎤 [NEXA STT] Sending audio to Nexa ASR for transcription...', category: LogCategory.speech);
