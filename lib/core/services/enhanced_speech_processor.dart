@@ -315,7 +315,10 @@ class EnhancedSpeechProcessor {
       _logger.i('✅ Whisper GGML engine initialized', category: LogCategory.speech);
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Whisper GGML', category: LogCategory.speech, error: e, stackTrace: stackTrace);
-      rethrow;
+      // Don't rethrow — allow processor to continue in degraded mode.
+      // Whisper may not be available on QDC/Nexa devices (no whisper model downloaded),
+      // but the app should still run and show "Listening..." rather than crashing.
+      _logger.w('⚠️ Whisper fallback unavailable — processor will run without ASR fallback', category: LogCategory.speech);
     }
   }
   
@@ -654,11 +657,11 @@ class EnhancedSpeechProcessor {
       _speechResultController.add(result);
       _logger.d('📤 [NEXA PROCESSING] Emitted raw speech result to speechResults stream', category: LogCategory.speech);
 
-      // Try to enhance with Nexa LLM first, then fall back to Gemma
+      // Try to enhance with Nexa LLM first (skip Gemma on Nexa devices — it won't be initialized)
       if (_nexaLlmService != null && _nexaLlmService!.isReady && _useEnhancement) {
         _logger.i('✨ [NEXA PROCESSING] Nexa LLM available - attempting enhancement...', category: LogCategory.speech);
         _enhanceWithNexaLlm(result);
-      } else if (gemma3nService.isReady && _useEnhancement) {
+      } else if (_activeEngine != SpeechEngine.nexa_asr && gemma3nService.isReady && _useEnhancement) {
         _logger.i('✨ [NEXA PROCESSING] Falling back to Gemma3n for enhancement...', category: LogCategory.speech);
         _enhanceWithGemma3n(result);
       } else {

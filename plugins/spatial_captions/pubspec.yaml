@@ -9,6 +9,9 @@ environment:
 flutter:
   plugin:
     platforms:
+      android:
+        package: com.livecaptionsxr.spatial_captions
+        pluginClass: SpatialCaptionsPlugin
       ios:
         pluginClass: SpatialCaptionsPlugin
 

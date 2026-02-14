@@ -21,7 +21,7 @@ LOG_FILE="$LOG_DIR/qdc_${TIMESTAMP}.log"
 DEVICE_INFO="$LOG_DIR/qdc_${TIMESTAMP}_device.txt"
 MODEL_STATUS="$LOG_DIR/qdc_${TIMESTAMP}_models.txt"
 
-PKG="com.example.live_captions_xr"
+PKG="com.livecaptionsxr.app"
 
 echo "=== QDC LiveCaptionsXR Test — $(date) ===" | tee "$LOG_FILE"
 echo "Log: $LOG_FILE"
