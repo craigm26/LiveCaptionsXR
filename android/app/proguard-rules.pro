@@ -117,10 +117,15 @@
 -keepnames class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
 
-# YouTube player iframe
--keep class com.pichillilorenzo.flutter_inappwebview.** { *; }
--keepnames class com.pichillilorenzo.flutter_inappwebview.** { *; }
--dontwarn com.pichillilorenzo.flutter_inappwebview.**
+# YouTube player iframe (uses webview_flutter_android, not flutter_inappwebview)
+-keep class io.flutter.plugins.webviewflutter.** { *; }
+-keepnames class io.flutter.plugins.webviewflutter.** { *; }
+-dontwarn io.flutter.plugins.webviewflutter.**
+
+# Android WebView classes (needed for youtube_player_iframe)
+-keep class android.webkit.** { *; }
+-keepnames class android.webkit.** { *; }
+-dontwarn android.webkit.**
 
 # Audio streamer
 -keep class com.example.audio_streamer.** { *; }

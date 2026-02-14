@@ -96,18 +96,26 @@ class _VideoTestPageState extends State<VideoTestPage> {
     // Close previous controller if any
     _ytController?.close();
 
-    // Use fromVideoId so the video loads when the WebView initializes,
-    // rather than calling loadVideoById before the WebView is ready.
-    final controller = YoutubePlayerController.fromVideoId(
-      videoId: videoId,
-      autoPlay: true,
+    // Use the base constructor so we can capture WebView errors.
+    final controller = YoutubePlayerController(
       params: const YoutubePlayerParams(
         showFullscreenButton: false,
         mute: false,
         showControls: true,
         enableCaption: false,
       ),
+      onWebResourceError: (error) {
+        _logger.e('WebView error: ${error.errorType} — ${error.description}',
+            category: LogCategory.ui);
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'WebView error: ${error.description}';
+          });
+        }
+      },
     );
+    // Load the video (will wait for WebView init before executing)
+    controller.loadVideoById(videoId: videoId);
 
     setState(() {
       _ytController = controller;
@@ -285,6 +293,25 @@ class _VideoTestPageState extends State<VideoTestPage> {
             top: 12,
             right: 12,
             child: _buildSoundIndicator(),
+          ),
+        // WebView error overlay
+        if (_errorMessage != null && _isRunning)
+          Positioned(
+            left: 16,
+            right: 16,
+            top: 48,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withAlpha((255 * 0.85).round()),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
       ],
     );
