@@ -297,10 +297,57 @@ class NexaLlmService {
         _logger.w('⚠️ Failed to create wrapper with $pluginId for $_currentModelName, trying fallbacks',
             error: e, category: LogCategory.gemma);
 
-        // Try fallback models from registry
+        // Phase 1: Try CPU mode with the ORIGINAL model first (preserves quality)
+        if (_inferenceMode == NexaInferenceMode.npu) {
+          _logger.i('🔄 Trying CPU mode for primary model: $_currentModelName',
+              category: LogCategory.gemma);
+          _emitEvent(NexaLlmEvent(
+            progress: 0.6,
+            message: 'Trying $_currentModelName on CPU...',
+          ));
+          try {
+            if (_supportsVision) {
+              _vlmWrapper = await VlmWrapper.create(
+                VlmCreateInput(
+                  modelName: _currentPluginName,
+                  modelPath: _modelPath!,
+                  config: ModelConfig(maxTokens: 2048),
+                  pluginId: 'cpu_gpu',
+                ),
+              );
+            } else {
+              _llmWrapper = await LlmWrapper.create(
+                LlmCreateInput(
+                  modelPath: _modelPath!,
+                  config: ModelConfig(nCtx: 4096, maxTokens: 2048),
+                  pluginId: 'cpu_gpu',
+                ),
+              );
+            }
+            _inferenceMode = NexaInferenceMode.cpu;
+            _isInitialized = true;
+            _emitEvent(NexaLlmEvent(
+              progress: 1.0,
+              message: 'Nexa LLM ready (CPU fallback)',
+              isComplete: true,
+            ));
+            _logger.i('✅ LLM initialized with CPU mode: $_currentModelName, vision=$_supportsVision',
+                category: LogCategory.gemma);
+            return;
+          } catch (cpuError) {
+            _logger.w('⚠️ CPU mode also failed for $_currentModelName',
+                error: cpuError, category: LogCategory.gemma);
+          }
+        }
+
+        // Phase 2: Try fallback models, prioritizing VLM-capable ones when primary supports vision
         final fallbacks = _deviceModelConfig?.llmFallbacks ?? [];
-        for (final fallbackModel in fallbacks) {
-          _logger.i('🔄 Trying fallback model: ${fallbackModel.name}',
+        final orderedFallbacks = _supportsVision
+            ? [...fallbacks.where((m) => m.supportsVision), ...fallbacks.where((m) => !m.supportsVision)]
+            : fallbacks.toList();
+
+        for (final fallbackModel in orderedFallbacks) {
+          _logger.i('🔄 Trying fallback model: ${fallbackModel.name} (vision=${fallbackModel.supportsVision})',
               category: LogCategory.gemma);
 
           _emitEvent(NexaLlmEvent(
@@ -344,46 +391,11 @@ class NexaLlmService {
               isComplete: true,
             ));
 
-            _logger.i('✅ LLM initialized with fallback: ${fallbackModel.name}',
+            _logger.i('✅ LLM initialized with fallback: ${fallbackModel.name}, vision=${fallbackModel.supportsVision}',
                 category: LogCategory.gemma);
             return;
           } catch (fallbackError) {
             _logger.w('⚠️ Fallback ${fallbackModel.name} also failed',
-                error: fallbackError, category: LogCategory.gemma);
-          }
-        }
-
-        // Try CPU mode as last resort with original model
-        if (_inferenceMode == NexaInferenceMode.npu) {
-          _inferenceMode = NexaInferenceMode.cpu;
-          try {
-            if (_supportsVision) {
-              _vlmWrapper = await VlmWrapper.create(
-                VlmCreateInput(
-                  modelName: _currentPluginName,
-                  modelPath: _modelPath!,
-                  config: ModelConfig(maxTokens: 2048),
-                  pluginId: 'cpu_gpu',
-                ),
-              );
-            } else {
-              _llmWrapper = await LlmWrapper.create(
-                LlmCreateInput(
-                  modelPath: _modelPath!,
-                  config: ModelConfig(nCtx: 4096, maxTokens: 2048),
-                  pluginId: 'cpu_gpu',
-                ),
-              );
-            }
-            _isInitialized = true;
-            _emitEvent(NexaLlmEvent(
-              progress: 1.0,
-              message: 'Nexa LLM ready (CPU fallback)',
-              isComplete: true,
-            ));
-            return;
-          } catch (fallbackError) {
-            _logger.e('❌ All LLM fallbacks failed',
                 error: fallbackError, category: LogCategory.gemma);
           }
         }
