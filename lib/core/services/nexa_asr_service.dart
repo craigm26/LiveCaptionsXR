@@ -310,10 +310,26 @@ class NexaAsrService {
               _logger.i('✅ Found model at native SDK path: $nativePath',
                   category: LogCategory.speech);
             } else {
-              _modelPath = await _getDefaultModelPath();
+              // No valid model path — model is not downloaded yet.
+              // Do NOT proceed to ASR create with a nonexistent path.
+              _logger.e('❌ No model path available — model not downloaded',
+                  category: LogCategory.speech);
+              _emitEvent(const NexaAsrEvent(
+                progress: 0.0,
+                message: 'Model not downloaded yet. Please wait for download to complete.',
+                error: 'ASR model not available — download may still be in progress',
+              ));
+              return false;
             }
           } catch (_) {
-            _modelPath = await _getDefaultModelPath();
+            _logger.e('❌ Could not resolve model path — model not downloaded',
+                category: LogCategory.speech);
+            _emitEvent(const NexaAsrEvent(
+              progress: 0.0,
+              message: 'Model not downloaded yet. Please wait for download to complete.',
+              error: 'ASR model not available — download may still be in progress',
+            ));
+            return false;
           }
         }
       }
@@ -635,12 +651,31 @@ class NexaAsrService {
 
       // Check if model is already installed
       if (await downloadManager.isModelInstalled(modelName)) {
-        _logger.i('✅ Model $modelName already installed', category: LogCategory.speech);
         final path = await downloadManager.getModelPath(modelName);
         if (path != null) {
-          _modelPath = path;
+          // Verify model directory has weight files (not just metadata)
+          final modelDir = path.endsWith('.nexa')
+              ? path.substring(0, path.lastIndexOf('/'))
+              : path;
+          final dir = Directory(modelDir);
+          if (await dir.exists()) {
+            final files = await dir.list().toList();
+            final weightFiles = files.where((f) =>
+                f.path.contains('weights') && f.path.endsWith('.nexa')).toList();
+            if (weightFiles.isEmpty) {
+              _logger.w('⚠️ Model $modelName directory exists but has no weight files — re-downloading',
+                  category: LogCategory.speech);
+            } else {
+              _modelPath = path;
+              _logger.i('✅ Model $modelName installed with ${weightFiles.length} weight file(s)',
+                  category: LogCategory.speech);
+              return true;
+            }
+          }
         }
-        return true;
+        // SharedPrefs says installed but files are missing — fall through to download
+        _logger.w('⚠️ Model $modelName marked as installed but files invalid — re-downloading',
+            category: LogCategory.speech);
       }
 
       _logger.i('📥 Downloading model $modelName...', category: LogCategory.speech);
