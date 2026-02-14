@@ -134,6 +134,8 @@ class NexaAsrService {
   String? _modelPath;
   String _currentModelName = 'parakeet-tdt-0.6b-v3-npu'; // Download ID, overridden by registry
   String _currentPluginName = 'parakeet'; // Short name for Nexa SDK JNI, overridden by registry
+  int _consecutiveFailures = 0;
+  static const int _maxConsecutiveFailures = 5;
 
   final StreamController<SpeechResult> _speechResultController =
       StreamController<SpeechResult>.broadcast();
@@ -391,7 +393,70 @@ class NexaAsrService {
       }
 
       if (_asrWrapper != null) {
+        // Validate that the ASR model is truly ready by running a warmup
+        // transcription. The Nexa SDK's AsrWrapper.create() can return
+        // successfully while the internal config is still null (NPU model
+        // not fully loaded). The warmup catches this and retries.
+        _emitEvent(NexaAsrEvent(
+          progress: 0.8,
+          message: 'Validating ASR model...',
+        ));
+
+        final warmupOk = await _warmupAsr();
+        if (!warmupOk) {
+          _logger.w('⚠️ ASR warmup failed — model config not ready, retrying...',
+              category: LogCategory.speech);
+          // Retry: destroy, wait, re-create
+          try { await _asrWrapper!.destroy(); } catch (_) {}
+          _asrWrapper = null;
+
+          for (int retry = 1; retry <= 3; retry++) {
+            _emitEvent(NexaAsrEvent(
+              progress: 0.6 + (retry * 0.1),
+              message: 'Retrying ASR init (attempt ${retry + 1})...',
+            ));
+            _logger.i('🔄 ASR retry $retry: waiting ${retry * 2}s for NPU to settle...',
+                category: LogCategory.speech);
+            await Future.delayed(Duration(seconds: retry * 2));
+
+            try {
+              _asrWrapper = await AsrWrapper.create(
+                AsrCreateInput(
+                  modelName: _currentPluginName,
+                  modelPath: pathsToTry.first,
+                  config: ModelConfig(maxTokens: 2048),
+                  pluginId: pluginId,
+                ),
+              );
+              final retryWarmup = await _warmupAsr();
+              if (retryWarmup) {
+                _logger.i('✅ ASR warmup succeeded on retry $retry',
+                    category: LogCategory.speech);
+                break;
+              } else {
+                _logger.w('⚠️ ASR warmup failed on retry $retry',
+                    category: LogCategory.speech);
+                try { await _asrWrapper!.destroy(); } catch (_) {}
+                _asrWrapper = null;
+              }
+            } catch (e) {
+              _logger.w('⚠️ ASR create failed on retry $retry: $e',
+                  category: LogCategory.speech);
+              _asrWrapper = null;
+            }
+          }
+
+          if (_asrWrapper == null) {
+            _logger.e('❌ ASR warmup failed after all retries — config never became ready',
+                category: LogCategory.speech);
+            // Fall through to fallback logic below
+          }
+        }
+      }
+
+      if (_asrWrapper != null) {
         _isInitialized = true;
+        _consecutiveFailures = 0;
 
         _emitEvent(NexaAsrEvent(
           progress: 1.0,
@@ -531,14 +596,25 @@ class NexaAsrService {
       );
     }
 
+    // Skip processing if too many consecutive failures (config likely null)
+    if (_consecutiveFailures >= _maxConsecutiveFailures) {
+      // Only log every 10th skip to avoid log spam
+      if (_consecutiveFailures % 10 == 0) {
+        _logger.w('⚠️ Skipping transcription — $_consecutiveFailures consecutive failures (config likely null)',
+            category: LogCategory.speech);
+      }
+      _consecutiveFailures++;
+      return SpeechResult(
+        text: '',
+        confidence: 0.0,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+    }
+
     try {
       _logger.d('🎵 Processing audio buffer (${audioData.length} bytes) with Nexa ASR',
           category: LogCategory.speech);
-
-      _emitEvent(const NexaAsrEvent(
-        progress: 0.3,
-        message: 'Transcribing with Nexa ASR...',
-      ));
 
       // Save audio to temporary WAV file for Nexa ASR
       final tempDir = await getTemporaryDirectory();
@@ -556,6 +632,7 @@ class NexaAsrService {
         );
 
         final transcription = result.result.transcript;
+        _consecutiveFailures = 0; // Reset on success
 
         final speechResult = SpeechResult(
           text: transcription,
@@ -584,14 +661,20 @@ class NexaAsrService {
         } catch (_) {}
       }
     } catch (e, stackTrace) {
-      _logger.e('❌ Error processing audio with Nexa ASR',
+      _consecutiveFailures++;
+      _logger.e('❌ Error processing audio with Nexa ASR (failure #$_consecutiveFailures)',
           error: e, stackTrace: stackTrace, category: LogCategory.speech);
 
-      _emitEvent(NexaAsrEvent(
-        progress: 0.0,
-        message: 'Error processing audio',
-        error: e,
-      ));
+      if (_consecutiveFailures >= _maxConsecutiveFailures) {
+        _logger.e('❌ Reached $_maxConsecutiveFailures consecutive failures — pausing transcription. '
+            'SDK config may be null (model not fully loaded on NPU).',
+            category: LogCategory.speech);
+        _emitEvent(const NexaAsrEvent(
+          progress: 0.0,
+          message: 'ASR model not responding — waiting for NPU',
+          error: 'Too many consecutive transcription failures',
+        ));
+      }
 
       final fallbackResult = SpeechResult(
         text: '',
@@ -690,6 +773,44 @@ class NexaAsrService {
     wavFile.setRange(0, 44, header.buffer.asUint8List());
     wavFile.setRange(44, 44 + dataSize, pcmData);
     return wavFile;
+  }
+
+  /// Run a warmup transcription with a short silent WAV file to verify the
+  /// ASR model's internal config is ready. Returns true if the SDK processes
+  /// the file without a "config is null" / "Sample rate should be over 0" error.
+  Future<bool> _warmupAsr() async {
+    if (_asrWrapper == null) return false;
+
+    try {
+      // Generate 0.1s of silence at 16kHz, 16-bit mono = 3200 bytes of PCM
+      final silentPcm = Uint8List(3200); // all zeros = silence
+      final wavBytes = _createWavFile(silentPcm,
+          sampleRate: 16000, channels: 1, bitsPerSample: 16);
+
+      final tempDir = await getTemporaryDirectory();
+      final warmupFile = File('${tempDir.path}/nexa_warmup.wav');
+      await warmupFile.writeAsBytes(wavBytes);
+
+      try {
+        _logger.d('🔄 Running ASR warmup transcription...', category: LogCategory.speech);
+        final result = await _asrWrapper!.transcribe(
+          AsrTranscribeInput(
+            audioPath: warmupFile.path,
+            language: 'en',
+          ),
+        );
+        // If we get here without exception, the config is valid
+        _logger.i('✅ ASR warmup succeeded: "${result.result.transcript}"',
+            category: LogCategory.speech);
+        return true;
+      } finally {
+        try { await warmupFile.delete(); } catch (_) {}
+      }
+    } catch (e) {
+      _logger.w('⚠️ ASR warmup transcription failed: $e',
+          category: LogCategory.speech);
+      return false;
+    }
   }
 
   /// Get the default model path for ASR
