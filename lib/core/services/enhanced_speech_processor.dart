@@ -367,22 +367,21 @@ class EnhancedSpeechProcessor {
         return false;
       });
 
+      // Start LLM initialization in parallel — don't block on ASR result
+      if (_nexaLlmService != null && !_nexaLlmService!.isInitialized) {
+        _logger.i('🚀 Starting Nexa LLM initialization (parallel with ASR)...', category: LogCategory.gemma);
+        // Fire-and-forget: LLM init runs independently of ASR success
+        _nexaLlmService!.initialize(
+          preferNpu: true,
+        ).timeout(Duration(seconds: 120)).then((_) {
+          _logger.i('✅ Nexa LLM initialized for enhancement', category: LogCategory.gemma);
+        }).catchError((e) {
+          _logger.w('⚠️ Nexa LLM initialization failed, enhancement disabled', category: LogCategory.gemma, error: e);
+        });
+      }
+
       if (success) {
         _logger.i('✅ Nexa ASR engine initialized (mode: ${_nexaAsrService!.inferenceMode.name.toUpperCase()})', category: LogCategory.speech);
-
-        // Also initialize Nexa LLM for text enhancement if available
-        if (_nexaLlmService != null) {
-          _logger.i('🚀 Initializing Nexa LLM for text enhancement...', category: LogCategory.gemma);
-          try {
-            await _nexaLlmService!.initialize(
-              preferNpu: true,
-            ).timeout(Duration(seconds: 60));
-            _logger.i('✅ Nexa LLM initialized for enhancement', category: LogCategory.gemma);
-          } catch (e) {
-            _logger.w('⚠️ Nexa LLM initialization failed, using Gemma fallback', category: LogCategory.gemma, error: e);
-          }
-        }
-
         return true;
       } else {
         _logger.w('⚠️ Nexa ASR initialization returned false', category: LogCategory.speech);
