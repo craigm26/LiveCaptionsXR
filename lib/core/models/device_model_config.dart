@@ -31,7 +31,9 @@ enum SnapdragonFamily {
   gen1,         // Snapdragon 8 Gen 1 - Good NPU
   series7,      // Snapdragon 7 series - Mid-tier NPU
   series6,      // Snapdragon 6 series - Basic NPU
-  xrPlatform,   // Snapdragon XR platform
+  xr2Gen2,      // Snapdragon XR2 Gen 2 / XR2+ Gen 2 — NPU capable
+  xr2Gen1,      // Snapdragon XR2 Gen 1 / XR2+ Gen 1 — limited NPU
+  xrPlatform,   // Generic/older XR platform
   other,        // Non-Snapdragon or unknown
 }
 
@@ -296,13 +298,13 @@ class DeviceModelRegistry {
     llmFallbacks: [],
   );
 
-  /// Samsung Galaxy XR headset configuration
+  /// Samsung Galaxy XR headset — Android XR, Snapdragon-class NPU, 12GB RAM
   static DeviceModelConfig get samsungGalaxyXr => const DeviceModelConfig(
     deviceId: 'samsung_galaxy_xr',
     formFactor: DeviceFormFactor.xrHeadset,
     tier: DeviceTier.flagship,
-    snapdragonFamily: SnapdragonFamily.xrPlatform,
-    availableRamMb: 8000,
+    snapdragonFamily: SnapdragonFamily.gen4,
+    availableRamMb: 12000,
     npuAvailable: true,
     asrModel: asrParakeet,
     llmModel: llmOmniNeural,
@@ -320,6 +322,118 @@ class DeviceModelRegistry {
     npuAvailable: true,
     asrModel: asrParakeet,
     llmModel: llmLfm2,
+    asrFallbacks: [asrWhisperTiny],
+    llmFallbacks: [],
+  );
+
+  /// Meta Quest 3 — XR2 Gen 2, 8GB RAM, full NPU
+  static DeviceModelConfig get metaQuest3 => const DeviceModelConfig(
+    deviceId: 'meta_quest_3',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.flagship,
+    snapdragonFamily: SnapdragonFamily.xr2Gen2,
+    availableRamMb: 8000,
+    npuAvailable: true,
+    asrModel: asrParakeet,
+    llmModel: llmOmniNeural,
+    asrFallbacks: [],
+    llmFallbacks: [llmLfm2],
+  );
+
+  /// Meta Quest Pro — XR2 Gen 1, 12GB RAM, NPU
+  static DeviceModelConfig get metaQuestPro => const DeviceModelConfig(
+    deviceId: 'meta_quest_pro',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.highEnd,
+    snapdragonFamily: SnapdragonFamily.xr2Gen1,
+    availableRamMb: 12000,
+    npuAvailable: true,
+    asrModel: asrParakeet,
+    llmModel: llmLfm2,
+    asrFallbacks: [],
+    llmFallbacks: [llmGemma3nSmall],
+  );
+
+  /// Meta Quest 2 — XR2 Gen 1, 6GB RAM, limited NPU
+  static DeviceModelConfig get metaQuest2 => const DeviceModelConfig(
+    deviceId: 'meta_quest_2',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.midRange,
+    snapdragonFamily: SnapdragonFamily.xr2Gen1,
+    availableRamMb: 6000,
+    npuAvailable: false,
+    asrModel: asrWhisperBase,
+    llmModel: llmGemma3nSmall,
+    asrFallbacks: [asrWhisperTiny],
+    llmFallbacks: [],
+  );
+
+  /// HTC Vive XR Elite — XR2 Gen 1, 12GB RAM
+  static DeviceModelConfig get htcViveXr => const DeviceModelConfig(
+    deviceId: 'htc_vive_xr',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.highEnd,
+    snapdragonFamily: SnapdragonFamily.xr2Gen1,
+    availableRamMb: 12000,
+    npuAvailable: true,
+    asrModel: asrParakeet,
+    llmModel: llmLfm2,
+    asrFallbacks: [],
+    llmFallbacks: [llmGemma3nSmall],
+  );
+
+  /// Pico 4 — XR2 Gen 1, 8GB RAM
+  static DeviceModelConfig get picoXr => const DeviceModelConfig(
+    deviceId: 'pico_xr',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.highEnd,
+    snapdragonFamily: SnapdragonFamily.xr2Gen1,
+    availableRamMb: 8000,
+    npuAvailable: true,
+    asrModel: asrParakeet,
+    llmModel: llmLfm2,
+    asrFallbacks: [],
+    llmFallbacks: [llmGemma3nSmall],
+  );
+
+  /// Pico 4 Ultra / flagship — XR2 Gen 2, 12GB RAM
+  static DeviceModelConfig get picoXrFlagship => const DeviceModelConfig(
+    deviceId: 'pico_xr_flagship',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.flagship,
+    snapdragonFamily: SnapdragonFamily.xr2Gen2,
+    availableRamMb: 12000,
+    npuAvailable: true,
+    asrModel: asrParakeet,
+    llmModel: llmOmniNeural,
+    asrFallbacks: [],
+    llmFallbacks: [llmLfm2],
+  );
+
+  /// XREAL AR glasses — lightweight AR, NPU capable
+  static DeviceModelConfig get xrealArGlasses => const DeviceModelConfig(
+    deviceId: 'xreal_ar_glasses',
+    formFactor: DeviceFormFactor.arGlasses,
+    tier: DeviceTier.midRange,
+    snapdragonFamily: SnapdragonFamily.xr2Gen2,
+    availableRamMb: 6000,
+    npuAvailable: true,
+    asrModel: asrParakeet,
+    llmModel: llmLfm2,
+    asrFallbacks: [asrWhisperTiny],
+    llmFallbacks: [],
+  );
+
+  /// Generic XR headset fallback — safe mid-range config
+  static DeviceModelConfig get xrHeadsetGeneric => const DeviceModelConfig(
+    deviceId: 'xr_headset_generic',
+    formFactor: DeviceFormFactor.xrHeadset,
+    tier: DeviceTier.midRange,
+    snapdragonFamily: SnapdragonFamily.xrPlatform,
+    availableRamMb: 6000,
+    npuAvailable: false,
+    asrModel: asrWhisperBase,
+    llmModel: llmGemma3nSmall,
     asrFallbacks: [asrWhisperTiny],
     llmFallbacks: [],
   );
@@ -385,10 +499,14 @@ class DeviceModelRegistry {
     return {
       'manufacturer': 'unknown',
       'model': 'unknown',
+      'device': 'unknown',
+      'board': 'unknown',
       'chipset': 'unknown',
       'sdkVersion': 0,
       'totalRam': 4000,
       'npuAvailable': false,
+      'isXrDevice': false,
+      'formFactor': 'phone',
     };
   }
 
@@ -396,23 +514,33 @@ class DeviceModelRegistry {
   DeviceModelConfig _selectConfigForDevice(Map<String, dynamic> deviceInfo) {
     final manufacturer = (deviceInfo['manufacturer'] as String?)?.toLowerCase() ?? '';
     final model = (deviceInfo['model'] as String?)?.toLowerCase() ?? '';
+    final device = (deviceInfo['device'] as String?)?.toLowerCase() ?? '';
+    final board = (deviceInfo['board'] as String?)?.toLowerCase() ?? '';
     final chipset = (deviceInfo['chipset'] as String?)?.toLowerCase() ?? '';
     final totalRam = deviceInfo['totalRam'] as int? ?? 4000;
     final npuAvailable = deviceInfo['npuAvailable'] as bool? ?? false;
+    final isXrDevice = deviceInfo['isXrDevice'] as bool? ?? false;
+    final formFactor = (deviceInfo['formFactor'] as String?)?.toLowerCase() ?? 'phone';
 
     _logger.d('Device detection: manufacturer=$manufacturer, model=$model, '
-        'chipset=$chipset, ram=${totalRam}MB, npu=$npuAvailable');
+        'device=$device, board=$board, chipset=$chipset, ram=${totalRam}MB, '
+        'npu=$npuAvailable, isXr=$isXrDevice, formFactor=$formFactor');
 
-    // Check for XR devices first
-    if (_isXrHeadset(manufacturer, model)) {
-      return samsungGalaxyXr;
-    }
-    if (_isArGlasses(manufacturer, model)) {
+    // Check for AR glasses first
+    if (_isArGlasses(manufacturer, model, formFactor)) {
+      if (manufacturer == 'xreal') {
+        return xrealArGlasses;
+      }
       return samsungArGlasses;
     }
 
+    // Check for XR headsets
+    if (_isXrHeadset(manufacturer, model, device, isXrDevice, formFactor)) {
+      return _selectXrConfig(manufacturer, model, device, totalRam, npuAvailable, chipset, board);
+    }
+
     // Check Snapdragon generation
-    final snapdragonFamily = _detectSnapdragonFamily(chipset);
+    final snapdragonFamily = _detectSnapdragonFamily(chipset, board);
 
     // Select based on device tier
     // If NPU is detected but chipset family is unknown, treat as high-end
@@ -442,20 +570,52 @@ class DeviceModelRegistry {
     }
   }
 
-  bool _isXrHeadset(String manufacturer, String model) {
-    // Samsung Galaxy XR
-    if (manufacturer.contains('samsung') &&
-        (model.contains('xr') || model.contains('quest'))) {
+  bool _isXrHeadset(String manufacturer, String model, String device, bool isXrDevice, String formFactor) {
+    // Native XR feature detected
+    if (isXrDevice || formFactor == 'xr_headset') {
       return true;
     }
-    // Meta Quest
+    // Meta/Oculus Quest devices
     if (manufacturer.contains('meta') || manufacturer.contains('oculus')) {
+      return true;
+    }
+    // Meta Quest codenames: eureka (Q3), panther (Q3S), seacliff (QPro),
+    // hollywood (Q2), monterey (Q1)
+    const metaCodenames = ['eureka', 'panther', 'seacliff', 'hollywood', 'monterey'];
+    if (metaCodenames.any((c) => device.contains(c)) ||
+        model.contains('quest')) {
+      return true;
+    }
+    // Samsung Galaxy XR / moohan
+    if (manufacturer.contains('samsung') &&
+        (device == 'moohan' || model.contains('sm-i6') ||
+         model.contains('galaxy xr') || model.contains('xr'))) {
+      return true;
+    }
+    // HTC Vive
+    if (manufacturer == 'htc' && model.contains('vive')) {
+      return true;
+    }
+    // Pico
+    if (manufacturer == 'pico') {
+      return true;
+    }
+    // Lynx
+    if (manufacturer == 'lynx') {
       return true;
     }
     return false;
   }
 
-  bool _isArGlasses(String manufacturer, String model) {
+  bool _isArGlasses(String manufacturer, String model, String formFactor) {
+    // Native form factor detection
+    if (formFactor == 'ar_glasses') {
+      return true;
+    }
+    // XREAL
+    if (manufacturer == 'xreal') {
+      return true;
+    }
     // Samsung AR glasses
     if (manufacturer.contains('samsung') && model.contains('glass')) {
       return true;
@@ -467,8 +627,74 @@ class DeviceModelRegistry {
     return false;
   }
 
-  SnapdragonFamily _detectSnapdragonFamily(String chipset) {
+  /// Select the appropriate XR headset config based on device identification
+  DeviceModelConfig _selectXrConfig(
+    String manufacturer, String model, String device,
+    int totalRam, bool npuAvailable, String chipset, String board,
+  ) {
+    // Meta/Oculus devices
+    if (manufacturer.contains('meta') || manufacturer.contains('oculus') ||
+        device == 'eureka' || device == 'panther' || device == 'seacliff' ||
+        device == 'hollywood' || device == 'monterey' ||
+        model.contains('quest')) {
+      // Quest 3 / Quest 3S — eureka/panther, XR2 Gen 2
+      if (device == 'eureka' || device == 'panther' ||
+          model.contains('quest 3')) {
+        return metaQuest3;
+      }
+      // Quest Pro — seacliff
+      if (device == 'seacliff' || model.contains('quest pro')) {
+        return metaQuestPro;
+      }
+      // Quest 2 — hollywood
+      if (device == 'hollywood' || model.contains('quest 2')) {
+        return metaQuest2;
+      }
+      // Quest 1 — monterey (very old, minimal)
+      if (device == 'monterey' || model.contains('quest 1') ||
+          model.contains('quest') && totalRam <= 4000) {
+        return metaQuest2; // Use Quest 2 config as safe minimum
+      }
+      // Unknown Meta device — pick based on RAM
+      if (totalRam >= 8000) return metaQuest3;
+      return metaQuest2;
+    }
+
+    // Samsung Android XR devices (Galaxy XR, moohan, and future models)
+    // Any Samsung device detected as XR (via android.software.xr feature or
+    // model heuristics) gets the Samsung Galaxy XR config — flagship NPU device
+    if (manufacturer.contains('samsung')) {
+      return samsungGalaxyXr;
+    }
+
+    // HTC Vive
+    if (manufacturer == 'htc' && model.contains('vive')) {
+      return htcViveXr;
+    }
+
+    // Pico
+    if (manufacturer == 'pico') {
+      // Pico 4 Ultra or newer flagship
+      if (model.contains('ultra') || totalRam >= 12000) {
+        return picoXrFlagship;
+      }
+      return picoXr;
+    }
+
+    // Lynx — treat as generic high-end XR
+    if (manufacturer == 'lynx') {
+      return npuAvailable ? picoXr : xrHeadsetGeneric;
+    }
+
+    // Unknown XR headset — safe mid-range fallback
+    _logger.w('Unknown XR headset: manufacturer=$manufacturer, model=$model. '
+        'Using generic XR config.');
+    return xrHeadsetGeneric;
+  }
+
+  SnapdragonFamily _detectSnapdragonFamily(String chipset, [String board = '']) {
     final chip = chipset.toLowerCase();
+    final brd = board.toLowerCase();
 
     // Snapdragon 8 Elite (aka 8 Gen 4) — codename "pineapple", board "QRD8750"
     if (chip.contains('8 elite') || chip.contains('8 gen 4') ||
@@ -491,6 +717,15 @@ class DeviceModelRegistry {
         chip.contains('taro') || chip.contains('qrd8450')) {
       return SnapdragonFamily.gen1;
     }
+    // Snapdragon XR2 Gen 2 — SXR2230
+    if (chip.contains('sxr2230') || brd.contains('sxr2230')) {
+      return SnapdragonFamily.xr2Gen2;
+    }
+    // Snapdragon XR2 Gen 1 — SXR2130, also "kona" board (Quest 2/Pro, HTC, Pico 4)
+    if (chip.contains('sxr2130') || brd.contains('sxr2130') ||
+        brd == 'kona') {
+      return SnapdragonFamily.xr2Gen1;
+    }
     // Snapdragon 7 series
     if (chip.contains('7 gen') || chip.contains('sm7')) {
       return SnapdragonFamily.series7;
@@ -499,7 +734,7 @@ class DeviceModelRegistry {
     if (chip.contains('6 gen') || chip.contains('sm6')) {
       return SnapdragonFamily.series6;
     }
-    // XR Platform
+    // Generic XR Platform
     if (chip.contains('xr') || chip.contains('snapdragon xr')) {
       return SnapdragonFamily.xrPlatform;
     }
@@ -513,14 +748,16 @@ class DeviceModelRegistry {
   }
 
   DeviceTier _determineTier(int ramMb, SnapdragonFamily family) {
-    // Flagship: 8+ GB RAM and Gen 3/4 chipset
+    // Flagship: 8+ GB RAM and Gen 3/4 or XR2 Gen 2 chipset
     if (ramMb >= 8000 &&
-        (family == SnapdragonFamily.gen4 || family == SnapdragonFamily.gen3)) {
+        (family == SnapdragonFamily.gen4 || family == SnapdragonFamily.gen3 ||
+         family == SnapdragonFamily.xr2Gen2)) {
       return DeviceTier.flagship;
     }
-    // High-end: 6+ GB RAM and Gen 1/2 chipset
+    // High-end: 6+ GB RAM and Gen 1/2 or XR2 Gen 1 chipset
     if (ramMb >= 6000 &&
-        (family == SnapdragonFamily.gen2 || family == SnapdragonFamily.gen1)) {
+        (family == SnapdragonFamily.gen2 || family == SnapdragonFamily.gen1 ||
+         family == SnapdragonFamily.xr2Gen1)) {
       return DeviceTier.highEnd;
     }
     // Mid-range: 4+ GB RAM

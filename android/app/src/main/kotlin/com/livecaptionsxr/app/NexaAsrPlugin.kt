@@ -1,6 +1,7 @@
 package com.livecaptionsxr.app
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -40,7 +41,9 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
             "kalama",    // Codename for Snapdragon 8 Gen 3
             "qcom",    // Generic Qualcomm identifier
             "Qualcomm", // Alternative Qualcomm identifier
-            "elite"    // Snapdragon Elite series identifier
+            "elite",   // Snapdragon Elite series identifier
+            "SXR2230P",  // Snapdragon XR2 Gen 2 SoC
+            "SXR2130P",  // Snapdragon XR2 Gen 1 SoC
         )
     }
 
@@ -121,6 +124,57 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     /**
+     * Detect if this device is an XR/VR device via system features.
+     */
+    private fun isXrDevice(): Boolean {
+        val pm = context.packageManager
+        return pm.hasSystemFeature("android.software.xr") ||
+               pm.hasSystemFeature("android.hardware.vr.headtracking")
+    }
+
+    /**
+     * Determine the device form factor: "xr_headset", "ar_glasses", or "phone".
+     */
+    private fun detectFormFactor(): String {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val model = Build.MODEL.lowercase()
+        val device = Build.DEVICE.lowercase()
+
+        // Check system features for XR
+        val pm = context.packageManager
+        val hasXrFeature = pm.hasSystemFeature("android.software.xr")
+        val hasVrTracking = pm.hasSystemFeature("android.hardware.vr.headtracking")
+
+        // AR glasses detection
+        if (manufacturer == "xreal" ||
+            (manufacturer == "samsung" && model.contains("glass"))) {
+            return "ar_glasses"
+        }
+
+        // XR headset detection via features
+        if (hasXrFeature || hasVrTracking) {
+            return "xr_headset"
+        }
+
+        // XR headset detection via manufacturer/model heuristics
+        if (manufacturer.contains("meta") || manufacturer.contains("oculus") ||
+            manufacturer == "htc" && model.contains("vive") ||
+            manufacturer == "pico" ||
+            manufacturer == "lynx") {
+            return "xr_headset"
+        }
+
+        // Samsung XR devices (Galaxy XR, moohan codename)
+        if (manufacturer == "samsung" &&
+            (device == "moohan" || model.contains("sm-i6") ||
+             model.contains("galaxy xr") || model.contains("xr"))) {
+            return "xr_headset"
+        }
+
+        return "phone"
+    }
+
+    /**
      * Get device information for debugging and analytics.
      */
     private fun getDeviceInfo(): Map<String, Any> {
@@ -158,18 +212,23 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
             (memInfo.totalMem / (1024 * 1024)).toInt()
         } catch (_: Exception) { 4000 }
 
+        val board = Build.BOARD
+
         return mapOf(
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
             "device" to Build.DEVICE,
             "hardware" to hardware,
+            "board" to board,
             "chipset" to chipset,
             "socModel" to socModel,
             "sdkVersion" to Build.VERSION.SDK_INT,
             "totalRam" to actualRamMb,
             "npuAvailable" to npuAvailable,
             "gpuAvailable" to gpuAvailable,
-            "currentInferenceMode" to currentInferenceMode
+            "currentInferenceMode" to currentInferenceMode,
+            "isXrDevice" to isXrDevice(),
+            "formFactor" to detectFormFactor()
         )
     }
 }

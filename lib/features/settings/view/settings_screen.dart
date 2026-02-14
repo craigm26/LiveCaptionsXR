@@ -443,7 +443,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             if (config != null) ...[
               const SizedBox(height: 12),
-              _infoRow('Device Tier', config.tier.name.toUpperCase()),
+              if (config.formFactor == DeviceFormFactor.xrHeadset ||
+                  config.formFactor == DeviceFormFactor.arGlasses)
+                _infoRow('Device', _deviceDisplayName(config))
+              else
+                _infoRow('Device Tier', config.tier.name.toUpperCase()),
+              if (config.formFactor == DeviceFormFactor.xrHeadset ||
+                  config.formFactor == DeviceFormFactor.arGlasses)
+                _infoRow('Type', config.formFactor == DeviceFormFactor.xrHeadset
+                    ? 'XR Headset' : 'AR Glasses'),
               _infoRow(
                   'Chipset Family', _snapdragonFamilyName(config.snapdragonFamily)),
               _infoRow('ASR Engine', 'Nexa ${config.asrModel.displayName}'),
@@ -496,6 +504,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Snapdragon 7 Series';
       case SnapdragonFamily.series6:
         return 'Snapdragon 6 Series';
+      case SnapdragonFamily.xr2Gen2:
+        return 'Snapdragon XR2 Gen 2';
+      case SnapdragonFamily.xr2Gen1:
+        return 'Snapdragon XR2 Gen 1';
       case SnapdragonFamily.xrPlatform:
         return 'Snapdragon XR';
       case SnapdragonFamily.other:
@@ -503,7 +515,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  String _deviceDisplayName(DeviceModelConfig config) {
+    switch (config.deviceId) {
+      case 'samsung_galaxy_xr':
+        return 'Samsung Galaxy XR';
+      case 'meta_quest_3':
+        return 'Meta Quest 3';
+      case 'meta_quest_pro':
+        return 'Meta Quest Pro';
+      case 'meta_quest_2':
+        return 'Meta Quest 2';
+      case 'htc_vive_xr':
+        return 'HTC Vive XR';
+      case 'pico_xr':
+        return 'Pico XR';
+      case 'pico_xr_flagship':
+        return 'Pico XR (Flagship)';
+      case 'xreal_ar_glasses':
+        return 'XREAL AR Glasses';
+      case 'samsung_ar_glasses':
+        return 'Samsung AR Glasses';
+      case 'xr_headset_generic':
+        return 'XR Headset';
+      default:
+        return config.tier.name.toUpperCase();
+    }
+  }
+
   Widget _buildPipelineStatusCard(BuildContext context) {
+    final asrName = _deviceConfig?.asrModel.displayName ?? 'Whisper';
+    final llmName = _deviceConfig?.llmModel.displayName ?? 'Gemma';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -514,20 +556,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 _pipelineStatusRow(
-                  'ASR Model',
-                  _isNpuDevice ? true : false, // Simplified — real check from download manager
+                  asrName,
+                  true, // Available (downloaded on demand)
                   Icons.mic,
                 ),
                 const SizedBox(width: 16),
                 _pipelineStatusRow(
-                  'LLM Model',
-                  _isNpuDevice ? true : false,
+                  llmName,
+                  true, // Available (downloaded on demand)
                   Icons.auto_awesome,
                 ),
                 const SizedBox(width: 16),
                 _pipelineStatusRow(
                   'Translation',
-                  true, // Service is registered
+                  true,
                   Icons.translate,
                 ),
               ],

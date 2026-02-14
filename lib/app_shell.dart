@@ -206,8 +206,9 @@ class _AppShellState extends State<AppShell> {
           _buildDrawerItem(
             context,
             icon: Icons.storage,
-            title: 'Model Status',
-            route: '/model-status',
+            title: 'AI Models',
+            subtitle: 'Manage AI models for your device',
+            route: '/models',
           ),
           _buildDrawerItem(
             context,

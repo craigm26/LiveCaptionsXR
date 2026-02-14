@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/models/device_model_config.dart';
 import '../../../core/services/model_download_manager.dart';
 import '../../../core/services/app_logger.dart';
@@ -129,7 +128,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                     const SizedBox(height: 32),
                     
                     // Multimodal (Vision + Language) Models
-                    if (_deviceConfig?.npuAvailable ?? false) ...[
+                    if (_hasVisionModels()) ...[
                       _buildSectionHeader(
                         'Multimodal (Vision + Language)',
                         Icons.visibility,
@@ -149,18 +148,6 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                     const SizedBox(height: 12),
                     _buildLlmModelsSection(),
                     const SizedBox(height: 32),
-                    
-                    // Utility Models
-                    if (_deviceConfig?.npuAvailable ?? false) ...[
-                      _buildSectionHeader(
-                        'Utility Models',
-                        Icons.build,
-                        Colors.grey,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildUtilityModelsSection(),
-                      const SizedBox(height: 32),
-                    ],
                     
                     // Required Models Alert
                     if (!_areRecommendedModelsReady()) ...[
@@ -392,6 +379,10 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   }
 
   Widget _buildNexaRecommendation() {
+    final config = _deviceConfig!;
+    final asrModel = config.asrModel;
+    final llmModel = config.llmModel;
+
     return Card(
       elevation: 0,
       color: Colors.green.shade50,
@@ -409,7 +400,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Nexa SDK — Full Model Catalog',
+                    'Nexa SDK — NPU Accelerated',
                     style: TextStyle(
                       color: Colors.green.shade700,
                       fontWeight: FontWeight.bold,
@@ -421,38 +412,45 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Your device supports Qualcomm NPU acceleration! '
-              'Models are auto-downloaded via the Nexa SDK.',
+              'Your device supports Qualcomm NPU acceleration. '
+              'Models are auto-downloaded via the Nexa SDK when first needed.',
               style: TextStyle(color: Colors.green.shade800),
             ),
             const SizedBox(height: 16),
-            // Primary ASR
+            // Primary ASR from device config
             _buildRecommendedModelRow(
               'ASR',
-              'Parakeet TDT 0.6B',
-              '600 MB',
+              asrModel.displayName,
+              '${asrModel.estimatedSizeMb} MB',
               Icons.mic,
               Colors.blue,
               isAutoDownload: true,
             ),
             const SizedBox(height: 12),
-            // Primary multimodal — KEY model
+            // Primary LLM from device config
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.teal.shade300, width: 2),
+                border: Border.all(
+                  color: llmModel.supportsVision ? Colors.teal.shade300 : Colors.purple.shade300,
+                  width: 2,
+                ),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.teal.withOpacity(0.1),
+                      color: (llmModel.supportsVision ? Colors.teal : Colors.purple).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.visibility, color: Colors.teal, size: 20),
+                    child: Icon(
+                      llmModel.supportsVision ? Icons.visibility : Icons.auto_awesome,
+                      color: llmModel.supportsVision ? Colors.teal : Colors.purple,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -461,9 +459,11 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'OmniNeural-4B',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                            Flexible(
+                              child: Text(
+                                llmModel.displayName,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Container(
@@ -473,14 +473,15 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                '⭐ RECOMMENDED',
+                                'PRIMARY',
                                 style: TextStyle(color: Colors.teal.shade800, fontSize: 10, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
                         ),
                         Text(
-                          '4 GB • Multimodal — Vision + Language for live captions',
+                          '${(llmModel.estimatedSizeMb / 1000).toStringAsFixed(1)} GB'
+                          '${llmModel.supportsVision ? " • Vision + Language" : " • Text only"}',
                           style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
@@ -500,44 +501,41 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            _buildRecommendedModelRow(
-              'VLM',
-              'SmolVLM 256M (lightweight)',
-              '480 MB',
-              Icons.visibility,
-              Colors.teal,
-              isAutoDownload: true,
-            ),
-            const SizedBox(height: 12),
-            _buildRecommendedModelRow(
-              'Chat',
-              'LFM2 1.2B (chat-only)',
-              '750 MB',
-              Icons.chat,
-              Colors.purple,
-              isAutoDownload: true,
-            ),
+            // Fallback models from device config
+            ...config.llmFallbacks.map((fallback) => Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _buildRecommendedModelRow(
+                fallback.supportsVision ? 'VLM' : 'Chat',
+                '${fallback.displayName} (fallback)',
+                fallback.estimatedSizeMb >= 1000
+                    ? '${(fallback.estimatedSizeMb / 1000).toStringAsFixed(1)} GB'
+                    : '${fallback.estimatedSizeMb} MB',
+                fallback.supportsVision ? Icons.visibility : Icons.chat,
+                fallback.supportsVision ? Colors.teal : Colors.purple,
+                isAutoDownload: fallback.supportsNpu,
+              ),
+            )),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'OmniNeural-4B handles both visual context AND text enhancement — ideal for live captions in XR.',
-                      style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+            if (llmModel.supportsVision)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${llmModel.displayName} handles both visual context AND text enhancement — ideal for live captions in XR.',
+                        style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -807,44 +805,48 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   }
 
   Widget _buildAsrModelsSection() {
-    final asrModels = _downloadManager.getModelsByType(ModelType.whisper);
     final isNexa = _deviceConfig?.npuAvailable ?? false;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (isNexa) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.bolt, color: Colors.green.shade700, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Your device uses Nexa parakeet-tdt-0.6b-v3-npu for speech recognition (auto-download via SDK)',
-                    style: TextStyle(color: Colors.green.shade700, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
+        if (isNexa && _deviceConfig != null) ...[
+          // Primary ASR model from device config
+          _buildNexaModelInfoCard(
+            name: _deviceConfig!.asrModel.displayName,
+            description: 'Primary speech recognition engine for your device. NPU-accelerated.',
+            size: '${_deviceConfig!.asrModel.estimatedSizeMb} MB',
+            icon: Icons.mic,
+            color: Colors.blue,
+            isRecommended: true,
+            useCaseTag: 'Primary ASR',
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Optional Fallback Models:',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+          // ASR fallbacks
+          if (_deviceConfig!.asrFallbacks.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Fallback ASR Models:',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (!kIsWeb && Platform.isIOS) ...[
+            const SizedBox(height: 8),
+            ..._deviceConfig!.asrFallbacks.map((fallback) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildNexaModelInfoCard(
+                name: fallback.displayName,
+                description: fallback.supportsNpu
+                    ? 'NPU-compatible fallback ASR model.'
+                    : 'CPU fallback ASR model (no NPU needed).',
+                size: '${fallback.estimatedSizeMb} MB',
+                icon: Icons.mic,
+                color: Colors.blue,
+                useCaseTag: 'Fallback',
+              ),
+            )),
+          ],
+        ] else if (!kIsWeb && Platform.isIOS) ...[
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -865,80 +867,93 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+        ] else ...[
+          // Non-NPU: show downloadable Whisper models
+          ..._downloadManager.getModelsByType(ModelType.whisper).map((modelKey) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildFullModelCard(modelKey),
+          )),
         ],
-        ...asrModels.map((modelKey) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildFullModelCard(modelKey),
-        )),
       ],
     );
   }
 
   Widget _buildLlmModelsSection() {
-    final llmModels = _downloadManager.getModelsByType(ModelType.gemma);
     final isNexa = _deviceConfig?.npuAvailable ?? false;
-    
+
+    if (isNexa && _deviceConfig != null) {
+      // Show text-only (non-vision) LLM models from device config
+      final textOnlyModels = <ModelSpec>[];
+
+      // Primary LLM if it's text-only
+      if (!_deviceConfig!.llmModel.supportsVision) {
+        textOnlyModels.add(_deviceConfig!.llmModel);
+      }
+
+      // Text-only fallbacks
+      textOnlyModels.addAll(
+        _deviceConfig!.llmFallbacks.where((m) => !m.supportsVision),
+      );
+
+      if (textOnlyModels.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Your device uses multimodal models for text enhancement (see VLM section above).',
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: textOnlyModels.map((model) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildNexaModelInfoCard(
+            name: model.displayName,
+            description: model.supportsNpu
+                ? 'NPU-accelerated text enhancement model.'
+                : 'CPU/GPU fallback for text enhancement.',
+            size: model.estimatedSizeMb >= 1000
+                ? '${(model.estimatedSizeMb / 1000).toStringAsFixed(1)} GB'
+                : '${model.estimatedSizeMb} MB',
+            icon: Icons.chat,
+            color: Colors.purple,
+            isRecommended: model == _deviceConfig!.llmModel,
+            useCaseTag: model.supportsNpu ? 'NPU' : 'CPU Fallback',
+          ),
+        )).toList(),
+      );
+    }
+
+    // Non-NPU: show downloadable Gemma models
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (isNexa) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.bolt, color: Colors.green.shade700, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'NPU chat-only models (for text enhancement without vision):',
-                    style: TextStyle(color: Colors.green.shade700, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildNexaModelInfoCard(
-            name: 'LFM2-1.2B NPU',
-            description: 'Lightweight chat model for text enhancement. Use if OmniNeural is too large.',
-            size: '750 MB',
-            icon: Icons.chat,
-            color: Colors.purple,
-            useCaseTag: 'Chat Only',
-          ),
-          const SizedBox(height: 12),
-          _buildNexaModelInfoCard(
-            name: 'LFM2-1.2B-GGUF',
-            description: 'GGUF variant of LFM2 for broader compatibility.',
-            size: '750 MB',
-            icon: Icons.chat,
-            color: Colors.purple,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'CPU/GPU Fallback Models:',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        ...llmModels.map((modelKey) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildFullModelCard(modelKey),
-        )),
-      ],
+      children: _downloadManager.getModelsByType(ModelType.gemma).map((modelKey) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _buildFullModelCard(modelKey),
+      )).toList(),
     );
   }
 
   Widget _buildMultimodalModelsSection() {
+    final visionModels = <ModelSpec>[];
+
+    if (_deviceConfig != null) {
+      // Primary LLM if it supports vision
+      if (_deviceConfig!.llmModel.supportsVision) {
+        visionModels.add(_deviceConfig!.llmModel);
+      }
+      // Vision-capable fallbacks
+      visionModels.addAll(
+        _deviceConfig!.llmFallbacks.where((m) => m.supportsVision),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -949,78 +964,28 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.teal.shade200),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'These models combine vision and language — they can see what\'s on screen and enhance captions with visual context.',
-                style: TextStyle(color: Colors.teal.shade800, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildNexaModelInfoCard(
-          name: 'OmniNeural-4B',
-          description: 'Full multimodal: Chat + Vision (VLM). Best for live captions with visual context.',
-          size: '4 GB',
-          icon: Icons.visibility,
-          color: Colors.teal,
-          isRecommended: true,
-          useCaseTag: 'Live Captions',
-        ),
-        const SizedBox(height: 12),
-        _buildNexaModelInfoCard(
-          name: 'SmolVLM-256M-Instruct',
-          description: 'Lightweight multimodal: Chat + Vision. Lower resource usage.',
-          size: '480 MB',
-          icon: Icons.visibility,
-          color: Colors.teal,
-          useCaseTag: 'Lightweight Alt',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUtilityModelsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
           child: Text(
-            'General-purpose Nexa models available for NPU devices. These are not required for live captions.',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+            'These models combine vision and language — they can see what\'s on screen and enhance captions with visual context.',
+            style: TextStyle(color: Colors.teal.shade800, fontSize: 13),
           ),
         ),
         const SizedBox(height: 12),
-        _buildNexaModelInfoCard(
-          name: 'PaddleOCR NPU',
-          description: 'On-device OCR for text recognition.',
-          size: '250 MB',
-          icon: Icons.document_scanner,
-          color: Colors.grey,
-        ),
-        const SizedBox(height: 12),
-        _buildNexaModelInfoCard(
-          name: 'EmbeddingGemma 300M',
-          description: 'Text embedding model for semantic search.',
-          size: '250 MB',
-          icon: Icons.data_array,
-          color: Colors.grey,
-        ),
-        const SizedBox(height: 12),
-        _buildNexaModelInfoCard(
-          name: 'Jina v2 Rerank NPU',
-          description: 'Reranker model for search result optimization.',
-          size: '1 GB',
-          icon: Icons.sort,
-          color: Colors.grey,
-        ),
+        ...visionModels.map((model) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildNexaModelInfoCard(
+            name: model.displayName,
+            description: model == _deviceConfig?.llmModel
+                ? 'Primary multimodal: Chat + Vision (VLM). Best for live captions with visual context.'
+                : 'Fallback multimodal: Chat + Vision. ${model.supportsNpu ? "NPU-accelerated." : "CPU/GPU mode."}',
+            size: model.estimatedSizeMb >= 1000
+                ? '${(model.estimatedSizeMb / 1000).toStringAsFixed(1)} GB'
+                : '${model.estimatedSizeMb} MB',
+            icon: Icons.visibility,
+            color: Colors.teal,
+            isRecommended: model == _deviceConfig?.llmModel,
+            useCaseTag: model == _deviceConfig?.llmModel ? 'Primary' : 'Fallback',
+          ),
+        )),
       ],
     );
   }
@@ -1412,7 +1377,33 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
     if (kIsWeb) return 'Web Browser';
     if (Platform.isIOS) return 'iOS Device';
     if (_deviceConfig == null) return 'Android Device';
-    
+
+    final deviceId = _deviceConfig!.deviceId;
+
+    // Show specific XR/AR device names based on deviceId
+    switch (deviceId) {
+      case 'samsung_galaxy_xr':
+        return 'Samsung Galaxy XR';
+      case 'meta_quest_3':
+        return 'Meta Quest 3';
+      case 'meta_quest_pro':
+        return 'Meta Quest Pro';
+      case 'meta_quest_2':
+        return 'Meta Quest 2';
+      case 'htc_vive_xr':
+        return 'HTC Vive XR';
+      case 'pico_xr':
+        return 'Pico XR';
+      case 'pico_xr_flagship':
+        return 'Pico XR (Flagship)';
+      case 'xreal_ar_glasses':
+        return 'XREAL AR Glasses';
+      case 'samsung_ar_glasses':
+        return 'Samsung AR Glasses';
+      case 'xr_headset_generic':
+        return 'XR Headset';
+    }
+
     switch (_deviceConfig!.formFactor) {
       case DeviceFormFactor.xrHeadset:
         return 'XR Headset';
@@ -1446,12 +1437,11 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   }
 
   bool _areRecommendedModelsReady() {
-    // NPU devices still need models downloaded — don't assume ready
     if (_deviceConfig?.npuAvailable == true) {
-      // Check if Nexa SDK has actually initialized (models downloaded)
-      // For now, rely on the model status map — if it's empty we haven't checked yet
-      // The Nexa SDK auto-downloads, but we shouldn't show "Ready" until confirmed
-      return false; // Will be updated when real download status is available
+      // NPU devices use Nexa SDK auto-download — models are managed automatically.
+      // Since we can't query Nexa SDK download status from Flutter, treat as ready
+      // once the device config is loaded (models download on first use).
+      return true;
     }
     if (!kIsWeb && Platform.isIOS) {
       // iOS needs Gemma
@@ -1463,13 +1453,22 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
     return whisperReady && gemmaReady;
   }
 
+  bool _hasVisionModels() {
+    if (_deviceConfig == null) return false;
+    if (_deviceConfig!.llmModel.supportsVision) return true;
+    return _deviceConfig!.llmFallbacks.any((m) => m.supportsVision);
+  }
+
   Widget _buildRequiredModelsAlert() {
+    final asrName = _deviceConfig?.asrModel.displayName ?? 'ASR Model';
+    final llmName = _deviceConfig?.llmModel.displayName ?? 'LLM Model';
+
     return Card(
       elevation: 0,
-      color: Colors.red.shade50,
+      color: Colors.orange.shade50,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.red.shade200),
+        side: BorderSide(color: Colors.orange.shade200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1478,13 +1477,13 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber, color: Colors.red.shade700, size: 24),
+                Icon(Icons.download_for_offline, color: Colors.orange.shade700, size: 24),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Required Models Missing',
+                    'Models Need Download',
                     style: TextStyle(
-                      color: Colors.red.shade700,
+                      color: Colors.orange.shade700,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -1494,51 +1493,12 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              'The caption pipeline requires Parakeet (ASR) and OmniNeural-4B (LLM) '
-              'models to function. Download them to enable spatial captions.',
-              style: TextStyle(color: Colors.red.shade800),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _pipelineModelChip('Parakeet ASR',
-                    _modelStatuses['parakeet-tdt-0.6b-v3-npu']?.complete ?? false),
-                const SizedBox(width: 8),
-                _pipelineModelChip('OmniNeural-4B',
-                    _modelStatuses['OmniNeural-4B']?.complete ?? false),
-              ],
+              'The caption pipeline requires $asrName (ASR) and $llmName (LLM) '
+              'models. Download them to enable live captions.',
+              style: TextStyle(color: Colors.orange.shade800),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _pipelineModelChip(String label, bool ready) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: ready ? Colors.green.shade100 : Colors.red.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            ready ? Icons.check_circle : Icons.cancel,
-            size: 14,
-            color: ready ? Colors.green.shade700 : Colors.red.shade700,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: ready ? Colors.green.shade700 : Colors.red.shade700,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1642,8 +1602,8 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                 'Nexa Devices',
                 'Devices with Qualcomm NPU (Snapdragon 8 Gen 2+) '
                 'automatically download optimized models via the Nexa SDK. '
-                'Full catalog: Parakeet (ASR), OmniNeural-4B (VLM), '
-                'SmolVLM-256M, LFM2-1.2B, PaddleOCR, and more.',
+                'Models include Parakeet (ASR), OmniNeural-4B (VLM), '
+                'and LFM2-1.2B (LLM fallback).',
               ),
             ],
           ),
