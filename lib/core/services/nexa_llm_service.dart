@@ -60,7 +60,8 @@ class NexaLlmService {
 
   bool _isInitialized = false;
   bool _sdkInitialized = false;
-  String _currentModelName = 'granite-4.0-h-350m-npu';
+  String _currentModelName = 'OmniNeural-4B'; // Download ID
+  String _currentPluginName = 'OmniNeural-4B'; // Short name for Nexa SDK JNI
   NexaInferenceMode _inferenceMode = NexaInferenceMode.cpu;
   bool _supportsVision = false;
   DeviceModelConfig? _deviceModelConfig;
@@ -205,10 +206,11 @@ class NexaLlmService {
           : _deviceModelConfig!.recommendedInferenceMode;
 
       _currentModelName = selectedModelName;
+      _currentPluginName = selectedModelSpec.nexaModelName;
       _supportsVision = selectedModelSpec.supportsVision;
 
       _logger.i(
-          '🚀 Initializing Nexa LLM with model: $_currentModelName (mode: ${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
+          '🚀 Initializing Nexa LLM with model: $_currentModelName (plugin: $_currentPluginName, mode: ${_inferenceMode.name.toUpperCase()}, vision: $_supportsVision)',
           category: LogCategory.gemma);
 
       _emitEvent(NexaLlmEvent(
@@ -253,9 +255,10 @@ class NexaLlmService {
       try {
         if (_supportsVision) {
           // Use VLM wrapper for vision models
+          _logger.i('🔌 Creating VLM wrapper: pluginName=$_currentPluginName, path=$_modelPath', category: LogCategory.gemma);
           _vlmWrapper = await VlmWrapper.create(
             VlmCreateInput(
-              modelName: modelName,
+              modelName: _currentPluginName,
               modelPath: _modelPath!,
               config: ModelConfig(
                 maxTokens: 2048,
@@ -314,7 +317,7 @@ class NexaLlmService {
             if (fallbackModel.supportsVision) {
               _vlmWrapper = await VlmWrapper.create(
                 VlmCreateInput(
-                  modelName: fallbackModel.name,
+                  modelName: fallbackModel.nexaModelName,
                   modelPath: fallbackModelPath,
                   config: ModelConfig(maxTokens: 2048),
                   pluginId: fallbackPluginId,
@@ -331,6 +334,7 @@ class NexaLlmService {
             }
 
             _currentModelName = fallbackModel.name;
+            _currentPluginName = fallbackModel.nexaModelName;
             _supportsVision = fallbackModel.supportsVision;
             _isInitialized = true;
 
@@ -356,7 +360,7 @@ class NexaLlmService {
             if (_supportsVision) {
               _vlmWrapper = await VlmWrapper.create(
                 VlmCreateInput(
-                  modelName: _currentModelName,
+                  modelName: _currentPluginName,
                   modelPath: _modelPath!,
                   config: ModelConfig(maxTokens: 2048),
                   pluginId: 'cpu_gpu',

@@ -46,7 +46,7 @@ enum ModelSize {
 
 /// Configuration for a specific AI model
 class ModelSpec {
-  final String name;
+  final String name; // Download ID (e.g. 'parakeet-tdt-0.6b-v3-npu')
   final String displayName;
   final ModelSize size;
   final int estimatedSizeMb;
@@ -54,6 +54,11 @@ class ModelSpec {
   final bool supportsVision;
   final String? downloadUrl;
   final String? checksum;
+
+  /// Short model name for Nexa SDK NPU plugin (e.g. 'parakeet').
+  /// The NPU JNI uses this to look up the model graph internally.
+  /// If null, falls back to [name] (for non-Nexa models like Whisper/Gemma).
+  final String? pluginModelName;
 
   const ModelSpec({
     required this.name,
@@ -64,7 +69,11 @@ class ModelSpec {
     this.supportsVision = false,
     this.downloadUrl,
     this.checksum,
+    this.pluginModelName,
   });
+
+  /// Returns the name to pass as model_name in Nexa SDK create() calls.
+  String get nexaModelName => pluginModelName ?? name;
 
   @override
   String toString() => 'ModelSpec($name, ${size.name}, ${estimatedSizeMb}MB)';
@@ -152,6 +161,7 @@ class DeviceModelRegistry {
     size: ModelSize.medium,
     estimatedSizeMb: 600,
     supportsNpu: true,
+    pluginModelName: 'parakeet', // Short name for Nexa NPU plugin JNI
   );
 
   static const ModelSpec asrWhisperTiny = ModelSpec(
@@ -190,6 +200,7 @@ class DeviceModelRegistry {
     estimatedSizeMb: 750,
     supportsNpu: true,
     supportsVision: false,
+    pluginModelName: 'LFM2-1.2B', // Short name for Nexa NPU plugin JNI
   );
 
   // Backward-compat aliases — all point to LFM2 since Granite doesn't exist in SDK
@@ -204,6 +215,7 @@ class DeviceModelRegistry {
     estimatedSizeMb: 4000,
     supportsNpu: true,
     supportsVision: true,
+    pluginModelName: 'OmniNeural-4B', // Short name for Nexa NPU plugin JNI
   );
 
   static const ModelSpec llmGemma3n = ModelSpec(

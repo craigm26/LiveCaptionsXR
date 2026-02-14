@@ -196,7 +196,9 @@ class EnhancedSpeechProcessor {
       }
       
       // Initialize Gemma3n service if enhancement is enabled
-      if (enableGemmaEnhancement) {
+      // Skip Gemma on Nexa devices — Nexa LLM handles enhancement instead
+      final isNexaDevice = _activeEngine == SpeechEngine.nexa_asr && _nexaLlmService != null;
+      if (enableGemmaEnhancement && !isNexaDevice) {
         _logger.i('🤖 Checking Gemma3n service for enhancement...', category: LogCategory.gemma);
         
         if (gemma3nService.isReady) {
@@ -223,6 +225,8 @@ class EnhancedSpeechProcessor {
             _logger.w('⚠️ Gemma enhancement will be disabled due to error', category: LogCategory.gemma);
           }
         }
+      } else if (isNexaDevice) {
+        _logger.i('🤖 Nexa device detected — skipping Gemma init, using Nexa LLM for enhancement', category: LogCategory.gemma);
       }
 
       switch (_activeEngine) {

@@ -131,7 +131,8 @@ class NexaAsrService {
   // Nexa SDK ASR wrapper
   AsrWrapper? _asrWrapper;
   String? _modelPath;
-  String _currentModelName = 'parakeet'; // Default, will be overridden by registry
+  String _currentModelName = 'parakeet-tdt-0.6b-v3-npu'; // Download ID, overridden by registry
+  String _currentPluginName = 'parakeet'; // Short name for Nexa SDK JNI, overridden by registry
 
   final StreamController<SpeechResult> _speechResultController =
       StreamController<SpeechResult>.broadcast();
@@ -266,10 +267,11 @@ class NexaAsrService {
       // Get optimal model configuration for this device
       _deviceModelConfig = await _modelRegistry.getDeviceConfig();
       _currentModelName = _deviceModelConfig!.asrModel.name;
+      _currentPluginName = _deviceModelConfig!.asrModel.nexaModelName;
 
       _logger.i('📱 Device config: ${_deviceModelConfig!.deviceId}',
           category: LogCategory.speech);
-      _logger.i('🎤 Selected ASR model: $_currentModelName (${_deviceModelConfig!.asrModel.displayName})',
+      _logger.i('🎤 Selected ASR model: $_currentModelName (plugin: $_currentPluginName, ${_deviceModelConfig!.asrModel.displayName})',
           category: LogCategory.speech);
 
       _emitEvent(const NexaAsrEvent(
@@ -325,7 +327,7 @@ class NexaAsrService {
       final pluginId = _inferenceMode == NexaInferenceMode.npu ? 'npu' : 'cpu_gpu';
 
       _logger.i('📂 ASR model path: $_modelPath', category: LogCategory.speech);
-      _logger.i('🔌 Plugin ID: $pluginId, Model: $_currentModelName', category: LogCategory.speech);
+      _logger.i('🔌 Plugin ID: $pluginId, Download ID: $_currentModelName, Plugin name: $_currentPluginName', category: LogCategory.speech);
 
       // Try both: first the exact path from SDK, then directory path
       String asrModelPath = _modelPath!;
@@ -351,10 +353,10 @@ class NexaAsrService {
       Exception? lastError;
       for (final tryPath in pathsToTry) {
         try {
-          _logger.i('🔄 Trying ASR create with path: $tryPath', category: LogCategory.speech);
+          _logger.i('🔄 Trying ASR create with path: $tryPath, pluginName: $_currentPluginName', category: LogCategory.speech);
           _asrWrapper = await AsrWrapper.create(
             AsrCreateInput(
-              modelName: _currentModelName,
+              modelName: _currentPluginName,
               modelPath: tryPath,
               config: ModelConfig(
                 maxTokens: 2048,
@@ -410,7 +412,7 @@ class NexaAsrService {
 
             _asrWrapper = await AsrWrapper.create(
               AsrCreateInput(
-                modelName: fallbackModel.name,
+                modelName: fallbackModel.nexaModelName,
                 modelPath: await _getDefaultModelPath(),
                 config: ModelConfig(maxTokens: 2048),
                 pluginId: fallbackPluginId,
@@ -418,6 +420,7 @@ class NexaAsrService {
             );
 
             _currentModelName = fallbackModel.name;
+            _currentPluginName = fallbackModel.nexaModelName;
             _isInitialized = true;
             _emitEvent(NexaAsrEvent(
               progress: 1.0,
@@ -440,7 +443,7 @@ class NexaAsrService {
           try {
             _asrWrapper = await AsrWrapper.create(
               AsrCreateInput(
-                modelName: _currentModelName,
+                modelName: _currentPluginName,
                 modelPath: _modelPath!,
                 config: ModelConfig(maxTokens: 2048),
                 pluginId: 'cpu_gpu',
