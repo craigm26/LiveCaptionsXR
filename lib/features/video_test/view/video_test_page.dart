@@ -6,10 +6,14 @@ import '../../live_captions/cubit/live_captions_cubit.dart';
 import '../../live_captions/cubit/live_captions_state.dart';
 import '../../live_captions/widgets/live_captions_widget.dart';
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
+import '../../translation/cubit/translation_cubit.dart';
+import '../../translation/cubit/translation_state.dart';
 import '../../../core/services/app_logger.dart';
 
 class VideoTestPage extends StatefulWidget {
   const VideoTestPage({super.key});
+
+  static const String defaultVideoUrl = 'https://youtu.be/5lwfZzMkkR8';
 
   @override
   State<VideoTestPage> createState() => _VideoTestPageState();
@@ -21,6 +25,16 @@ class _VideoTestPageState extends State<VideoTestPage> {
   YoutubePlayerController? _ytController;
   bool _isRunning = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _urlController.text = VideoTestPage.defaultVideoUrl;
+    // Auto-load and start on page open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAndStart();
+    });
+  }
 
   @override
   void dispose() {
@@ -108,7 +122,24 @@ class _VideoTestPageState extends State<VideoTestPage> {
       soundCubit.start();
     }
 
-    _logger.i('Video test started with captions', category: LogCategory.ui);
+    // Enable translation with auto-detection for multilingual content
+    _enableTranslation();
+
+    _logger.i('Video test started with captions and translation', category: LogCategory.ui);
+  }
+
+  void _enableTranslation() {
+    try {
+      final translationCubit = context.read<TranslationCubit>();
+      final state = translationCubit.state;
+      if (state is TranslationReady && !state.isEnabled) {
+        translationCubit.toggleEnabled();
+        _logger.i('Translation auto-enabled for video test', category: LogCategory.ui);
+      }
+    } catch (_) {
+      // TranslationCubit not in widget tree — skip
+      _logger.d('TranslationCubit not available, skipping auto-enable', category: LogCategory.ui);
+    }
   }
 
   void _stop() {
@@ -205,32 +236,14 @@ class _VideoTestPageState extends State<VideoTestPage> {
   Widget _buildVideoArea() {
     return Stack(
       children: [
-        // Video player or placeholder
+        // Video player
         Positioned.fill(
           child: _ytController != null
               ? YoutubePlayer(controller: _ytController!)
               : Container(
                   color: Colors.black,
                   child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.ondemand_video, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'Paste a YouTube URL above and tap "Load & Start"',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'The video acts as a stand-in scene for testing\n'
-                          'live captions and sound detection overlays.',
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                    child: CircularProgressIndicator(color: Colors.white54),
                   ),
                 ),
         ),
@@ -257,6 +270,13 @@ class _VideoTestPageState extends State<VideoTestPage> {
               ),
             ),
           ),
+        // Translation indicator (top left)
+        if (_isRunning)
+          Positioned(
+            top: 12,
+            left: 12,
+            child: _buildTranslationIndicator(),
+          ),
         // Sound detection indicator (top right)
         if (_isRunning)
           Positioned(
@@ -266,6 +286,49 @@ class _VideoTestPageState extends State<VideoTestPage> {
           ),
       ],
     );
+  }
+
+  Widget _buildTranslationIndicator() {
+    try {
+      return BlocBuilder<TranslationCubit, TranslationState>(
+        builder: (context, state) {
+          if (state is! TranslationReady) return const SizedBox.shrink();
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha((255 * 0.7).round()),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: state.isEnabled ? Colors.lightBlueAccent : Colors.grey,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.translate,
+                  size: 16,
+                  color: state.isEnabled ? Colors.lightBlueAccent : Colors.grey,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  state.isEnabled
+                      ? '${state.sourceLanguage.code} → ${state.targetLanguage.code}'
+                      : 'Off',
+                  style: TextStyle(
+                    color: state.isEnabled ? Colors.lightBlueAccent : Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
   }
 
   Widget _buildSoundIndicator() {
@@ -327,6 +390,12 @@ class _VideoTestPageState extends State<VideoTestPage> {
                 activeColor: Colors.blue,
               ),
               const SizedBox(width: 8),
+              _buildStatusChip(
+                label: 'Translate',
+                active: _isTranslationActive(),
+                activeColor: Colors.lightBlueAccent,
+              ),
+              const SizedBox(width: 8),
               BlocBuilder<SoundDetectionCubit, SoundDetectionState>(
                 builder: (context, sdState) {
                   return _buildStatusChip(
@@ -352,6 +421,15 @@ class _VideoTestPageState extends State<VideoTestPage> {
         },
       ),
     );
+  }
+
+  bool _isTranslationActive() {
+    try {
+      final state = context.read<TranslationCubit>().state;
+      return state is TranslationReady && state.isEnabled;
+    } catch (_) {
+      return false;
+    }
   }
 
   Widget _buildStatusChip({
