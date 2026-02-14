@@ -373,7 +373,7 @@ class EnhancedSpeechProcessor {
         // Fire-and-forget: LLM init runs independently of ASR success
         _nexaLlmService!.initialize(
           preferNpu: true,
-        ).timeout(Duration(seconds: 120)).then((_) {
+        ).timeout(Duration(seconds: 600)).then((_) {
           _logger.i('✅ Nexa LLM initialized for enhancement', category: LogCategory.gemma);
         }).catchError((e) {
           _logger.w('⚠️ Nexa LLM initialization failed, enhancement disabled', category: LogCategory.gemma, error: e);
