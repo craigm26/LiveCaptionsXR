@@ -61,7 +61,7 @@ class AsrTranscriptionResult {
 
   factory AsrTranscriptionResult.fromMap(Map<String, dynamic> map) {
     return AsrTranscriptionResult(
-      AsrResult.fromMap(map['result'] as Map<String, dynamic>),
+      AsrResult.fromMap(Map<String, dynamic>.from(map['result'] as Map)),
       map['profileData'] as String,
     );
   }

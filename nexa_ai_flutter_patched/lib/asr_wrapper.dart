@@ -27,7 +27,7 @@ class AsrWrapper {
         'wrapperId': _wrapperId,
         ...input.toMap(),
       });
-      return AsrTranscriptionResult.fromMap(result as Map<String, dynamic>);
+      return AsrTranscriptionResult.fromMap(Map<String, dynamic>.from(result as Map));
     } on PlatformException catch (e) {
       throw Exception('Failed to transcribe: ${e.message}');
     }
