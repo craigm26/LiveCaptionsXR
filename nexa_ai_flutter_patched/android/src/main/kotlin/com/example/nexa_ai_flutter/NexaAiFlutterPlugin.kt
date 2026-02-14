@@ -412,7 +412,7 @@ class NexaAiFlutterPlugin : FlutterPlugin, MethodCallHandler {
                             result.success(
                                 mapOf(
                                     "result" to mapOf("transcript" to transcription.result.transcript),
-                                    "profileData" to transcription.profileData
+                                    "profileData" to transcription.profileData.toString()
                                 )
                             )
                         }
@@ -447,7 +447,7 @@ class NexaAiFlutterPlugin : FlutterPlugin, MethodCallHandler {
                                 mapOf(
                                     "scores" to rerankerResult.scores?.toList(),
                                     "scoreCount" to rerankerResult.scoreCount,
-                                    "profileData" to rerankerResult.profileData
+                                    "profileData" to rerankerResult.profileData.toString()
                                 )
                             )
                         }
