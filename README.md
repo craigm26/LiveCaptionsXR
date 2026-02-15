@@ -1,46 +1,102 @@
+[![Release APK](https://github.com/craigm26/LiveCaptionsXR/actions/workflows/release-apk.yml/badge.svg)](https://github.com/craigm26/LiveCaptionsXR/actions/workflows/release-apk.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Flutter](https://img.shields.io/badge/Flutter-3.38+-02569B?logo=flutter)](https://flutter.dev)
+[![Nexa SDK](https://img.shields.io/badge/Nexa_SDK-NPU_Accelerated-FF6B00)](https://github.com/NexaAI)
+
 # LiveCaptionsXR
 
 **LiveCaptionsXR is an advanced accessibility application that provides real-time, spatially-aware closed captioning for the 466 million people worldwide with hearing loss. Powered by on-device AI with Nexa SDK NPU acceleration, we deliver privacy-first processing that transforms traditional flat captions into rich, contextual experiences with full spatial awareness.**
 
+> **[Download Latest APK](https://github.com/craigm26/LiveCaptionsXR/releases/latest)** | **[Live Website](https://livecaptionsxr.com)**
+
 ---
 
-## Current Focus: Android XR & Nexa SDK
+## Nexa SDK & NPU Acceleration
 
-We are actively developing LiveCaptionsXR for the **Android XR platform**, with primary support for:
+LiveCaptionsXR uses the **Nexa SDK** to run AI models directly on the **Qualcomm Hexagon NPU**, achieving 2x faster inference and 9x better energy efficiency compared to CPU-only processing.
 
-- **Samsung Galaxy XR Headset** - Immersive spatial captions in mixed reality
-- **Upcoming Samsung XR Glasses** - Lightweight, everyday accessibility
-- **Android Phones & Tablets** - Full-featured mobile experience
+### Models Used
 
-### Nexa SDK Integration
+| Model | Type | Size | NPU | Purpose |
+|-------|------|------|-----|---------|
+| **Parakeet TDT 0.6B** | ASR | 0.6 GB | Yes | Real-time speech-to-text |
+| **LFM2-1.2B** | LLM | 0.75 GB | Yes | Caption enhancement & punctuation |
+| **OmniNeural-4B** | VLM | 4 GB | Yes | Visual context awareness |
+| **Whisper GGML** | ASR | 141 MB | No | Fallback speech recognition |
 
-LiveCaptionsXR leverages the **Nexa SDK** for Qualcomm Hexagon NPU-accelerated AI inference:
+### NPU Benefits
 
-| Component | Technology | Benefit |
-|-----------|-----------|---------|
-| **Speech Recognition** | Nexa ASR on NPU | 2x faster, 9x more energy efficient |
-| **Text Enhancement** | Granite-4.0-h-350M | Real-time caption refinement |
-| **Multimodal AI** | OmniNeural-4B VLM | Visual context awareness |
-| **Fallback** | Whisper GGML / Apple Speech | Non-NPU device support |
+- **Real-time ASR**: Parakeet model on NPU delivers low-latency transcription suitable for live captions
+- **Energy efficient**: NPU processing draws significantly less power than CPU/GPU, critical for XR headsets
+- **Privacy-first**: All processing stays on-device — no audio data ever leaves the device
+- **Concurrent AI**: NPU handles ASR while CPU/GPU remain free for AR rendering
 
-> **Note:** Nexa SDK requires Flutter 3.38.7+ (Dart 3.9.2+). See [Development Guide](DEVELOPMENT_GUIDE.md) for setup.
+### QDC Test Results (v1.0.34+)
+
+Successfully tested on **Snapdragon 8 Elite** (QRD8750) via Qualcomm Developer Cloud:
+- Nexa ASR initialized in NPU mode
+- Audio capture pipeline operational at 16kHz
+- Real-time transcription pipeline end-to-end functional
+- LLM text enhancement working via LFM2-1.2B on NPU
+
+---
+
+## Architecture
+
+```text
+Audio Capture (16kHz stereo)
+        |
+Nexa ASR (Hexagon NPU) --> Speech-to-Text
+        |
+Nexa LLM (LFM2-1.2B) --> Punctuation & Enhancement
+        |
+Speaker Diarization --> Voice Embedding --> Speaker ID
+        |
+Hybrid Localization (Kalman filter: audio + visual + IMU)
+        |
+ARCore --> 3D Caption Placement at Speaker Location
+```
 
 ---
 
 ## Key Features
 
-- **Spatial AR Captions:** Captions anchored in 3D space at the speaker's location using ARCore
-- **🆕 Speaker Diarization + 3D/4D Spatial Mapping:** 
-  - Voice embedding analysis to identify and track unique speakers
-  - Real-time 3D position tracking with temporal smoothing (4D = 3D + time)
-  - Translations mapped to the exact spatial location of each speaker
-  - Persistent speaker profiles with color-coded captions
-  - Kalman-filtered position prediction for smooth caption placement
-- **Real-Time Translation:** On-device translation to 15+ languages including Spanish, French, German, Chinese, Japanese, Korean, Arabic, and more — 100% private
-- **On-Device Hybrid Localization:** Kalman filter fusing stereo audio, visual face detection, and IMU data for real-time speaker tracking
-- **Privacy-First by Design:** 100% on-device processing - no data ever leaves the device
-- **NPU-Accelerated AI:** Qualcomm Hexagon NPU optimization via Nexa SDK
-- **Cross-Platform Ready:** Single Flutter codebase for Android, iOS, and Web
+- **NPU-Accelerated ASR** — Nexa SDK Parakeet model on Qualcomm Hexagon NPU for real-time speech recognition
+- **On-Device LLM Enhancement** — LFM2-1.2B adds punctuation, grammar, and context to raw transcriptions
+- **Spatial AR Captions** — Captions anchored in 3D space at the speaker's location via ARCore
+- **Speaker Diarization** — Voice embedding analysis identifies and tracks unique speakers with color-coded captions
+- **Real-Time Translation** — On-device translation to 15+ languages, 100% private
+- **Hybrid Localization** — Kalman filter fusing stereo audio, visual face detection, and IMU data
+- **Privacy-First** — 100% on-device processing, no data ever leaves the device
+- **Cross-Platform** — Single Flutter codebase for Android, Android XR, iOS, and Web
+
+---
+
+## Quick Start
+
+### Option 1: Download APK
+
+```bash
+# Download latest release APK
+gh release download --repo craigm26/LiveCaptionsXR -p "app-release.apk" -D /tmp/
+
+# Install on device
+adb install /tmp/app-release.apk
+```
+
+Or download directly from [GitHub Releases](https://github.com/craigm26/LiveCaptionsXR/releases/latest).
+
+### Option 2: Build from Source
+
+**Prerequisites:** Flutter 3.38+, Android SDK API 24+
+
+```bash
+git clone https://github.com/craigm26/LiveCaptionsXR.git
+cd LiveCaptionsXR
+flutter pub get
+flutter build apk --release --target-platform android-arm64
+adb install build/app/outputs/flutter-apk/app-release.apk
+```
 
 ---
 
@@ -48,98 +104,40 @@ LiveCaptionsXR leverages the **Nexa SDK** for Qualcomm Hexagon NPU-accelerated A
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| **Framework** | Flutter 3.x + Dart 3 | Cross-platform development |
-| **On-Device AI** | Nexa SDK (NPU) | NPU-accelerated inference |
-| **Speech Recognition** | Nexa ASR / Whisper GGML | Real-time transcription |
-| **Text Enhancement** | Nexa LLM / Gemma 3n | Caption refinement |
+| **Framework** | Flutter 3.38+ / Dart 3.9+ | Cross-platform development |
+| **On-Device ASR** | Nexa SDK (Parakeet TDT 0.6B) | NPU-accelerated speech recognition |
+| **On-Device LLM** | Nexa SDK (LFM2-1.2B) | NPU-accelerated text enhancement |
+| **On-Device VLM** | Nexa SDK (OmniNeural-4B) | NPU-accelerated visual understanding |
+| **Fallback ASR** | Whisper GGML | CPU-based speech recognition |
 | **AR Engine** | ARCore (Android) | Spatial caption placement |
 | **State Management** | flutter_bloc (Cubit) | Predictable state handling |
 | **DI** | get_it | Service architecture |
 
 ---
 
-## How It Works
+## Model Downloads
 
-```text
-Audio Capture (16kHz stereo)
-        ↓
-Nexa ASR (Hexagon NPU) → Speech-to-Text
-        ↓
-Nexa LLM → Text Enhancement & Punctuation
-        ↓
-Speaker Diarization → Voice Embedding → Speaker ID + Profile
-        ↓
-Hybrid Localization (Kalman filter: audio + visual + IMU)
-        ↓
-4D Spatial Tracking (3D position + temporal history)
-        ↓
-ARCore → 3D Caption Placement at Speaker Location
-```
+Models are downloaded automatically on first launch. The app includes a download manager with progress tracking.
 
-1. **Audio & Vision Capture:** Real-time stereo audio and camera frames captured
-2. **NPU-Accelerated ASR:** Speech transcribed using Nexa SDK on Qualcomm Hexagon NPU
-3. **Intelligent Enhancement:** Nexa LLM adds punctuation and context
-4. **Speaker Diarization:** Voice embeddings (MFCC + spectral features) identify unique speakers
-5. **4D Spatial Tracking:** 3D positions tracked over time with Kalman-filtered smoothing
-6. **Speaker Localization:** Hybrid engine fuses audio direction, face detection, and IMU
-7. **Spatial Placement:** Translations appear at the exact 3D location of each identified speaker
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- **Flutter SDK**: 3.38.7+ (for Nexa SDK support)
-- **Dart SDK**: 3.9.2+
-- **Android Studio** with Flutter extensions
-- **Android SDK**: API 24+ (Android 7.0)
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/craigm26/LiveCaptionsXR.git
-cd LiveCaptionsXR
-
-# Install dependencies
-flutter pub get
-
-# Run on Android device
-flutter run
-```
-
-### Android XR Development
-
-```bash
-# Build for Android XR devices (ARM64)
-flutter build apk --release --target-platform android-arm64
-
-# Install on Samsung Galaxy XR
-adb install build/app/outputs/flutter-apk/app-release.apk
-```
+| Model | ID | Size | Files | Type |
+|-------|-----|------|-------|------|
+| Parakeet TDT 0.6B | `parakeet-tdt-0.6b-v3-npu` | 0.6 GB | 7 | ASR (NPU) |
+| LFM2-1.2B | `LFM2-1.2B-npu` | 0.75 GB | 4 | Chat/LLM (NPU) |
+| OmniNeural-4B | `OmniNeural-4B` | 4 GB | 12 | VLM (NPU) |
+| SmolVLM-256M | `SmolVLM-256M-Instruct-f16` | 0.48 GB | 2 | VLM (GGUF) |
+| LFM2-1.2B GGUF | `LFM2-1.2B-GGUF-GGUF` | 0.75 GB | 1 | Chat (GGUF) |
 
 ---
 
 ## Platform Support
 
-### Android (Primary Focus)
-
-- **Samsung Galaxy XR Headset** - Full AR caption support with spatial audio
-- **Samsung XR Glasses** - Lightweight caption overlay (coming soon)
-- **Snapdragon Devices** - NPU acceleration via Nexa SDK
-- **Other Android** - CPU/GPU fallback with Whisper GGML
-
-### iOS
-
-- Apple Speech Recognition (native)
-- ARKit for spatial captions
-- Gemma 3n for text enhancement
-
-### Web
-
-- Demo mode with limited functionality
-- Full caption display without AR
+| Platform | Status | AI Backend |
+|----------|--------|------------|
+| **Android (Snapdragon)** | Primary | Nexa SDK on Hexagon NPU |
+| **Android XR (Samsung Galaxy XR)** | Primary | Nexa SDK on Hexagon NPU |
+| **Android (Other)** | Supported | Whisper GGML (CPU fallback) |
+| **iOS** | Supported | Apple Speech + Gemma 3n |
+| **Web** | Demo | Limited functionality |
 
 ---
 
@@ -149,18 +147,24 @@ adb install build/app/outputs/flutter-apk/app-release.apk
 LiveCaptionsXR/
 ├── lib/
 │   ├── core/
-│   │   ├── services/      # AI, audio, AR services
-│   │   ├── models/        # Data models
-│   │   └── di/            # Dependency injection
-│   ├── features/          # Feature modules
-│   └── shared/            # Shared widgets
-├── android/               # Android native code
-│   └── app/src/main/kotlin/
-│       ├── NexaAsrPlugin.kt
-│       └── HybridLocalizationEngine.kt
-├── ios/                   # iOS native code
-├── docs/                  # Documentation
-└── prd/                   # Product requirements
+│   │   ├── services/          # AI, audio, AR services
+│   │   ├── models/            # Data models
+│   │   └── di/                # Dependency injection
+│   ├── features/              # Feature modules (UI)
+│   └── shared/                # Shared widgets
+├── android/app/src/main/kotlin/
+│   ├── NexaAsrPlugin.kt       # Nexa ASR platform channel
+│   └── HybridLocalizationEngine.kt
+├── nexa_ai_flutter_patched/    # Patched Nexa SDK plugin
+│   ├── android/src/main/kotlin/
+│   │   └── ModelDownloadManager.kt
+│   └── assets/model_list.json
+├── plugins/
+│   ├── spatial_captions/       # Spatial caption rendering
+│   └── whisper_ggml_patched/   # Patched Whisper plugin
+├── web/                        # PWA website
+├── docs/                       # Documentation
+└── .github/workflows/          # CI/CD pipelines
 ```
 
 ---
@@ -169,104 +173,19 @@ LiveCaptionsXR/
 
 | Document | Description |
 |----------|-------------|
-| [Development Guide](DEVELOPMENT_GUIDE.md) | Setup, testing, contribution |
+| [Development Guide](DEVELOPMENT_GUIDE.md) | Setup, testing, contribution guidelines |
 | [Architecture](docs/ARCHITECTURE.md) | System design and patterns |
-| [Nexa SDK Integration](docs/NEXA_SDK_INTEGRATION_ANALYSIS.md) | NPU integration strategy |
-| [Samsung Galaxy XR Guide](docs/SAMSUNG_GALAXY_XR_CONSUMER_GUIDE.md) | XR user experience |
-| [Contributing](CONTRIBUTING.md) | Contribution guidelines |
-
----
-
-## Model Downloads
-
-LiveCaptionsXR downloads AI models automatically on first launch:
-
-| Model | Size | Purpose |
-|-------|------|---------|
-| Nexa ASR | ~150 MB | NPU speech recognition |
-| Granite-4.0-h-350M | ~350 MB | NPU text enhancement |
-| Whisper Base | 141 MB | Fallback speech recognition |
-| Gemma 3N E4B | 4.11 GB | Advanced enhancement (optional) |
-
----
-
-## Development
-
-```bash
-# Run tests
-flutter test
-
-# Build release APK
-flutter build apk --release
-
-# Analyze code
-flutter analyze
-```
-
-See [Development Guide](DEVELOPMENT_GUIDE.md) for detailed instructions.
-
----
-
-## Speaker Diarization & 3D/4D Spatial Intelligence
-
-LiveCaptionsXR implements advanced speaker diarization that maps translations to speakers in 3D/4D space:
-
-### Voice Embedding Features
-- **MFCC Coefficients:** Mel-Frequency Cepstral Coefficients for voice characterization
-- **Delta MFCCs:** First-order derivatives capturing speech dynamics
-- **Spectral Features:** Centroid, bandwidth, rolloff, and flatness
-- **Pitch Estimation:** Autocorrelation-based fundamental frequency detection
-- **Energy Statistics:** RMS energy for voice activity detection
-
-### Spatial Tracking (4D)
-- **3D Position:** GCC-PHAT time-delay-of-arrival + hybrid localization
-- **Temporal History:** Exponential decay weighted position averaging
-- **Velocity Estimation:** Position prediction for smooth caption animation
-- **Confidence Weighting:** High-confidence observations weighted more heavily
-
-### Speaker Profile Management
-- **Similarity Threshold:** Cosine similarity matching (default: 0.75)
-- **Spatial Coherence:** Position-based matching boost for nearby speakers
-- **Profile Persistence:** Export/import for cross-session recognition
-- **Max Speakers:** Configurable limit with LRU pruning
-
-### UI Components
-- **SpeakerIndicator:** Individual speaker badge with color and position
-- **SpeakerTracker:** Horizontal list of all tracked speakers
-- **SpeakerRadar:** Radar-style 2D visualization of 3D speaker positions
-
----
-
-## Roadmap
-
-### Q1 2026
-
-- [x] Nexa SDK ASR integration
-- [x] Nexa SDK LLM integration
-- [ ] Samsung Galaxy XR optimization
-- [ ] Performance profiling on NPU
-
-### Q2 2026
-
-- [ ] Samsung XR Glasses support
-- [ ] Multi-speaker tracking improvements
-- [ ] Voice command control
-- [ ] Accessibility testing with D/HH community
-
----
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+| [Nexa SDK Integration](docs/NEXA_SDK_INTEGRATION_ANALYSIS.md) | NPU integration analysis |
+| [Speaker Diarization](docs/SPEAKER_DIARIZATION.md) | Voice embedding & spatial tracking |
 
 ---
 
 ## License
 
-This project is developed for accessibility and social impact.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**LiveCaptionsXR - Empowering the deaf and hard of hearing community through AI-powered spatial accessibility technology.**
+**LiveCaptionsXR** — Empowering the deaf and hard of hearing community through AI-powered spatial accessibility technology.
 
-*Optimized for Samsung Galaxy XR and Android XR devices with Qualcomm Hexagon NPU acceleration.*
+*Built with [Nexa SDK](https://github.com/NexaAI) for Qualcomm Hexagon NPU acceleration.*

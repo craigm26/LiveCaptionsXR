@@ -3,6 +3,7 @@ package com.example.nexa_ai_flutter
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.StatFs
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.flutter.plugin.common.EventChannel
@@ -45,10 +46,19 @@ class ModelDownloadManager(private val context: Context) {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    // Separate client for HEAD requests with short timeouts
+    private val headClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .build()
+
     private val downloadJobs = mutableMapOf<String, Job>()
 
     companion object {
+        private const val TAG = "ModelDownloadManager"
         private const val SP_KEY_PREFIX = "model_downloaded_"
+        private const val ONE_GB = 1_073_741_824L
     }
 
     fun getModelsDirectory(): File {
@@ -129,6 +139,8 @@ class ModelDownloadManager(private val context: Context) {
         val model = models.firstOrNull { it.id == modelId }
             ?: throw Exception("Model not found: $modelId")
 
+        Log.d(TAG, "Starting download for model: $modelId (${model.sizeGb} GB, ${model.type})")
+
         val modelDir = getModelDirectory(modelId, model.versionCode)
 
         // Get list of files to download
@@ -156,23 +168,38 @@ class ModelDownloadManager(private val context: Context) {
             throw Exception("No files to download for model: $modelId")
         }
 
-        // Calculate total size
+        Log.d(TAG, "[$modelId] ${filesToDownload.size} files to download")
+
+        // Calculate total size via HEAD requests
         var totalBytes = 0L
-        filesToDownload.forEach { (_, url) ->
-            totalBytes += getFileSize(url)
+        for ((file, url) in filesToDownload) {
+            val size = getFileSize(url)
+            Log.d(TAG, "[$modelId] File size for ${file.name}: $size bytes")
+            totalBytes += size
         }
+
+        // Fallback: if HEAD requests all returned 0, estimate from sizeGb
+        if (totalBytes == 0L && model.sizeGb > 0) {
+            totalBytes = (model.sizeGb * ONE_GB).toLong()
+            Log.w(TAG, "[$modelId] HEAD requests returned 0 total bytes, using estimated size: $totalBytes bytes (${model.sizeGb} GB)")
+        }
+
+        Log.d(TAG, "[$modelId] Total download size: $totalBytes bytes (${totalBytes / (1024 * 1024)} MB)")
 
         var downloadedBytes = 0L
         val startTime = System.currentTimeMillis()
 
         // Download files sequentially
         try {
-            for ((file, url) in filesToDownload) {
+            for ((index, pair) in filesToDownload.withIndex()) {
+                val (file, url) = pair
                 if (!downloadJobs.containsKey(modelId)) {
-                    // Download was cancelled
+                    Log.d(TAG, "[$modelId] Download cancelled")
                     sendProgress(eventSink, modelId, downloadedBytes, totalBytes, "cancelled")
                     return
                 }
+
+                Log.d(TAG, "[$modelId] Downloading file ${index + 1}/${filesToDownload.size}: ${file.name}")
 
                 val fileBytes = downloadFile(url, file) { currentBytes ->
                     val totalDownloaded = downloadedBytes + currentBytes
@@ -186,19 +213,40 @@ class ModelDownloadManager(private val context: Context) {
                     }
                 }
 
+                Log.d(TAG, "[$modelId] Completed file ${file.name}: $fileBytes bytes")
                 downloadedBytes += fileBytes
+            }
+
+            // Verify all files exist and have non-zero size
+            var allFilesValid = true
+            for ((file, _) in filesToDownload) {
+                if (!file.exists() || file.length() == 0L) {
+                    Log.e(TAG, "[$modelId] Verification failed: ${file.name} (exists=${file.exists()}, size=${if (file.exists()) file.length() else 0})")
+                    allFilesValid = false
+                }
+            }
+
+            if (!allFilesValid) {
+                Log.e(TAG, "[$modelId] Download verification failed - not all files are valid")
+                scope.launch(Dispatchers.Main) {
+                    sendProgress(eventSink, modelId, downloadedBytes, totalBytes, "failed", 0.0, "Download verification failed: some files are missing or empty")
+                }
+                return
             }
 
             // Mark as downloaded
             prefs.edit().putBoolean(SP_KEY_PREFIX + modelId, true).apply()
+            val elapsedSec = (System.currentTimeMillis() - startTime) / 1000.0
+            Log.d(TAG, "[$modelId] Download completed successfully: $downloadedBytes bytes in ${String.format("%.1f", elapsedSec)}s")
 
             scope.launch(Dispatchers.Main) {
                 sendProgress(eventSink, modelId, downloadedBytes, totalBytes, "completed", 0.0)
             }
 
         } catch (e: Exception) {
+            Log.e(TAG, "[$modelId] Download failed: ${e.message}", e)
             scope.launch(Dispatchers.Main) {
-                sendProgress(eventSink, modelId, downloadedBytes, totalBytes, "failed", 0.0)
+                sendProgress(eventSink, modelId, downloadedBytes, totalBytes, "failed", 0.0, e.message ?: "Unknown error")
             }
             throw e
         } finally {
@@ -207,9 +255,18 @@ class ModelDownloadManager(private val context: Context) {
     }
 
     private fun getFileSize(url: String): Long {
-        val request = Request.Builder().url(url).head().build()
-        okHttpClient.newCall(request).execute().use { response ->
-            return response.header("Content-Length")?.toLongOrNull() ?: 0L
+        return try {
+            val request = Request.Builder().url(url).head().build()
+            headClient.newCall(request).execute().use { response ->
+                val size = response.header("Content-Length")?.toLongOrNull() ?: 0L
+                if (size == 0L) {
+                    Log.w(TAG, "HEAD request returned 0 for: $url (HTTP ${response.code})")
+                }
+                size
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "HEAD request failed for $url: ${e.message}")
+            0L
         }
     }
 
@@ -218,7 +275,7 @@ class ModelDownloadManager(private val context: Context) {
 
         okHttpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                throw Exception("Download failed: ${response.code}")
+                throw Exception("Download failed: HTTP ${response.code} for ${destFile.name}")
             }
 
             val totalBytes = response.header("Content-Length")?.toLongOrNull() ?: 0L
@@ -247,20 +304,27 @@ class ModelDownloadManager(private val context: Context) {
         downloadedBytes: Long,
         totalBytes: Long,
         status: String,
-        speedMBps: Double = 0.0
+        speedMBps: Double = 0.0,
+        errorMessage: String? = null
     ) {
         val percentage = if (totalBytes > 0) {
             ((downloadedBytes * 100) / totalBytes).toInt()
         } else 0
 
-        eventSink.success(mapOf(
+        val progressMap = mutableMapOf<String, Any>(
             "modelId" to modelId,
             "downloadedBytes" to downloadedBytes,
             "totalBytes" to totalBytes,
             "percentage" to percentage,
             "speedMBps" to speedMBps,
             "status" to status
-        ))
+        )
+
+        if (errorMessage != null) {
+            progressMap["errorMessage"] = errorMessage
+        }
+
+        eventSink.success(progressMap)
     }
 
     fun cancelDownload(modelId: String) {
