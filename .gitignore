@@ -108,3 +108,7 @@ build/web/assets/assets/models/gemma-3n-E4B-it-int4.task
 android/app/key.properties
 android/app/upload-keystore.jks
 *.jks
+
+# Google Cloud SDK
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz
