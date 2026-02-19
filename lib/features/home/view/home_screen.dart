@@ -475,6 +475,14 @@ class _HomeScreenState extends State<HomeScreen> {
             if (success) {
               _nexaStatusMessage = 'Nexa ASR Ready';
               _nexaProgress = 1.0;
+            } else {
+              // If the status message doesn't already say why, give a clear hint
+              if (!_nexaStatusMessage.toLowerCase().contains('not downloaded') &&
+                  !_nexaStatusMessage.toLowerCase().contains('not available') &&
+                  !_nexaStatusMessage.toLowerCase().contains('failed')) {
+                _nexaStatusMessage = 'Parakeet model not downloaded yet — tap Download';
+                _nexaProgress = 0.0;
+              }
             }
           });
         }
@@ -483,7 +491,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) {
           setState(() {
             _nexaInitializing = false;
-            _nexaStatusMessage = 'Initialization failed';
+            _nexaStatusMessage = 'Initialization failed — model may not be downloaded';
+            _nexaProgress = 0.0;
           });
         }
       });
@@ -493,9 +502,43 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Build NPU-specific bottom bar (replaces orange "models missing" bar)
+  /// Build NPU-specific bottom bar (replaces orange "models missing" bar).
+  /// Distinguishes between: (a) downloading model, (b) loading/initialising, (c) ready,
+  /// and (d) model not found — which shows a "Download" CTA.
   Widget _buildNexaBottomBar(BuildContext context) {
-    final Color barColor = _nexaReady ? Colors.green.shade700 : Colors.blue.shade700;
+    final bool isDownloading =
+        _nexaStatusMessage.toLowerCase().contains('download');
+    final bool modelNotAvailable =
+        _nexaStatusMessage.toLowerCase().contains('not downloaded') ||
+        _nexaStatusMessage.toLowerCase().contains('not available') ||
+        (_nexaStatusMessage.toLowerCase().contains('failed') &&
+         _nexaProgress == 0.0 &&
+         !_nexaReady);
+
+    final Color barColor;
+    final IconData barIcon;
+    final String barText;
+
+    if (_nexaReady) {
+      barColor = Colors.green.shade700;
+      barIcon = Icons.check_circle;
+      barText = 'Nexa NPU ready — tap Start Captions';
+    } else if (modelNotAvailable) {
+      barColor = Colors.orange.shade700;
+      barIcon = Icons.download_for_offline;
+      barText = 'Parakeet model not downloaded yet';
+    } else if (isDownloading) {
+      barColor = Colors.deepPurple.shade700;
+      barIcon = Icons.cloud_download;
+      barText = 'Downloading Parakeet model (~600MB)... '
+          '${(_nexaProgress * 100).toStringAsFixed(0)}%';
+    } else {
+      barColor = Colors.blue.shade700;
+      barIcon = Icons.memory;
+      barText = _nexaProgress > 0
+          ? 'Loading NPU model... ${(_nexaProgress * 100).toStringAsFixed(0)}%'
+          : _nexaStatusMessage;
+    }
 
     return Container(
       color: barColor,
@@ -504,30 +547,39 @@ class _HomeScreenState extends State<HomeScreen> {
         top: false,
         child: Row(
           children: [
-            Icon(
-              _nexaReady ? Icons.check_circle : Icons.downloading,
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(barIcon, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                _nexaReady
-                    ? 'Nexa NPU ready — tap Start Captions'
-                    : 'Setting up NPU models... ${(_nexaProgress * 100).toStringAsFixed(0)}%',
+                barText,
                 style: const TextStyle(color: Colors.white, fontSize: 14),
               ),
             ),
-            if (!_nexaReady && _nexaProgress > 0)
+            // Show download button when model is missing
+            if (modelNotAvailable) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () => context.push('/models'),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.orange.shade800,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                ),
+                child: const Text('Download'),
+              ),
+            ] else if (!_nexaReady && _nexaProgress > 0) ...[
               SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                  value: _nexaProgress,
+                  value: _nexaProgress < 1.0 ? _nexaProgress : null,
                   strokeWidth: 2,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
+            ],
           ],
         ),
       ),
