@@ -52,10 +52,20 @@ jobs:
       - name: Build App Bundle
         run: flutter build appbundle --release
 
+      - name: Decode Service Account JSON
+        run: |
+          # Secret may be stored as base64 or raw JSON
+          RAW="${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}"
+          if echo "$RAW" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+            echo "$RAW" > /tmp/play-sa.json
+          else
+            echo "$RAW" | base64 -d > /tmp/play-sa.json
+          fi
+
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          serviceAccountJson: /tmp/play-sa.json
           packageName: com.livecaptionsxr.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: ${{ github.event.inputs.track || 'internal' }}
