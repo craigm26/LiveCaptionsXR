@@ -8,6 +8,7 @@ import '../../../core/services/enhanced_speech_processor.dart';
 import '../../../core/services/hybrid_localization_engine.dart';
 import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
+import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/translation_service.dart';
 import '../../../core/di/service_locator.dart';
 import 'live_captions_state.dart';
@@ -153,12 +154,33 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         hasEnhancement: _useEnhancement,
         rawSttDebugText: null,
       ));
+
+      await _injectStartupCaptionVisibilityTest();
+
       _logger.i('✅ Live captions started successfully', category: LogCategory.captions);
     } catch (e) {
       _logger.e('❌ Failed to start live captions: $e', category: LogCategory.captions, error: e);
       emit(LiveCaptionsError(message: 'Failed to start live captions', details: e.toString()));
       rethrow;
     }
+  }
+
+  Future<void> _injectStartupCaptionVisibilityTest() async {
+    final isEmulator = await isAndroidEmulator();
+    if (!isEmulator) {
+      return;
+    }
+
+    const testPhrase = 'Caption visibility test: this is an injected startup phrase.';
+    _logger.i('🧪 Injecting startup caption visibility test phrase for emulator', category: LogCategory.captions);
+
+    _handleRawSpeechResult(SpeechResult(
+      text: testPhrase,
+      confidence: 1.0,
+      isFinal: true,
+      timestamp: DateTime.now(),
+      metadata: const {'source': 'startup_visibility_test'},
+    ));
   }
 
   void _handleEnhancedCaption(EnhancedCaption caption) async {

@@ -18,6 +18,7 @@ import 'spatial_caption_integration_service.dart';
 import 'app_logger.dart';
 import 'nexa_asr_service.dart';
 import 'nexa_llm_service.dart';
+import 'debug_logger_service.dart';
 
 /// Speech processing engine types
 enum SpeechEngine {
@@ -53,6 +54,7 @@ class EnhancedSpeechProcessor {
   String _currentLanguage = 'en';
   bool _isInitialized = false;
   bool _isProcessing = false;
+  Future<bool>? _initializationFuture;
   bool _useEnhancement = true; // New flag to control enhancement
 
   // Flutter Sound components
@@ -88,6 +90,11 @@ class EnhancedSpeechProcessor {
   static const double _minWhisperRms = 0.0015;
   int _lowRmsSkippedWindows = 0;
   int _emptyWhisperWindows = 0;
+  int _whisperChunkLogCounter = 0;
+  int _nexaChunkLogCounter = 0;
+  int _spatialFrameLogCounter = 0;
+  DateTime? _whisperInferenceStartedAt;
+  bool _emulatorNativeSpeechFallbackActive = false;
 
   Stream<double> get micLevels => _micLevelController.stream;
 
@@ -99,6 +106,45 @@ class EnhancedSpeechProcessor {
       sum += normalized * normalized;
     }
     return math.sqrt(sum / samples.length);
+  }
+
+  List<int> _normalizeWhisperSamples(List<int> samples) {
+    if (samples.isEmpty) return samples;
+
+    double mean = 0.0;
+    for (final sample in samples) {
+      mean += sample;
+    }
+    mean /= samples.length;
+
+    double peak = 0.0;
+    final centered = List<double>.filled(samples.length, 0.0);
+    for (var index = 0; index < samples.length; index++) {
+      final value = samples[index] - mean;
+      centered[index] = value;
+      final abs = value.abs();
+      if (abs > peak) peak = abs;
+    }
+
+    if (peak < 1.0) {
+      return List<int>.filled(samples.length, 0);
+    }
+
+    double gain = 1.0;
+    const targetPeak = 12000.0;
+    if (peak < 4000.0) {
+      gain = (targetPeak / peak).clamp(1.0, 8.0);
+    } else if (peak > 28000.0) {
+      gain = (28000.0 / peak).clamp(0.25, 1.0);
+    }
+
+    if ((gain - 1.0).abs() < 0.01) {
+      return samples;
+    }
+
+    return centered
+        .map((value) => (value * gain).round().clamp(-32768, 32767))
+        .toList();
   }
 
   EnhancedSpeechProcessor({
@@ -192,6 +238,12 @@ class EnhancedSpeechProcessor {
     bool enableGemmaEnhancement = true,
   }) async {
     if (_isInitialized) return true;
+    if (_initializationFuture != null) {
+      return _initializationFuture!;
+    }
+
+    final completer = Completer<bool>();
+    _initializationFuture = completer.future;
 
     try {
       _config = config ?? const SpeechConfig();
@@ -313,11 +365,19 @@ class EnhancedSpeechProcessor {
       _isInitialized = true;
       _logger.i(
           '✅ EnhancedSpeechProcessor initialized with engine: $_activeEngine', category: LogCategory.speech);
+      if (!completer.isCompleted) {
+        completer.complete(true);
+      }
       return true;
     } catch (e, stackTrace) {
       _logger.e('❌ Error initializing EnhancedSpeechProcessor',
           category: LogCategory.speech, error: e, stackTrace: stackTrace);
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
       return false;
+    } finally {
+      _initializationFuture = null;
     }
   }
 
@@ -422,12 +482,31 @@ class EnhancedSpeechProcessor {
     try {
       if (config != null) await updateConfig(config);
 
-      await _audioCaptureService.start();
+      final isEmulator = await isAndroidEmulator();
+      final useNativeSpeechFallback =
+          isEmulator && _activeEngine == SpeechEngine.whisper_ggml;
+
+      if (!useNativeSpeechFallback) {
+        await _audioCaptureService.start();
+      } else {
+        _logger.w(
+          '🧪 Emulator detected with Whisper selected; skipping chunked Whisper capture and using native speech recognizer fallback',
+          category: LogCategory.speech,
+        );
+      }
+
       await _frameCaptureService.start();
       
-      // Start stereo audio capture for spatial positioning
-      _logger.i('🎧 [SPATIAL] Starting stereo audio capture for spatial positioning...', category: LogCategory.speech);
-      await _startStereoAudioCapture();
+      // Start stereo audio capture for spatial positioning (skip on emulator to avoid mic contention)
+      if (isEmulator) {
+        _logger.w(
+          '🧪 [SPATIAL] Emulator detected; skipping stereo capture to prioritize Whisper microphone input',
+          category: LogCategory.speech,
+        );
+      } else {
+        _logger.i('🎧 [SPATIAL] Starting stereo audio capture for spatial positioning...', category: LogCategory.speech);
+        await _startStereoAudioCapture();
+      }
 
       switch (_activeEngine) {
         case SpeechEngine.flutter_sound:
@@ -443,7 +522,16 @@ class EnhancedSpeechProcessor {
           // TODO: Handle this case.
           throw UnimplementedError();
         case SpeechEngine.whisper_ggml:
-          await _startWhisperGgmlProcessing();
+          if (useNativeSpeechFallback) {
+            if (!_appleSpeechService.isInitialized) {
+              await _initializeAppleSpeech();
+            }
+            await _startAppleSpeechProcessing();
+            _emulatorNativeSpeechFallbackActive = true;
+          } else {
+            await _startWhisperGgmlProcessing();
+            _emulatorNativeSpeechFallbackActive = false;
+          }
           break;
         case SpeechEngine.apple_speech:
           _logger.i('🍎 [DEBUG] About to start Apple Speech processing', category: LogCategory.speech);
@@ -551,10 +639,18 @@ class EnhancedSpeechProcessor {
       await _audioSubscription?.cancel();
       _audioSubscription = null;
       _whisperSampleBuffer.clear();
+      _whisperChunkLogCounter = 0;
       
       // Subscribe to audio capture service for real-time processing
       _audioSubscription = _audioCaptureService.audioStream.listen((audioData) async {
-        _logger.d('🎵 Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
+        _whisperChunkLogCounter++;
+        if (_whisperChunkLogCounter % 10 == 0) {
+          _logger.d('🎵 Received audio chunk (${audioData.length} samples, sample #$_whisperChunkLogCounter)', category: LogCategory.speech);
+        }
+
+        if (_audioSubscription == null) {
+          return;
+        }
 
         _whisperSampleBuffer.addAll(audioData);
         if (_whisperSampleBuffer.length < _whisperSamplesPerInference) {
@@ -564,18 +660,36 @@ class EnhancedSpeechProcessor {
         if (_whisperTranscriptionInFlight) {
           _whisperDroppedChunks++;
           if (_whisperDroppedChunks % 50 == 0) {
-            _logger.i('⏭️ Skipped $_whisperDroppedChunks audio chunks while Whisper was busy', category: LogCategory.speech);
+            final inFlightMs = _whisperInferenceStartedAt == null
+                ? null
+                : DateTime.now().difference(_whisperInferenceStartedAt!).inMilliseconds;
+            _logger.i(
+              '⏭️ Skipped $_whisperDroppedChunks audio chunks while Whisper was busy${inFlightMs != null ? ' (inFlightMs=$inFlightMs)' : ''}',
+              category: LogCategory.speech,
+            );
+          }
+
+          if (_whisperDroppedChunks % 25 == 0) {
+            _processSpeechResult(SpeechResult(
+              text: defaultFallbackTranscript,
+              confidence: 0.0,
+              isFinal: false,
+              timestamp: DateTime.now(),
+            ));
           }
           return;
         }
         
         try {
           _whisperTranscriptionInFlight = true;
+          _whisperInferenceStartedAt = DateTime.now();
           final inferenceSamples =
               List<int>.from(_whisperSampleBuffer.take(_whisperSamplesPerInference));
           _whisperSampleBuffer.removeRange(0, _whisperSamplesPerInference);
 
-          final rms = _calculateNormalizedRms(inferenceSamples);
+            final normalizedSamples = _normalizeWhisperSamples(inferenceSamples);
+
+            final rms = _calculateNormalizedRms(normalizedSamples);
           _micLevelController.add(rms);
           if (rms < _minWhisperRms) {
             _lowRmsSkippedWindows++;
@@ -595,21 +709,27 @@ class EnhancedSpeechProcessor {
           _lowRmsSkippedWindows = 0;
 
           // Convert audio data to Uint8List for Whisper processing
-          final audioBytes = ByteData(inferenceSamples.length * 2);
-          for (int i = 0; i < inferenceSamples.length; i++) {
-            audioBytes.setInt16(i * 2, inferenceSamples[i], Endian.little);
+          final audioBytes = ByteData(normalizedSamples.length * 2);
+          for (int i = 0; i < normalizedSamples.length; i++) {
+            audioBytes.setInt16(i * 2, normalizedSamples[i], Endian.little);
           }
           final audioBuffer = audioBytes.buffer.asUint8List();
           _logger.d('🔄 Converting audio to bytes (${audioBuffer.length} bytes)', category: LogCategory.speech);
           
           // Process with Whisper service
-          _logger.d('🎤 Sending audio to Whisper for transcription...', category: LogCategory.speech);
-          final result = await _whisperService
-              .processAudioBuffer(audioBuffer)
-              .timeout(const Duration(seconds: 8));
+          _logger.d('🎤 Sending audio to Whisper for transcription... (inFlightMs=0)', category: LogCategory.speech);
+            final result = await _whisperService.processAudioBuffer(audioBuffer);
+
+          if (_audioSubscription == null) {
+            _logger.d('⏹️ Ignoring Whisper result because processing has already stopped', category: LogCategory.speech);
+            return;
+          }
 
           final normalizedText = result.text.trim();
-          _logger.i('📝 Whisper transcription result: "$normalizedText" (confidence: ${result.confidence})', category: LogCategory.speech);
+            final inferenceMs = _whisperInferenceStartedAt == null
+              ? -1
+              : DateTime.now().difference(_whisperInferenceStartedAt!).inMilliseconds;
+            _logger.i('📝 Whisper transcription result: "$normalizedText" (confidence: ${result.confidence}, inFlightMs: $inferenceMs)', category: LogCategory.speech);
 
           if (normalizedText.isEmpty) {
             _emptyWhisperWindows++;
@@ -636,12 +756,14 @@ class EnhancedSpeechProcessor {
             timestamp: result.timestamp,
           ));
           
-        } on TimeoutException catch (e) {
-          _logger.w('⏱️ Whisper transcription timed out, skipping this inference window: $e', category: LogCategory.speech);
         } catch (e, stackTrace) {
-          _logger.e('❌ Error processing audio chunk', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+          final inferenceMs = _whisperInferenceStartedAt == null
+              ? -1
+              : DateTime.now().difference(_whisperInferenceStartedAt!).inMilliseconds;
+          _logger.e('❌ Error processing audio chunk (inFlightMs: $inferenceMs)', category: LogCategory.speech, error: e, stackTrace: stackTrace);
         } finally {
           _whisperTranscriptionInFlight = false;
+          _whisperInferenceStartedAt = null;
         }
       }, onError: (error, stackTrace) {
         _logger.e('❌ Error in audio stream', category: LogCategory.speech, error: error, stackTrace: stackTrace);
@@ -674,10 +796,18 @@ class EnhancedSpeechProcessor {
       _logger.i('🎤⚙️ [APPLE STT] Starting processing with offline mode: $useOfflineMode, forceOfflineMode: ${_config.forceOfflineMode}', category: LogCategory.speech);
 
       _logger.i('🍎 [DEBUG] About to call _appleSpeechService.startProcessing()', category: LogCategory.speech);
-      bool success = await _appleSpeechService.startProcessing(useOfflineMode: useOfflineMode);
-      _logger.i('🍎 [DEBUG] _appleSpeechService.startProcessing() returned: $success', category: LogCategory.speech);
+      unawaited(
+        _appleSpeechService.startProcessing(useOfflineMode: useOfflineMode).then((success) {
+          _logger.i('🍎 [DEBUG] _appleSpeechService.startProcessing() returned: $success', category: LogCategory.speech);
+          if (!success) {
+            _logger.w('⚠️ [APPLE STT] Apple Speech start returned false', category: LogCategory.speech);
+          }
+        }).catchError((error, stackTrace) {
+          _logger.e('❌ [APPLE STT] Async start failed', category: LogCategory.speech, error: error, stackTrace: stackTrace);
+        }),
+      );
 
-      _logger.i('✅ [APPLE STT] Apple Speech processing started successfully (offline: $useOfflineMode)', category: LogCategory.speech);
+      _logger.i('✅ [APPLE STT] Apple Speech processing launch requested (non-blocking)', category: LogCategory.speech);
     } catch (e, stackTrace) {
       _logger.e('❌ [APPLE STT] Failed to start Apple Speech processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       rethrow;
@@ -710,7 +840,10 @@ class EnhancedSpeechProcessor {
       _audioSubscription = null;
 
       _audioSubscription = _audioCaptureService.audioStream.listen((audioData) async {
-        _logger.d('🎵 [NEXA STT] Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
+        _nexaChunkLogCounter++;
+        if (_nexaChunkLogCounter % 10 == 0) {
+          _logger.d('🎵 [NEXA STT] Received audio chunk (${audioData.length} samples, sample #$_nexaChunkLogCounter)', category: LogCategory.speech);
+        }
 
         try {
           // Convert 16-bit PCM int samples to little-endian byte pairs
@@ -854,12 +987,18 @@ class EnhancedSpeechProcessor {
       // Listen to stereo audio frames and feed them to spatial caption service
       _stereoAudioSubscription = _stereoAudioCapture.frames.listen((frame) {
         try {
-          _logger.d('🎧 [SPATIAL] Received stereo frame: L=${frame.left.length}, R=${frame.right.length} samples', category: LogCategory.speech);
+          _spatialFrameLogCounter++;
+          final shouldLogFrame = _spatialFrameLogCounter % 20 == 0;
+          if (shouldLogFrame) {
+            _logger.d('🎧 [SPATIAL] Received stereo frame: L=${frame.left.length}, R=${frame.right.length} samples (frame #$_spatialFrameLogCounter)', category: LogCategory.speech);
+          }
           
           // Feed audio frame to spatial caption integration service
           final spatialService = GetIt.I<SpatialCaptionIntegrationService>();
           spatialService.updateAudioFrame(frame);
-          _logger.d('📍 [SPATIAL] Audio frame sent to spatial caption integration', category: LogCategory.speech);
+          if (shouldLogFrame) {
+            _logger.d('📍 [SPATIAL] Audio frame sent to spatial caption integration', category: LogCategory.speech);
+          }
         } catch (e) {
           _logger.w('⚠️ [SPATIAL] Could not update spatial caption service: $e', category: LogCategory.speech);
         }
@@ -1067,10 +1206,18 @@ class EnhancedSpeechProcessor {
       // Stop stereo audio capture
       await _audioSubscription?.cancel();
       _audioSubscription = null;
+      if (_emulatorNativeSpeechFallbackActive) {
+        await _appleSpeechService.stopProcessing();
+      }
+      _emulatorNativeSpeechFallbackActive = false;
       _whisperTranscriptionInFlight = false;
       _whisperDroppedChunks = 0;
       _lowRmsSkippedWindows = 0;
       _emptyWhisperWindows = 0;
+      _whisperChunkLogCounter = 0;
+      _nexaChunkLogCounter = 0;
+      _spatialFrameLogCounter = 0;
+      _whisperInferenceStartedAt = null;
       _whisperSampleBuffer.clear();
       await _stopStereoAudioCapture();
       

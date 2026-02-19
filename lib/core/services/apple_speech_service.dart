@@ -215,6 +215,12 @@ class AppleSpeechService {
     }
     
     try {
+      final resolvedLocaleId = await _resolveLocaleId(_config.language);
+      _logger.i(
+        '🌐 [APPLE STT] Requested locale: ${_config.language}, resolved locale: ${resolvedLocaleId ?? 'device-default'}',
+        category: LogCategory.speech,
+      );
+
       //_logger.i('🎤 Starting Apple Speech listening (offline: $useOfflineMode)', category: LogCategory.speech);
       
       // Emit STT event for processing start
@@ -224,7 +230,9 @@ class AppleSpeechService {
       ));
       
       //_logger.i('🍎 [DEBUG] About to call _speechToText.listen()', category: LogCategory.speech);
-      await _speechToText.listen(
+      _isListening = true;
+
+      final listenFuture = _speechToText.listen(
         onResult: (result) {
           //_logger.i('🎤📝 [APPLE STT] Raw result: "${result.recognizedWords}" (confidence: ${result.confidence}, final: ${result.finalResult}, hasConfidenceRating: ${result.hasConfidenceRating})', category: LogCategory.speech);
           
@@ -280,11 +288,31 @@ class AppleSpeechService {
           enableHapticFeedback: false,     // Disable haptic feedback
           listenMode: ListenMode.dictation,      // Dictation mode for better final results
         ),
-        localeId: _config.language,
+        localeId: resolvedLocaleId,
         pauseFor: Duration(seconds: 3),    // Wait 3 seconds of silence before finalizing (best practice)
         listenFor: Duration(seconds: 30),  // Maximum listen duration
       );
-      //_logger.i('🍎 [DEBUG] _speechToText.listen() call completed', category: LogCategory.speech);
+
+      unawaited(
+        listenFuture.then((_) {
+          _logger.d('ℹ️ [APPLE STT] listen session completed', category: LogCategory.speech);
+        }).catchError((error, stackTrace) {
+          _isListening = false;
+          _logger.e(
+            '❌ [APPLE STT] listen session failed after start',
+            category: LogCategory.speech,
+            error: error,
+            stackTrace: stackTrace,
+          );
+          _sttEventController.add(AppleSpeechEvent(
+            progress: 0.0,
+            message: 'Speech recognition listen session failed',
+            error: error,
+          ));
+        }),
+      );
+
+      _logger.i('✅ [APPLE STT] Listening session launched (non-blocking start)', category: LogCategory.speech);
       
       return true;
     } catch (e, stackTrace) {
@@ -298,6 +326,45 @@ class AppleSpeechService {
       ));
       
       return false;
+    }
+  }
+
+  Future<String?> _resolveLocaleId(String configuredLanguage) async {
+    final requested = configuredLanguage.trim();
+    if (requested.isEmpty) {
+      return null;
+    }
+
+    final requestedNormalized = requested.replaceAll('_', '-').toLowerCase();
+
+    try {
+      final locales = await _speechToText.locales();
+      if (locales.isEmpty) {
+        return requested;
+      }
+
+      for (final locale in locales) {
+        if (locale.localeId.toLowerCase() == requested.toLowerCase()) {
+          return locale.localeId;
+        }
+      }
+
+      for (final locale in locales) {
+        if (locale.localeId.toLowerCase() == requestedNormalized) {
+          return locale.localeId;
+        }
+      }
+
+      for (final locale in locales) {
+        final localeNormalized = locale.localeId.replaceAll('_', '-').toLowerCase();
+        if (localeNormalized.startsWith('$requestedNormalized-')) {
+          return locale.localeId;
+        }
+      }
+
+      return null;
+    } catch (_) {
+      return requested;
     }
   }
   

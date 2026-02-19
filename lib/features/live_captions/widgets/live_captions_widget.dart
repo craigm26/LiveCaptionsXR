@@ -39,6 +39,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
+  bool _didInitializeFadeFromState = false;
 
   /// Fixed speaker-color palette (TLOU2 uses distinct per-speaker colors).
   static const List<Color> _speakerPalette = [
@@ -72,6 +73,22 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
   void dispose() {
     _fadeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitializeFadeFromState) return;
+
+    try {
+      final state = context.read<LiveCaptionsCubit>().state;
+      final isActive = state is LiveCaptionsActive && state.isListening;
+      _fadeController.value = isActive ? 1.0 : 0.0;
+    } catch (_) {
+      _fadeController.value = 1.0;
+    }
+
+    _didInitializeFadeFromState = true;
   }
 
   @override

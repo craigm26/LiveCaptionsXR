@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/speech_config.dart';
 import '../models/speech_result.dart';
 import 'app_logger.dart';
+import 'debug_logger_service.dart';
 import 'model_download_manager.dart';
 
 // Only import whisper_ggml on non-web platforms
@@ -31,10 +32,12 @@ class WhisperSTTEvent {
 /// Service for handling Whisper GGML speech-to-text processing
 class WhisperService {
   static final AppLogger _logger = AppLogger.instance;
+  static const Duration _emulatorTranscribeTimeout = Duration(seconds: 6);
   
   bool _isInitialized = false;
   bool _isProcessing = false;
   SpeechConfig _config = const SpeechConfig();
+  bool _isEmulator = false;
   
   // Whisper GGML instance
   Whisper? _whisper;
@@ -104,6 +107,25 @@ class WhisperService {
     
     try {
       _config = config ?? const SpeechConfig();
+      _isEmulator = await isAndroidEmulator();
+
+      if (_isEmulator && _config.whisperModel == 'base') {
+        final tinyModelKey = 'whisper-tiny';
+        final tinySupported = _modelDownloadManager.availableModels.contains(tinyModelKey);
+        if (tinySupported) {
+          final tinyExists = await _modelDownloadManager.modelExists(tinyModelKey);
+          final tinyComplete = await _modelDownloadManager.modelIsComplete(tinyModelKey);
+          if (tinyExists && tinyComplete) {
+            _config = _config.copyWith(whisperModel: 'tiny');
+            _logger.w('🧪 Emulator detected: using whisper-tiny for lower-latency inference', category: LogCategory.speech);
+          } else {
+            _logger.w('🧪 Emulator detected: whisper-tiny not available, keeping whisper-base', category: LogCategory.speech);
+          }
+        } else {
+          _logger.w('🧪 Emulator detected: whisper-tiny model key is not configured; keeping whisper-base', category: LogCategory.speech);
+        }
+      }
+
       _logger.i('🔧 Initializing Whisper service with model: ${_config.whisperModel}', category: LogCategory.speech);
       
       // Emit STT event for initialization start
@@ -407,9 +429,16 @@ class WhisperService {
         language: _config.language,
         isTranslate: _config.whisperTranslateToEnglish,
         isSpecialTokens: _config.whisperSuppressNonSpeechTokens,
-        threads: 4, // Use 4 threads for processing
+        threads: _isEmulator ? 1 : 4,
         isVerbose: false,
         isNoTimestamps: true, // We don't need timestamps for real-time
+        noFallback: _isEmulator,
+        speedUp: _isEmulator,
+      );
+
+      _logger.i(
+        '🎛️ Whisper request config: model=${_config.whisperModel}, threads=${transcribeRequest.threads}, speedUp=${transcribeRequest.speedUp}, noFallback=${transcribeRequest.noFallback}, emulator=$_isEmulator',
+        category: LogCategory.speech,
       );
       
       _logger.d('🎤 Sending transcription request to Whisper GGML...', category: LogCategory.speech);
@@ -421,10 +450,28 @@ class WhisperService {
       ));
       
       // Process audio with Whisper GGML
-      final response = await _whisper!.transcribe(
+      final transcribeFuture = _whisper!.transcribe(
         transcribeRequest: transcribeRequest,
         modelPath: _resolvedModelPath!,
       );
+      var timedOutOnEmulator = false;
+      final response = _isEmulator
+          ? await transcribeFuture.timeout(
+              _emulatorTranscribeTimeout,
+              onTimeout: () {
+                timedOutOnEmulator = true;
+                _logger.w(
+                  '⏱️ Whisper transcribe exceeded ${_emulatorTranscribeTimeout.inSeconds}s on emulator; returning activity fallback for this window',
+                  category: LogCategory.speech,
+                );
+                return WhisperTranscribeResponse(
+                  type: 'transcribe',
+                  text: 'Listening...',
+                  segments: [],
+                );
+              },
+            )
+          : await transcribeFuture;
       
       _logger.d('📝 Whisper GGML response received: "${response.text}"', category: LogCategory.speech);
       
@@ -432,10 +479,16 @@ class WhisperService {
       await tempFile.delete();
       _logger.d('🗑️ Cleaned up temp audio file', category: LogCategory.speech);
       
+      final normalizedResponseText = response.text.trim();
+      final isActivityFallback =
+          timedOutOnEmulator ||
+          normalizedResponseText.isEmpty ||
+          normalizedResponseText.toLowerCase() == 'listening...';
+
       final speechResult = SpeechResult(
-        text: response.text,
-        confidence: 0.8, // Whisper doesn't provide confidence, use default
-        isFinal: true,
+        text: isActivityFallback ? 'Listening...' : response.text,
+        confidence: isActivityFallback ? 0.0 : 0.8,
+        isFinal: !isActivityFallback,
         timestamp: DateTime.now(),
       );
       

@@ -35,6 +35,8 @@ class TranscribeRequest {
   final int threads;
   final bool isVerbose;
   final bool isNoTimestamps;
+  final bool noFallback;
+  final bool speedUp;
   
   TranscribeRequest({
     required this.audio,
@@ -44,6 +46,8 @@ class TranscribeRequest {
     this.threads = 4,
     this.isVerbose = false,
     this.isNoTimestamps = true,
+    this.noFallback = false,
+    this.speedUp = false,
   });
 }
 

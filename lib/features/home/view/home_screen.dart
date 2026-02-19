@@ -62,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _nexaReady = false;
   bool _nexaInitializing = false;
   Future<void>? _emulatorCameraStartFuture;
+  Future<void>? _speechPrewarmFuture;
   bool _emulatorCameraPreviewActive = false;
   String? _lastDirection;
   DateTime _lastDirectionAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -75,6 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptModelDownload();
       if (!mounted) return;
+
+      _startSpeechPrewarmForEmulator();
 
       _directionUpdateSubscription ??=
           sl<SpatialCaptionIntegrationService>().directionUpdates.listen((update) {
@@ -120,6 +123,48 @@ class _HomeScreenState extends State<HomeScreen> {
         await _initializeGemmaBeforeAR();
       }
     });
+  }
+
+  void _startSpeechPrewarmForEmulator() {
+    _speechPrewarmFuture ??= (() async {
+      final isEmulator = await isAndroidEmulator();
+      if (!isEmulator) {
+        return;
+      }
+
+      final speechProcessor = sl<EnhancedSpeechProcessor>();
+      if (speechProcessor.isReady) {
+        return;
+      }
+
+      _logger.i(
+        '🔥 Pre-warming speech engine on emulator to reduce Start Captions latency',
+        category: LogCategory.speech,
+      );
+
+      try {
+        final initialized = await speechProcessor.initialize(
+          enableGemmaEnhancement: false,
+        );
+        _logger.i(
+          initialized
+              ? '✅ Emulator speech pre-warm complete'
+              : '⚠️ Emulator speech pre-warm returned false',
+          category: LogCategory.speech,
+        );
+      } catch (e, stackTrace) {
+        _logger.w(
+          '⚠️ Emulator speech pre-warm failed; normal Start flow will handle init: $e',
+          category: LogCategory.speech,
+        );
+        _logger.d(
+          'ℹ️ Emulator speech pre-warm stack',
+          category: LogCategory.speech,
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    })();
   }
 
   /// Check if the current device uses Nexa/Parakeet ASR (Snapdragon with NPU).
@@ -1094,6 +1139,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 showOverlay = inARMode ||
                                     captionsState.showOverlayFallback ||
                                     arSessionState is ARSessionError ||
+                                  arSessionState is ARSessionStartingServices ||
+                                  arSessionState is ARSessionInitializing ||
+                                  arSessionState is ARSessionCalibrating ||
                                     arSessionState is ARSessionInitial ||
                                     arSessionState is ARSessionTrackingLost;
                                 if (showOverlay) {
@@ -1155,16 +1203,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.hearing,
                                         color: Colors.white),
                                     const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                        style: const TextStyle(
-                                            color: Colors.white),
-                                      ),
+                                    Text(
+                                      '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
+                                      style: const TextStyle(
+                                          color: Colors.white),
                                     ),
                                   ],
                                 ),
