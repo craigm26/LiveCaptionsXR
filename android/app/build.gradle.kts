@@ -44,6 +44,21 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Nexa NPU SDK requires arm64-v8a (all Snapdragon NPU devices are arm64)
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+
+    // ABI splits: produce a dedicated arm64 APK for NPU/Play Store
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = true  // also produce a universal APK
+        }
     }
 
     signingConfigs {
