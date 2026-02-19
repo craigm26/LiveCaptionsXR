@@ -447,6 +447,9 @@ class ARSessionCubit extends Cubit<ARSessionState> {
           .invokeMethod('getDeviceOrientation');
       
       _logger.i('✅ AR session responded to validation call', category: LogCategory.ar);
+    } on MissingPluginException catch (e) {
+      _logger.w('⚠️ AR validation method unavailable in this runtime; skipping strict validation: $e', category: LogCategory.ar);
+      return;
     } on PlatformException catch (e) {
       if (e.code == 'NO_SESSION') {
         _logger.e('❌ AR session validation failed: NO_SESSION', category: LogCategory.ar);

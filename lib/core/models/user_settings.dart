@@ -61,6 +61,7 @@ class UserSettings {
   final bool accessibilityCaptionModeEnabled;
   final bool speakerFocusModeEnabled;
   final bool debugLoggingOverlayEnabled;
+  final bool rawSttDebugLineEnabled;
 
   /// Whether spatial localization (speaker direction tracking) is enabled.
   final bool spatialLocalizationEnabled;
@@ -86,6 +87,7 @@ class UserSettings {
     this.accessibilityCaptionModeEnabled = false,
     this.speakerFocusModeEnabled = false,
     this.debugLoggingOverlayEnabled = true,
+    this.rawSttDebugLineEnabled = true,
     this.spatialLocalizationEnabled = true,
     this.localizationSensitivity = 0.5,
     this.captionDurationSeconds = 6.0,
@@ -105,6 +107,7 @@ class UserSettings {
     bool? accessibilityCaptionModeEnabled,
     bool? speakerFocusModeEnabled,
     bool? debugLoggingOverlayEnabled,
+    bool? rawSttDebugLineEnabled,
     bool? spatialLocalizationEnabled,
     double? localizationSensitivity,
     double? captionDurationSeconds,
@@ -125,6 +128,8 @@ class UserSettings {
           speakerFocusModeEnabled ?? this.speakerFocusModeEnabled,
       debugLoggingOverlayEnabled:
           debugLoggingOverlayEnabled ?? this.debugLoggingOverlayEnabled,
+        rawSttDebugLineEnabled:
+          rawSttDebugLineEnabled ?? this.rawSttDebugLineEnabled,
       spatialLocalizationEnabled:
           spatialLocalizationEnabled ?? this.spatialLocalizationEnabled,
       localizationSensitivity:
@@ -149,6 +154,7 @@ class UserSettings {
       'accessibilityCaptionModeEnabled': accessibilityCaptionModeEnabled,
       'speakerFocusModeEnabled': speakerFocusModeEnabled,
       'debugLoggingOverlayEnabled': debugLoggingOverlayEnabled,
+      'rawSttDebugLineEnabled': rawSttDebugLineEnabled,
       'spatialLocalizationEnabled': spatialLocalizationEnabled,
       'localizationSensitivity': localizationSensitivity,
       'captionDurationSeconds': captionDurationSeconds,
@@ -189,6 +195,8 @@ class UserSettings {
           json['speakerFocusModeEnabled'] as bool? ?? false,
       debugLoggingOverlayEnabled:
           json['debugLoggingOverlayEnabled'] as bool? ?? false,
+        rawSttDebugLineEnabled:
+          json['rawSttDebugLineEnabled'] as bool? ?? true,
       spatialLocalizationEnabled:
           json['spatialLocalizationEnabled'] as bool? ?? true,
       localizationSensitivity:

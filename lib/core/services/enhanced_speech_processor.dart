@@ -84,9 +84,10 @@ class EnhancedSpeechProcessor {
   bool _whisperTranscriptionInFlight = false;
   int _whisperDroppedChunks = 0;
   final List<int> _whisperSampleBuffer = <int>[];
-  static const int _whisperSamplesPerInference = 19200; // ~1.2s at 16kHz
-  static const double _minWhisperRms = 0.012;
+  static const int _whisperSamplesPerInference = 9600; // ~0.6s at 16kHz
+  static const double _minWhisperRms = 0.0015;
   int _lowRmsSkippedWindows = 0;
+  int _emptyWhisperWindows = 0;
 
   Stream<double> get micLevels => _micLevelController.stream;
 
@@ -578,10 +579,17 @@ class EnhancedSpeechProcessor {
           _micLevelController.add(rms);
           if (rms < _minWhisperRms) {
             _lowRmsSkippedWindows++;
-            if (_lowRmsSkippedWindows % 20 == 0) {
-              _logger.i('🔇 Skipping low-energy audio windows for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)})', category: LogCategory.speech);
+            if (_lowRmsSkippedWindows % 5 == 0) {
+              _logger.i('🔇 Low-energy audio window for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)}, threshold=${_minWhisperRms.toStringAsFixed(4)})', category: LogCategory.speech);
             }
-            return;
+
+            // On very quiet mics (common on emulator/XR passthrough),
+            // periodically force an inference to avoid a "no captions" dead-zone.
+            if (_lowRmsSkippedWindows < 4) {
+              return;
+            }
+
+            _logger.i('🎙️ Forcing Whisper inference despite low RMS to keep captions responsive', category: LogCategory.speech);
           }
 
           _lowRmsSkippedWindows = 0;
@@ -596,15 +604,29 @@ class EnhancedSpeechProcessor {
           
           // Process with Whisper service
           _logger.d('🎤 Sending audio to Whisper for transcription...', category: LogCategory.speech);
-          final result = await _whisperService.processAudioBuffer(audioBuffer);
+          final result = await _whisperService
+              .processAudioBuffer(audioBuffer)
+              .timeout(const Duration(seconds: 8));
 
           final normalizedText = result.text.trim();
           _logger.i('📝 Whisper transcription result: "$normalizedText" (confidence: ${result.confidence})', category: LogCategory.speech);
 
           if (normalizedText.isEmpty) {
+            _emptyWhisperWindows++;
+            if (_emptyWhisperWindows % 4 == 0) {
+              _logger.i('🫧 Whisper returned empty transcripts for $_emptyWhisperWindows windows; emitting activity fallback', category: LogCategory.speech);
+              _processSpeechResult(SpeechResult(
+                text: defaultFallbackTranscript,
+                confidence: result.confidence,
+                isFinal: false,
+                timestamp: DateTime.now(),
+              ));
+            }
             _logger.d('⏭️ Ignoring empty Whisper transcript window', category: LogCategory.speech);
             return;
           }
+
+          _emptyWhisperWindows = 0;
           
           // Process the speech result
           _processSpeechResult(SpeechResult(
@@ -614,6 +636,8 @@ class EnhancedSpeechProcessor {
             timestamp: result.timestamp,
           ));
           
+        } on TimeoutException catch (e) {
+          _logger.w('⏱️ Whisper transcription timed out, skipping this inference window: $e', category: LogCategory.speech);
         } catch (e, stackTrace) {
           _logger.e('❌ Error processing audio chunk', category: LogCategory.speech, error: e, stackTrace: stackTrace);
         } finally {
@@ -1046,6 +1070,7 @@ class EnhancedSpeechProcessor {
       _whisperTranscriptionInFlight = false;
       _whisperDroppedChunks = 0;
       _lowRmsSkippedWindows = 0;
+      _emptyWhisperWindows = 0;
       _whisperSampleBuffer.clear();
       await _stopStereoAudioCapture();
       
@@ -1080,6 +1105,11 @@ class EnhancedSpeechProcessor {
   Future<void> updateConfig(SpeechConfig newConfig) async {
     _config = newConfig;
     _currentLanguage = newConfig.language;
+  }
+
+  void setEnhancementEnabled(bool enabled) {
+    _useEnhancement = enabled;
+    _logger.i('✨ Enhancement mode ${enabled ? 'enabled' : 'disabled'}', category: LogCategory.gemma);
   }
 
   void dispose() {

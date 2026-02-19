@@ -22,6 +22,7 @@ class CameraService {
   
   Timer? _periodicCaptureTimer;
   final StreamController<List<int>> _frameStreamController = StreamController<List<int>>.broadcast();
+  static const bool _enablePeriodicCapture = false;
   
   /// Initialize the camera service for mobile platforms
   Future<void> initialize() async {
@@ -78,7 +79,11 @@ class CameraService {
     }
     
     _isCameraStarted = true;
-    _startPeriodicCapture();
+    if (_enablePeriodicCapture) {
+      _startPeriodicCapture();
+    } else {
+      _logger.d('ℹ️ Periodic still capture disabled; using on-demand capture only', category: LogCategory.camera);
+    }
     _logger.i('✅ Camera started successfully', category: LogCategory.camera);
   }
   

@@ -301,6 +301,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Tooltip(
                 message:
+                    'Show the temporary raw speech-to-text line under captions for headset debugging.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.text_fields,
+                  title: 'Raw STT Debug Line',
+                  subtitle: 'Show raw speech text line under captions',
+                  trailing: Switch(
+                    value: state.rawSttDebugLineEnabled,
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().toggleRawSttDebugLine(value);
+                    },
+                  ),
+                ),
+              ),
+
+              Tooltip(
+                message:
                     'Enable to use device LED for visual alerts (useful for accessibility).',
                 child: _buildSettingTile(
                   context,

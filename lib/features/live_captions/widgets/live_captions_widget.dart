@@ -171,7 +171,29 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
             isInterim,
             settings,
           ),
+          if (settings.rawSttDebugLineEnabled &&
+              state.rawSttDebugText != null &&
+              state.rawSttDebugText!.trim().isNotEmpty) ...[
+            SizedBox(height: 6 * settings.captionFontSize),
+            _buildRawSttDebugLine(settings, state.rawSttDebugText!),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildRawSttDebugLine(UserSettings settings, String rawText) {
+    final fontScale = settings.captionFontSize;
+    return Text(
+      'raw: ${rawText.trim()}',
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Colors.white.withAlpha((255 * 0.55).round()),
+        fontSize: 12 * fontScale,
+        fontWeight: FontWeight.w400,
+        height: 1.2,
       ),
     );
   }

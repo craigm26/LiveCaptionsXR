@@ -32,6 +32,10 @@ class SettingsCubit extends Cubit<UserSettings> {
     _debugLogger.setEnabled(value);
   }
 
+  void toggleRawSttDebugLine(bool value) {
+    _saveSettings(state.copyWith(rawSttDebugLineEnabled: value));
+  }
+
 
   // Optionally notify other services or update state when the speech engine changes
   Future<void> setSpeechEngine(SpeechEngine engine) async {

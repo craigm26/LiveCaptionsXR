@@ -31,6 +31,7 @@ import 'package:live_captions_xr/core/services/camera_service.dart';
 import '../../../core/services/apple_speech_service.dart';
 import '../../../core/services/nexa_asr_service.dart';
 import '../../../core/services/enhanced_speech_processor.dart';
+import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/models/device_model_config.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -46,18 +47,24 @@ class _HomeScreenState extends State<HomeScreen> {
   late ModelDownloadManager _modelDownloadManager;
   bool _isGemmaInitialized = false;
   bool _isGemmaInitializing = false;
+  bool _isWhisperModelAvailable = false;
+  bool _isAndroidXrDevice = false;
+  bool _forceWhisperOnlyMode = false;
   bool? _nexaDevice; // cached result of Nexa device check
   bool _modelsMissing = false; // Track if required models are missing
   bool _isNexaDeviceDetected = false; // Track if this is a Nexa device
 
   // Nexa SDK progress tracking
   StreamSubscription<NexaAsrEvent>? _nexaEventSubscription;
+  StreamSubscription<DirectionUpdate>? _directionUpdateSubscription;
   double _nexaProgress = 0.0;
   String _nexaStatusMessage = 'Detecting device...';
   bool _nexaReady = false;
   bool _nexaInitializing = false;
   Future<void>? _emulatorCameraStartFuture;
   bool _emulatorCameraPreviewActive = false;
+  String? _lastDirection;
+  DateTime _lastDirectionAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -67,12 +74,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptModelDownload();
+      if (!mounted) return;
+
+      _directionUpdateSubscription ??=
+          sl<SpatialCaptionIntegrationService>().directionUpdates.listen((update) {
+        if (!mounted) return;
+
+        final now = DateTime.now();
+        final shouldEmit =
+            update.direction != _lastDirection || now.difference(_lastDirectionAt).inMilliseconds > 400;
+
+        if (!shouldEmit) return;
+
+        _lastDirection = update.direction;
+        _lastDirectionAt = now;
+
+        try {
+          context.read<LocalizationCubit>().localize(update.direction, update.confidence);
+        } catch (_) {}
+
+        try {
+          context.read<SoundDetectionCubit>().detectSound(
+            SoundEvent(
+              type: 'speech',
+              confidence: update.confidence,
+              timestamp: update.timestamp,
+              sourceDirection: update.direction,
+              description: 'Speech detected from ${update.direction} direction',
+              isMultimodal: false,
+              priority: 'medium',
+            ),
+          );
+        } catch (_) {}
+      });
+
+      if (_forceWhisperOnlyMode) {
+        context.read<LiveCaptionsCubit>().setEnhancementEnabled(false);
+      }
       // On NPU devices, start Nexa initialization immediately
-      if (_isNexaDeviceDetected) {
+      if (_isNexaDeviceDetected && !_forceWhisperOnlyMode) {
         _startNexaInitialization();
       }
       // Initialize Gemma after model checks
-      await _initializeGemmaBeforeAR();
+      if (!_forceWhisperOnlyMode) {
+        await _initializeGemmaBeforeAR();
+      }
     });
   }
 
@@ -87,10 +133,16 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final registry = DeviceModelRegistry();
       final config = await registry.getDeviceConfig();
+      _isAndroidXrDevice =
+        config.formFactor == DeviceFormFactor.xrHeadset ||
+        config.formFactor == DeviceFormFactor.arGlasses;
+      _forceWhisperOnlyMode = Platform.isAndroid && _isAndroidXrDevice;
+
       // Nexa device if ASR model is Parakeet-based (not Whisper)
-      _nexaDevice = config.asrModel.name.startsWith('parakeet');
+      _nexaDevice =
+        !_forceWhisperOnlyMode && config.asrModel.name.startsWith('parakeet');
       _logger.i(
-          '📱 Device config: ${config.deviceId}, ASR: ${config.asrModel.name}, isNexa: $_nexaDevice',
+        '📱 Device config: ${config.deviceId}, formFactor: ${config.formFactor.name}, ASR: ${config.asrModel.name}, isNexa: $_nexaDevice, forceWhisperOnly: $_forceWhisperOnlyMode',
           category: LogCategory.system);
       return _nexaDevice!;
     } catch (e) {
@@ -132,7 +184,10 @@ class _HomeScreenState extends State<HomeScreen> {
     // On generic Android: Whisper required for ASR, Gemma required for enhancement
     final bool needsWhisper;
     final bool needsGemma;
-    if (isNexa) {
+    if (_forceWhisperOnlyMode) {
+      needsWhisper = !kIsWeb;
+      needsGemma = false;
+    } else if (isNexa) {
       needsWhisper = false; // Nexa Parakeet handles ASR
       needsGemma = false;   // Nexa Granite/OmniNeural handles LLM
     } else if (!kIsWeb && Platform.isIOS) {
@@ -152,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _modelsMissing = hasMissingModels;
         _isNexaDeviceDetected = isNexa;
+        _isWhisperModelAvailable = whisperExists;
       });
     }
 
@@ -178,6 +234,12 @@ class _HomeScreenState extends State<HomeScreen> {
   /// On Nexa devices, this runs as fire-and-forget in the background since
   /// the Nexa LLM service handles text enhancement; Gemma is a bonus.
   Future<void> _initializeGemmaBeforeAR() async {
+    if (_forceWhisperOnlyMode) {
+      _logger.i('🎤 Whisper-only mode active (Android XR) - skipping Gemma init',
+          category: LogCategory.gemma);
+      return;
+    }
+
     if (_isGemmaInitialized || _isGemmaInitializing) {
       _logger.i('🤖 Gemma already initialized or initializing, skipping',
           category: LogCategory.gemma);
@@ -571,15 +633,19 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildStatusChip(
                 label: 'ASR',
-                ready: _isNexaDeviceDetected ? _nexaReady : _isGemmaInitialized,
-                loading: _isNexaDeviceDetected ? _nexaInitializing : _isGemmaInitializing,
+                ready: _isNexaDeviceDetected
+                    ? _nexaReady
+                    : (!kIsWeb && Platform.isIOS ? true : _isWhisperModelAvailable),
+                loading: _isNexaDeviceDetected ? _nexaInitializing : false,
                 icon: Icons.mic,
               ),
               const SizedBox(width: 8),
               _buildStatusChip(
-                label: 'LLM',
-                ready: _isGemmaInitialized || (_isNexaDeviceDetected && _nexaReady),
-                loading: _isGemmaInitializing,
+                label: _forceWhisperOnlyMode ? 'LLM Off' : 'LLM',
+                ready: _forceWhisperOnlyMode
+                    ? false
+                    : (_isGemmaInitialized || (_isNexaDeviceDetected && _nexaReady)),
+                loading: _forceWhisperOnlyMode ? false : _isGemmaInitializing,
                 icon: Icons.auto_awesome,
               ),
               const SizedBox(width: 8),
@@ -604,32 +670,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               _nexaStatusMessage,
               style: const TextStyle(color: Colors.white54, fontSize: 10),
-            ),
-          ],
-          // Download models prompt
-          if (_modelsMissing && !_isNexaDeviceDetected) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => context.push('/models'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha:0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withValues(alpha:0.4)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.download, color: Colors.orangeAccent, size: 14),
-                    SizedBox(width: 6),
-                    Text(
-                      'Download AI Models',
-                      style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
         ],
@@ -712,6 +752,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _nexaEventSubscription?.cancel();
+    _directionUpdateSubscription?.cancel();
     if (_emulatorCameraPreviewActive) {
       try {
         sl<CameraService>().stopCamera();
@@ -729,40 +770,6 @@ class _HomeScreenState extends State<HomeScreen> {
       cameraService.startCamera();
       _emulatorCameraPreviewActive = true;
     })();
-  }
-
-  /// Build a non-blocking model status bar
-  Widget _buildModelStatusBar(BuildContext context) {
-    return Container(
-      color: Colors.orange.shade800,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            const Icon(Icons.download_for_offline, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'AI models needed for full functionality',
-                style: TextStyle(color: Colors.white, fontSize: 14),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                context.push('/models');
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.orange.shade800,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: const Text('Download'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildCameraOrFallback() {
@@ -783,9 +790,13 @@ class _HomeScreenState extends State<HomeScreen> {
               }
               final preview = cameraService.getCameraPreviewWidget();
               if (preview != null) {
+                final orientedPreview = RotatedBox(
+                  quarterTurns: 1,
+                  child: preview,
+                );
                 return Stack(
                   children: [
-                    Positioned.fill(child: preview),
+                    Positioned.fill(child: orientedPreview),
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: Container(
@@ -1026,19 +1037,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               // Only show overlay when in spatial mode and captions are active
                               // or when explicitly requested for fallback
                               bool showOverlay = false;
-                              if (inARMode &&
-                                  captionsState is LiveCaptionsActive) {
-                                showOverlay = true;
-                                _logger.i(
-                                  '🎯 [UI] Showing captions overlay in spatial mode',
-                                    category: LogCategory.ui);
-                              } else if (inARMode &&
-                                  captionsState is LiveCaptionsActive &&
-                                  captionsState.showOverlayFallback) {
-                                showOverlay = true;
-                                // Fallback mode
-                              } else {
-                                // Not showing captions overlay
+                              if (captionsState is LiveCaptionsActive &&
+                                  captionsState.isListening) {
+                                showOverlay = inARMode ||
+                                    captionsState.showOverlayFallback ||
+                                    arSessionState is ARSessionError ||
+                                    arSessionState is ARSessionInitial ||
+                                    arSessionState is ARSessionTrackingLost;
+                                if (showOverlay) {
+                                  _logger.i(
+                                    '🎯 [UI] Showing captions overlay (${inARMode ? 'spatial' : 'fallback'})',
+                                    category: LogCategory.ui,
+                                  );
+                                }
                               }
 
                               return showOverlay
@@ -1209,9 +1220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? null
                       : (_isNexaDeviceDetected
                         ? _buildNexaBottomBar(context)
-                        : (_modelsMissing
-                          ? _buildModelStatusBar(context)
-                          : null)),
+                        : null),
                       // Unified Start/Stop button
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(

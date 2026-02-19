@@ -13,6 +13,18 @@ import 'app_logger.dart';
 import 'hybrid_localization_engine.dart';
 import 'speaker_diarization_service.dart';
 
+class DirectionUpdate {
+  final String direction;
+  final double confidence;
+  final DateTime timestamp;
+
+  const DirectionUpdate({
+    required this.direction,
+    required this.confidence,
+    required this.timestamp,
+  });
+}
+
 /// Service that integrates live captions with spatial positioning in AR
 /// 
 /// Implements 3D/4D spatial intelligence by:
@@ -36,6 +48,9 @@ class SpatialCaptionIntegrationService {
   
   // Track ongoing enhancements
   final Map<String, Timer> _enhancementTimers = {};
+
+  final StreamController<DirectionUpdate> _directionUpdateController =
+      StreamController<DirectionUpdate>.broadcast();
   
   // Track last audio frame for direction estimation
   StereoAudioFrame? _lastAudioFrame;
@@ -113,6 +128,8 @@ class SpatialCaptionIntegrationService {
     _lastAudioFrame = frame;
   }
 
+  Stream<DirectionUpdate> get directionUpdates => _directionUpdateController.stream;
+
   /// Process a partial speech result with speaker diarization
   Future<SpeechResult> processPartialResult(SpeechResult result) async {
     _logger.i('🎤 [SPATIAL INTEGRATION] Processing partial result: "${result.text}" (confidence: ${result.confidence})', category: LogCategory.captions);
@@ -144,6 +161,15 @@ class SpatialCaptionIntegrationService {
       }
       
       _logger.d('📍 [SPATIAL INTEGRATION] Position: $position, Speaker: $speakerId', category: LogCategory.captions);
+
+      final partialDirection = _deriveDirection(result, position);
+      _directionUpdateController.add(
+        DirectionUpdate(
+          direction: partialDirection,
+          confidence: result.confidence,
+          timestamp: DateTime.now(),
+        ),
+      );
       
       // Add partial caption through spatial plugin
       await _spatialCaptionsCubit.addPartialCaption(
@@ -203,6 +229,15 @@ class SpatialCaptionIntegrationService {
         position: position,
         speakerId: speakerId,
         confidence: result.confidence,
+      );
+
+      final finalDirection = _deriveDirection(result, position);
+      _directionUpdateController.add(
+        DirectionUpdate(
+          direction: finalDirection,
+          confidence: result.confidence,
+          timestamp: DateTime.now(),
+        ),
       );
       
       // Schedule enhancement with Gemma
@@ -339,6 +374,16 @@ class SpatialCaptionIntegrationService {
     return sqrt(sum / samples.length);
   }
 
+  String _deriveDirection(SpeechResult result, Vector3 position) {
+    if (result.speakerDirection != null && result.speakerDirection!.isNotEmpty) {
+      return result.speakerDirection!;
+    }
+
+    if (position.x < -0.25) return 'left';
+    if (position.x > 0.25) return 'right';
+    return 'center';
+  }
+
   /// Schedule enhancement of a final caption
   void _scheduleEnhancement(SpeechResult result, String speakerId) {
     // Cancel any existing timer for this speaker
@@ -470,6 +515,9 @@ class SpatialCaptionIntegrationService {
       timer.cancel();
     }
     _enhancementTimers.clear();
+    if (!_directionUpdateController.isClosed) {
+      _directionUpdateController.close();
+    }
     _speakerDiarizationService.dispose();
   }
 } 
