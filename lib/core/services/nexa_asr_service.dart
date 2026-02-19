@@ -845,13 +845,31 @@ class NexaAsrService {
   /// Ensure the ASR model is downloaded before use
   Future<bool> _ensureModelDownloaded(String modelName) async {
     try {
+      // First, check the Nexa SDK's native download status — most reliable check
+      // since the SDK tracks its own downloads in SharedPreferences.
+      try {
+        final nativeInstalled = await ModelDownloader.isModelDownloaded(modelName);
+        if (nativeInstalled) {
+          final nativePath = await ModelDownloader.getModelPath(modelName);
+          if (nativePath != null) {
+            _modelPath = nativePath;
+            _logger.i('✅ Model $modelName verified via native SDK: $nativePath',
+                category: LogCategory.speech);
+            return true;
+          }
+        }
+      } catch (e) {
+        _logger.d('Native SDK check failed (non-fatal): $e');
+      }
+
       final downloadManager = sl<UnifiedDownloadManager>();
 
       // Check if model is already installed
       if (await downloadManager.isModelInstalled(modelName)) {
         final path = await downloadManager.getModelPath(modelName);
         if (path != null) {
-          // Verify model directory has weight files (not just metadata)
+          // Verify model directory has weight files (not just metadata).
+          // Also accept directories with 3+ files in case file names differ.
           final modelDir = path.endsWith('.nexa')
               ? path.substring(0, path.lastIndexOf('/'))
               : path;
@@ -860,12 +878,16 @@ class NexaAsrService {
             final files = await dir.list().toList();
             final weightFiles = files.where((f) =>
                 f.path.contains('weights') && f.path.endsWith('.nexa')).toList();
-            if (weightFiles.isEmpty) {
-              _logger.w('⚠️ Model $modelName directory exists but has no weight files — re-downloading',
+            final hasEnoughFiles = files.length >= 3;
+            final hasWeightFiles = weightFiles.isNotEmpty;
+            if (!hasWeightFiles && !hasEnoughFiles) {
+              _logger.w('⚠️ Model $modelName directory exists but has no weight files '
+                  'and fewer than 3 total files — re-downloading',
                   category: LogCategory.speech);
             } else {
               _modelPath = path;
-              _logger.i('✅ Model $modelName installed with ${weightFiles.length} weight file(s)',
+              _logger.i('✅ Model $modelName installed with ${weightFiles.length} weight '
+                  'file(s), ${files.length} total files',
                   category: LogCategory.speech);
               return true;
             }

@@ -163,3 +163,14 @@
 -keep class * implements android.os.Parcelable {
   public static final android.os.Parcelable$Creator *;
 }
+
+# Nexa AI SDK — preserve all classes and native bindings
+-keep class ai.nexa.** { *; }
+-keep interface ai.nexa.** { *; }
+-keepclassmembers class ai.nexa.** { *; }
+-dontwarn ai.nexa.**
+
+# Keep Nexa JNI native method names
+-keepclasseswithmembernames class ai.nexa.** {
+    native <methods>;
+}

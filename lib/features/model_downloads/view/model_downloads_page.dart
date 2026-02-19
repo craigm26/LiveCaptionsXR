@@ -52,51 +52,127 @@ class ModelDownloadsView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return Column(
-            children: [
-              // iOS Diagnostic Widget (only shown on iOS)
-              IOSDiagnosticWidget(
-                cubit: context.read<ModelDownloadsCubit>(),
-              ),
-              
-              // Header with storage info
-              _buildStorageInfo(context, state),
-              
-              // Models list
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: state.models.length,
-                  itemBuilder: (context, index) {
-                    final model = state.models[index];
-                    final isDownloaded = state.downloadedModels.contains(model.fileName);
-                    final isDownloading = state.activeDownloads.contains(model.fileName);
-                    final progress = state.downloadProgress[model.fileName];
-                    final phase = state.downloadPhase[model.fileName];
-                    final statusMessage = state.downloadMessage[model.fileName];
-                    final validationResult = state.validationResults[model.fileName];
+          // Primary Nexa ASR model ID
+          const nexaAsrModelId = 'parakeet-tdt-0.6b-v3-npu';
+          final nexaModelReady = state.downloadedModels.contains(nexaAsrModelId);
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ModelCard(
-                        model: model,
-                        isDownloaded: isDownloaded,
-                        isDownloading: isDownloading,
-                        progress: progress,
-                        phase: phase,
-                        statusMessage: statusMessage,
-                        validationResult: validationResult,
-                        onDownload: () => _handleDownload(context, model),
-                        onCancel: () => _handleCancel(context, model.fileName),
-                        onDelete: () => _handleDelete(context, model.fileName),
-                      ),
-                    );
-                  },
+          return BlocListener<ModelDownloadsCubit, ModelDownloadsState>(
+            listenWhen: (previous, current) {
+              // Only trigger when the Nexa ASR model transitions to downloaded
+              return !previous.downloadedModels.contains(nexaAsrModelId) &&
+                     current.downloadedModels.contains(nexaAsrModelId);
+            },
+            listener: (context, state) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    '🎉 Parakeet model ready! Tap Start Captioning to begin.',
+                  ),
+                  duration: const Duration(seconds: 10),
+                  action: SnackBarAction(
+                    label: 'Start Captioning',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-            ],
+              );
+            },
+            child: Column(
+              children: [
+                // iOS Diagnostic Widget (only shown on iOS)
+                IOSDiagnosticWidget(
+                  cubit: context.read<ModelDownloadsCubit>(),
+                ),
+
+                // Nexa model ready banner — shown prominently when downloaded
+                if (nexaModelReady) _buildNexaReadyBanner(context),
+
+                // Header with storage info
+                _buildStorageInfo(context, state),
+
+                // Models list
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: state.models.length,
+                    itemBuilder: (context, index) {
+                      final model = state.models[index];
+                      final isDownloaded = state.downloadedModels.contains(model.fileName);
+                      final isDownloading = state.activeDownloads.contains(model.fileName);
+                      final progress = state.downloadProgress[model.fileName];
+                      final phase = state.downloadPhase[model.fileName];
+                      final statusMessage = state.downloadMessage[model.fileName];
+                      final validationResult = state.validationResults[model.fileName];
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: ModelCard(
+                          model: model,
+                          isDownloaded: isDownloaded,
+                          isDownloading: isDownloading,
+                          progress: progress,
+                          phase: phase,
+                          statusMessage: statusMessage,
+                          validationResult: validationResult,
+                          onDownload: () => _handleDownload(context, model),
+                          onCancel: () => _handleCancel(context, model.fileName),
+                          onDelete: () => _handleDelete(context, model.fileName),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildNexaReadyBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade400, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 28),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Parakeet NPU model is ready!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                    fontSize: 14,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'You can now start real-time NPU captions.',
+                  style: TextStyle(color: Colors.green, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            ),
+            child: const Text('Start Captioning'),
+          ),
+        ],
       ),
     );
   }

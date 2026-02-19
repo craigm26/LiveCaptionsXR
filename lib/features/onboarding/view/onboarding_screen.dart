@@ -54,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         
         if (_isNexaDevice) {
           _deviceType = 'Snapdragon NPU Device';
-          _asrEngine = 'Nexa Parakeet (auto-download via SDK)';
+          _asrEngine = 'Nexa Parakeet NPU (~600MB, downloads on first launch)';
           _llmEngine = 'Nexa Granite/OmniNeural (auto-download via SDK)';
         } else {
           _deviceType = 'Android Device';
@@ -135,10 +135,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   String _getDeviceDescription() {
     if (_isNexaDevice) {
-      return '✅ Great news! Your device has Qualcomm NPU support.\n\n'
+      return 'Snapdragon NPU detected! The Parakeet ASR model (~600MB) will download automatically '
+          'when you first use captions. Make sure you have WiFi connected.\n\n'
           '• Speech Recognition: $_asrEngine\n'
-          '• AI Enhancement: $_llmEngine\n\n'
-          'Models download automatically when you start AR mode. No manual setup needed!';
+          '• AI Enhancement: $_llmEngine';
     } else if (kIsWeb) {
       return '🌐 Web mode has limited functionality.\n\n'
           'For the full AR experience, download the Android or iOS app.';
