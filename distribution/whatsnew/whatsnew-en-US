@@ -1,0 +1,5 @@
+v1.0.44 - Performance improvements and bug fixes
+- Improved caption accuracy with on-device AI
+- Better support for Nexa NPU devices
+- Reduced latency on Android devices
+- UI refinements and stability improvements
