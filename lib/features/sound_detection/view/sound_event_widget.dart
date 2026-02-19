@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 class SoundEventWidget extends StatelessWidget {
-  const SoundEventWidget({Key? key}) : super(key: key);
+  const SoundEventWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

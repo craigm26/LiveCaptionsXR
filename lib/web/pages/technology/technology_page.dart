@@ -42,8 +42,6 @@ class _TechnologyPageState extends State<TechnologyPage>
   @override
   Widget build(BuildContext context) {
     final screenSize = ResponsiveUtils.getScreenSize(context);
-    final isMobile = ResponsiveUtils.isMobile(context);
-    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),

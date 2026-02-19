@@ -76,7 +76,6 @@ class SpeakerDiarizationService {
   
   // Current active speaker
   String? _currentSpeakerId;
-  DateTime? _lastSpeakerChangeTime;
   
   // Precomputed DCT matrix for MFCC
   late final List<List<double>> _dctMatrix;
@@ -487,7 +486,6 @@ class SpeakerDiarizationService {
     // Track speaker changes
     if (_currentSpeakerId != profile.id) {
       _currentSpeakerId = profile.id;
-      _lastSpeakerChangeTime = DateTime.now();
     }
     
     final result = SpeakerIdentificationResult(
@@ -534,7 +532,7 @@ class SpeakerDiarizationService {
     final speaker = _speakers[speakerId];
     if (speaker != null) {
       speaker.addSpatialObservation(position, confidence: confidence);
-      _logger.d('📍 Updated ${speakerId} position to $position', category: LogCategory.speech);
+      _logger.d('📍 Updated $speakerId position to $position', category: LogCategory.speech);
     }
   }
   

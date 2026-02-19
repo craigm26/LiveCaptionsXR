@@ -72,9 +72,31 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
             "getDeviceInfo" -> {
                 result.success(getDeviceInfo())
             }
+            "isNexaSdkAvailable" -> {
+                result.success(isNexaSdkAvailable())
+            }
             else -> {
                 result.notImplemented()
             }
+        }
+    }
+
+    /**
+     * Check if the Nexa SDK native library is available on this device.
+     * Must be called BEFORE any NexaSdk class access to avoid fatal UnsatisfiedLinkError
+     * in the static initializer on non-ARM devices (e.g., x86_64 emulators).
+     */
+    private fun isNexaSdkAvailable(): Boolean {
+        return try {
+            System.loadLibrary("npu_jni")
+            Log.d(TAG, "Nexa SDK native library (libnpu_jni.so) loaded successfully")
+            true
+        } catch (e: UnsatisfiedLinkError) {
+            Log.w(TAG, "Nexa SDK native library not available: ${e.message}")
+            false
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to check Nexa SDK availability: ${e.message}")
+            false
         }
     }
 

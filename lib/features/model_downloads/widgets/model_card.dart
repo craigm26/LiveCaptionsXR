@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/model_info.dart';
 import '../services/model_download_service.dart';
+import '../../../core/services/download/i_model_download_strategy.dart';
 import '../../../core/services/app_logger.dart';
 
 class ModelCard extends StatelessWidget {
@@ -8,6 +9,8 @@ class ModelCard extends StatelessWidget {
   final bool isDownloaded;
   final bool isDownloading;
   final DownloadProgress? progress;
+  final DownloadPhase? phase;
+  final String? statusMessage;
   final ModelValidationResult? validationResult;
   final VoidCallback onDownload;
   final VoidCallback onCancel;
@@ -19,6 +22,8 @@ class ModelCard extends StatelessWidget {
     required this.isDownloaded,
     required this.isDownloading,
     this.progress,
+    this.phase,
+    this.statusMessage,
     this.validationResult,
     required this.onDownload,
     required this.onCancel,
@@ -142,6 +147,10 @@ class ModelCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (phase != null) ...[
+                    _buildPhaseChip(phase!),
+                    const SizedBox(height: 8),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -175,6 +184,16 @@ class ModelCard extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
+                  if ((statusMessage ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      statusMessage!,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ] else if (isDownloaded) ...[
@@ -206,6 +225,24 @@ class ModelCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 _buildValidationStatus(validationResult!),
               ],
+            ] else if ((statusMessage ?? '').isNotEmpty || phase != null) ...[
+              Row(
+                children: [
+                  if (phase != null) _buildPhaseChip(phase!),
+                  if ((statusMessage ?? '').isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        statusMessage!,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
             
             const SizedBox(height: 16),
@@ -292,9 +329,9 @@ class ModelCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        border: Border.all(color: statusColor.withValues(alpha:0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -312,6 +349,74 @@ class ModelCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildPhaseChip(DownloadPhase phase) {
+    final color = _phaseColor(phase);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        _phaseLabel(phase),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Color _phaseColor(DownloadPhase phase) {
+    switch (phase) {
+      case DownloadPhase.checkingCompatibility:
+      case DownloadPhase.preparingDownload:
+        return Colors.grey;
+      case DownloadPhase.downloading:
+        return Colors.blue;
+      case DownloadPhase.validating:
+        return Colors.orange;
+      case DownloadPhase.installing:
+        return Colors.purple;
+      case DownloadPhase.completed:
+        return Colors.green;
+      case DownloadPhase.failed:
+        return Colors.red;
+      case DownloadPhase.cancelled:
+        return Colors.red.shade400;
+      case DownloadPhase.paused:
+        return Colors.amber;
+      case DownloadPhase.idle:
+        return Colors.grey;
+    }
+  }
+
+  String _phaseLabel(DownloadPhase phase) {
+    switch (phase) {
+      case DownloadPhase.checkingCompatibility:
+        return 'Checking';
+      case DownloadPhase.preparingDownload:
+        return 'Preparing';
+      case DownloadPhase.downloading:
+        return 'Downloading';
+      case DownloadPhase.validating:
+        return 'Validating';
+      case DownloadPhase.installing:
+        return 'Finalizing';
+      case DownloadPhase.completed:
+        return 'Ready';
+      case DownloadPhase.failed:
+        return 'Failed';
+      case DownloadPhase.cancelled:
+        return 'Cancelled';
+      case DownloadPhase.paused:
+        return 'Paused';
+      case DownloadPhase.idle:
+        return 'Idle';
+    }
   }
 
   String _formatBytes(int bytes) {

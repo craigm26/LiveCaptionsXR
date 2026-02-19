@@ -26,20 +26,16 @@ class SoundEvent extends MultimodalEvent {
   /// low: Background noise, ambient sounds
   final String priority;
 
-  SoundEvent({
+  const SoundEvent({
     required this.type,
-    required double confidence,
+    required super.confidence,
     required this.timestamp,
     this.sourceDirection = 'unknown',
-    String description = '',
+    super.description = '',
     this.isMultimodal = false,
     this.priority = 'medium',
-    Map<String, dynamic> metadata = const {},
-  }) : super(
-          confidence: confidence,
-          description: description,
-          metadata: metadata,
-        );
+    super.metadata = const {},
+  });
   
   /// Create a copy with updated fields
   SoundEvent copyWith({

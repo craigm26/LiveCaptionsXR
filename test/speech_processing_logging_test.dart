@@ -18,7 +18,6 @@ void main() {
     late AppleSpeechService appleSpeechService;
     late Gemma3nService gemma3nService;
     late FrameCaptureService frameCaptureService;
-    late EnhancedSpeechProcessor speechProcessor;
 
     setUp(() {
       audioCaptureService = AudioCaptureService();
@@ -27,7 +26,7 @@ void main() {
       frameCaptureService = FrameCaptureService();
       final mockModelManager = MockModelDownloadManager();
       gemma3nService = Gemma3nService(modelManager: mockModelManager);
-      speechProcessor = EnhancedSpeechProcessor(
+      EnhancedSpeechProcessor(
         gemma3nService: gemma3nService,
         audioCaptureService: audioCaptureService,
         whisperService: whisperService,

@@ -19,7 +19,6 @@ class UnifiedDownloadManager extends ChangeNotifier {
 
   final DeviceModelRegistry _deviceRegistry;
   final DownloadStatePersistence _statePersistence;
-  final ModelDownloadManager _legacyManager;
 
   late final NexaModelDownloadStrategy _nexaStrategy;
   late final GemmaModelDownloadStrategy _gemmaStrategy;
@@ -50,7 +49,6 @@ class UnifiedDownloadManager extends ChangeNotifier {
     required ModelDownloadManager legacyManager,
     required DownloadStatePersistence statePersistence,
   })  : _deviceRegistry = deviceRegistry,
-        _legacyManager = legacyManager,
         _statePersistence = statePersistence {
     _nexaStrategy = NexaModelDownloadStrategy(deviceRegistry);
     _gemmaStrategy = GemmaModelDownloadStrategy(IOSModelConfigService());

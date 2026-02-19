@@ -1,5 +1,5 @@
 
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 
 /// Base class for multimodal events (sound, visual, etc.)
 ///

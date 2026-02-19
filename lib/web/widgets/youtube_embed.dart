@@ -36,8 +36,6 @@ class YouTubeEmbed extends StatelessWidget {
   }
 
   Widget _buildIframe() {
-    final url = _buildYouTubeUrl();
-    
     // Use a simple iframe approach
     return HtmlElementView(
       viewType: 'iframe',

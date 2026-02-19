@@ -1,0 +1,6 @@
+# ninja log v5
+0	4158	7931613564488139	CMakeFiles/whisper.dir/whisper.cpp/ggml.c.o	2695d32d7379da8c
+664	7421	7931613590361805	CMakeFiles/whisper_flutter.dir/main.cpp.o	bcb1b247fefb04fa
+487	9242	7931613615134746	CMakeFiles/whisper.dir/whisper.cpp/whisper.cpp.o	a86b55828dcc7deb
+9243	9569	7931613617268255	libwhisper.a	efd56cb60cd79f90
+9569	14963	7931613672361660	C:/Users/CraigM/source/repos/LiveCaptionsXR/build/whisper_ggml/intermediates/cxx/Release/1g3g532w/obj/arm64-v8a/libwhisper.so	534d42f938fb9b99

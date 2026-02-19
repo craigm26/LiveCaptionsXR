@@ -105,7 +105,8 @@ class MainActivity: FlutterActivity() {
                 }
             }
         } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_REQUEST_CODE)
+            cameraInitialized = false
+            Log.d("MainActivity", "Camera permission not granted yet; waiting for app-level permission flow.")
         }
     }
 

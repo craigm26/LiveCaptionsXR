@@ -134,6 +134,27 @@ class SettingsCubit extends Cubit<UserSettings> {
     _saveSettings(state.copyWith(maxVisibleCaptions: count));
   }
 
+  void toggleSpeakerFocusMode(bool enabled) {
+    _saveSettings(state.copyWith(speakerFocusModeEnabled: enabled));
+  }
+
+  void setAccessibilityCaptionMode(bool enabled) {
+    if (enabled) {
+      _saveSettings(state.copyWith(
+        accessibilityCaptionModeEnabled: true,
+        speakerFocusModeEnabled: true,
+        highContrastEnabled: true,
+        captionFontSize: 1.4,
+        captionDurationSeconds: 8.0,
+        maxVisibleCaptions: 4,
+        spatialLocalizationEnabled: true,
+      ));
+      return;
+    }
+
+    _saveSettings(state.copyWith(accessibilityCaptionModeEnabled: false));
+  }
+
   Future<void> resetSettings() async {
     try {
       _logger.i('🔄 Resetting all settings to defaults...');

@@ -40,6 +40,8 @@ class StereoAudioCapture {
   static final AppLogger _logger = AppLogger.instance;
 
   Stream<StereoAudioFrame>? _frameStream;
+  int _oddSampleAdjustments = 0;
+  DateTime _lastOddSampleWarning = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Starts stereo audio capture on the native side.
   Future<void> startRecording() async {
@@ -166,70 +168,73 @@ class StereoAudioCapture {
           leftRms += left[i] * left[i];
           rightRms += right[i] * right[i];
         }
-        leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
-        rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
-        
+        leftRms = left.isNotEmpty ? sqrt(leftRms / left.length) : 0.0;
+        rightRms = right.isNotEmpty ? sqrt(rightRms / right.length) : 0.0;
+
         _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
-        
+
         return StereoAudioFrame(left: left, right: right);
       }
       if (event is Uint8List) {
         _logger.d('📊 Processing Uint8List with ${event.length} bytes');
         _logger.d('📊 First 16 bytes: ${event.take(16).toList()}');
-        
+
         // Validate byte length should be multiple of 4 (Float32 size)
         if (event.length % 4 != 0) {
           _logger.e('❌ Invalid Uint8List length: ${event.length} bytes (not multiple of 4)');
           throw ArgumentError('Invalid audio data length: ${event.length} bytes');
         }
-        
+
         // Convert bytes to Float32List
         final data = Float32List.view(event.buffer);
         _logger.d('📊 Converted to Float32List with ${data.length} samples');
         _logger.d('📊 First 8 float values: ${data.take(8).toList()}');
-        
+
         // Validate we have even number of samples for stereo
         if (data.length % 2 != 0) {
-          _logger.w('⚠️ Odd number of samples received: ${data.length} samples');
-          _logger.d('📊 Raw buffer length: ${event.length} bytes');
-          
+          _oddSampleAdjustments++;
+          final now = DateTime.now();
+          if (now.difference(_lastOddSampleWarning) >= const Duration(seconds: 10)) {
+            _lastOddSampleWarning = now;
+            _logger.w('⚠️ Odd stereo sample count detected (${data.length}). Auto-truncating; total adjustments=$_oddSampleAdjustments');
+          }
+
           // Auto-fix by truncating the last sample if it's just one sample off
           if (data.length % 2 == 1 && data.length > 1) {
-            _logger.w('⚠️ Truncating last sample to make even number for stereo');
             final truncatedData = Float32List(data.length - 1);
             truncatedData.setAll(0, data.take(data.length - 1));
             final truncatedLeft = Float32List(truncatedData.length ~/ 2);
             final truncatedRight = Float32List(truncatedData.length ~/ 2);
-            
+
             for (var i = 0; i < truncatedData.length; i += 2) {
               truncatedLeft[i ~/ 2] = truncatedData[i];
               truncatedRight[i ~/ 2] = truncatedData[i + 1];
             }
-            
+
             return StereoAudioFrame(left: truncatedLeft, right: truncatedRight);
           }
-          
+
           _logger.e('❌ Cannot fix audio buffer with ${data.length} samples');
           throw ArgumentError('Invalid stereo audio data length: ${data.length} samples');
         }
-        
+
         final left = Float32List(data.length ~/ 2);
         final right = Float32List(data.length ~/ 2);
-        
+
         // De-interleave stereo data: [L0, R0, L1, R1, ...] -> [L0, L1, ...] and [R0, R1, ...]
         for (var i = 0; i < data.length; i += 2) {
           left[i ~/ 2] = data[i];
           right[i ~/ 2] = data[i + 1];
         }
-        
+
         // Log audio level for monitoring (same as Float32List case)
         double leftRms = 0.0, rightRms = 0.0;
         for (var i = 0; i < left.length; i++) {
           leftRms += left[i] * left[i];
           rightRms += right[i] * right[i];
         }
-        leftRms = left.length > 0 ? sqrt(leftRms / left.length) : 0.0;
-        rightRms = right.length > 0 ? sqrt(rightRms / right.length) : 0.0;
+        leftRms = left.isNotEmpty ? sqrt(leftRms / left.length) : 0.0;
+        rightRms = right.isNotEmpty ? sqrt(rightRms / right.length) : 0.0;
         
         _logger.d('🎧 Audio levels - Left: ${leftRms.toStringAsFixed(4)}, Right: ${rightRms.toStringAsFixed(4)}');
         _logger.d('📊 Converted to ${left.length} samples per channel');

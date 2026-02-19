@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 class ObjectHighlightWidget extends StatelessWidget {
-  const ObjectHighlightWidget({Key? key}) : super(key: key);
+  const ObjectHighlightWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

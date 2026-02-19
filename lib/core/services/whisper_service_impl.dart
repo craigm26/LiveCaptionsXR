@@ -38,6 +38,7 @@ class WhisperService {
   
   // Whisper GGML instance
   Whisper? _whisper;
+  String? _resolvedModelPath;
   
   // Model download manager
   final ModelDownloadManager _modelDownloadManager;
@@ -59,6 +60,35 @@ class WhisperService {
   
   WhisperService({ModelDownloadManager? modelDownloadManager}) 
       : _modelDownloadManager = modelDownloadManager ?? ModelDownloadManager();
+
+  Future<void> _writePcm16MonoWavFile(File file, Uint8List pcmData,
+      {int sampleRate = 16000, int channels = 1, int bitsPerSample = 16}) async {
+    final byteRate = sampleRate * channels * (bitsPerSample ~/ 8);
+    final blockAlign = channels * (bitsPerSample ~/ 8);
+    final dataSize = pcmData.length;
+    final riffChunkSize = 36 + dataSize;
+
+    final header = ByteData(44)
+      ..setUint32(0, 0x52494646, Endian.big) // RIFF
+      ..setUint32(4, riffChunkSize, Endian.little)
+      ..setUint32(8, 0x57415645, Endian.big) // WAVE
+      ..setUint32(12, 0x666d7420, Endian.big) // fmt 
+      ..setUint32(16, 16, Endian.little) // PCM header size
+      ..setUint16(20, 1, Endian.little) // PCM format
+      ..setUint16(22, channels, Endian.little)
+      ..setUint32(24, sampleRate, Endian.little)
+      ..setUint32(28, byteRate, Endian.little)
+      ..setUint16(32, blockAlign, Endian.little)
+      ..setUint16(34, bitsPerSample, Endian.little)
+      ..setUint32(36, 0x64617461, Endian.big) // data
+      ..setUint32(40, dataSize, Endian.little);
+
+    final wavBytes = BytesBuilder(copy: false)
+      ..add(header.buffer.asUint8List())
+      ..add(pcmData);
+
+    await file.writeAsBytes(wavBytes.toBytes(), flush: true);
+  }
   
   /// Initialize the Whisper service with configuration
   Future<bool> initialize({SpeechConfig? config}) async {
@@ -142,13 +172,44 @@ class WhisperService {
       // Get the model path
       final modelPath = await _modelDownloadManager.getModelPath(modelKey);
       final modelDir = Directory(modelPath).parent.path;
+      final configuredModelPath = '$modelDir/ggml-${_config.whisperModel}.bin';
+
+      String? resolvedModelPath;
+      final configuredModelFile = File(configuredModelPath);
+      if (await configuredModelFile.exists()) {
+        resolvedModelPath = configuredModelPath;
+      } else {
+        final downloadedModelFile = File(modelPath);
+        if (await downloadedModelFile.exists()) {
+          resolvedModelPath = modelPath;
+        }
+      }
+
+      if (resolvedModelPath == null) {
+        _logger.i('📦 No local Whisper file yet; materializing bundled/remote model to app storage...', category: LogCategory.speech);
+        await _modelDownloadManager.downloadModel(modelKey);
+
+        if (await configuredModelFile.exists()) {
+          resolvedModelPath = configuredModelPath;
+        } else {
+          final downloadedModelFile = File(modelPath);
+          if (await downloadedModelFile.exists()) {
+            resolvedModelPath = modelPath;
+          }
+        }
+      }
       
       _logger.i('📁 Using model from: $modelPath', category: LogCategory.speech);
       _logger.i('📁 Model directory: $modelDir', category: LogCategory.speech);
+      _logger.i('📁 Configured Whisper model path: $configuredModelPath', category: LogCategory.speech);
       
-      // Check if the expected model file exists
-      final expectedModelFile = File('$modelDir/ggml-base.bin');
-      _logger.i('📁 Expected model file exists: ${await expectedModelFile.exists()}', category: LogCategory.speech);
+      if (resolvedModelPath == null) {
+        _logger.e('❌ No readable Whisper model binary found in $modelDir', category: LogCategory.speech);
+        throw Exception('Whisper model binary missing in $modelDir');
+      }
+
+      _resolvedModelPath = resolvedModelPath;
+      _logger.i('📁 Resolved Whisper model binary: $_resolvedModelPath', category: LogCategory.speech);
       
       // Emit STT event for model loading
       _sttEventController.add(WhisperSTTEvent(
@@ -328,10 +389,10 @@ class WhisperService {
         message: 'Transcribing speech...',
       ));
       
-      // Save audio data to a temporary file
+      // Save audio data to a temporary WAV file (Whisper expects WAV input)
       final tempDir = await getTemporaryDirectory();
       final tempFile = File('${tempDir.path}/whisper_audio_${DateTime.now().millisecondsSinceEpoch}.wav');
-      await tempFile.writeAsBytes(audioData);
+      await _writePcm16MonoWavFile(tempFile, audioData);
       _logger.d('💾 Saved audio to temp file: ${tempFile.path}', category: LogCategory.speech);
       
       // Emit STT event for audio preparation
@@ -362,7 +423,7 @@ class WhisperService {
       // Process audio with Whisper GGML
       final response = await _whisper!.transcribe(
         transcribeRequest: transcribeRequest,
-        modelPath: tempFile.path, // Use the temp file path
+        modelPath: _resolvedModelPath!,
       );
       
       _logger.d('📝 Whisper GGML response received: "${response.text}"', category: LogCategory.speech);
@@ -395,15 +456,14 @@ class WhisperService {
     } catch (e, stackTrace) {
       _logger.e('❌ Error processing audio with Whisper', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       
-      // Emit STT event for processing error
-      _sttEventController.add(WhisperSTTEvent(
-        progress: 0.0,
-        message: 'Error processing audio',
-        error: e,
+      // Emit non-fatal STT event so captions can continue in basic mode.
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.1,
+        message: 'STT unavailable for this chunk, continuing...',
       ));
       
       final fallbackResult = SpeechResult(
-        text: "Error processing audio",
+        text: "Listening...",
         confidence: 0.0,
         isFinal: true,
         timestamp: DateTime.now(),

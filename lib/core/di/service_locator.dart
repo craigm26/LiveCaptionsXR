@@ -27,7 +27,6 @@ import 'package:live_captions_xr/core/services/nexa_llm_service.dart';
 import 'package:live_captions_xr/core/models/device_model_config.dart';
 import 'package:live_captions_xr/core/services/download/download_state_persistence.dart';
 import 'package:live_captions_xr/core/services/download/unified_download_manager.dart';
-import 'package:live_captions_xr/core/services/ios_model_config_service.dart';
 import 'package:live_captions_xr/core/services/translation_service.dart';
 import 'package:live_captions_xr/features/translation/cubit/translation_cubit.dart';
 import 'package:live_captions_xr/core/services/speaker_diarization_service.dart';

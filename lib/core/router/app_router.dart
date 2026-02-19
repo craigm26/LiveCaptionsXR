@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:live_captions_xr/app_shell.dart';
 import 'package:live_captions_xr/features/home/view/home_screen.dart';
 import 'package:live_captions_xr/features/settings/view/settings_screen.dart';
-import 'package:live_captions_xr/app.dart';
 import 'package:live_captions_xr/features/model_status/view/model_status_page.dart';
 import 'package:live_captions_xr/features/model_downloads/view/model_downloads_page.dart';
 import 'package:live_captions_xr/features/model_management/view/model_management_page.dart';

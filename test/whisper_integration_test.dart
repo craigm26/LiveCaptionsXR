@@ -28,7 +28,6 @@ void main() {
     });
 
     test('should create WhisperService with base model config', () {
-      final config = const SpeechConfig(whisperModel: 'base');
       final whisperService = WhisperService();
       
       // Verify the service can be created

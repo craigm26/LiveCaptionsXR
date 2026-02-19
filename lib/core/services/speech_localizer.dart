@@ -134,7 +134,9 @@ class SpeechLocalizer {
   /// Find next power of 2 for FFT
   int _nextPowerOf2(int n) {
     int power = 1;
-    while (power < n) power *= 2;
+    while (power < n) {
+      power *= 2;
+    }
     return power;
   }
 

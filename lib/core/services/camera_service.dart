@@ -13,6 +13,9 @@ class CameraService {
   
   bool _isCameraStarted = false;
   bool _isInitialized = false;
+  bool _isInitializing = false;
+  bool _isCapturing = false;
+  bool _isDisposing = false;
 
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
@@ -23,6 +26,16 @@ class CameraService {
   /// Initialize the camera service for mobile platforms
   Future<void> initialize() async {
     _logger.i('🏗️ Initializing CameraService...', category: LogCategory.camera);
+    if (_isInitialized && _cameraController != null) {
+      _logger.i('ℹ️ CameraService already initialized, skipping re-init', category: LogCategory.camera);
+      return;
+    }
+    if (_isInitializing) {
+      _logger.w('⚠️ CameraService initialization already in progress', category: LogCategory.camera);
+      return;
+    }
+
+    _isInitializing = true;
     try {
       _logger.d('Setting up camera configuration...', category: LogCategory.camera);
       // Initialize camera for mobile platforms (Android and iOS)
@@ -44,6 +57,8 @@ class CameraService {
     } catch (e, stackTrace) {
       _logger.e('❌ Camera initialization failed', category: LogCategory.camera, error: e, stackTrace: stackTrace);
       rethrow;
+    } finally {
+      _isInitializing = false;
     }
   }
   
@@ -103,8 +118,19 @@ class CameraService {
       _logger.w('⚠️ Camera controller not initialized, cannot capture frame', category: LogCategory.camera);
       return null;
     }
+
+    if (_isDisposing) {
+      _logger.w('⚠️ CameraService is disposing, skipping frame capture', category: LogCategory.camera);
+      return null;
+    }
+
+    if (_isCapturing || _cameraController!.value.isTakingPicture) {
+      _logger.d('⏭️ Capture already in progress, skipping overlapping request', category: LogCategory.camera);
+      return null;
+    }
     
     try {
+      _isCapturing = true;
       _logger.d('Acquiring frame from camera...', category: LogCategory.camera);
       
       final XFile imageFile = await _cameraController!.takePicture();
@@ -116,6 +142,8 @@ class CameraService {
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to capture frame', category: LogCategory.camera, error: e, stackTrace: stackTrace);
       return null;
+    } finally {
+      _isCapturing = false;
     }
   }
   
@@ -123,6 +151,9 @@ class CameraService {
   void _startPeriodicCapture() {
     _logger.i('⏰ Starting periodic frame capture (5 seconds interval)', category: LogCategory.camera);
     _periodicCaptureTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (_isDisposing || !_isCameraStarted) {
+        return;
+      }
       final frame = await captureFrame();
       if (frame != null) {
         _frameStreamController.add(frame);
@@ -148,11 +179,17 @@ class CameraService {
   void dispose() {
     _logger.i('🧹 Disposing CameraService...', category: LogCategory.camera);
     _logger.d('Current state - Initialized: $_isInitialized, Started: $_isCameraStarted', category: LogCategory.camera);
+    _isDisposing = true;
     _stopPeriodicCapture();
-    _frameStreamController.close();
+    if (!_frameStreamController.isClosed) {
+      _frameStreamController.close();
+    }
     _cameraController?.dispose();
+    _cameraController = null;
     _isInitialized = false;
     _isCameraStarted = false;
+    _isCapturing = false;
+    _isInitializing = false;
     _logger.i('✅ CameraService disposed successfully', category: LogCategory.camera);
   }
 } 

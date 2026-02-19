@@ -4,7 +4,6 @@ import '../cubit/model_downloads_cubit.dart';
 import '../models/model_info.dart';
 import '../services/model_download_service.dart';
 import '../widgets/model_card.dart';
-import '../widgets/download_progress_dialog.dart';
 import '../widgets/ios_diagnostic_widget.dart';
 
 class ModelDownloadsPage extends StatelessWidget {
@@ -73,6 +72,8 @@ class ModelDownloadsView extends StatelessWidget {
                     final isDownloaded = state.downloadedModels.contains(model.fileName);
                     final isDownloading = state.activeDownloads.contains(model.fileName);
                     final progress = state.downloadProgress[model.fileName];
+                    final phase = state.downloadPhase[model.fileName];
+                    final statusMessage = state.downloadMessage[model.fileName];
                     final validationResult = state.validationResults[model.fileName];
 
                     return Padding(
@@ -82,6 +83,8 @@ class ModelDownloadsView extends StatelessWidget {
                         isDownloaded: isDownloaded,
                         isDownloading: isDownloading,
                         progress: progress,
+                        phase: phase,
+                        statusMessage: statusMessage,
                         validationResult: validationResult,
                         onDownload: () => _handleDownload(context, model),
                         onCancel: () => _handleCancel(context, model.fileName),

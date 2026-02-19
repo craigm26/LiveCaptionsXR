@@ -731,10 +731,9 @@ packages:
   nexa_ai_flutter:
     dependency: "direct main"
     description:
-      name: nexa_ai_flutter
-      sha256: "27fd2d0119b0483a4fbd138837d4254101488efabc7b389ffbb167f287cd0275"
-      url: "https://pub.dev"
-    source: hosted
+      path: nexa_ai_flutter_patched
+      relative: true
+    source: path
     version: "0.0.4"
   node_preamble:
     dependency: transitive
@@ -1420,5 +1419,5 @@ packages:
     source: hosted
     version: "3.1.1"
 sdks:
-  dart: ">=3.9.2 <4.0.0"
+  dart: ">=3.8.0 <4.0.0"
   flutter: ">=3.29.0"

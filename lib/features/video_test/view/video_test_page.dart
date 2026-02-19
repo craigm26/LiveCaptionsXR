@@ -385,7 +385,7 @@ class _VideoTestPageState extends State<VideoTestPage> {
               const SizedBox(width: 6),
               Text(
                 hasEvents
-                    ? '${(state as SoundDetectionLoaded).events.last.type}'
+                    ? state.events.last.type
                     : 'Listening...',
                 style: TextStyle(
                   color: hasEvents ? Colors.amber : Colors.grey,

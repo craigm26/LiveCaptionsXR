@@ -114,7 +114,7 @@ class _InteractiveDemoState extends State<InteractiveDemo>
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: widget.color.withOpacity(0.1),
+                                  color: widget.color.withValues(alpha:0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -162,10 +162,10 @@ class _InteractiveDemoState extends State<InteractiveDemo>
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: widget.color.withOpacity(0.1),
+                            color: widget.color.withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: widget.color.withOpacity(0.3),
+                              color: widget.color.withValues(alpha:0.3),
                             ),
                           ),
                           child: Text(

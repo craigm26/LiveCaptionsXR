@@ -13,7 +13,6 @@ import 'i_model_download_strategy.dart';
 class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
   static final AppLogger _logger = AppLogger.instance;
 
-  final IOSModelConfigService _iosConfig;
   bool _downloadCancelled = false;
 
   // Model URL mappings (HuggingFace)
@@ -37,7 +36,7 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
     ),
   };
 
-  GemmaModelDownloadStrategy(this._iosConfig);
+  GemmaModelDownloadStrategy(IOSModelConfigService iosConfig);
 
   @override
   ModelCategory get category => ModelCategory.gemma;
@@ -83,9 +82,6 @@ class GemmaModelDownloadStrategy implements IModelDownloadStrategy {
 
     // Check available storage
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final stat = await appDir.stat();
-
       // On iOS, check memory for large models
       if (Platform.isIOS && config.estimatedSizeMb > 3000) {
         return UnifiedModelCompatibility(

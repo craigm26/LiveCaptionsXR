@@ -33,7 +33,7 @@ class AudioCaptureService {
         for (int i = 0; i < buffer.length; i++) {
           rmsLevel += buffer[i] * buffer[i];
         }
-        rmsLevel = buffer.length > 0 ? sqrt(rmsLevel / buffer.length) : 0.0;
+        rmsLevel = buffer.isNotEmpty ? sqrt(rmsLevel / buffer.length) : 0.0;
         
         _logger.d('📊 Audio levels - RMS: ${rmsLevel.toStringAsFixed(4)}', category: LogCategory.audio);
         

@@ -85,7 +85,7 @@ Open `web/download.html` in any browser.
 
 ## 🔗 Download URLs
 
-- **Whisper Base**: https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin
+- **Whisper Base**: https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true
 - **Gemma 3N E2B**: https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E2B-it-int4.task
 - **Gemma 3N E4B**: https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E4B-it-int4.task
 

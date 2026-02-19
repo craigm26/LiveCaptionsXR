@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/di/service_locator.dart';
@@ -15,7 +14,6 @@ import 'features/sound_detection/cubit/sound_detection_cubit.dart';
 import 'features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'features/translation/cubit/translation_cubit.dart';
 import 'shared/theme/app_theme.dart';
-import 'core/services/google_auth_service.dart';
 
 final AppLogger _appLogger = AppLogger.instance;
 
@@ -51,7 +49,7 @@ class LiveCaptionsXrApp extends StatelessWidget {
 
 class AppBootstrap extends StatefulWidget {
   final Widget? child;
-  const AppBootstrap({Key? key, this.child}) : super(key: key);
+  const AppBootstrap({super.key, this.child});
 
   @override
   State<AppBootstrap> createState() => _AppBootstrapState();
@@ -59,7 +57,6 @@ class AppBootstrap extends StatefulWidget {
 
 class _AppBootstrapState extends State<AppBootstrap> {
   bool _isLoading = true;
-  bool _onboardingComplete = false;
 
   @override
   void initState() {
@@ -76,7 +73,6 @@ class _AppBootstrapState extends State<AppBootstrap> {
 
       if (mounted) {
         setState(() {
-          _onboardingComplete = isComplete;
           _isLoading = false;
         });
       }
@@ -85,7 +81,6 @@ class _AppBootstrapState extends State<AppBootstrap> {
           error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() {
-          _onboardingComplete = false;
           _isLoading = false;
         });
       }

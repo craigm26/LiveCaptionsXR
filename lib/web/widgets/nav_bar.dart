@@ -279,7 +279,7 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.2),
+          color: Theme.of(context).primaryColor.withValues(alpha:0.2),
         ),
       ),
       child: IconButton(
@@ -339,8 +339,8 @@ class _NavBarState extends State<NavBar> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(8),
                           gradient: LinearGradient(
                             colors: [
-                              Theme.of(context).primaryColor.withOpacity(0.1),
-                              Theme.of(context).primaryColor.withOpacity(0.05),
+                              Theme.of(context).primaryColor.withValues(alpha:0.1),
+                              Theme.of(context).primaryColor.withValues(alpha:0.05),
                             ],
                           ),
                         ),
@@ -617,7 +617,7 @@ class _NavLinkState extends State<_NavLink>
                   color: widget.selected
                       ? Theme.of(context).primaryColor
                       : _isHovered
-                          ? Theme.of(context).primaryColor.withOpacity(0.1)
+                          ? Theme.of(context).primaryColor.withValues(alpha:0.1)
                           : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),

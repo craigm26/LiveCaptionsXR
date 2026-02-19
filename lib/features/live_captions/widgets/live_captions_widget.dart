@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/models/user_settings.dart';
+import '../../settings/cubit/settings_cubit.dart';
 
 import '../cubit/live_captions_cubit.dart';
 import '../cubit/live_captions_state.dart';
@@ -21,13 +23,13 @@ class LiveCaptionsWidget extends StatefulWidget {
   final bool showHistory;
 
   const LiveCaptionsWidget({
-    Key? key,
+    super.key,
     this.onToggle,
     this.onClear,
     this.padding = const EdgeInsets.all(0),
     this.maxWidth = 500.0,
     this.showHistory = false,
-  }) : super(key: key);
+  });
 
   @override
   State<LiveCaptionsWidget> createState() => _LiveCaptionsWidgetState();
@@ -49,6 +51,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     Color(0xFF4DD0E1), // cyan
     Color(0xFFA1887F), // brown
   ];
+
+  static const double _pillRadius = 999;
 
   @override
   void initState() {
@@ -94,7 +98,16 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     );
   }
 
+  UserSettings _settings(BuildContext context) {
+    try {
+      return context.watch<SettingsCubit>().state;
+    } catch (_) {
+      return const UserSettings();
+    }
+  }
+
   Widget _buildCaptionsContent(BuildContext context, LiveCaptionsState state) {
+    final settings = _settings(context);
     return Container(
       constraints: BoxConstraints(maxWidth: widget.maxWidth),
       padding: widget.padding,
@@ -102,38 +115,117 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildCurrentCaption(context, state),
+          _buildCurrentCaption(context, state, settings),
           if (widget.showHistory && state is LiveCaptionsActive && state.captions.isNotEmpty) ...[
             const SizedBox(height: 4),
-            _buildCaptionHistory(context, state),
+            _buildCaptionHistory(context, state, settings),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildCurrentCaption(BuildContext context, LiveCaptionsState state) {
+  Widget _buildCurrentCaption(
+    BuildContext context,
+    LiveCaptionsState state,
+    UserSettings settings,
+  ) {
     if (state is! LiveCaptionsActive) {
-      return _buildPlaceholder(context, state);
+      return _buildPlaceholder(context, state, settings);
     }
 
     final currentText = state.currentCaption?.text ??
         (state.captions.isNotEmpty ? state.captions.last.text : null);
 
     if (currentText == null || currentText.isEmpty) {
-      return _buildPlaceholder(context, state);
+      return _buildPlaceholder(context, state, settings);
     }
 
     final caption = state.currentCaption ?? (state.captions.isNotEmpty ? state.captions.last : null);
     final isInterim = state.currentCaption != null;
+    final highContrast =
+        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final speakerFocus = settings.speakerFocusModeEnabled;
+    final showSpeakerBadge =
+        speakerFocus && caption?.hasSpeakerDiarization == true;
+    final badgeGap = 4 * settings.captionFontSize;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withAlpha((255 * 0.75).round()),
+        color: Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: _buildCaptionLine(context, caption, currentText, isInterim),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (showSpeakerBadge) ...[
+            _buildSpeakerFocusBadge(caption!, settings),
+            SizedBox(height: badgeGap),
+          ],
+          _buildCaptionLine(
+            context,
+            caption,
+            currentText,
+            isInterim,
+            settings,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpeakerFocusBadge(SpeechResult caption, UserSettings settings) {
+    final color = _getDirectionalSpeakerColor(caption);
+    final fontScale = settings.captionFontSize;
+    final directionIcon = _getDirectionIcon(caption);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 7.5 * fontScale,
+        vertical: 4.5 * fontScale,
+      ),
+      decoration: BoxDecoration(
+        color: color.withAlpha((255 * 0.2).round()),
+        borderRadius: BorderRadius.circular(_pillRadius),
+        border: Border.all(
+          color: color.withAlpha((255 * 0.9).round()),
+          width: 1,
+        ),
+      ),
+      child: Icon(
+        directionIcon ?? Icons.record_voice_over,
+        size: 14 * fontScale,
+        color: color.withAlpha((255 * 0.95).round()),
+      ),
+    );
+  }
+
+  Widget _buildSpeakerFocusHistoryBadge(
+      SpeechResult caption, UserSettings settings) {
+    final color = _getDirectionalSpeakerColor(caption);
+    final fontScale = settings.captionFontSize;
+    final directionIcon = _getDirectionIcon(caption);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 6.5 * fontScale,
+        vertical: 3.5 * fontScale,
+      ),
+      decoration: BoxDecoration(
+        color: color.withAlpha((255 * 0.16).round()),
+        borderRadius: BorderRadius.circular(_pillRadius),
+        border: Border.all(
+          color: color.withAlpha((255 * 0.75).round()),
+          width: 1,
+        ),
+      ),
+      child: Icon(
+        directionIcon ?? Icons.person,
+        size: 11 * fontScale,
+        color: color.withAlpha((255 * 0.9).round()),
+      ),
     );
   }
 
@@ -144,8 +236,13 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     SpeechResult? caption,
     String text,
     bool isInterim,
+    UserSettings settings,
   ) {
     final children = <InlineSpan>[];
+    final fontScale = settings.captionFontSize;
+    final highContrast =
+        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final speakerFocus = settings.speakerFocusModeEnabled;
 
     // Directional arrow for offscreen speakers
     final dirArrow = _getDirectionArrow(caption);
@@ -153,8 +250,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       children.add(TextSpan(
         text: '$dirArrow ',
         style: TextStyle(
-          color: Colors.white.withAlpha((255 * 0.7).round()),
-          fontSize: 18,
+          color: Colors.white.withAlpha((255 * (highContrast ? 1.0 : 0.7)).round()),
+          fontSize: 18 * fontScale,
           fontWeight: FontWeight.w400,
         ),
       ));
@@ -162,13 +259,30 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
 
     // Speaker name with unique color (inline, TLOU2 style)
     if (caption?.hasSpeakerDiarization == true) {
-      final speakerColor = _getSpeakerColor(caption!);
+      final speakerColor = _getDirectionalSpeakerColor(caption!);
+      final speakerLabel = speakerFocus
+          ? '[${caption.speakerLabel.toUpperCase()}]'
+          : caption.speakerLabel;
+
+      if (speakerFocus && dirArrow == null) {
+        children.add(TextSpan(
+          text: '• ',
+          style: TextStyle(
+            color: Colors.white.withAlpha((255 * 0.9).round()),
+            fontSize: 17 * fontScale,
+            fontWeight: FontWeight.w700,
+          ),
+        ));
+      }
+
       children.add(TextSpan(
-        text: '${caption.speakerLabel}: ',
+        text: '$speakerLabel: ',
         style: TextStyle(
-          color: speakerColor,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          color: speakerFocus
+              ? speakerColor.withAlpha((255 * 0.95).round())
+              : speakerColor,
+          fontSize: 18 * fontScale,
+          fontWeight: speakerFocus ? FontWeight.w800 : FontWeight.w600,
         ),
       ));
     }
@@ -178,10 +292,10 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       text: text,
       style: TextStyle(
         color: isInterim
-            ? Colors.white.withAlpha((255 * 0.85).round())
+          ? Colors.white.withAlpha((255 * (highContrast ? 1.0 : 0.85)).round())
             : Colors.white,
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
+        fontSize: 18 * fontScale,
+        fontWeight: speakerFocus ? FontWeight.w600 : FontWeight.w500,
         height: 1.35,
       ),
     ));
@@ -193,7 +307,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         text: '  $translationSuffix',
         style: TextStyle(
           color: Colors.lightBlueAccent.withAlpha((255 * 0.6).round()),
-          fontSize: 12,
+          fontSize: 12 * fontScale,
           fontWeight: FontWeight.w400,
         ),
       ));
@@ -216,6 +330,36 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         return '\u25B6'; // ▶
       default:
         return null; // no arrow for center/onscreen
+    }
+  }
+
+  IconData? _getDirectionIcon(SpeechResult? caption) {
+    final direction = caption?.speakerDirection;
+    switch (direction) {
+      case 'left':
+        return Icons.keyboard_double_arrow_left;
+      case 'right':
+        return Icons.keyboard_double_arrow_right;
+      default:
+        return null;
+    }
+  }
+
+  Color _getDirectionalSpeakerColor(SpeechResult caption) {
+    final base = _getSpeakerColor(caption);
+    switch (caption.speakerDirection) {
+      case 'left':
+        return Color.alphaBlend(
+          Colors.cyan.withAlpha((255 * 0.18).round()),
+          base,
+        );
+      case 'right':
+        return Color.alphaBlend(
+          Colors.orange.withAlpha((255 * 0.16).round()),
+          base,
+        );
+      default:
+        return base;
     }
   }
 
@@ -243,21 +387,41 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return null;
   }
 
-  Widget _buildCaptionHistory(BuildContext context, LiveCaptionsState state) {
+  Widget _buildCaptionHistory(
+    BuildContext context,
+    LiveCaptionsState state,
+    UserSettings settings,
+  ) {
     if (state is! LiveCaptionsActive || state.captions.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // Show last few captions, fading older ones (TLOU2 style)
-    final recentCaptions = state.captions.length > 3
-        ? state.captions.sublist(state.captions.length - 3)
-        : state.captions;
+    final now = DateTime.now();
+    final maxHistoryItems = (settings.maxVisibleCaptions - 1).clamp(1, 5);
+    final visibleWindow = Duration(seconds: settings.captionDurationSeconds.round());
+    final recentInWindow = state.captions.where((caption) {
+      return now.difference(caption.timestamp) <= visibleWindow;
+    }).toList();
+
+    if (recentInWindow.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final recentCaptions = recentInWindow.length > maxHistoryItems
+        ? recentInWindow.sublist(recentInWindow.length - maxHistoryItems)
+        : recentInWindow;
+
+    final highContrast =
+        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: recentCaptions.asMap().entries.map((entry) {
         final idx = entry.key;
         final caption = entry.value;
+        final showSpeakerBadge =
+            settings.speakerFocusModeEnabled && caption.hasSpeakerDiarization;
+        final badgeGap = 3 * settings.captionFontSize;
         // Older captions fade out
         final opacity = 0.3 + (0.7 * (idx / recentCaptions.length));
         return Opacity(
@@ -267,40 +431,64 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             margin: const EdgeInsets.only(bottom: 2),
             decoration: BoxDecoration(
-              color: Colors.black.withAlpha((255 * 0.5).round()),
+              color: Colors.black.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: _buildHistoryLine(context, caption),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (showSpeakerBadge) ...[
+                  _buildSpeakerFocusHistoryBadge(caption, settings),
+                  SizedBox(height: badgeGap),
+                ],
+                _buildHistoryLine(context, caption, settings),
+              ],
+            ),
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildHistoryLine(BuildContext context, SpeechResult caption) {
+  Widget _buildHistoryLine(
+    BuildContext context,
+    SpeechResult caption,
+    UserSettings settings,
+  ) {
     final children = <InlineSpan>[];
+    final fontScale = settings.captionFontSize;
+    final highContrast =
+        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final speakerFocus = settings.speakerFocusModeEnabled;
+    final hasDirectionalIcon = _getDirectionIcon(caption) != null;
 
     // Direction arrow
     final dirArrow = _getDirectionArrow(caption);
-    if (dirArrow != null) {
+    if (dirArrow != null && !(speakerFocus && hasDirectionalIcon)) {
       children.add(TextSpan(
         text: '$dirArrow ',
         style: TextStyle(
-          color: Colors.white.withAlpha((255 * 0.5).round()),
-          fontSize: 15,
+          color: Colors.white.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
+          fontSize: 15 * fontScale,
         ),
       ));
     }
 
     // Speaker name
     if (caption.hasSpeakerDiarization) {
-      final color = _getSpeakerColor(caption);
+      final color = _getDirectionalSpeakerColor(caption);
+      final speakerLabel = speakerFocus
+          ? '[${caption.speakerLabel.toUpperCase()}]'
+          : caption.speakerLabel;
       children.add(TextSpan(
-        text: '${caption.speakerLabel}: ',
+        text: '$speakerLabel: ',
         style: TextStyle(
-          color: color.withAlpha((255 * 0.7).round()),
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
+          color: speakerFocus
+              ? color.withAlpha((255 * 0.9).round())
+              : color.withAlpha((255 * 0.7).round()),
+          fontSize: 15 * fontScale,
+          fontWeight: speakerFocus ? FontWeight.w700 : FontWeight.w600,
         ),
       ));
     }
@@ -309,8 +497,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     children.add(TextSpan(
       text: caption.text,
       style: TextStyle(
-        color: Colors.white.withAlpha((255 * 0.7).round()),
-        fontSize: 15,
+        color: Colors.white.withAlpha((255 * (highContrast ? 0.9 : 0.7)).round()),
+        fontSize: 15 * fontScale,
         fontWeight: FontWeight.w400,
         height: 1.3,
       ),
@@ -322,12 +510,20 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context, LiveCaptionsState state) {
+  Widget _buildPlaceholder(
+    BuildContext context,
+    LiveCaptionsState state,
+    UserSettings settings,
+  ) {
+    final fontScale = settings.captionFontSize;
+    final highContrast =
+        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+
     if (state is LiveCaptionsLoading) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.black.withAlpha((255 * 0.75).round()),
+          color: Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -361,14 +557,14 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withAlpha((255 * 0.5).round()),
+        color: Colors.black.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: const Text(
+      child: Text(
         'Captions will appear here',
         style: TextStyle(
-          color: Colors.white38,
-          fontSize: 16,
+          color: highContrast ? Colors.white70 : Colors.white38,
+          fontSize: 16 * fontScale,
           fontWeight: FontWeight.w400,
           fontStyle: FontStyle.italic,
         ),

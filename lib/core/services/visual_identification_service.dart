@@ -4,8 +4,6 @@ import 'package:live_captions_xr/core/services/visual_service.dart';
 import '../models/visual_object.dart';
 import '../../features/visual_identification/cubit/visual_identification_cubit.dart';
 import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
-import 'hybrid_localization_engine.dart';
-import 'dart:ui';
 import 'app_logger.dart';
 
 /// Visual identification service demonstrating Gemma 3n vision integration
@@ -18,7 +16,6 @@ class VisualIdentificationService {
   final VisualIdentificationCubit visualIdentificationCubit;
   final Gemma3nService gemma3nService;
   final VisualService visualService;
-  bool _modelLoaded = false;
 
   /// Default constructor for dependency injection
   VisualIdentificationService({

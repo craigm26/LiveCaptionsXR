@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/foundation.dart';
 
 enum DownloadStatus {
   notStarted,
@@ -49,6 +48,8 @@ class ModelValidationResult {
 
 class ModelDownloadService {
   static const String _baseUrl = 'https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr';
+  static const String _whisperBaseUrl =
+      'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true';
   
   static final Map<String, http.Client> _activeDownloads = {};
 
@@ -247,7 +248,7 @@ class ModelDownloadService {
     String modelName, {
     bool validateAfterDownload = true,
   }) async* {
-    final url = '$_baseUrl/$fileName';
+    final url = _getDownloadUrl(fileName);
     final modelsDir = await modelsDirectory;
     final file = File('$modelsDir/$fileName');
 
@@ -375,6 +376,14 @@ class ModelDownloadService {
         error: e.toString(),
       );
     }
+  }
+
+  static String _getDownloadUrl(String fileName) {
+    final normalized = fileName.toLowerCase();
+    if (normalized == 'whisper_base.bin' || normalized == 'ggml-base.bin') {
+      return _whisperBaseUrl;
+    }
+    return '$_baseUrl/$fileName';
   }
 
   /// Cancel an active download

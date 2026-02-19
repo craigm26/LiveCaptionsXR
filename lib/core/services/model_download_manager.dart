@@ -63,11 +63,11 @@ class ModelDownloadManager extends ChangeNotifier {
     ),
     'whisper-base': ModelConfig(
       fileName: 'ggml-base.bin',
-      url: 'https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin',
+      url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true',
       expectedSize: 147951465, // Actual size from server
       type: ModelType.whisper,
       displayName: 'Whisper Base',
-      assetPath: 'assets/models/whisper_base.bin',
+      assetPath: 'assets/models/ggml-base.bin',
     ),
   };
 
@@ -76,12 +76,16 @@ class ModelDownloadManager extends ChangeNotifier {
   final Map<String, String?> _errors = {};
   final Map<String, bool> _downloading = {};
   final Map<String, bool> _completed = {};
+  final Map<String, String> _phase = {};
+  final Map<String, String> _statusMessage = {};
 
   // Getters
   double getProgress(String modelKey) => _progress[modelKey] ?? 0.0;
   String? getError(String modelKey) => _errors[modelKey];
   bool isDownloading(String modelKey) => _downloading[modelKey] ?? false;
   bool isCompleted(String modelKey) => _completed[modelKey] ?? false;
+  String getPhase(String modelKey) => _phase[modelKey] ?? 'idle';
+  String getStatusMessage(String modelKey) => _statusMessage[modelKey] ?? '';
   
   // Get all available model keys
   List<String> get availableModels => _modelConfigs.keys.toList();
@@ -135,13 +139,21 @@ class ModelDownloadManager extends ChangeNotifier {
     
     // First check if the model exists in the documents directory
     final path = await getModelPath(modelKey);
-    final fileExists = File(path).existsSync();
+    final file = File(path);
+    final fileExists = file.existsSync();
     
     _logger.d('📁 Model file exists in documents: $fileExists (path: $path)');
     
     if (fileExists) {
-      _logger.d('✅ Model found in documents directory: $modelKey');
-      return true;
+      final stat = await file.stat();
+      final isLikelyComplete = _isLikelyCompleteLocal(config, stat.size);
+      if (isLikelyComplete) {
+        _logger.d('✅ Model found in documents directory: $modelKey');
+        return true;
+      }
+
+      _logger.w(
+          '⚠️ Model file exists but appears incomplete: $modelKey (size=${stat.size}, expected~${config.expectedSize})');
     }
     
     // If not in documents, check if it exists as an asset
@@ -156,6 +168,15 @@ class ModelDownloadManager extends ChangeNotifier {
     }
     
     return assetExists;
+  }
+
+  bool _isLikelyCompleteLocal(ModelConfig config, int size) {
+    if (size <= 0) return false;
+
+    // Allow small tolerance for metadata/header differences while still
+    // rejecting clearly partial files (e.g., interrupted downloads).
+    final minimumExpected = (config.expectedSize * 0.95).round();
+    return size >= minimumExpected;
   }
 
   /// Check if a model file is complete (not partial)
@@ -334,6 +355,13 @@ class ModelDownloadManager extends ChangeNotifier {
     return _modelConfigs[modelKey]?.expectedSize ?? 0;
   }
 
+  void _setPhase(String modelKey, String phase, String message) {
+    _phase[modelKey] = phase;
+    _statusMessage[modelKey] = message;
+    _logger.i('📦 [$modelKey] $phase - $message');
+    notifyListeners();
+  }
+
   /// Download a specific model (or copy from assets if available)
   Future<void> downloadModel(String modelKey) async {
     final config = _modelConfigs[modelKey];
@@ -346,21 +374,44 @@ class ModelDownloadManager extends ChangeNotifier {
     _completed[modelKey] = false;
     _errors[modelKey] = null;
     _progress[modelKey] = 0.0;
+    _setPhase(modelKey, 'preparing', 'Preparing download...');
     notifyListeners();
 
     try {
+      // Remove partial file before starting to ensure a clean readable file.
+      final modelPath = await getModelPath(modelKey);
+      final existingFile = File(modelPath);
+      if (await existingFile.exists()) {
+        final stat = await existingFile.stat();
+        if (!_isLikelyCompleteLocal(config, stat.size)) {
+          _setPhase(modelKey, 'preparing', 'Removing partial file...');
+          await existingFile.delete();
+          _logger.w('⚠️ Removed partial file for $modelKey (${stat.size} bytes)');
+        }
+      }
+
       // First, check if the model exists in assets
       _logger.d('🔍 Checking if model exists in assets: ${config.assetPath}');
       final assetExists = await _assetExists(config.assetPath);
       
       if (assetExists) {
         _logger.i('📦 Model found in assets, copying to documents: $modelKey');
+        _setPhase(modelKey, 'copying', 'Copying bundled model...');
         // Copy from assets instead of downloading
         _progress[modelKey] = 0.5;
         notifyListeners();
         
         await _copyAssetToDocuments(modelKey);
+
+        _setPhase(modelKey, 'validating', 'Validating copied model...');
+        final copiedPath = await getModelPath(modelKey);
+        final copiedFile = File(copiedPath);
+        final copiedValid = await _validateModelFile(copiedFile, modelKey);
+        if (!copiedValid) {
+          throw Exception('Copied model validation failed');
+        }
         
+        _setPhase(modelKey, 'ready', 'Model is ready for use');
         _progress[modelKey] = 1.0;
         _completed[modelKey] = true;
         _downloading[modelKey] = false;
@@ -381,6 +432,7 @@ class ModelDownloadManager extends ChangeNotifier {
       }
 
       _logger.i('🌐 Downloading from URL: ${config.url}');
+      _setPhase(modelKey, 'downloading', 'Downloading model bytes...');
       final request = http.Request('GET', Uri.parse(config.url));
       final response = await request.send();
       
@@ -394,6 +446,7 @@ class ModelDownloadManager extends ChangeNotifier {
 
       final contentLength = response.contentLength ?? 0;
       int bytesReceived = 0;
+      int lastLoggedPercent = -1;
       final sink = file.openWrite();
 
       await for (final chunk in response.stream) {
@@ -401,11 +454,30 @@ class ModelDownloadManager extends ChangeNotifier {
         bytesReceived += chunk.length;
         if (contentLength > 0) {
           _progress[modelKey] = bytesReceived / contentLength;
+          final percent = (_progress[modelKey]! * 100).floor();
+          final roundedBucket = (percent ~/ 10) * 10;
+          _statusMessage[modelKey] =
+              'Downloading... $percent% (${_formatBytes(bytesReceived)} / ${_formatBytes(contentLength)})';
+          if (roundedBucket >= 0 && roundedBucket != lastLoggedPercent) {
+            lastLoggedPercent = roundedBucket;
+            _logger.i('⬇️ [$modelKey] Download progress: $percent%');
+          }
           notifyListeners();
         }
       }
 
       await sink.close();
+
+      _setPhase(modelKey, 'validating', 'Validating downloaded model...');
+      final isValid = await _validateModelFile(file, modelKey);
+      if (!isValid) {
+        throw Exception('Downloaded model failed validation');
+      }
+
+      _setPhase(modelKey, 'finalizing', 'Finalizing model for app use...');
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      _setPhase(modelKey, 'ready', 'Model is ready for use');
       _progress[modelKey] = 1.0;
       _completed[modelKey] = true;
       _downloading[modelKey] = false;
@@ -413,10 +485,25 @@ class ModelDownloadManager extends ChangeNotifier {
     } catch (e) {
       _logger.e('❌ Download error for $modelKey: $e');
       _errors[modelKey] = e.toString();
+      _phase[modelKey] = 'failed';
+      _statusMessage[modelKey] = 'Failed: $e';
       _downloading[modelKey] = false;
       _completed[modelKey] = false;
       notifyListeners();
     }
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    }
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '$bytes B';
   }
 
   /// Download multiple models
@@ -437,6 +524,8 @@ class ModelDownloadManager extends ChangeNotifier {
         'downloading': isDownloading(modelKey),
         'progress': getProgress(modelKey),
         'error': getError(modelKey),
+        'phase': getPhase(modelKey),
+        'statusMessage': getStatusMessage(modelKey),
         'config': _modelConfigs[modelKey],
       };
     }
@@ -455,6 +544,8 @@ class ModelDownloadManager extends ChangeNotifier {
         'downloading': isDownloading(modelKey),
         'progress': getProgress(modelKey),
         'error': getError(modelKey),
+        'phase': getPhase(modelKey),
+        'statusMessage': getStatusMessage(modelKey),
         'config': _modelConfigs[modelKey],
       };
     }
@@ -468,6 +559,8 @@ class ModelDownloadManager extends ChangeNotifier {
     _errors[modelKey] = null;
     _downloading[modelKey] = false;
     _completed[modelKey] = false;
+    _phase[modelKey] = 'idle';
+    _statusMessage[modelKey] = '';
     notifyListeners();
   }
 
@@ -477,6 +570,8 @@ class ModelDownloadManager extends ChangeNotifier {
     _errors.clear();
     _downloading.clear();
     _completed.clear();
+    _phase.clear();
+    _statusMessage.clear();
     notifyListeners();
   }
 

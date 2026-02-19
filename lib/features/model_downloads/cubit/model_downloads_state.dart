@@ -5,6 +5,8 @@ class ModelDownloadsState extends Equatable {
   final Set<String> downloadedModels;
   final Set<String> activeDownloads;
   final Map<String, DownloadProgress> downloadProgress;
+  final Map<String, DownloadPhase> downloadPhase;
+  final Map<String, String> downloadMessage;
   final Map<String, ModelValidationResult> validationResults;
   final bool isLoading;
   final String? error;
@@ -14,6 +16,8 @@ class ModelDownloadsState extends Equatable {
     this.downloadedModels = const {},
     this.activeDownloads = const {},
     this.downloadProgress = const {},
+    this.downloadPhase = const {},
+    this.downloadMessage = const {},
     this.validationResults = const {},
     this.isLoading = true,
     this.error,
@@ -24,6 +28,8 @@ class ModelDownloadsState extends Equatable {
     Set<String>? downloadedModels,
     Set<String>? activeDownloads,
     Map<String, DownloadProgress>? downloadProgress,
+    Map<String, DownloadPhase>? downloadPhase,
+    Map<String, String>? downloadMessage,
     Map<String, ModelValidationResult>? validationResults,
     bool? isLoading,
     String? error,
@@ -33,6 +39,8 @@ class ModelDownloadsState extends Equatable {
       downloadedModels: downloadedModels ?? this.downloadedModels,
       activeDownloads: activeDownloads ?? this.activeDownloads,
       downloadProgress: downloadProgress ?? this.downloadProgress,
+      downloadPhase: downloadPhase ?? this.downloadPhase,
+      downloadMessage: downloadMessage ?? this.downloadMessage,
       validationResults: validationResults ?? this.validationResults,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
@@ -45,6 +53,8 @@ class ModelDownloadsState extends Equatable {
         downloadedModels,
         activeDownloads,
         downloadProgress,
+        downloadPhase,
+        downloadMessage,
         validationResults,
         isLoading,
         error,

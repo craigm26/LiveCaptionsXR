@@ -10,10 +10,10 @@ class DirectionIndicator extends StatefulWidget {
   final bool showLabel;
 
   const DirectionIndicator({
-    Key? key,
+    super.key,
     this.size = 80.0,
     this.showLabel = true,
-  }) : super(key: key);
+  });
 
   @override
   State<DirectionIndicator> createState() => _DirectionIndicatorState();
@@ -90,7 +90,7 @@ class _DirectionIndicatorState extends State<DirectionIndicator>
             child: Center(
               child: Icon(
                 Icons.hearing_disabled,
-                color: Colors.grey.withOpacity(0.4),
+                color: Colors.grey.withValues(alpha:0.4),
                 size: widget.size * 0.4,
               ),
             ),
@@ -161,14 +161,14 @@ class _DirectionPainter extends CustomPainter {
 
     // Outer ring
     final ringPaint = Paint()
-      ..color = color.withOpacity(0.2)
+      ..color = color.withValues(alpha:0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
     canvas.drawCircle(center, radius, ringPaint);
 
     // Confidence arc
     final arcPaint = Paint()
-      ..color = color.withOpacity(0.6)
+      ..color = color.withValues(alpha:0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;

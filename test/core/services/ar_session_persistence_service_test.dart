@@ -80,8 +80,6 @@ void main() {
 
       test('ignores states older than 24 hours', () async {
         // Arrange
-        const readyState = ARSessionReady(anchorPlaced: true);
-        
         // Mock SharedPreferences with old timestamp
         final prefs = await SharedPreferences.getInstance();
         final oldTimestamp = DateTime.now().subtract(const Duration(hours: 25));

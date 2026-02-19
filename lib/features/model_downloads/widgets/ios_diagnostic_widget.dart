@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../cubit/model_downloads_cubit.dart';
-import '../../../core/services/ios_model_config_service.dart';
 
 /// Widget to display iOS-specific diagnostic information and recommendations
 class IOSDiagnosticWidget extends StatelessWidget {

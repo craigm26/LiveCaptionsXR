@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
 import 'app_logger.dart';
 import 'ar_frame_service.dart';
 import 'camera_service.dart';
+import '../di/service_locator.dart';
 
 /// Unified service for capturing visual frames across platforms
 /// - iOS: Uses ARFrameService for ARKit frame capture
@@ -31,7 +30,7 @@ class FrameCaptureService {
         _logger.i('✅ ARFrameService initialized successfully', category: LogCategory.ar);
       } else if (Platform.isAndroid) {
         _logger.i('🤖 Initializing CameraService for Android...', category: LogCategory.camera);
-        _cameraService = CameraService();
+        _cameraService = sl<CameraService>();
         await _cameraService!.initialize();
         _logger.i('✅ CameraService initialized successfully', category: LogCategory.camera);
       } else {
@@ -77,7 +76,7 @@ class FrameCaptureService {
   }
 
   /// Capture a single frame from the appropriate source
-  /// Returns image data as List<int> or null if capture fails
+  /// Returns image data as bytes list or null if capture fails
   Future<List<int>?> captureFrame() async {
     if (!_isInitialized) {
       _logger.e('❌ FrameCaptureService not initialized', category: LogCategory.system);
@@ -141,7 +140,7 @@ class FrameCaptureService {
       _arFrameService!.dispose();
       _arFrameService = null;
     } else if (Platform.isAndroid && _cameraService != null) {
-      _cameraService!.dispose();
+      _cameraService!.stopCamera();
       _cameraService = null;
     }
 

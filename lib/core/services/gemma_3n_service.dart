@@ -144,6 +144,22 @@ class Gemma3nService {
         modelPath = await _modelManager.getModelPath(modelKey);
       }
 
+      if (modelPath.isEmpty || !await File(modelPath).exists()) {
+        _logger.w(
+            '⚠️ Gemma model file missing at resolved path: $modelPath - enhancement disabled',
+            category: LogCategory.gemma);
+
+        _enhancementEventController.add(const Gemma3nEnhancementEvent(
+          progress: 0.0,
+          message: 'Gemma 3n model not found - enhancement disabled',
+          error: 'Model file missing',
+        ));
+
+        _isInitialized = false;
+        _inferenceModel = null;
+        return;
+      }
+
       // Emit enhancement event for model loading
       _enhancementEventController.add(const Gemma3nEnhancementEvent(
         progress: 0.5,
@@ -180,7 +196,11 @@ class Gemma3nService {
           isComplete: true,
         ));
       } else {
-        throw Exception('Failed to initialize model with any configuration');
+        _logger.w('⚠️ Failed to create Gemma inference model; enhancement disabled',
+            category: LogCategory.gemma);
+        _isInitialized = false;
+        _inferenceModel = null;
+        return;
       }
     } on TimeoutException catch (e) {
       _logger.e('⏱️ Gemma3nService initialization timed out',
@@ -260,7 +280,8 @@ class Gemma3nService {
 
           // If this is the last configuration for the last backend, rethrow
           if (backend == backends.last && i == configs.length - 1) {
-            rethrow;
+            _logger.w('⚠️ All Gemma backend/config attempts failed',
+                category: LogCategory.gemma);
           }
 
           // Brief delay between attempts
@@ -602,19 +623,6 @@ Objects:''';
         ? 'The speaker is located $spatialDirection.'
         : ''; */
 
-    final enhancedPrompt =
-        '''Enhance this caption with visual context from the image:
-
-Original: "$text"
-
-Provide an enhanced caption that:
-- Keeps the original meaning intact
-- Adds relevant visual details from the image
-- Mentions spatial context if applicable
-- Remains natural and concise
-
-Enhanced:''';
-
     return await multimodalInference(
           text: "What do you see at the image?",
           image: imageData,
@@ -629,7 +637,7 @@ Enhanced:''';
 
       // Get app temp directory where XNNPack cache is stored
       final Directory tempDir = Directory.systemTemp;
-      final String cachePath = '${tempDir.path}';
+      final String cachePath = tempDir.path;
 
       // Look for XNNPack cache files and delete them
       final Directory cacheDir = Directory(cachePath);

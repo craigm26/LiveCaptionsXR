@@ -58,6 +58,8 @@ class UserSettings {
 
   /// High contrast mode for captions.
   final bool highContrastEnabled;
+  final bool accessibilityCaptionModeEnabled;
+  final bool speakerFocusModeEnabled;
   final bool debugLoggingOverlayEnabled;
 
   /// Whether spatial localization (speaker direction tracking) is enabled.
@@ -81,6 +83,8 @@ class UserSettings {
     this.ledAlertsEnabled = true,
     this.captionFontSize = 1.0,
     this.highContrastEnabled = false,
+    this.accessibilityCaptionModeEnabled = false,
+    this.speakerFocusModeEnabled = false,
     this.debugLoggingOverlayEnabled = true,
     this.spatialLocalizationEnabled = true,
     this.localizationSensitivity = 0.5,
@@ -98,6 +102,8 @@ class UserSettings {
     bool? ledAlertsEnabled,
     double? captionFontSize,
     bool? highContrastEnabled,
+    bool? accessibilityCaptionModeEnabled,
+    bool? speakerFocusModeEnabled,
     bool? debugLoggingOverlayEnabled,
     bool? spatialLocalizationEnabled,
     double? localizationSensitivity,
@@ -113,6 +119,10 @@ class UserSettings {
       ledAlertsEnabled: ledAlertsEnabled ?? this.ledAlertsEnabled,
       captionFontSize: captionFontSize ?? this.captionFontSize,
       highContrastEnabled: highContrastEnabled ?? this.highContrastEnabled,
+      accessibilityCaptionModeEnabled:
+          accessibilityCaptionModeEnabled ?? this.accessibilityCaptionModeEnabled,
+      speakerFocusModeEnabled:
+          speakerFocusModeEnabled ?? this.speakerFocusModeEnabled,
       debugLoggingOverlayEnabled:
           debugLoggingOverlayEnabled ?? this.debugLoggingOverlayEnabled,
       spatialLocalizationEnabled:
@@ -136,6 +146,8 @@ class UserSettings {
       'ledAlertsEnabled': ledAlertsEnabled,
       'captionFontSize': captionFontSize,
       'highContrastEnabled': highContrastEnabled,
+      'accessibilityCaptionModeEnabled': accessibilityCaptionModeEnabled,
+      'speakerFocusModeEnabled': speakerFocusModeEnabled,
       'debugLoggingOverlayEnabled': debugLoggingOverlayEnabled,
       'spatialLocalizationEnabled': spatialLocalizationEnabled,
       'localizationSensitivity': localizationSensitivity,
@@ -171,6 +183,10 @@ class UserSettings {
       ledAlertsEnabled: json['ledAlertsEnabled'] as bool? ?? true,
       captionFontSize: (json['captionFontSize'] as num?)?.toDouble() ?? 1.0,
       highContrastEnabled: json['highContrastEnabled'] as bool? ?? false,
+      accessibilityCaptionModeEnabled:
+          json['accessibilityCaptionModeEnabled'] as bool? ?? false,
+      speakerFocusModeEnabled:
+          json['speakerFocusModeEnabled'] as bool? ?? false,
       debugLoggingOverlayEnabled:
           json['debugLoggingOverlayEnabled'] as bool? ?? false,
       spatialLocalizationEnabled:

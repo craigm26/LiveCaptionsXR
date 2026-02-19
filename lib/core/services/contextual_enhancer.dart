@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
 import 'package:live_captions_xr/core/services/visual_service.dart';
 

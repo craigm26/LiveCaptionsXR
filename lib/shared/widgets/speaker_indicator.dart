@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vec;
 import '../../core/models/speaker_profile.dart';
@@ -125,7 +126,7 @@ class SpeakerIndicator extends StatelessWidget {
   }
   
   String _getDirection(vec.Vector3 pos) {
-    final angle = pos.x.atan2(-pos.z);
+    final angle = atan2(pos.x, -pos.z);
     if (angle < -0.5) return '← Left';
     if (angle > 0.5) return 'Right →';
     return 'Center';

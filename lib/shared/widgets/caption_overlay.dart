@@ -24,8 +24,8 @@ class CaptionOverlay extends StatefulWidget {
     required this.captions,
     this.fadeDuration = const Duration(milliseconds: 300),
     this.displayDuration = const Duration(seconds: 4),
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<CaptionOverlay> createState() => _CaptionOverlayState();

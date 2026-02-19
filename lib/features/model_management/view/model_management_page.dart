@@ -19,7 +19,8 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   late ModelDownloadManager _downloadManager;
   DeviceModelConfig? _deviceConfig;
   bool _isLoading = true;
-  String? _errorMessage;
+  bool _didAutoFocusWhisper = false;
+  final GlobalKey _whisperRowKey = GlobalKey();
   
   // Model status tracking
   Map<String, _ModelStatus> _modelStatuses = {};
@@ -42,9 +43,9 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
       }
       
       await _refreshModelStatuses();
+      _focusWhisperRowIfNeeded();
     } catch (e, st) {
       _logger.e('Failed to initialize device config', error: e, stackTrace: st);
-      _errorMessage = 'Failed to detect device capabilities';
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -63,10 +64,37 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
         downloading: value['downloading'] as bool? ?? false,
         progress: value['progress'] as double? ?? 0.0,
         error: value['error'] as String?,
+        phase: value['phase'] as String? ?? 'idle',
+        statusMessage: value['statusMessage'] as String? ?? '',
       ),
     ));
     
     if (mounted) setState(() {});
+  }
+
+  bool _shouldFocusWhisperRow() {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    if (_deviceConfig?.npuAvailable == true) return false;
+
+    final whisperReady = _modelStatuses['whisper-base']?.complete ?? false;
+    return !whisperReady;
+  }
+
+  void _focusWhisperRowIfNeeded() {
+    if (_didAutoFocusWhisper || !_shouldFocusWhisperRow()) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _whisperRowKey.currentContext;
+      if (context == null || !mounted) return;
+
+      _didAutoFocusWhisper = true;
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        alignment: 0.2,
+      );
+    });
   }
 
   @override
@@ -269,8 +297,6 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   Widget _buildQuickStatusCard() {
     final totalModels = _modelStatuses.length;
     final downloadedModels = _modelStatuses.values.where((s) => s.complete).length;
-    final activeDownloads = _modelStatuses.values.where((s) => s.downloading).length;
-    
     final bool allReady = _areRecommendedModelsReady();
     
     return Card(
@@ -350,7 +376,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha:0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -443,7 +469,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: (llmModel.supportsVision ? Colors.teal : Colors.purple).withOpacity(0.1),
+                      color: (llmModel.supportsVision ? Colors.teal : Colors.purple).withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -592,6 +618,10 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   }
 
   Widget _buildGenericRecommendation() {
+    final whisperStatus = _modelStatuses['whisper-base'];
+    final whisperReady = whisperStatus?.complete ?? false;
+    final whisperDownloading = whisperStatus?.downloading ?? false;
+
     return Card(
       elevation: 0,
       color: Colors.amber.shade50,
@@ -621,6 +651,56 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             Text(
               'Download these models to enable speech recognition and AI enhancement.',
               style: TextStyle(color: Colors.amber.shade800),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.flash_on, color: Colors.blue.shade700, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      whisperReady
+                          ? 'Whisper ASR is ready.'
+                          : 'Start with Whisper first for immediate transcription.',
+                      style: TextStyle(
+                        color: Colors.blue.shade800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (!whisperReady && !whisperDownloading)
+                    ElevatedButton.icon(
+                      onPressed: () => _downloadModel('whisper-base'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.mic, size: 16),
+                      label: const Text('Download Whisper'),
+                    )
+                  else if (whisperDownloading)
+                    Text(
+                      'Downloading…',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    )
+                  else
+                    Icon(Icons.check_circle, color: Colors.green.shade600),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             _buildModelDownloadRow('whisper-base'),
@@ -653,7 +733,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -712,8 +792,11 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
     final isDownloaded = status?.complete ?? false;
     final isDownloading = status?.downloading ?? false;
     final progress = status?.progress ?? 0.0;
+    final phase = status?.phase ?? 'idle';
+    final statusMessage = status?.statusMessage ?? '';
     
     return Container(
+      key: modelKey == 'whisper-base' ? _whisperRowKey : null,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -728,8 +811,8 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: config.type == ModelType.whisper 
-                  ? Colors.blue.withOpacity(0.1)
-                  : Colors.purple.withOpacity(0.1),
+                  ? Colors.blue.withValues(alpha:0.1)
+                  : Colors.purple.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -751,6 +834,30 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                   _formatSize(config.expectedSize),
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
+                if (isDownloading || statusMessage.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _phaseColor(phase).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _phaseLabel(phase),
+                          style: TextStyle(
+                            color: _phaseColor(phase),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (isDownloading) ...[
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
@@ -759,7 +866,14 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${(progress * 100).toStringAsFixed(0)}%',
+                    '${(progress * 100).toStringAsFixed(0)}%'
+                    '${statusMessage.isNotEmpty ? ' • $statusMessage' : ''}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                  ),
+                ] else if (statusMessage.isNotEmpty && !isDownloaded) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    statusMessage,
                     style: TextStyle(color: Colors.grey[600], fontSize: 11),
                   ),
                 ],
@@ -1004,7 +1118,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isRecommended ? color.withOpacity(0.5) : Colors.grey.shade200,
+          color: isRecommended ? color.withValues(alpha:0.5) : Colors.grey.shade200,
           width: isRecommended ? 2 : 1,
         ),
       ),
@@ -1016,7 +1130,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -1038,7 +1152,7 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -1462,6 +1576,8 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
   Widget _buildRequiredModelsAlert() {
     final asrName = _deviceConfig?.asrModel.displayName ?? 'ASR Model';
     final llmName = _deviceConfig?.llmModel.displayName ?? 'LLM Model';
+    final whisperReady = _modelStatuses['whisper-base']?.complete ?? false;
+    final whisperDownloading = _modelStatuses['whisper-base']?.downloading ?? false;
 
     return Card(
       elevation: 0,
@@ -1497,6 +1613,27 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
               'models. Download them to enable live captions.',
               style: TextStyle(color: Colors.orange.shade800),
             ),
+            if (!whisperReady) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton.icon(
+                  onPressed: whisperDownloading
+                      ? null
+                      : () => _downloadModel('whisper-base'),
+                  icon: const Icon(Icons.mic),
+                  label: Text(
+                    whisperDownloading
+                        ? 'Downloading Whisper...'
+                        : 'Quick Start: Download Whisper',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade700,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1631,6 +1768,44 @@ class _ModelManagementPageState extends State<ModelManagementPage> {
       ],
     );
   }
+
+  Color _phaseColor(String phase) {
+    switch (phase) {
+      case 'downloading':
+        return Colors.blue;
+      case 'validating':
+        return Colors.orange;
+      case 'finalizing':
+        return Colors.purple;
+      case 'ready':
+        return Colors.green;
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _phaseLabel(String phase) {
+    switch (phase) {
+      case 'preparing':
+        return 'Preparing';
+      case 'copying':
+        return 'Preparing';
+      case 'downloading':
+        return 'Downloading';
+      case 'validating':
+        return 'Validating';
+      case 'finalizing':
+        return 'Finalizing';
+      case 'ready':
+        return 'Ready';
+      case 'failed':
+        return 'Failed';
+      default:
+        return 'Idle';
+    }
+  }
 }
 
 class _ModelStatus {
@@ -1639,6 +1814,8 @@ class _ModelStatus {
   final bool downloading;
   final double progress;
   final String? error;
+  final String phase;
+  final String statusMessage;
 
   _ModelStatus({
     required this.exists,
@@ -1646,5 +1823,7 @@ class _ModelStatus {
     required this.downloading,
     required this.progress,
     this.error,
+    required this.phase,
+    required this.statusMessage,
   });
 }

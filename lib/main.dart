@@ -23,7 +23,7 @@ void main() async {
       LogCategory.ar: LogLevel.debug,         // Enable detailed AR logs
       LogCategory.audio: LogLevel.warning,    // Reduce audio noise (keep warning+ only)
       LogCategory.captions: LogLevel.debug,   // Enable caption logs
-      LogCategory.camera: LogLevel.debug,     // Enable camera/frame capture logs
+      LogCategory.camera: LogLevel.warning,   // Reduce camera log noise (keep warning+ only)
       LogCategory.speech: LogLevel.debug,     // Enable speech processing logs
       LogCategory.ui: LogLevel.info,          // Keep UI logs at info level
       LogCategory.system: LogLevel.info,      // Keep system logs at info level

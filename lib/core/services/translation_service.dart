@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:nexa_ai_flutter/nexa_ai_flutter.dart';
-
 import 'app_logger.dart';
 import 'nexa_llm_service.dart';
 
@@ -101,7 +99,7 @@ class TranslationResult {
 
   @override
   String toString() =>
-      'TranslationResult(${sourceLanguage.code} → ${targetLanguage.code}, speaker: ${speakerLabel}): "$translatedText"';
+      'TranslationResult(${sourceLanguage.code} → ${targetLanguage.code}, speaker: $speakerLabel): "$translatedText"';
 }
 
 /// Event for translation progress

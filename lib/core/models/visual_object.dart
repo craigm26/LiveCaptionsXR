@@ -1,7 +1,3 @@
-/// Model representing a visually detected object with accessibility context
-///
-/// This model demonstrates how we structure visual data for Gemma 3n integration,
-/// providing spatial and contextual information crucial for accessibility applications.
 import 'dart:ui';
 import 'multimodal_event.dart';
 
@@ -28,21 +24,17 @@ class VisualObject extends MultimodalEvent {
   /// World transform matrix (16 doubles, row-major 4x4)
   final List<double>? worldTransform;
 
-  VisualObject({
+  const VisualObject({
     required this.label,
-    required double confidence,
+    required super.confidence,
     required this.boundingBox,
-    String description = '',
+    super.description = '',
     this.spatialRelation = 'unknown',
     this.isRelevantToAudio = false,
     this.estimatedDistance,
-    Map<String, dynamic> metadata = const {},
+    super.metadata = const {},
     this.worldTransform,
-  }) : super(
-          confidence: confidence,
-          description: description,
-          metadata: metadata,
-        );
+  });
   
   /// Create a copy with updated fields
   VisualObject copyWith({

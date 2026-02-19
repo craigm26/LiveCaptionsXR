@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:nexa_ai_flutter/nexa_ai_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -121,11 +121,25 @@ class NexaLlmService {
     }
   }
 
+  // Method channel for device info (shared with NexaAsrPlugin)
+  static const MethodChannel _deviceChannel =
+      MethodChannel('live_captions_xr/nexa_asr');
+
   /// Initialize the Nexa SDK
   Future<bool> _initializeSdk() async {
     if (_sdkInitialized) return true;
 
     try {
+      // Check if Nexa native library is available BEFORE loading the SDK class.
+      // On x86_64 emulators, libnpu_jni.so doesn't exist and the static
+      // initializer would crash the entire process with UnsatisfiedLinkError.
+      final sdkAvailable = await _isNexaSdkNativeAvailable();
+      if (!sdkAvailable) {
+        _logger.w('⚠️ Nexa SDK native library not available on this device/architecture',
+            category: LogCategory.gemma);
+        return false;
+      }
+
       _logger.i('🚀 Initializing Nexa SDK for LLM...', category: LogCategory.gemma);
       await NexaSdk.getInstance().init();
       _sdkInitialized = true;
@@ -134,6 +148,19 @@ class NexaLlmService {
     } catch (e, stackTrace) {
       _logger.e('❌ Failed to initialize Nexa SDK',
           error: e, stackTrace: stackTrace, category: LogCategory.gemma);
+      return false;
+    }
+  }
+
+  /// Check if the Nexa SDK native library is available on this device.
+  /// This prevents a fatal UnsatisfiedLinkError on non-ARM devices.
+  static Future<bool> _isNexaSdkNativeAvailable() async {
+    try {
+      final result = await _deviceChannel.invokeMethod<bool>('isNexaSdkAvailable');
+      return result ?? false;
+    } catch (e) {
+      _logger.w('⚠️ Could not check Nexa SDK availability: $e',
+          category: LogCategory.gemma);
       return false;
     }
   }

@@ -17,8 +17,8 @@ class CaptionBubble extends StatelessWidget {
     this.speakerName,
     this.speakerColor,
     this.direction,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

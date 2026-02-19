@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:get_it/get_it.dart';
@@ -67,17 +68,37 @@ class EnhancedSpeechProcessor {
       StreamController<SpeechResult>.broadcast();
   final StreamController<EnhancedCaption> _enhancedCaptionController =
       StreamController<EnhancedCaption>.broadcast();
+    final StreamController<double> _micLevelController =
+      StreamController<double>.broadcast();
 
   // Recent texts for enhancement
   final List<String> _recentTexts = [];
   static const String defaultFallbackTranscript = "Listening...";
   
   // Visual context
-  List<int>? _latestFrame;
   StreamSubscription? _frameSubscription;
+  StreamSubscription<List<int>>? _audioSubscription;
   
   // Mutex for Gemma requests to ensure only one at a time
   bool _gemmaProcessing = false;
+  bool _whisperTranscriptionInFlight = false;
+  int _whisperDroppedChunks = 0;
+  final List<int> _whisperSampleBuffer = <int>[];
+  static const int _whisperSamplesPerInference = 19200; // ~1.2s at 16kHz
+  static const double _minWhisperRms = 0.012;
+  int _lowRmsSkippedWindows = 0;
+
+  Stream<double> get micLevels => _micLevelController.stream;
+
+  double _calculateNormalizedRms(List<int> samples) {
+    if (samples.isEmpty) return 0.0;
+    double sum = 0.0;
+    for (final value in samples) {
+      final normalized = value / 32768.0;
+      sum += normalized * normalized;
+    }
+    return math.sqrt(sum / samples.length);
+  }
 
   EnhancedSpeechProcessor({
     required this.gemma3nService,
@@ -325,7 +346,7 @@ class EnhancedSpeechProcessor {
   Future<void> _initializeAppleSpeech() async {
     try {
       _logger.i('🍎 [DEBUG] _initializeAppleSpeech called', category: LogCategory.speech);
-      _logger.i('🍎 [DEBUG] AppleSpeechService instance check: ${_appleSpeechService != null}', category: LogCategory.speech);
+      _logger.i('🍎 [DEBUG] AppleSpeechService instance available', category: LogCategory.speech);
       _logger.i('🍎 [DEBUG] Config: $_config', category: LogCategory.speech);
 
       _logger.i('🍎 [DEBUG] About to call _appleSpeechService.initialize() with 30s timeout', category: LogCategory.speech);
@@ -525,27 +546,78 @@ class EnhancedSpeechProcessor {
   Future<void> _startWhisperGgmlProcessing() async {
     try {
       _logger.i('🎤 Starting Whisper GGML processing...', category: LogCategory.speech);
+
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+      _whisperSampleBuffer.clear();
       
       // Subscribe to audio capture service for real-time processing
-      _audioCaptureService.audioStream.listen((audioData) async {
+      _audioSubscription = _audioCaptureService.audioStream.listen((audioData) async {
         _logger.d('🎵 Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
+
+        _whisperSampleBuffer.addAll(audioData);
+        if (_whisperSampleBuffer.length < _whisperSamplesPerInference) {
+          return;
+        }
+
+        if (_whisperTranscriptionInFlight) {
+          _whisperDroppedChunks++;
+          if (_whisperDroppedChunks % 50 == 0) {
+            _logger.i('⏭️ Skipped $_whisperDroppedChunks audio chunks while Whisper was busy', category: LogCategory.speech);
+          }
+          return;
+        }
         
         try {
+          _whisperTranscriptionInFlight = true;
+          final inferenceSamples =
+              List<int>.from(_whisperSampleBuffer.take(_whisperSamplesPerInference));
+          _whisperSampleBuffer.removeRange(0, _whisperSamplesPerInference);
+
+          final rms = _calculateNormalizedRms(inferenceSamples);
+          _micLevelController.add(rms);
+          if (rms < _minWhisperRms) {
+            _lowRmsSkippedWindows++;
+            if (_lowRmsSkippedWindows % 20 == 0) {
+              _logger.i('🔇 Skipping low-energy audio windows for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)})', category: LogCategory.speech);
+            }
+            return;
+          }
+
+          _lowRmsSkippedWindows = 0;
+
           // Convert audio data to Uint8List for Whisper processing
-          final audioBytes = Uint8List.fromList(audioData);
-          _logger.d('🔄 Converting audio to bytes (${audioBytes.length} bytes)', category: LogCategory.speech);
+          final audioBytes = ByteData(inferenceSamples.length * 2);
+          for (int i = 0; i < inferenceSamples.length; i++) {
+            audioBytes.setInt16(i * 2, inferenceSamples[i], Endian.little);
+          }
+          final audioBuffer = audioBytes.buffer.asUint8List();
+          _logger.d('🔄 Converting audio to bytes (${audioBuffer.length} bytes)', category: LogCategory.speech);
           
           // Process with Whisper service
           _logger.d('🎤 Sending audio to Whisper for transcription...', category: LogCategory.speech);
-          final result = await _whisperService.processAudioBuffer(audioBytes);
-          
-          _logger.i('📝 Whisper transcription result: "${result.text}" (confidence: ${result.confidence})', category: LogCategory.speech);
+          final result = await _whisperService.processAudioBuffer(audioBuffer);
+
+          final normalizedText = result.text.trim();
+          _logger.i('📝 Whisper transcription result: "$normalizedText" (confidence: ${result.confidence})', category: LogCategory.speech);
+
+          if (normalizedText.isEmpty) {
+            _logger.d('⏭️ Ignoring empty Whisper transcript window', category: LogCategory.speech);
+            return;
+          }
           
           // Process the speech result
-          _processSpeechResult(result);
+          _processSpeechResult(SpeechResult(
+            text: normalizedText,
+            confidence: result.confidence,
+            isFinal: result.isFinal,
+            timestamp: result.timestamp,
+          ));
           
         } catch (e, stackTrace) {
           _logger.e('❌ Error processing audio chunk', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+        } finally {
+          _whisperTranscriptionInFlight = false;
         }
       }, onError: (error, stackTrace) {
         _logger.e('❌ Error in audio stream', category: LogCategory.speech, error: error, stackTrace: stackTrace);
@@ -610,7 +682,10 @@ class EnhancedSpeechProcessor {
       });
 
       // Subscribe to audio capture and feed to Nexa ASR
-      _audioCaptureService.audioStream.listen((audioData) async {
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+
+      _audioSubscription = _audioCaptureService.audioStream.listen((audioData) async {
         _logger.d('🎵 [NEXA STT] Received audio chunk (${audioData.length} samples)', category: LogCategory.speech);
 
         try {
@@ -819,6 +894,11 @@ class EnhancedSpeechProcessor {
   }
 
   void _processSpeechResult(SpeechResult result) {
+    if (result.text.trim().isEmpty) {
+      _logger.d('⏭️ Skipping empty speech result', category: LogCategory.speech);
+      return;
+    }
+
     _logger.d('🔄📥 [STT PROCESSING] Received speech result: "${result.text}" (final: ${result.isFinal}, confidence: ${result.confidence})', category: LogCategory.speech);
     
     try {
@@ -961,6 +1041,12 @@ class EnhancedSpeechProcessor {
       }
 
       // Stop stereo audio capture
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+      _whisperTranscriptionInFlight = false;
+      _whisperDroppedChunks = 0;
+      _lowRmsSkippedWindows = 0;
+      _whisperSampleBuffer.clear();
       await _stopStereoAudioCapture();
       
       await _frameCaptureService.stop();
@@ -1002,6 +1088,7 @@ class EnhancedSpeechProcessor {
     _frameCaptureService.dispose();
     _speechResultController.close();
     _enhancedCaptionController.close();
+    _micLevelController.close();
   }
 
   /// Get current frame for visual context using unified FrameCaptureService

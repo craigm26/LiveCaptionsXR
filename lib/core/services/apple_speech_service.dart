@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -185,7 +184,7 @@ class AppleSpeechService {
       ));
       
       return true;
-    } catch (e, stackTrace) {
+    } catch (e) {
       //_logger.e('❌ Failed to initialize Apple Speech service', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       
       // Emit STT event for initialization failure

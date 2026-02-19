@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../sound_detection/cubit/sound_detection_cubit.dart';
@@ -24,7 +23,6 @@ import '../../../core/services/app_logger.dart';
 import '../../../shared/widgets/debug_logging_overlay.dart';
 import '../../../shared/widgets/ar_session_status_widget.dart';
 import '../../../core/services/model_download_manager.dart';
-import 'package:provider/provider.dart';
 import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/whisper_service_impl.dart';
 import '../../../core/services/gemma_3n_service.dart';
@@ -32,8 +30,8 @@ import 'package:live_captions_xr/core/di/service_locator.dart';
 import 'package:live_captions_xr/core/services/camera_service.dart';
 import '../../../core/services/apple_speech_service.dart';
 import '../../../core/services/nexa_asr_service.dart';
+import '../../../core/services/enhanced_speech_processor.dart';
 import '../../../core/models/device_model_config.dart';
-import '../../../core/services/translation_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String _nexaStatusMessage = 'Detecting device...';
   bool _nexaReady = false;
   bool _nexaInitializing = false;
+  Future<void>? _emulatorCameraStartFuture;
+  bool _emulatorCameraPreviewActive = false;
 
   @override
   void initState() {
@@ -174,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Initialize Gemma 3n service before AR launch to prevent freezing during AR session.
+  /// Initialize Gemma 3n service before caption session launch.
   /// On Nexa devices, this runs as fire-and-forget in the background since
   /// the Nexa LLM service handles text enhancement; Gemma is a bonus.
   Future<void> _initializeGemmaBeforeAR() async {
@@ -186,6 +186,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isNexa = await _isNexaDevice();
 
+    if (!isNexa && _modelsMissing) {
+      _logger.w(
+          '⚠️ Skipping Gemma init because required models are missing; running captions without enhancement',
+          category: LogCategory.gemma);
+      return;
+    }
+
     // On Nexa devices, skip Gemma entirely — Nexa SDK provides its own LLM
     if (isNexa) {
       _logger.i(
@@ -196,35 +203,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // On non-Nexa devices, initialize synchronously (blocks FAB until ready)
     await _initializeGemmaSync();
-  }
-
-  /// Background Gemma init for Nexa devices - does not block the FAB
-  void _initializeGemmaInBackground() {
-    _isGemmaInitializing = true;
-    if (mounted) setState(() {});
-
-    Future(() async {
-      try {
-        final gemma3nService = sl<Gemma3nService>();
-        if (gemma3nService.isReady) {
-          _isGemmaInitialized = true;
-          return;
-        }
-        final timeout = Duration(seconds: 120);
-        await gemma3nService.initialize().timeout(timeout);
-        if (gemma3nService.isReady) {
-          _logger.i('✅ Gemma 3n background init succeeded',
-              category: LogCategory.gemma);
-          _isGemmaInitialized = true;
-        }
-      } catch (e) {
-        _logger.w('⚠️ Gemma background init failed (non-critical on Nexa): $e',
-            category: LogCategory.gemma);
-      } finally {
-        _isGemmaInitializing = false;
-        if (mounted) setState(() {});
-      }
-    });
   }
 
   /// Synchronous Gemma init for non-Nexa devices
@@ -277,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Start all services needed for AR mode using the ARSessionCubit
+  /// Start all services needed for the caption session using the ARSessionCubit
   Future<void> _startAllServicesForARMode() async {
     _logger.i('🚀🚀🚀 [HOME] _startAllServicesForARMode STARTED!',
         category: LogCategory.ui);
@@ -361,11 +339,11 @@ class _HomeScreenState extends State<HomeScreen> {
           if (liveCaptionsCubit.state is! LiveCaptionsActive ||
               !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
             _logger.i(
-                '🎤 [HOME] Step 6c: Starting live captions for AR mode...',
-                category: LogCategory.captions);
+              '🎤 [HOME] Step 6c: Starting live captions...',
+              category: LogCategory.captions);
             await liveCaptionsCubit.startCaptions();
             _logger.i(
-                '✅ [HOME] Step 6c complete: Live captions started for AR mode',
+              '✅ [HOME] Step 6c complete: Live captions started',
                 category: LogCategory.captions);
           } else {
             _logger.i('🎤 [HOME] Step 6c: Live captions already active',
@@ -375,10 +353,10 @@ class _HomeScreenState extends State<HomeScreen> {
         startSoundDetection: () async {
           final soundDetectionCubit = context.read<SoundDetectionCubit>();
           if (!soundDetectionCubit.isActive) {
-            _logger.i('🔊 Starting sound detection for AR mode...',
+            _logger.i('🔊 Starting sound detection...',
                 category: LogCategory.audio);
             await soundDetectionCubit.start();
-            _logger.i('✅ Sound detection started for AR mode',
+            _logger.i('✅ Sound detection started',
                 category: LogCategory.audio);
           } else {
             _logger.i('🔊 Sound detection already active',
@@ -388,10 +366,10 @@ class _HomeScreenState extends State<HomeScreen> {
         startLocalization: () async {
           final localizationCubit = context.read<LocalizationCubit>();
           if (!localizationCubit.isActive) {
-            _logger.i('🧭 Starting localization for AR mode...',
+            _logger.i('🧭 Starting localization...',
                 category: LogCategory.ar);
             await localizationCubit.start();
-            _logger.i('✅ Localization started for AR mode',
+            _logger.i('✅ Localization started',
                 category: LogCategory.ar);
           } else {
             _logger.i('🧭 Localization already active',
@@ -402,10 +380,10 @@ class _HomeScreenState extends State<HomeScreen> {
           final visualIdentificationCubit =
               context.read<VisualIdentificationCubit>();
           if (!visualIdentificationCubit.isActive) {
-            _logger.i('👁️ Starting visual identification for AR mode...',
+            _logger.i('👁️ Starting visual identification...',
                 category: LogCategory.camera);
             await visualIdentificationCubit.start();
-            _logger.i('✅ Visual identification started for AR mode',
+            _logger.i('✅ Visual identification started',
                 category: LogCategory.camera);
           } else {
             _logger.i('👁️ Visual identification already active',
@@ -515,83 +493,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Build NPU download progress card for home screen
-  Widget _buildNexaProgressCard() {
-    final Color statusColor;
-    final IconData statusIcon;
-
-    if (_nexaReady) {
-      statusColor = Colors.green;
-      statusIcon = Icons.check_circle;
-    } else if (_nexaProgress > 0) {
-      statusColor = Colors.blue;
-      statusIcon = Icons.downloading;
-    } else {
-      statusColor = Colors.orange;
-      statusIcon = Icons.hourglass_top;
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withAlpha(100), width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.memory, color: statusColor, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Nexa NPU Engine',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const Spacer(),
-              Icon(statusIcon, color: statusColor, size: 20),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (!_nexaReady) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: _nexaProgress > 0 ? _nexaProgress : null,
-                backgroundColor: Colors.white12,
-                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                minHeight: 6,
-              ),
-            ),
-            const SizedBox(height: 6),
-          ],
-          Text(
-            _nexaStatusMessage,
-            style: TextStyle(
-              color: _nexaReady ? Colors.green.shade300 : Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-          if (_nexaReady)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'NPU-accelerated speech recognition active',
-                style: TextStyle(color: Colors.green.shade400, fontSize: 11),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   /// Build NPU-specific bottom bar (replaces orange "models missing" bar)
   Widget _buildNexaBottomBar(BuildContext context) {
     final Color barColor = _nexaReady ? Colors.green.shade700 : Colors.blue.shade700;
@@ -612,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Text(
                 _nexaReady
-                    ? 'Nexa NPU ready — tap AR to start'
+                    ? 'Nexa NPU ready — tap Start Captions'
                     : 'Setting up NPU models... ${(_nexaProgress * 100).toStringAsFixed(0)}%',
                 style: const TextStyle(color: Colors.white, fontSize: 14),
               ),
@@ -713,9 +614,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.15),
+                  color: Colors.orange.withValues(alpha:0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                  border: Border.all(color: Colors.orange.withValues(alpha:0.4)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -758,9 +659,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha:0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -811,9 +712,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _nexaEventSubscription?.cancel();
+    if (_emulatorCameraPreviewActive) {
+      try {
+        sl<CameraService>().stopCamera();
+      } catch (_) {}
+    }
     _logger.i('🗑️ HomeScreen disposing...');
     super.dispose();
     _logger.d('✅ HomeScreen disposed successfully');
+  }
+
+  Future<void> _ensureEmulatorCameraPreviewStarted() {
+    return _emulatorCameraStartFuture ??= (() async {
+      final cameraService = sl<CameraService>();
+      await cameraService.initialize();
+      cameraService.startCamera();
+      _emulatorCameraPreviewActive = true;
+    })();
   }
 
   /// Build a non-blocking model status bar
@@ -858,12 +773,10 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.data == true) {
-          _logger.w('🧪 Emulator detected: showing AR/camera fallback.');
+          _logger.w('🧪 Emulator detected: showing camera fallback.');
           final cameraService = sl<CameraService>();
           return FutureBuilder<void>(
-            future: cameraService
-                .initialize()
-                .then((_) => cameraService.startCamera()),
+            future: _ensureEmulatorCameraPreviewStarted(),
             builder: (context, camSnapshot) {
               if (camSnapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
@@ -879,7 +792,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.black54,
                         padding: const EdgeInsets.all(16),
                         child: const Text(
-                          'Emulator Camera Preview (Fallback AR Mode)',
+                          'Emulator Camera Preview (Fallback)',
                           style: TextStyle(color: Colors.white, fontSize: 18),
                         ),
                       ),
@@ -913,12 +826,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Icon(Icons.spatial_audio_off, color: Colors.white24, size: 100),
                 const SizedBox(height: 16),
                 const Text(
-                  'Spatial Captions',
+                  'Live Captions',
                   style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Real-time captions anchored to speakers in AR',
+                  'Real-time captions with speaker direction cues',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white38, fontSize: 14),
                 ),
@@ -970,8 +883,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: LiveCaptionsWidget(
                               onToggle: () {
                                 final cubit = context.read<LiveCaptionsCubit>();
-                                if (isActive) cubit.stopCaptions();
-                                else cubit.startCaptions();
+                                if (isActive) {
+                                  cubit.stopCaptions();
+                                } else {
+                                  cubit.startCaptions();
+                                }
                               },
                               onClear: () => context.read<LiveCaptionsCubit>().clearCaptions(),
                               maxWidth: 360,
@@ -991,6 +907,57 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildMicLevelOverlay() {
+    final speechProcessor = sl<EnhancedSpeechProcessor>();
+    return StreamBuilder<double>(
+      stream: speechProcessor.micLevels,
+      initialData: 0.0,
+      builder: (context, snapshot) {
+        final level = (snapshot.data ?? 0.0).clamp(0.0, 1.0);
+        final threshold = 0.012;
+        final aboveThreshold = level >= threshold;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: aboveThreshold ? Colors.greenAccent : Colors.orangeAccent,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mic level ${aboveThreshold ? 'OK' : 'Low'}',
+                style: TextStyle(
+                  color: aboveThreshold ? Colors.greenAccent : Colors.orangeAccent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 110,
+                child: LinearProgressIndicator(
+                  value: level,
+                  minHeight: 6,
+                  backgroundColor: Colors.white24,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    aboveThreshold ? Colors.greenAccent : Colors.orangeAccent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _logger.d('🏗️ Building HomeScreen UI');
@@ -1003,6 +970,10 @@ class _HomeScreenState extends State<HomeScreen> {
             : false;
         return BlocBuilder<HomeCubit, HomeState>(
           builder: (context, homeState) {
+            final liveCaptionsState = context.watch<LiveCaptionsCubit>().state;
+            final hideStatusChrome =
+                liveCaptionsState is LiveCaptionsActive && liveCaptionsState.isListening;
+
             return DebugLoggingOverlay(
               isEnabled: debugOverlayEnabled,
               child: BlocListener<HomeCubit, HomeState>(
@@ -1016,51 +987,50 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildCameraOrFallback(),
                       ),
 
-                      // Pipeline Status Dashboard (top area)
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 8,
-                        left: 0,
-                        right: 0,
-                        child: _buildPipelineStatusDashboard(context),
-                      ),
+                      if (!hideStatusChrome)
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 8,
+                          left: 0,
+                          right: 0,
+                          child: _buildPipelineStatusDashboard(context),
+                        ),
 
-                      // AR Session Status Widget (top of screen)
-                      BlocBuilder<ARSessionCubit, ARSessionState>(
-                        builder: (context, arSessionState) {
-                          // Show status widget when AR session is not in initial state
-                          if (arSessionState is! ARSessionInitial) {
-                            return Positioned(
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              child: ARSessionStatusWidget(
-                                showCloseButton:
-                                    arSessionState is ARSessionReady,
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
+                      if (!hideStatusChrome)
+                        BlocBuilder<ARSessionCubit, ARSessionState>(
+                          builder: (context, arSessionState) {
+                            if (arSessionState is! ARSessionInitial) {
+                              return Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                child: ARSessionStatusWidget(
+                                  showCloseButton:
+                                      arSessionState is ARSessionReady,
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
 
                       BlocBuilder<ARSessionCubit, ARSessionState>(
                         builder: (context, arSessionState) {
                           final inARMode = arSessionState is ARSessionReady;
-                          // Only log significant AR state changes
+                          // Only log significant state changes
                           return BlocBuilder<LiveCaptionsCubit,
                               LiveCaptionsState>(
                             builder: (context, captionsState) {
                               // Removed verbose caption state logging
                               // Removed verbose caption details logging
 
-                              // Only show overlay when in AR mode and captions are active
+                              // Only show overlay when in spatial mode and captions are active
                               // or when explicitly requested for fallback
                               bool showOverlay = false;
                               if (inARMode &&
                                   captionsState is LiveCaptionsActive) {
                                 showOverlay = true;
                                 _logger.i(
-                                    '🎯 [UI] Showing captions overlay in AR mode',
+                                  '🎯 [UI] Showing captions overlay in spatial mode',
                                     category: LogCategory.ui);
                               } else if (inARMode &&
                                   captionsState is LiveCaptionsActive &&
@@ -1179,6 +1149,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         ),
                       ),
+
+                      BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+                        builder: (context, captionsState) {
+                          final isActive =
+                              captionsState is LiveCaptionsActive && captionsState.isListening;
+                          if (!isActive) return const SizedBox.shrink();
+                          return Positioned(
+                            top: MediaQuery.of(context).padding.top + 12,
+                            right: 12,
+                            child: _buildMicLevelOverlay(),
+                          );
+                        },
+                      ),
+
                       // Visual object highlight overlay (bottom right)
                       BlocBuilder<VisualIdentificationCubit,
                           VisualIdentificationState>(
@@ -1220,24 +1204,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  // Model status indicator (non-blocking)
-                  bottomNavigationBar: _isNexaDeviceDetected
-                      ? _buildNexaBottomBar(context)
-                      : (_modelsMissing
+                    // Hide extra status bars while captions are active.
+                    bottomNavigationBar: hideStatusChrome
+                      ? null
+                      : (_isNexaDeviceDetected
+                        ? _buildNexaBottomBar(context)
+                        : (_modelsMissing
                           ? _buildModelStatusBar(context)
-                          : null),
-                  // Unified Start/Stop button (no separate AR FAB)
+                          : null)),
+                      // Unified Start/Stop button
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
                       if (state is ARSessionReady) {
                         _logger.i(
-                            '🔄 AR session ready. Services should already be started.');
+                            '🔄 Spatial session ready. Services should already be started.');
                       } else if (state is ARSessionError) {
-                        _logger.e('❌ AR session error: ${state.message}');
+                        _logger.e('❌ Session error: ${state.message}');
                       } else if (state is ARSessionInitial) {
-                        // AR mode was closed - ensure all services are stopped
-                        _logger.i('✅ AR mode closed and all services stopped');
+                        // Session was closed - ensure all services are stopped
+                        _logger.i('✅ Session closed and all services stopped');
 
                         // Double-check that live captions are stopped
                         final liveCaptionsCubit =
@@ -1245,8 +1231,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (liveCaptionsCubit.state is LiveCaptionsActive &&
                             (liveCaptionsCubit.state as LiveCaptionsActive)
                                 .isListening) {
-                          _logger.w(
-                              '⚠️ Live captions still active after AR session end, stopping...');
+                            _logger.w(
+                              '⚠️ Live captions still active after session end, stopping...');
                           liveCaptionsCubit.stopCaptions();
                         }
 
@@ -1254,29 +1240,29 @@ class _HomeScreenState extends State<HomeScreen> {
                         final soundDetectionCubit =
                             context.read<SoundDetectionCubit>();
                         if (soundDetectionCubit.isActive) {
-                          _logger.w(
-                              '⚠️ Sound detection still active after AR session end, stopping...');
+                            _logger.w(
+                              '⚠️ Sound detection still active after session end, stopping...');
                           soundDetectionCubit.stop();
                         }
 
                         final localizationCubit =
                             context.read<LocalizationCubit>();
                         if (localizationCubit.isActive) {
-                          _logger.w(
-                              '⚠️ Localization still active after AR session end, stopping...');
+                            _logger.w(
+                              '⚠️ Localization still active after session end, stopping...');
                           localizationCubit.stop();
                         }
 
                         final visualIdentificationCubit =
                             context.read<VisualIdentificationCubit>();
                         if (visualIdentificationCubit.isActive) {
-                          _logger.w(
-                              '⚠️ Visual identification still active after AR session end, stopping...');
+                            _logger.w(
+                              '⚠️ Visual identification still active after session end, stopping...');
                           visualIdentificationCubit.stop();
                         }
 
                         _logger.i(
-                            '✅ All services verified as stopped after AR session end');
+                          '✅ All services verified as stopped after session end');
                       }
                     },
                     child: BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
@@ -1299,23 +1285,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     }
                                     context.read<LiveCaptionsCubit>().stopCaptions();
                                   } else {
-                                    // Start captions + AR if available
+                                    // Start captions + spatial session if available
                                     _logger.i('▶️ Start Captions pressed', category: LogCategory.ui);
                                     try {
                                       if (_nexaDevice != true &&
+                                          !_modelsMissing &&
                                           !_isGemmaInitialized &&
                                           !_isGemmaInitializing) {
                                         await _initializeGemmaBeforeAR();
                                       }
                                       await _startAllServicesForARMode();
-                                      // Try to start AR session (spatial captions)
+                                      // Try to start spatial session
                                       // Falls back to flat captions if AR unavailable
                                       try {
                                         final arSessionCubit = context.read<ARSessionCubit>();
                                         await arSessionCubit.initializeARSession(
                                             restoreFromPersistence: false);
                                       } catch (arError) {
-                                        _logger.w('⚠️ AR not available, using flat captions: $arError',
+                                        _logger.w('⚠️ Spatial session not available, using standard captions: $arError',
                                             category: LogCategory.ar);
                                       }
                                     } catch (e, stackTrace) {

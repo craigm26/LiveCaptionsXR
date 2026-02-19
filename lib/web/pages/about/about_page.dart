@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:live_captions_xr/core/utils/interaction_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/nav_bar.dart';
-import '../../utils/testflight_utils.dart';
 import '../../utils/responsive_utils.dart';
 
 class AboutPage extends StatefulWidget {
@@ -39,8 +37,6 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final screenSize = ResponsiveUtils.getScreenSize(context);
-    final isMobile = ResponsiveUtils.isMobile(context);
-    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
@@ -190,8 +186,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
   Widget _buildMissionItem(BuildContext context, IconData icon, String title, String description, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
+
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -496,8 +491,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
   Widget _buildProjectCard(BuildContext context, IconData icon, String title, String description, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

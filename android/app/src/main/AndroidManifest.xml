@@ -9,8 +9,8 @@
     
     <!-- ARCore permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     
     <application
         android:label="Live Captions XR"
@@ -23,7 +23,7 @@
         android:usesCleartextTraffic="true">
         
         <!-- ARCore metadata -->
-        <meta-data android:name="com.google.ar.core" android:value="required" />
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
         
         <activity
             android:name=".MainActivity"

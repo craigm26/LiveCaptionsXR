@@ -2,14 +2,6 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_captions_xr/core/models/speech_config.dart';
-import 'package:live_captions_xr/core/services/gemma_3n_service.dart';
-import 'package:live_captions_xr/core/services/enhanced_speech_processor.dart';
-import 'package:live_captions_xr/core/services/visual_service.dart';
-import 'package:mockito/mockito.dart';
-
-class MockGemma3nService extends Mock implements Gemma3nService {}
-
-class MockVisualService extends Mock implements VisualService {}
 
 void main() {
   group('Speech Processor Connection Test', () {
@@ -34,7 +26,7 @@ void main() {
       for (int i = 0; i < testAudio.length; i++) {
         rmsLevel += testAudio[i] * testAudio[i];
       }
-      rmsLevel = testAudio.length > 0 ? sqrt(rmsLevel / testAudio.length) : 0.0;
+      rmsLevel = testAudio.isNotEmpty ? sqrt(rmsLevel / testAudio.length) : 0.0;
       
       // Verify RMS calculation works
       expect(rmsLevel, greaterThan(0.0));
@@ -55,7 +47,7 @@ void main() {
       for (int i = 0; i < quietAudio.length; i++) {
         quietRms += quietAudio[i] * quietAudio[i];
       }
-      quietRms = quietAudio.length > 0 ? sqrt(quietRms / quietAudio.length) : 0.0;
+      quietRms = quietAudio.isNotEmpty ? sqrt(quietRms / quietAudio.length) : 0.0;
       
       const config = SpeechConfig(voiceActivityThreshold: 0.01);
       expect(quietRms, lessThan(config.voiceActivityThreshold));
@@ -70,7 +62,7 @@ void main() {
       for (int i = 0; i < loudAudio.length; i++) {
         loudRms += loudAudio[i] * loudAudio[i];
       }
-      loudRms = loudAudio.length > 0 ? sqrt(loudRms / loudAudio.length) : 0.0;
+      loudRms = loudAudio.isNotEmpty ? sqrt(loudRms / loudAudio.length) : 0.0;
       
       expect(loudRms, greaterThan(config.voiceActivityThreshold));
     });
@@ -82,7 +74,7 @@ void main() {
       for (int i = 0; i < emptyAudio.length; i++) {
         rmsLevel += emptyAudio[i] * emptyAudio[i];
       }
-      rmsLevel = emptyAudio.length > 0 ? sqrt(rmsLevel / emptyAudio.length) : 0.0;
+      rmsLevel = emptyAudio.isNotEmpty ? sqrt(rmsLevel / emptyAudio.length) : 0.0;
       
       expect(rmsLevel, equals(0.0));
     });

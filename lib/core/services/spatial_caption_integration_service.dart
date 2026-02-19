@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:spatial_captions/spatial_captions.dart';
 import 'package:spatial_captions/cubit/spatial_captions_cubit.dart';
 import '../models/speech_result.dart';
-import '../models/enhanced_caption.dart';
 import '../models/speaker_profile.dart';
 import 'speech_localizer.dart';
 import 'stereo_audio_capture.dart';
@@ -328,7 +326,7 @@ class SpatialCaptionIntegrationService {
     
     // Default: place in front of user
     _logger.i('📍 [POSITION] USING DEFAULT CENTER POSITION', category: LogCategory.captions);
-    _logger.i('📍 [POSITION] Position: (0, ${captionHeight}, -${defaultCaptionDistance})', category: LogCategory.captions);
+    _logger.i('📍 [POSITION] Position: (0, $captionHeight, -$defaultCaptionDistance)', category: LogCategory.captions);
     return Vector3(0, captionHeight, -defaultCaptionDistance);
   }
   
@@ -356,6 +354,11 @@ class SpatialCaptionIntegrationService {
   /// Enhance caption with Gemma
   Future<void> _enhanceCaption(SpeechResult result, String speakerId) async {
     try {
+      if (!_gemmaService.isReady) {
+        _logger.w('⚠️ Gemma not ready - keeping basic caption without enhancement', category: LogCategory.captions);
+        return;
+      }
+
       _logger.i('🤖 Enhancing caption with Gemma: "${result.text}"', category: LogCategory.captions);
       
       // Get the latest final caption for this speaker
@@ -372,7 +375,7 @@ class SpatialCaptionIntegrationService {
         captionToEnhance.text,
       );
       
-      if (enhancedText != null && enhancedText != captionToEnhance.text) {
+      if (enhancedText != captionToEnhance.text) {
         // Update with enhanced text
         await _spatialCaptionsCubit.enhanceCaption(
           captionId: captionToEnhance.id,
@@ -382,7 +385,7 @@ class SpatialCaptionIntegrationService {
         _logger.i('✅ Caption enhanced: "$enhancedText"', category: LogCategory.captions);
       }
     } catch (e) {
-      _logger.e('❌ Error enhancing caption: $e', category: LogCategory.captions);
+      _logger.w('⚠️ Skipping enhancement due to Gemma error: $e', category: LogCategory.captions);
     }
   }
 

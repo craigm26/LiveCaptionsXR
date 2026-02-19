@@ -45,6 +45,10 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
 
     final newProgress = Map<String, DownloadProgress>.from(state.downloadProgress);
     newProgress[progress.modelId] = legacyProgress;
+    final newPhase = Map<String, DownloadPhase>.from(state.downloadPhase);
+    newPhase[progress.modelId] = progress.phase;
+    final newMessage = Map<String, String>.from(state.downloadMessage);
+    newMessage[progress.modelId] = progress.message ?? '';
 
     // Update active downloads
     var activeDownloads = Set<String>.from(state.activeDownloads);
@@ -61,6 +65,8 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
 
     emit(state.copyWith(
       downloadProgress: newProgress,
+      downloadPhase: newPhase,
+      downloadMessage: newMessage,
       activeDownloads: activeDownloads,
       downloadedModels: downloadedModels,
       error: progress.hasFailed ? progress.error?.toString() : null,
@@ -153,7 +159,7 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
       name: 'Whisper Base Model',
       description: 'Fast speech recognition model for real-time transcription',
       fileName: 'whisper_base.bin',
-      downloadUrl: 'https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin',
+      downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true',
       sizeInBytes: 147951465,
       sizeDisplay: '141 MB',
       version: '1.0.0',
@@ -247,9 +253,18 @@ class ModelDownloadsCubit extends Cubit<ModelDownloadsState> {
       final newDownloadedModels = Set<String>.from(state.downloadedModels)..remove(fileName);
       final newValidationResults = Map<String, ModelValidationResult>.from(state.validationResults);
       newValidationResults.remove(fileName);
+      final newProgress = Map<String, DownloadProgress>.from(state.downloadProgress);
+      newProgress.remove(fileName);
+      final newPhase = Map<String, DownloadPhase>.from(state.downloadPhase);
+      newPhase.remove(fileName);
+      final newMessage = Map<String, String>.from(state.downloadMessage);
+      newMessage.remove(fileName);
 
       emit(state.copyWith(
         downloadedModels: newDownloadedModels,
+        downloadProgress: newProgress,
+        downloadPhase: newPhase,
+        downloadMessage: newMessage,
         validationResults: newValidationResults,
       ));
     }

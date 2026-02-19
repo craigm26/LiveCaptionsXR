@@ -44,7 +44,7 @@ void main() {
       for (int i = 0; i < mono.length; i++) {
         rms += mono[i] * mono[i];
       }
-      rms = mono.length > 0 ? sqrt(rms / mono.length) : 0.0;
+      rms = mono.isNotEmpty ? sqrt(rms / mono.length) : 0.0;
       
       expect(rms, greaterThan(0.0)); // Should have some audio activity
     });

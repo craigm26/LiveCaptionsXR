@@ -9,12 +9,11 @@ import '../../../core/models/device_model_config.dart';
 import '../../../core/services/enhanced_speech_processor.dart'
     show SpeechEngine;
 import '../../../core/services/nexa_asr_service.dart';
-import '../../../core/di/service_locator.dart';
 import '../cubit/settings_cubit.dart';
 import '../../translation/widgets/translation_settings_card.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -84,6 +83,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
 
               _buildSectionHeader('Caption Settings'),
+              Tooltip(
+                message:
+                    'Apply a non-AR accessibility preset optimized for 2D captions: larger text, high contrast, and tuned caption visibility.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.accessibility_new,
+                  title: 'Accessibility Caption Mode',
+                  subtitle:
+                      'One-tap preset for high-clarity non-AR captions',
+                  trailing: Switch(
+                    value: state.accessibilityCaptionModeEnabled,
+                    onChanged: (value) {
+                      context
+                          .read<SettingsCubit>()
+                          .setAccessibilityCaptionMode(value);
+                    },
+                  ),
+                ),
+              ),
+              Tooltip(
+                message:
+                    'Emphasize speaker identity in captions with stronger speaker labels for faster tracking.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.record_voice_over,
+                  title: 'Speaker Focus Mode',
+                  subtitle: 'Highlight who is speaking in each caption',
+                  trailing: Switch(
+                    value: state.speakerFocusModeEnabled,
+                    onChanged: (value) {
+                      context
+                          .read<SettingsCubit>()
+                          .toggleSpeakerFocusMode(value);
+                    },
+                  ),
+                ),
+              ),
               Tooltip(
                 message:
                     'Change how large captions appear on screen. Useful for readability and accessibility.',

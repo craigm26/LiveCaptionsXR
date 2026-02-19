@@ -32,7 +32,7 @@ class ARSessionStatusWidget extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white24, width: 1),
       ),
@@ -57,42 +57,35 @@ class ARSessionStatusWidget extends StatelessWidget {
     String title;
     Color color;
 
-    switch (state.runtimeType) {
-      case ARSessionConfiguring:
+    switch (state) {
+      case ARSessionConfiguring _:
         icon = Icons.settings;
         title = 'Configuring AR Session';
         color = Colors.blue;
-        break;
-      case ARSessionInitializing:
+      case ARSessionInitializing _:
         icon = Icons.view_in_ar;
         title = 'Initializing AR Session';
         color = Colors.blue;
-        break;
-      case ARSessionCalibrating:
+      case ARSessionCalibrating _:
         icon = Icons.tune;
         title = 'Calibrating Device';
         color = Colors.orange;
-        break;
-      case ARSessionStartingServices:
+      case ARSessionStartingServices _:
         icon = Icons.rocket_launch;
         title = 'Starting Services';
         color = Colors.green;
-        break;
-      case ARSessionReady:
+      case ARSessionReady _:
         icon = Icons.check_circle;
         title = 'AR Session Ready';
         color = Colors.green;
-        break;
-      case ARSessionError:
+      case ARSessionError _:
         icon = Icons.error;
         title = 'AR Session Error';
         color = Colors.red;
-        break;
-      case ARSessionStopping:
+      case ARSessionStopping _:
         icon = Icons.stop;
         title = 'Stopping AR Session';
         color = Colors.orange;
-        break;
       default:
         icon = Icons.info;
         title = 'AR Session Status';
@@ -118,24 +111,24 @@ class ARSessionStatusWidget extends StatelessWidget {
   }
 
   Widget _buildStatusBody(BuildContext context, ARSessionState state) {
-    switch (state.runtimeType) {
-      case ARSessionConfiguring:
-        return _buildConfiguringStatus(state as ARSessionConfiguring);
-      case ARSessionInitializing:
+    switch (state) {
+      case ARSessionConfiguring _:
+        return _buildConfiguringStatus(state);
+      case ARSessionInitializing _:
         return _buildInitializingStatus();
-      case ARSessionCalibrating:
-        return _buildCalibratingStatus(state as ARSessionCalibrating);
-      case ARSessionStartingServices:
-        return _buildStartingServicesStatus(state as ARSessionStartingServices);
-      case ARSessionSTTProcessing:
-        return _buildSTTProcessingStatus(state as ARSessionSTTProcessing);
-      case ARSessionContextualEnhancement:
-        return _buildContextualEnhancementStatus(state as ARSessionContextualEnhancement);
-      case ARSessionReady:
-        return _buildReadyStatus(state as ARSessionReady);
-      case ARSessionError:
-        return _buildErrorStatus(state as ARSessionError);
-      case ARSessionStopping:
+      case ARSessionCalibrating _:
+        return _buildCalibratingStatus(state);
+      case ARSessionStartingServices _:
+        return _buildStartingServicesStatus(state);
+      case ARSessionSTTProcessing _:
+        return _buildSTTProcessingStatus(state);
+      case ARSessionContextualEnhancement _:
+        return _buildContextualEnhancementStatus(state);
+      case ARSessionReady _:
+        return _buildReadyStatus(state);
+      case ARSessionError _:
+        return _buildErrorStatus(state);
+      case ARSessionStopping _:
         return _buildStoppingStatus();
       default:
         return const SizedBox.shrink();

@@ -30,16 +30,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   // Track if services were started before AR session was ready
   bool _servicesStartedBeforeReady = false;
   
-  // Store Whisper service for STT event listening
-  WhisperService? _whisperService;
   StreamSubscription<WhisperSTTEvent>? _whisperSTTSubscription;
 
-  // Store Nexa ASR service for STT event listening (Snapdragon devices)
-  NexaAsrService? _nexaAsrService;
   StreamSubscription<WhisperSTTEvent>? _nexaAsrSubscription;
 
-  // Store Gemma 3n service for enhancement event listening
-  Gemma3nService? _gemma3nService;
   StreamSubscription<Gemma3nEnhancementEvent>? _gemma3nEnhancementSubscription;
   
   static final AppLogger _logger = AppLogger.instance;
@@ -55,8 +49,6 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
   /// Listen to Whisper STT events and emit AR session states
   void listenToWhisperSTT(WhisperService whisperService) {
-    _whisperService = whisperService;
-    
     // Cancel any existing subscription
     _whisperSTTSubscription?.cancel();
     
@@ -95,13 +87,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   void stopListeningToWhisperSTT() {
     _whisperSTTSubscription?.cancel();
     _whisperSTTSubscription = null;
-    _whisperService = null;
   }
 
   /// Listen to Nexa ASR STT events and emit AR session states (Snapdragon devices)
   void listenToNexaASR(NexaAsrService nexaAsrService) {
-    _nexaAsrService = nexaAsrService;
-
     // Cancel any existing subscription
     _nexaAsrSubscription?.cancel();
 
@@ -141,7 +130,6 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   void stopListeningToNexaASR() {
     _nexaAsrSubscription?.cancel();
     _nexaAsrSubscription = null;
-    _nexaAsrService = null;
   }
 
   /// Listen to Apple Speech events and emit AR session states (iOS only)
@@ -170,8 +158,6 @@ class ARSessionCubit extends Cubit<ARSessionState> {
 
   /// Listen to Gemma 3n enhancement events and emit AR session states
   void listenToGemma3nEnhancement(Gemma3nService gemma3nService) {
-    _gemma3nService = gemma3nService;
-    
     // Cancel any existing subscription
     _gemma3nEnhancementSubscription?.cancel();
     
@@ -180,11 +166,10 @@ class ARSessionCubit extends Cubit<ARSessionState> {
       _logger.d('🔮 Gemma 3n enhancement event: ${event.message} (progress: ${event.progress})', category: LogCategory.gemma);
       
       if (event.error != null) {
-        _logger.e('❌ Gemma 3n enhancement error: ${event.error}', category: LogCategory.gemma);
-        emit(ARSessionError(
-          message: 'Contextual enhancement failed: ${event.message}',
-          details: event.error.toString(),
-          errorCode: 'ENHANCEMENT_ERROR',
+        _logger.w('⚠️ Gemma 3n enhancement unavailable, continuing with basic captions: ${event.error}', category: LogCategory.gemma);
+        emit(const ARSessionContextualEnhancement(
+          progress: 1.0,
+          message: 'Basic captions active (enhancement unavailable)',
         ));
       } else {
         emit(ARSessionContextualEnhancement(
@@ -206,7 +191,6 @@ class ARSessionCubit extends Cubit<ARSessionState> {
   void stopListeningToGemma3nEnhancement() {
     _gemma3nEnhancementSubscription?.cancel();
     _gemma3nEnhancementSubscription = null;
-    _gemma3nService = null;
   }
 
   Future<void> updateWithAudioMeasurement({

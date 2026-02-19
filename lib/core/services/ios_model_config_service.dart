@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'app_logger.dart';
 
 /// Model configuration options for iOS

@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
 import '../../utils/testflight_utils.dart';
 import '../../utils/google_play_utils.dart';
-import '../../utils/github_docs_utils.dart';
 import '../../config/web_performance_config.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -63,7 +62,6 @@ class _SupportPageState extends State<SupportPage>
   Widget build(BuildContext context) {
     final screenSize = ResponsiveUtils.getScreenSize(context);
     final isMobile = ResponsiveUtils.isMobile(context);
-    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
@@ -299,8 +297,6 @@ class _SupportPageState extends State<SupportPage>
     required ScreenSize screenSize,
   }) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,

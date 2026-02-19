@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/nav_bar.dart';
-import '../../widgets/interactive_demo.dart';
 import '../../utils/testflight_utils.dart';
 import '../../utils/google_play_utils.dart';
 import '../../config/web_performance_config.dart';
@@ -55,8 +54,6 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
   @override
   Widget build(BuildContext context) {
     final screenSize = ResponsiveUtils.getScreenSize(context);
-    final isMobile = ResponsiveUtils.isMobile(context);
-    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       appBar: const NavBar(),
@@ -252,8 +249,6 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
 
   Widget _buildTechnologyCard(BuildContext context, Map<String, dynamic> demo, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -479,8 +474,6 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
 
   Widget _buildFeatureCard(BuildContext context, Map<String, dynamic> feature, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -557,7 +550,7 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -641,8 +634,6 @@ class _EnhancedFeaturesPageState extends State<EnhancedFeaturesPage>
 
   Widget _buildTechStackItem(BuildContext context, String name, String description, IconData icon, Color color, ScreenSize screenSize) {
     final isMobile = screenSize == ScreenSize.mobile;
-    final isTablet = screenSize == ScreenSize.tablet;
-    
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

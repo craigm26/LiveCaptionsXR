@@ -65,7 +65,7 @@ class ModelDownloadManager extends ChangeNotifier {
   static const Map<String, ModelConfig> _modelConfigs = {
     'whisper-base': ModelConfig(
       fileName: 'whisper_base.bin',
-      url: 'https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin',
+      url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true',
       expectedSize: 147951465, // 141 MB
       type: ModelType.whisper,
       displayName: 'Whisper Base Model',

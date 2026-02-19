@@ -59,7 +59,7 @@ This distribution system includes Gemma 3N models and must comply with Google's 
 
 | Model | Size | URL |
 |-------|------|-----|
-| Whisper Base | 141 MB | [Download](https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin) |
+| Whisper Base | 141 MB | [Download](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true) |
 | Gemma 3N E2B | 2.92 GB | [Download](https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E2B-it-int4.task) |
 | Gemma 3N E4B | 4.11 GB | [Download](https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/gemma-3n-E4B-it-int4.task) |
 
@@ -90,12 +90,12 @@ final isDownloaded = await ModelDownloadService.isModelDownloaded('whisper_base.
 
 ### Test downloads:
 ```bash
-curl -I "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin"
+curl -I "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true"
 ```
 
 ### Download files:
 ```bash
-curl -L -o "whisper_base.bin" "https://71d59adbd067633aca3e95f915fbf2b4.r2.cloudflarestorage.com/livecaptionsxr/whisper_base.bin"
+curl -L -o "ggml-base.bin" "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true"
 ```
 
 ## 🌐 Web Download Page

@@ -57,7 +57,7 @@ void main() {
       for (int i = 0; i < mono.length; i++) {
         rms += mono[i] * mono[i];
       }
-      rms = mono.length > 0 ? (rms / mono.length).sqrt() : 0.0;
+      rms = mono.isNotEmpty ? (rms / mono.length).sqrt() : 0.0;
       
       // Should have audio activity above the default threshold (0.01)
       expect(rms, greaterThan(0.001));
@@ -97,7 +97,7 @@ void main() {
       for (int i = 0; i < mono.length; i++) {
         rms += mono[i] * mono[i];
       }
-      rms = mono.length > 0 ? (rms / mono.length).sqrt() : 0.0;
+      rms = mono.isNotEmpty ? (rms / mono.length).sqrt() : 0.0;
       
       // Should trigger voice activity with default threshold 0.01
       const voiceActivityThreshold = 0.01;
@@ -132,7 +132,7 @@ void main() {
       for (int i = 0; i < mono.length; i++) {
         rms += mono[i] * mono[i];
       }
-      rms = mono.length > 0 ? (rms / mono.length).sqrt() : 0.0;
+      rms = mono.isNotEmpty ? (rms / mono.length).sqrt() : 0.0;
       
       // Should NOT trigger voice activity
       const voiceActivityThreshold = 0.01;
