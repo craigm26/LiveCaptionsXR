@@ -12,8 +12,11 @@ build/*
 build/web/assets/assets/models/*.zip
 build/web/assets/assets/models/*.task
 
-# Ignore models directory and its contents
-assets/models/ 
+# Ignore model binary files but keep directory tracked
+assets/models/*.bin
+assets/models/*.gguf
+assets/models/*.task
+assets/models/*.zip
 
 # Flutter/Dart/Pub related
 .dart_tool/
