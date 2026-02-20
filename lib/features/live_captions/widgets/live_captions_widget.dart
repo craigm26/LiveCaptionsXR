@@ -105,6 +105,10 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         return AnimatedBuilder(
           animation: _fadeAnimation,
           builder: (context, child) {
+            if (_fadeAnimation.value > 0.01) {
+              debugPrint(
+                  '🎨 [UI DEBUG] LiveCaptionsWidget Build: opacity=${_fadeAnimation.value.toStringAsFixed(2)}, state=${state.runtimeType}');
+            }
             return Opacity(
               opacity: _fadeAnimation.value,
               child: _buildCaptionsContent(context, state),
@@ -133,7 +137,9 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _buildCurrentCaption(context, state, settings),
-          if (widget.showHistory && state is LiveCaptionsActive && state.captions.isNotEmpty) ...[
+          if (widget.showHistory &&
+              state is LiveCaptionsActive &&
+              state.captions.isNotEmpty) ...[
             const SizedBox(height: 4),
             _buildCaptionHistory(context, state, settings),
           ],
@@ -155,13 +161,23 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         (state.captions.isNotEmpty ? state.captions.last.text : null);
 
     if (currentText == null || currentText.isEmpty) {
+      if (_fadeAnimation.value > 0.5) {
+        debugPrint(
+            '🎨 [UI DEBUG] LiveCaptionsWidget: No text to show, showing placeholder');
+      }
       return _buildPlaceholder(context, state, settings);
     }
 
-    final caption = state.currentCaption ?? (state.captions.isNotEmpty ? state.captions.last : null);
+    if (_fadeAnimation.value > 0.5) {
+      debugPrint(
+          '🎨 [UI DEBUG] LiveCaptionsWidget: Rendering text: "$currentText"');
+    }
+
+    final caption = state.currentCaption ??
+        (state.captions.isNotEmpty ? state.captions.last : null);
     final isInterim = state.currentCaption != null;
-    final highContrast =
-        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final highContrast = settings.highContrastEnabled ||
+        settings.accessibilityCaptionModeEnabled;
     final speakerFocus = settings.speakerFocusModeEnabled;
     final showSpeakerBadge =
         speakerFocus && caption?.hasSpeakerDiarization == true;
@@ -170,8 +186,10 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
+        color:
+            Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.red, width: 2),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -279,8 +297,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
   ) {
     final children = <InlineSpan>[];
     final fontScale = settings.captionFontSize;
-    final highContrast =
-        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final highContrast = settings.highContrastEnabled ||
+        settings.accessibilityCaptionModeEnabled;
     final speakerFocus = settings.speakerFocusModeEnabled;
 
     // Directional arrow for offscreen speakers
@@ -289,7 +307,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       children.add(TextSpan(
         text: '$dirArrow ',
         style: TextStyle(
-          color: Colors.white.withAlpha((255 * (highContrast ? 1.0 : 0.7)).round()),
+          color: Colors.white
+              .withAlpha((255 * (highContrast ? 1.0 : 0.7)).round()),
           fontSize: 18 * fontScale,
           fontWeight: FontWeight.w400,
         ),
@@ -331,7 +350,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       text: text,
       style: TextStyle(
         color: isInterim
-          ? Colors.white.withAlpha((255 * (highContrast ? 1.0 : 0.85)).round())
+            ? Colors.white
+                .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round())
             : Colors.white,
         fontSize: 18 * fontScale,
         fontWeight: speakerFocus ? FontWeight.w600 : FontWeight.w500,
@@ -437,7 +457,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
 
     final now = DateTime.now();
     final maxHistoryItems = (settings.maxVisibleCaptions - 1).clamp(1, 5);
-    final visibleWindow = Duration(seconds: settings.captionDurationSeconds.round());
+    final visibleWindow =
+        Duration(seconds: settings.captionDurationSeconds.round());
     final recentInWindow = state.captions.where((caption) {
       return now.difference(caption.timestamp) <= visibleWindow;
     }).toList();
@@ -450,8 +471,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         ? recentInWindow.sublist(recentInWindow.length - maxHistoryItems)
         : recentInWindow;
 
-    final highContrast =
-        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final highContrast = settings.highContrastEnabled ||
+        settings.accessibilityCaptionModeEnabled;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -470,7 +491,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             margin: const EdgeInsets.only(bottom: 2),
             decoration: BoxDecoration(
-              color: Colors.black.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
+              color: Colors.black
+                  .withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Column(
@@ -497,8 +519,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
   ) {
     final children = <InlineSpan>[];
     final fontScale = settings.captionFontSize;
-    final highContrast =
-        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final highContrast = settings.highContrastEnabled ||
+        settings.accessibilityCaptionModeEnabled;
     final speakerFocus = settings.speakerFocusModeEnabled;
     final hasDirectionalIcon = _getDirectionIcon(caption) != null;
 
@@ -508,7 +530,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       children.add(TextSpan(
         text: '$dirArrow ',
         style: TextStyle(
-          color: Colors.white.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
+          color: Colors.white
+              .withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
           fontSize: 15 * fontScale,
         ),
       ));
@@ -536,7 +559,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     children.add(TextSpan(
       text: caption.text,
       style: TextStyle(
-        color: Colors.white.withAlpha((255 * (highContrast ? 0.9 : 0.7)).round()),
+        color:
+            Colors.white.withAlpha((255 * (highContrast ? 0.9 : 0.7)).round()),
         fontSize: 15 * fontScale,
         fontWeight: FontWeight.w400,
         height: 1.3,
@@ -555,14 +579,15 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     UserSettings settings,
   ) {
     final fontScale = settings.captionFontSize;
-    final highContrast =
-        settings.highContrastEnabled || settings.accessibilityCaptionModeEnabled;
+    final highContrast = settings.highContrastEnabled ||
+        settings.accessibilityCaptionModeEnabled;
 
     if (state is LiveCaptionsLoading) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
+          color: Colors.black
+              .withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -596,7 +621,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
+        color:
+            Colors.black.withAlpha((255 * (highContrast ? 0.75 : 0.5)).round()),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

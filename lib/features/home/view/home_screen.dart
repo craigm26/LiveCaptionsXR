@@ -66,10 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _emulatorCameraPreviewActive = false;
   String? _lastDirection;
   DateTime _lastDirectionAt = DateTime.fromMillisecondsSinceEpoch(0);
+  late Future<bool> _isEmulatorFuture;
 
   @override
   void initState() {
     super.initState();
+    _isEmulatorFuture = isAndroidEmulator();
     _logger.i('🏠 HomeScreen initialized', category: LogCategory.ui);
     _modelDownloadManager = ModelDownloadManager();
 
@@ -79,13 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _startSpeechPrewarmForEmulator();
 
-      _directionUpdateSubscription ??=
-          sl<SpatialCaptionIntegrationService>().directionUpdates.listen((update) {
+      _directionUpdateSubscription ??= sl<SpatialCaptionIntegrationService>()
+          .directionUpdates
+          .listen((update) {
         if (!mounted) return;
 
         final now = DateTime.now();
-        final shouldEmit =
-            update.direction != _lastDirection || now.difference(_lastDirectionAt).inMilliseconds > 400;
+        final shouldEmit = update.direction != _lastDirection ||
+            now.difference(_lastDirectionAt).inMilliseconds > 400;
 
         if (!shouldEmit) return;
 
@@ -93,21 +96,24 @@ class _HomeScreenState extends State<HomeScreen> {
         _lastDirectionAt = now;
 
         try {
-          context.read<LocalizationCubit>().localize(update.direction, update.confidence);
+          context
+              .read<LocalizationCubit>()
+              .localize(update.direction, update.confidence);
         } catch (_) {}
 
         try {
           context.read<SoundDetectionCubit>().detectSound(
-            SoundEvent(
-              type: 'speech',
-              confidence: update.confidence,
-              timestamp: update.timestamp,
-              sourceDirection: update.direction,
-              description: 'Speech detected from ${update.direction} direction',
-              isMultimodal: false,
-              priority: 'medium',
-            ),
-          );
+                SoundEvent(
+                  type: 'speech',
+                  confidence: update.confidence,
+                  timestamp: update.timestamp,
+                  sourceDirection: update.direction,
+                  description:
+                      'Speech detected from ${update.direction} direction',
+                  isMultimodal: false,
+                  priority: 'medium',
+                ),
+              );
         } catch (_) {}
       });
 
@@ -178,16 +184,15 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final registry = DeviceModelRegistry();
       final config = await registry.getDeviceConfig();
-      _isAndroidXrDevice =
-        config.formFactor == DeviceFormFactor.xrHeadset ||
-        config.formFactor == DeviceFormFactor.arGlasses;
+      _isAndroidXrDevice = config.formFactor == DeviceFormFactor.xrHeadset ||
+          config.formFactor == DeviceFormFactor.arGlasses;
       _forceWhisperOnlyMode = Platform.isAndroid && _isAndroidXrDevice;
 
       // Nexa device if ASR model is Parakeet-based (not Whisper)
       _nexaDevice =
-        !_forceWhisperOnlyMode && config.asrModel.name.startsWith('parakeet');
+          !_forceWhisperOnlyMode && config.asrModel.name.startsWith('parakeet');
       _logger.i(
-        '📱 Device config: ${config.deviceId}, formFactor: ${config.formFactor.name}, ASR: ${config.asrModel.name}, isNexa: $_nexaDevice, forceWhisperOnly: $_forceWhisperOnlyMode',
+          '📱 Device config: ${config.deviceId}, formFactor: ${config.formFactor.name}, ASR: ${config.asrModel.name}, isNexa: $_nexaDevice, forceWhisperOnly: $_forceWhisperOnlyMode',
           category: LogCategory.system);
       return _nexaDevice!;
     } catch (e) {
@@ -234,13 +239,13 @@ class _HomeScreenState extends State<HomeScreen> {
       needsGemma = false;
     } else if (isNexa) {
       needsWhisper = false; // Nexa Parakeet handles ASR
-      needsGemma = false;   // Nexa Granite/OmniNeural handles LLM
+      needsGemma = false; // Nexa Granite/OmniNeural handles LLM
     } else if (!kIsWeb && Platform.isIOS) {
-      needsWhisper = false;  // Apple Speech handles ASR
-      needsGemma = true;     // Gemma needed for enhancement on iOS
+      needsWhisper = false; // Apple Speech handles ASR
+      needsGemma = true; // Gemma needed for enhancement on iOS
     } else {
       needsWhisper = !kIsWeb; // Whisper needed on non-Nexa Android
-      needsGemma = true;      // Gemma needed on non-Nexa Android
+      needsGemma = true; // Gemma needed on non-Nexa Android
     }
 
     // Check if any required models are missing
@@ -264,8 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'User can download via Settings → AI Models.',
           category: LogCategory.system);
     } else if (isNexa) {
-      _logger.i(
-          '✅ Nexa device - models download automatically via SDK',
+      _logger.i('✅ Nexa device - models download automatically via SDK',
           category: LogCategory.system);
       // Whisper/Gemma if they want. Skip for now to not block.
     } else {
@@ -280,7 +284,8 @@ class _HomeScreenState extends State<HomeScreen> {
   /// the Nexa LLM service handles text enhancement; Gemma is a bonus.
   Future<void> _initializeGemmaBeforeAR() async {
     if (_forceWhisperOnlyMode) {
-      _logger.i('🎤 Whisper-only mode active (Android XR) - skipping Gemma init',
+      _logger.i(
+          '🎤 Whisper-only mode active (Android XR) - skipping Gemma init',
           category: LogCategory.gemma);
       return;
     }
@@ -445,12 +450,10 @@ class _HomeScreenState extends State<HomeScreen> {
               category: LogCategory.ui);
           if (liveCaptionsCubit.state is! LiveCaptionsActive ||
               !(liveCaptionsCubit.state as LiveCaptionsActive).isListening) {
-            _logger.i(
-              '🎤 [HOME] Step 6c: Starting live captions...',
-              category: LogCategory.captions);
+            _logger.i('🎤 [HOME] Step 6c: Starting live captions...',
+                category: LogCategory.captions);
             await liveCaptionsCubit.startCaptions();
-            _logger.i(
-              '✅ [HOME] Step 6c complete: Live captions started',
+            _logger.i('✅ [HOME] Step 6c complete: Live captions started',
                 category: LogCategory.captions);
           } else {
             _logger.i('🎤 [HOME] Step 6c: Live captions already active',
@@ -463,8 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _logger.i('🔊 Starting sound detection...',
                 category: LogCategory.audio);
             await soundDetectionCubit.start();
-            _logger.i('✅ Sound detection started',
-                category: LogCategory.audio);
+            _logger.i('✅ Sound detection started', category: LogCategory.audio);
           } else {
             _logger.i('🔊 Sound detection already active',
                 category: LogCategory.audio);
@@ -473,11 +475,9 @@ class _HomeScreenState extends State<HomeScreen> {
         startLocalization: () async {
           final localizationCubit = context.read<LocalizationCubit>();
           if (!localizationCubit.isActive) {
-            _logger.i('🧭 Starting localization...',
-                category: LogCategory.ar);
+            _logger.i('🧭 Starting localization...', category: LogCategory.ar);
             await localizationCubit.start();
-            _logger.i('✅ Localization started',
-                category: LogCategory.ar);
+            _logger.i('✅ Localization started', category: LogCategory.ar);
           } else {
             _logger.i('🧭 Localization already active',
                 category: LogCategory.ar);
@@ -584,10 +584,13 @@ class _HomeScreenState extends State<HomeScreen> {
               _nexaProgress = 1.0;
             } else {
               // If the status message doesn't already say why, give a clear hint
-              if (!_nexaStatusMessage.toLowerCase().contains('not downloaded') &&
+              if (!_nexaStatusMessage
+                      .toLowerCase()
+                      .contains('not downloaded') &&
                   !_nexaStatusMessage.toLowerCase().contains('not available') &&
                   !_nexaStatusMessage.toLowerCase().contains('failed')) {
-                _nexaStatusMessage = 'Parakeet model not downloaded yet — tap Download';
+                _nexaStatusMessage =
+                    'Parakeet model not downloaded yet — tap Download';
                 _nexaProgress = 0.0;
               }
             }
@@ -598,7 +601,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) {
           setState(() {
             _nexaInitializing = false;
-            _nexaStatusMessage = 'Initialization failed — model may not be downloaded';
+            _nexaStatusMessage =
+                'Initialization failed — model may not be downloaded';
             _nexaProgress = 0.0;
           });
         }
@@ -617,10 +621,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _nexaStatusMessage.toLowerCase().contains('download');
     final bool modelNotAvailable =
         _nexaStatusMessage.toLowerCase().contains('not downloaded') ||
-        _nexaStatusMessage.toLowerCase().contains('not available') ||
-        (_nexaStatusMessage.toLowerCase().contains('failed') &&
-         _nexaProgress == 0.0 &&
-         !_nexaReady);
+            _nexaStatusMessage.toLowerCase().contains('not available') ||
+            (_nexaStatusMessage.toLowerCase().contains('failed') &&
+                _nexaProgress == 0.0 &&
+                !_nexaReady);
 
     final Color barColor;
     final IconData barIcon;
@@ -682,8 +686,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircularProgressIndicator(
                   value: _nexaProgress < 1.0 ? _nexaProgress : null,
                   strokeWidth: 2,
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
             ],
@@ -714,13 +717,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 6),
               const Text(
                 'Caption Pipeline',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13),
               ),
               const Spacer(),
               // Settings gear
               GestureDetector(
                 onTap: () => context.push('/settings'),
-                child: const Icon(Icons.settings, color: Colors.white54, size: 18),
+                child:
+                    const Icon(Icons.settings, color: Colors.white54, size: 18),
               ),
             ],
           ),
@@ -732,7 +739,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: 'ASR',
                 ready: _isNexaDeviceDetected
                     ? _nexaReady
-                    : (!kIsWeb && Platform.isIOS ? true : _isWhisperModelAvailable),
+                    : (!kIsWeb && Platform.isIOS
+                        ? true
+                        : _isWhisperModelAvailable),
                 loading: _isNexaDeviceDetected ? _nexaInitializing : false,
                 icon: Icons.mic,
               ),
@@ -741,7 +750,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: _forceWhisperOnlyMode ? 'LLM Off' : 'LLM',
                 ready: _forceWhisperOnlyMode
                     ? false
-                    : (_isGemmaInitialized || (_isNexaDeviceDetected && _nexaReady)),
+                    : (_isGemmaInitialized ||
+                        (_isNexaDeviceDetected && _nexaReady)),
                 loading: _forceWhisperOnlyMode ? false : _isGemmaInitializing,
                 icon: Icons.auto_awesome,
               ),
@@ -759,7 +769,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: LinearProgressIndicator(
                 value: _nexaProgress > 0 ? _nexaProgress : null,
                 backgroundColor: Colors.white12,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                 minHeight: 4,
               ),
             ),
@@ -796,16 +807,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha:0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 12),
           const SizedBox(width: 3),
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 10, fontWeight: FontWeight.w600)),
           const SizedBox(width: 3),
           Icon(statusIcon, color: color, size: 10),
         ],
@@ -828,7 +841,8 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     } catch (_) {
-      return _buildStatusChip(label: 'Trans', ready: false, loading: false, icon: Icons.translate);
+      return _buildStatusChip(
+          label: 'Trans', ready: false, loading: false, icon: Icons.translate);
     }
   }
 
@@ -871,7 +885,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCameraOrFallback() {
     return FutureBuilder<bool>(
-      future: isAndroidEmulator(),
+      future: _isEmulatorFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -887,26 +901,29 @@ class _HomeScreenState extends State<HomeScreen> {
               }
               final preview = cameraService.getCameraPreviewWidget();
               if (preview != null) {
-                final orientedPreview = RotatedBox(
-                  quarterTurns: 1,
-                  child: preview,
-                );
-                return Stack(
-                  children: [
-                    Positioned.fill(child: orientedPreview),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        color: Colors.black54,
-                        padding: const EdgeInsets.all(16),
-                        child: const Text(
-                          'Emulator Camera Preview (Fallback)',
-                          style: TextStyle(color: Colors.white, fontSize: 18),
+                return OrientationBuilder(builder: (context, orientation) {
+                  final isPortrait = orientation == Orientation.portrait;
+                  final orientedPreview = RotatedBox(
+                    quarterTurns: isPortrait ? 1 : 0,
+                    child: preview,
+                  );
+                  return Stack(
+                    children: [
+                      Positioned.fill(child: orientedPreview),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          color: Colors.black54,
+                          padding: const EdgeInsets.all(16),
+                          child: const Text(
+                            'Emulator Camera Preview (Fallback)',
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                );
+                    ],
+                  );
+                });
               } else {
                 return Center(
                   child: Column(
@@ -931,11 +948,15 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.spatial_audio_off, color: Colors.white24, size: 100),
+                const Icon(Icons.spatial_audio_off,
+                    color: Colors.white24, size: 100),
                 const SizedBox(height: 16),
                 const Text(
                   'Live Captions',
-                  style: TextStyle(color: Colors.white54, fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -947,7 +968,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Big Start Captions button
                 BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
                   builder: (context, captionsState) {
-                    final isActive = captionsState is LiveCaptionsActive && captionsState.isListening;
+                    final isActive = captionsState is LiveCaptionsActive &&
+                        captionsState.isListening;
                     final isLoading = captionsState is LiveCaptionsLoading;
 
                     return Column(
@@ -957,28 +979,45 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 220,
                           height: 56,
                           child: ElevatedButton.icon(
-                            onPressed: isLoading ? null : () {
-                              final cubit = context.read<LiveCaptionsCubit>();
-                              if (isActive) {
-                                cubit.stopCaptions();
-                              } else {
-                                cubit.startCaptions();
-                              }
-                            },
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    final cubit =
+                                        context.read<LiveCaptionsCubit>();
+                                    if (isActive) {
+                                      cubit.stopCaptions();
+                                    } else {
+                                      cubit.startCaptions();
+                                    }
+                                  },
                             icon: isLoading
                                 ? const SizedBox(
-                                    width: 20, height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white),
                                   )
-                                : Icon(isActive ? Icons.stop_circle : Icons.play_circle_fill, size: 28),
+                                : Icon(
+                                    isActive
+                                        ? Icons.stop_circle
+                                        : Icons.play_circle_fill,
+                                    size: 28),
                             label: Text(
-                              isLoading ? 'Starting...' : (isActive ? 'Stop Captions' : 'Start Captions'),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              isLoading
+                                  ? 'Starting...'
+                                  : (isActive
+                                      ? 'Stop Captions'
+                                      : 'Start Captions'),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isActive ? Colors.red.shade700 : Colors.blue.shade700,
+                              backgroundColor: isActive
+                                  ? Colors.red.shade700
+                                  : Colors.blue.shade700,
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28)),
                               elevation: 4,
                             ),
                           ),
@@ -997,7 +1036,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   cubit.startCaptions();
                                 }
                               },
-                              onClear: () => context.read<LiveCaptionsCubit>().clearCaptions(),
+                              onClear: () => context
+                                  .read<LiveCaptionsCubit>()
+                                  .clearCaptions(),
                               maxWidth: 360,
                               showHistory: true,
                             ),
@@ -1042,7 +1083,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Mic level ${aboveThreshold ? 'OK' : 'Low'}',
                 style: TextStyle(
-                  color: aboveThreshold ? Colors.greenAccent : Colors.orangeAccent,
+                  color:
+                      aboveThreshold ? Colors.greenAccent : Colors.orangeAccent,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1079,8 +1121,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return BlocBuilder<HomeCubit, HomeState>(
           builder: (context, homeState) {
             final liveCaptionsState = context.watch<LiveCaptionsCubit>().state;
-            final hideStatusChrome =
-                liveCaptionsState is LiveCaptionsActive && liveCaptionsState.isListening;
+            final hideStatusChrome = liveCaptionsState is LiveCaptionsActive &&
+                liveCaptionsState.isListening;
 
             return DebugLoggingOverlay(
               isEnabled: debugOverlayEnabled,
@@ -1123,7 +1165,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       BlocBuilder<ARSessionCubit, ARSessionState>(
                         builder: (context, arSessionState) {
-                          final inARMode = arSessionState is ARSessionReady;
                           // Only log significant state changes
                           return BlocBuilder<LiveCaptionsCubit,
                               LiveCaptionsState>(
@@ -1136,17 +1177,36 @@ class _HomeScreenState extends State<HomeScreen> {
                               bool showOverlay = false;
                               if (captionsState is LiveCaptionsActive &&
                                   captionsState.isListening) {
-                                showOverlay = inARMode ||
+                                // Redefine "active AR mode" to include processing and recovery states
+                                final isARActive = arSessionState
+                                        is ARSessionReady ||
+                                    arSessionState is ARSessionSTTProcessing ||
+                                    arSessionState
+                                        is ARSessionContextualEnhancement ||
+                                    arSessionState is ARSessionReconnecting ||
+                                    arSessionState is ARSessionResuming;
+
+                                showOverlay = isARActive ||
                                     captionsState.showOverlayFallback ||
                                     arSessionState is ARSessionError ||
-                                  arSessionState is ARSessionStartingServices ||
-                                  arSessionState is ARSessionInitializing ||
-                                  arSessionState is ARSessionCalibrating ||
+                                    arSessionState
+                                        is ARSessionStartingServices ||
+                                    arSessionState is ARSessionInitializing ||
+                                    arSessionState is ARSessionCalibrating ||
                                     arSessionState is ARSessionInitial ||
                                     arSessionState is ARSessionTrackingLost;
+
                                 if (showOverlay) {
                                   _logger.i(
-                                    '🎯 [UI] Showing captions overlay (${inARMode ? 'spatial' : 'fallback'})',
+                                    '🎯 [UI] Showing captions overlay ('
+                                    'AR: ${isARActive ? 'active' : 'inactive'}, '
+                                    'state: ${arSessionState.runtimeType}, '
+                                    'fallback: ${captionsState.showOverlayFallback})',
+                                    category: LogCategory.ui,
+                                  );
+                                } else {
+                                  _logger.d(
+                                    '🙈 [UI] Hiding captions overlay (active: false, state: ${arSessionState.runtimeType})',
                                     category: LogCategory.ui,
                                   );
                                 }
@@ -1210,8 +1270,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const SizedBox(width: 8),
                                     Text(
                                       '${event.type} (${(event.confidence * 100).toStringAsFixed(0)}%)',
-                                      style: const TextStyle(
-                                          color: Colors.white),
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                     ),
                                   ],
                                 ),
@@ -1263,7 +1323,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
                         builder: (context, captionsState) {
                           final isActive =
-                              captionsState is LiveCaptionsActive && captionsState.isListening;
+                              captionsState is LiveCaptionsActive &&
+                                  captionsState.isListening;
                           if (!isActive) return const SizedBox.shrink();
                           return Positioned(
                             top: MediaQuery.of(context).padding.top + 12,
@@ -1314,13 +1375,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                    // Hide extra status bars while captions are active.
-                    bottomNavigationBar: hideStatusChrome
+                  // Hide extra status bars while captions are active.
+                  bottomNavigationBar: hideStatusChrome
                       ? null
                       : (_isNexaDeviceDetected
-                        ? _buildNexaBottomBar(context)
-                        : null),
-                      // Unified Start/Stop button
+                          ? _buildNexaBottomBar(context)
+                          : null),
+                  // Unified Start/Stop button
                   floatingActionButton:
                       BlocListener<ARSessionCubit, ARSessionState>(
                     listener: (context, state) {
@@ -1339,7 +1400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (liveCaptionsCubit.state is LiveCaptionsActive &&
                             (liveCaptionsCubit.state as LiveCaptionsActive)
                                 .isListening) {
-                            _logger.w(
+                          _logger.w(
                               '⚠️ Live captions still active after session end, stopping...');
                           liveCaptionsCubit.stopCaptions();
                         }
@@ -1348,7 +1409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final soundDetectionCubit =
                             context.read<SoundDetectionCubit>();
                         if (soundDetectionCubit.isActive) {
-                            _logger.w(
+                          _logger.w(
                               '⚠️ Sound detection still active after session end, stopping...');
                           soundDetectionCubit.stop();
                         }
@@ -1356,7 +1417,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final localizationCubit =
                             context.read<LocalizationCubit>();
                         if (localizationCubit.isActive) {
-                            _logger.w(
+                          _logger.w(
                               '⚠️ Localization still active after session end, stopping...');
                           localizationCubit.stop();
                         }
@@ -1364,37 +1425,46 @@ class _HomeScreenState extends State<HomeScreen> {
                         final visualIdentificationCubit =
                             context.read<VisualIdentificationCubit>();
                         if (visualIdentificationCubit.isActive) {
-                            _logger.w(
+                          _logger.w(
                               '⚠️ Visual identification still active after session end, stopping...');
                           visualIdentificationCubit.stop();
                         }
 
                         _logger.i(
-                          '✅ All services verified as stopped after session end');
+                            '✅ All services verified as stopped after session end');
                       }
                     },
                     child: BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
                       builder: (context, captionsState) {
-                        final isActive = captionsState is LiveCaptionsActive && captionsState.isListening;
+                        final isActive = captionsState is LiveCaptionsActive &&
+                            captionsState.isListening;
                         final isLoading = captionsState is LiveCaptionsLoading;
 
                         return FloatingActionButton.extended(
                           heroTag: "unified_captions_fab",
-                          backgroundColor: isActive ? Colors.red.shade700 : Colors.blue.shade700,
+                          backgroundColor: isActive
+                              ? Colors.red.shade700
+                              : Colors.blue.shade700,
                           onPressed: isLoading
                               ? null
                               : () async {
                                   if (isActive) {
                                     // Stop everything
-                                    _logger.i('⏹️ Stop Captions pressed', category: LogCategory.ui);
-                                    final arSessionCubit = context.read<ARSessionCubit>();
-                                    if (arSessionCubit.state is ARSessionReady) {
+                                    _logger.i('⏹️ Stop Captions pressed',
+                                        category: LogCategory.ui);
+                                    final arSessionCubit =
+                                        context.read<ARSessionCubit>();
+                                    if (arSessionCubit.state
+                                        is ARSessionReady) {
                                       await arSessionCubit.stopARSession();
                                     }
-                                    context.read<LiveCaptionsCubit>().stopCaptions();
+                                    context
+                                        .read<LiveCaptionsCubit>()
+                                        .stopCaptions();
                                   } else {
                                     // Start captions + spatial session if available
-                                    _logger.i('▶️ Start Captions pressed', category: LogCategory.ui);
+                                    _logger.i('▶️ Start Captions pressed',
+                                        category: LogCategory.ui);
                                     try {
                                       if (_nexaDevice != true &&
                                           !_modelsMissing &&
@@ -1406,20 +1476,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                       // Try to start spatial session
                                       // Falls back to flat captions if AR unavailable
                                       try {
-                                        final arSessionCubit = context.read<ARSessionCubit>();
-                                        await arSessionCubit.initializeARSession(
-                                            restoreFromPersistence: false);
+                                        final arSessionCubit =
+                                            context.read<ARSessionCubit>();
+                                        await arSessionCubit
+                                            .initializeARSession(
+                                                restoreFromPersistence: false);
                                       } catch (arError) {
-                                        _logger.w('⚠️ Spatial session not available, using standard captions: $arError',
+                                        _logger.w(
+                                            '⚠️ Spatial session not available, using standard captions: $arError',
                                             category: LogCategory.ar);
                                       }
                                     } catch (e, stackTrace) {
                                       _logger.e('❌ Failed to start captions',
                                           error: e, stackTrace: stackTrace);
                                       if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           SnackBar(
-                                            content: Text('❌ Failed to start: ${e.toString()}'),
+                                            content: Text(
+                                                '❌ Failed to start: ${e.toString()}'),
                                             backgroundColor: Colors.red,
                                           ),
                                         );
@@ -1429,15 +1504,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                           icon: isLoading
                               ? const SizedBox(
-                                  width: 20, height: 20,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
-                              : Icon(isActive ? Icons.stop_circle : Icons.play_circle_fill),
+                              : Icon(isActive
+                                  ? Icons.stop_circle
+                                  : Icons.play_circle_fill),
                           label: Text(
-                            isLoading ? 'Starting...' : (isActive ? 'Stop' : 'Start Captions'),
+                            isLoading
+                                ? 'Starting...'
+                                : (isActive ? 'Stop' : 'Start Captions'),
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         );

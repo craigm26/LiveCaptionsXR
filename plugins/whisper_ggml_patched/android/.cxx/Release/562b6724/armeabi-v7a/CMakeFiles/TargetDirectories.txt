@@ -1,0 +1,4 @@
+C:/Users/CraigM/source/repos/LiveCaptionsXR/plugins/whisper_ggml_patched/android/.cxx/Release/562b6724/armeabi-v7a/CMakeFiles/whisper_flutter.dir
+C:/Users/CraigM/source/repos/LiveCaptionsXR/plugins/whisper_ggml_patched/android/.cxx/Release/562b6724/armeabi-v7a/CMakeFiles/whisper.dir
+C:/Users/CraigM/source/repos/LiveCaptionsXR/plugins/whisper_ggml_patched/android/.cxx/Release/562b6724/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/CraigM/source/repos/LiveCaptionsXR/plugins/whisper_ggml_patched/android/.cxx/Release/562b6724/armeabi-v7a/CMakeFiles/rebuild_cache.dir

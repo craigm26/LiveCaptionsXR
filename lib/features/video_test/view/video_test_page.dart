@@ -58,7 +58,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
     if (uri == null) return null;
 
     // youtube.com/watch?v=VIDEO_ID
-    if ((uri.host.contains('youtube.com') || uri.host.contains('youtube-nocookie.com')) &&
+    if ((uri.host.contains('youtube.com') ||
+            uri.host.contains('youtube-nocookie.com')) &&
         uri.queryParameters.containsKey('v')) {
       return uri.queryParameters['v'];
     }
@@ -83,7 +84,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
     final videoId = _extractVideoId(_urlController.text);
     if (videoId == null) {
       setState(() {
-        _errorMessage = 'Invalid YouTube URL. Try a link like youtube.com/watch?v=...';
+        _errorMessage =
+            'Invalid YouTube URL. Try a link like youtube.com/watch?v=...';
       });
       return;
     }
@@ -105,10 +107,7 @@ class _VideoTestPageState extends State<VideoTestPage> {
         mute: false,
         showControls: true,
         enableCaption: false,
-        origin: 'https://www.youtube.com',
-        userAgent: kIsWeb
-            ? null
-            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        origin: 'https://www.youtube-nocookie.com',
       ),
       onWebResourceError: (error) {
         _logger.e('WebView error: ${error.errorType} — ${error.description}',
@@ -154,7 +153,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
     // Enable translation with auto-detection for multilingual content
     _enableTranslation();
 
-    _logger.i('Video test started with captions and translation', category: LogCategory.ui);
+    _logger.i('Video test started with captions and translation',
+        category: LogCategory.ui);
   }
 
   void _enableTranslation() {
@@ -163,11 +163,13 @@ class _VideoTestPageState extends State<VideoTestPage> {
       final state = translationCubit.state;
       if (state is TranslationReady && !state.isEnabled) {
         translationCubit.toggleEnabled();
-        _logger.i('Translation auto-enabled for video test', category: LogCategory.ui);
+        _logger.i('Translation auto-enabled for video test',
+            category: LogCategory.ui);
       }
     } catch (_) {
       // TranslationCubit not in widget tree — skip
-      _logger.d('TranslationCubit not available, skipping auto-enable', category: LogCategory.ui);
+      _logger.d('TranslationCubit not available, skipping auto-enable',
+          category: LogCategory.ui);
     }
   }
 
@@ -219,7 +221,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
                 hintText: 'Paste YouTube URL...',
                 hintStyle: TextStyle(color: Colors.grey[500]),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 filled: true,
                 fillColor: Colors.grey[800],
                 border: OutlineInputBorder(
@@ -244,7 +247,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                   ),
                 )
               : ElevatedButton.icon(
@@ -254,7 +258,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                   ),
                 ),
         ],
@@ -293,7 +298,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
                     cubit.startCaptions();
                   }
                 },
-                onClear: () => context.read<LiveCaptionsCubit>().clearCaptions(),
+                onClear: () =>
+                    context.read<LiveCaptionsCubit>().clearCaptions(),
                 maxWidth: 500,
                 showHistory: false,
               ),
@@ -365,7 +371,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
                       ? '${state.sourceLanguage.code} → ${state.targetLanguage.code}'
                       : 'Off',
                   style: TextStyle(
-                    color: state.isEnabled ? Colors.lightBlueAccent : Colors.grey,
+                    color:
+                        state.isEnabled ? Colors.lightBlueAccent : Colors.grey,
                     fontSize: 12,
                   ),
                 ),
@@ -382,7 +389,8 @@ class _VideoTestPageState extends State<VideoTestPage> {
   Widget _buildSoundIndicator() {
     return BlocBuilder<SoundDetectionCubit, SoundDetectionState>(
       builder: (context, state) {
-        final hasEvents = state is SoundDetectionLoaded && state.events.isNotEmpty;
+        final hasEvents =
+            state is SoundDetectionLoaded && state.events.isNotEmpty;
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
@@ -403,9 +411,7 @@ class _VideoTestPageState extends State<VideoTestPage> {
               ),
               const SizedBox(width: 6),
               Text(
-                hasEvents
-                    ? state.events.last.type
-                    : 'Listening...',
+                hasEvents ? state.events.last.type : 'Listening...',
                 style: TextStyle(
                   color: hasEvents ? Colors.amber : Colors.grey,
                   fontSize: 12,

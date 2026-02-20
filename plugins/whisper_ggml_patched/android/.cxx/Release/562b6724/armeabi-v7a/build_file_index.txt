@@ -1,0 +1,1 @@
+C:\Users\CraigM\source\repos\LiveCaptionsXR\plugins\whisper_ggml_patched\android\src\whisper\CMakeLists.txt

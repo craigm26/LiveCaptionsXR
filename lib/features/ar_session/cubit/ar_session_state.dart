@@ -17,7 +17,7 @@ class ARSessionInitial extends ARSessionState {
 class ARSessionConfiguring extends ARSessionState {
   final String configurationType;
   final double progress;
-  
+
   const ARSessionConfiguring({
     this.configurationType = 'basic',
     this.progress = 0.0,
@@ -36,7 +36,7 @@ class ARSessionInitializing extends ARSessionState {
 class ARSessionCalibrating extends ARSessionState {
   final double progress;
   final String calibrationType;
-  
+
   const ARSessionCalibrating({
     this.progress = 0.0,
     this.calibrationType = 'basic',
@@ -50,7 +50,7 @@ class ARSessionCalibrating extends ARSessionState {
 class ARSessionStartingServices extends ARSessionState {
   final Map<String, ServiceStatus> serviceStatuses;
   final double overallProgress;
-  
+
   const ARSessionStartingServices({
     this.serviceStatuses = const {},
     this.overallProgress = 0.0,
@@ -102,7 +102,7 @@ class ARSessionReady extends ARSessionState {
 class ARSessionTrackingLost extends ARSessionState {
   final String reason;
   final DateTime lostAt;
-  
+
   const ARSessionTrackingLost({
     required this.reason,
     required this.lostAt,
@@ -116,14 +116,19 @@ class ARSessionTrackingLost extends ARSessionState {
 class ARSessionReconnecting extends ARSessionState {
   final int attempt;
   final String? previousAnchorId;
-  
+  final bool anchorPlaced;
+  final String? anchorId;
+
   const ARSessionReconnecting({
     this.attempt = 1,
     this.previousAnchorId,
+    this.anchorPlaced = false,
+    this.anchorId,
   });
 
   @override
-  List<Object?> get props => [attempt, previousAnchorId];
+  List<Object?> get props =>
+      [attempt, previousAnchorId, anchorPlaced, anchorId];
 }
 
 /// AR session is paused (e.g., app in background)
@@ -131,7 +136,7 @@ class ARSessionPaused extends ARSessionState {
   final bool previousAnchorPlaced;
   final String? previousAnchorId;
   final DateTime pausedAt;
-  
+
   const ARSessionPaused({
     this.previousAnchorPlaced = false,
     this.previousAnchorId,
@@ -146,7 +151,7 @@ class ARSessionPaused extends ARSessionState {
 class ARSessionResuming extends ARSessionState {
   final String? restoringAnchorId;
   final double progress;
-  
+
   const ARSessionResuming({
     this.restoringAnchorId,
     this.progress = 0.0,
@@ -224,28 +229,37 @@ class ARSessionSTTProcessing extends ARSessionState {
   final bool isOnline;
   final double progress;
   final String? message;
+  final bool anchorPlaced;
+  final String? anchorId;
 
   const ARSessionSTTProcessing({
     required this.backend,
     required this.isOnline,
     this.progress = 0.0,
     this.message,
+    this.anchorPlaced = false,
+    this.anchorId,
   });
 
   @override
-  List<Object?> get props => [backend, isOnline, progress, message];
+  List<Object?> get props =>
+      [backend, isOnline, progress, message, anchorPlaced, anchorId];
 }
 
 /// AR session is running contextual enhancement (Gemma 3n)
 class ARSessionContextualEnhancement extends ARSessionState {
   final double progress;
   final String? message;
+  final bool anchorPlaced;
+  final String? anchorId;
 
   const ARSessionContextualEnhancement({
     this.progress = 0.0,
     this.message,
+    this.anchorPlaced = false,
+    this.anchorId,
   });
 
   @override
-  List<Object?> get props => [progress, message];
+  List<Object?> get props => [progress, message, anchorPlaced, anchorId];
 }

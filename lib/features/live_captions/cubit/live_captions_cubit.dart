@@ -23,13 +23,20 @@ import 'live_captions_state.dart';
 /// from the [EnhancedSpeechProcessor].
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   static const String _fallbackActivityText = 'Listening...';
-  static const String _startupDebugWavDevicePath = '/storage/emulated/0/Download/king_injustice.wav';
-  static const String _startupDebugWavAppExternalPath = '/storage/emulated/0/Android/data/com.livecaptionsxr.app/files/king_injustice.wav';
-  static const String _startupDebugWavAppExternalPathAlt = '/sdcard/Android/data/com.livecaptionsxr.app/files/king_injustice.wav';
-  static const String _startupDebugWavAppInternalPath = '/data/user/0/com.livecaptionsxr.app/files/king_injustice.wav';
-  static const String _startupDebugWavAppInternalPathAlt = '/data/data/com.livecaptionsxr.app/files/king_injustice.wav';
-  static const String _startupDebugWavHostPath = r'C:\Users\CraigM\Downloads\king_injustice.wav';
-  static const MethodChannel _debugAudioChannel = MethodChannel('live_captions_xr/debug_audio');
+  static const String _startupDebugWavDevicePath =
+      '/storage/emulated/0/Download/king_injustice.wav';
+  static const String _startupDebugWavAppExternalPath =
+      '/storage/emulated/0/Android/data/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavAppExternalPathAlt =
+      '/sdcard/Android/data/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavAppInternalPath =
+      '/data/user/0/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavAppInternalPathAlt =
+      '/data/data/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavHostPath =
+      r'C:\Users\CraigM\Downloads\king_injustice.wav';
+  static const MethodChannel _debugAudioChannel =
+      MethodChannel('live_captions_xr/debug_audio');
   final EnhancedSpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
@@ -59,38 +66,49 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   /// Update speech configuration (useful for changing whisper settings)
   void updateSpeechConfig(SpeechConfig config) {
     _speechConfig = config;
-    _logger.i('⚙️ Updated speech config: ${config.whisperModel}', category: LogCategory.captions);
+    _logger.i('⚙️ Updated speech config: ${config.whisperModel}',
+        category: LogCategory.captions);
   }
 
   void setEnhancementEnabled(bool enabled) {
     _useEnhancement = enabled;
     _speechProcessor.setEnhancementEnabled(enabled);
-    _logger.i('✨ Caption enhancement ${enabled ? 'enabled' : 'disabled'}', category: LogCategory.captions);
+    _logger.i('✨ Caption enhancement ${enabled ? 'enabled' : 'disabled'}',
+        category: LogCategory.captions);
   }
 
   Future<void> startCaptions() async {
-    if (state is LiveCaptionsActive && (state as LiveCaptionsActive).isListening) {
-      _logger.i('🎤 Live captions already listening, skipping start', category: LogCategory.captions);
+    if (state is LiveCaptionsActive &&
+        (state as LiveCaptionsActive).isListening) {
+      _logger.i('🎤 Live captions already listening, skipping start',
+          category: LogCategory.captions);
       return;
     }
 
     try {
       _logger.i('🎤 Starting live captions...', category: LogCategory.captions);
-      _logger.d('🧭 Localization engine active: ${_hybridLocalizationEngine.runtimeType}', category: LogCategory.captions);
+      _logger.d(
+          '🧭 Localization engine active: ${_hybridLocalizationEngine.runtimeType}',
+          category: LogCategory.captions);
       _speechProcessor.setEnhancementEnabled(_useEnhancement);
-      emit(const LiveCaptionsLoading(message: 'Initializing spatial caption system...'));
+      emit(const LiveCaptionsLoading(
+          message: 'Initializing spatial caption system...'));
 
-      // Note: Spatial caption integration service should be initialized 
+      // Note: Spatial caption integration service should be initialized
       // when AR services start, not when captions start
-      _logger.i('ℹ️ [CAPTIONS CUBIT] Spatial caption integration service should already be initialized by AR services', category: LogCategory.captions);
+      _logger.i(
+          'ℹ️ [CAPTIONS CUBIT] Spatial caption integration service should already be initialized by AR services',
+          category: LogCategory.captions);
 
-      emit(const LiveCaptionsLoading(message: 'Initializing speech processing...'));
+      emit(const LiveCaptionsLoading(
+          message: 'Initializing speech processing...'));
 
       if (!_speechProcessor.isReady) {
         // Subscribe to Gemma enhancement events to show progress
         StreamSubscription? gemmaProgressSubscription;
         if (_useEnhancement) {
-          gemmaProgressSubscription = _speechProcessor.gemma3nService.enhancementEvents.listen((event) {
+          gemmaProgressSubscription =
+              _speechProcessor.gemma3nService.enhancementEvents.listen((event) {
             if (!event.isComplete && event.error == null) {
               emit(LiveCaptionsLoading(
                 message: event.message,
@@ -118,51 +136,70 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       }
 
       if (_useEnhancement && !_speechProcessor.hasEnhancement) {
-        _logger.w('⚠️ Enhancement requested but no enhancement backend is ready; auto-disabling enhancement for this session', category: LogCategory.captions);
+        _logger.w(
+            '⚠️ Enhancement requested but no enhancement backend is ready; auto-disabling enhancement for this session',
+            category: LogCategory.captions);
         _useEnhancement = false;
         _speechProcessor.setEnhancementEnabled(false);
       }
-      
+
       final useEnhancedStream = _useEnhancement;
 
       // The UI will remain in the "loading" state until the first caption is received.
       if (useEnhancedStream) {
-        _logger.i('🔍 [CAPTIONS CUBIT] Setting up enhanced caption subscription...', category: LogCategory.captions);
-        _logger.i('🔍 [CAPTIONS CUBIT] _useEnhancement: $_useEnhancement, hasEnhancement: ${_speechProcessor.hasEnhancement}, hasGemmaEnhancement: ${_speechProcessor.hasGemmaEnhancement}', category: LogCategory.captions);
+        _logger.i(
+            '🔍 [CAPTIONS CUBIT] Setting up enhanced caption subscription...',
+            category: LogCategory.captions);
+        _logger.i(
+            '🔍 [CAPTIONS CUBIT] _useEnhancement: $_useEnhancement, hasEnhancement: ${_speechProcessor.hasEnhancement}, hasGemmaEnhancement: ${_speechProcessor.hasGemmaEnhancement}',
+            category: LogCategory.captions);
         _captionSubscription = _speechProcessor.enhancedCaptions.listen(
           _handleEnhancedCaption,
           onError: (error, stackTrace) {
-            _logger.e('❌ [CAPTIONS CUBIT] Error in enhanced captions stream', category: LogCategory.captions, error: error, stackTrace: stackTrace);
+            _logger.e('❌ [CAPTIONS CUBIT] Error in enhanced captions stream',
+                category: LogCategory.captions,
+                error: error,
+                stackTrace: stackTrace);
           },
           onDone: () {
-            _logger.w('⚠️ [CAPTIONS CUBIT] Enhanced captions stream closed', category: LogCategory.captions);
+            _logger.w('⚠️ [CAPTIONS CUBIT] Enhanced captions stream closed',
+                category: LogCategory.captions);
           },
         );
-        _logger.i('✨ Subscribed to enhanced captions stream.', category: LogCategory.captions);
+        _logger.i('✨ Subscribed to enhanced captions stream.',
+            category: LogCategory.captions);
       } else {
-        _logger.i('🔍 [CAPTIONS CUBIT] Setting up raw speech subscription (enhancement requested: $_useEnhancement, enhancement ready: ${_speechProcessor.hasEnhancement}, processor ready: ${_speechProcessor.isReady})', category: LogCategory.captions);
+        _logger.i(
+            '🔍 [CAPTIONS CUBIT] Setting up raw speech subscription (enhancement requested: $_useEnhancement, enhancement ready: ${_speechProcessor.hasEnhancement}, processor ready: ${_speechProcessor.isReady})',
+            category: LogCategory.captions);
         _captionSubscription = _speechProcessor.speechResults.listen(
           _handleRawSpeechResult,
           onError: (error, stackTrace) {
-            _logger.e('❌ [CAPTIONS CUBIT] Error in speech results stream', category: LogCategory.captions, error: error, stackTrace: stackTrace);
+            _logger.e('❌ [CAPTIONS CUBIT] Error in speech results stream',
+                category: LogCategory.captions,
+                error: error,
+                stackTrace: stackTrace);
           },
           onDone: () {
-            _logger.w('⚠️ [CAPTIONS CUBIT] Speech results stream closed', category: LogCategory.captions);
+            _logger.w('⚠️ [CAPTIONS CUBIT] Speech results stream closed',
+                category: LogCategory.captions);
           },
         );
-        _logger.i('📝 Subscribed to raw speech results stream.', category: LogCategory.captions);
+        _logger.i('📝 Subscribed to raw speech results stream.',
+            category: LogCategory.captions);
       }
 
       // Pass the speech config during processing start
       await _speechProcessor.startProcessing(config: _speechConfig);
-      
+
       emit(LiveCaptionsActive(
-        captions: List<SpeechResult>.from(_captionHistory.map((c) => SpeechResult(
-          text: c.displayText,
-          confidence: c.confidence,
-          isFinal: c.isFinal,
-          timestamp: c.timestamp,
-        ))),
+        captions:
+            List<SpeechResult>.from(_captionHistory.map((c) => SpeechResult(
+                  text: c.displayText,
+                  confidence: c.confidence,
+                  isFinal: c.isFinal,
+                  timestamp: c.timestamp,
+                ))),
         isListening: true,
         hasEnhancement: _useEnhancement,
         rawSttDebugText: null,
@@ -170,10 +207,13 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
       await _injectStartupCaptionVisibilityTest();
 
-      _logger.i('✅ Live captions started successfully', category: LogCategory.captions);
+      _logger.i('✅ Live captions started successfully',
+          category: LogCategory.captions);
     } catch (e) {
-      _logger.e('❌ Failed to start live captions: $e', category: LogCategory.captions, error: e);
-      emit(LiveCaptionsError(message: 'Failed to start live captions', details: e.toString()));
+      _logger.e('❌ Failed to start live captions: $e',
+          category: LogCategory.captions, error: e);
+      emit(LiveCaptionsError(
+          message: 'Failed to start live captions', details: e.toString()));
       rethrow;
     }
   }
@@ -184,8 +224,11 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       return;
     }
 
-    const testPhrase = 'Caption visibility test: this is an injected startup phrase.';
-    _logger.i('🧪 Injecting startup caption visibility test phrase for emulator', category: LogCategory.captions);
+    const testPhrase =
+        'Caption visibility test: this is an injected startup phrase.';
+    _logger.i(
+        '🧪 Injecting startup caption visibility test phrase for emulator',
+        category: LogCategory.captions);
 
     _handleRawSpeechResult(SpeechResult(
       text: testPhrase,
@@ -236,12 +279,17 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         return;
       }
 
-      _logger.i('🧪 Running startup debug Whisper transcription from $selectedPath', category: LogCategory.captions);
-      final result = await _speechProcessor.debugTranscribeWavFile(selectedPath);
+      _logger.i(
+          '🧪 Running startup debug Whisper transcription from $selectedPath',
+          category: LogCategory.captions);
+      final result =
+          await _speechProcessor.debugTranscribeWavFile(selectedPath);
       if (result == null) {
         return;
       }
-      _logger.i('🧪 Startup debug Whisper transcription completed with text: "${result.text}"', category: LogCategory.captions);
+      _logger.i(
+          '🧪 Startup debug Whisper transcription completed with text: "${result.text}"',
+          category: LogCategory.captions);
     } catch (e, stackTrace) {
       _logger.w(
         '⚠️ Startup debug Whisper transcription failed: $e',
@@ -292,7 +340,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       );
 
       final whenFinished = () {
-        _logger.i('✅ Startup debug WAV playback finished', category: LogCategory.captions);
+        _logger.i('✅ Startup debug WAV playback finished',
+            category: LogCategory.captions);
       };
 
       try {
@@ -342,7 +391,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         _startupDebugWavDevicePath,
       ];
 
-      final didPlay = await _debugAudioChannel.invokeMethod<bool>('playDebugWav', {
+      final didPlay =
+          await _debugAudioChannel.invokeMethod<bool>('playDebugWav', {
         'paths': candidatePaths,
       });
 
@@ -382,43 +432,54 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   }
 
   void _handleEnhancedCaption(EnhancedCaption caption) async {
-    _logger.i('📋📥 [CAPTIONS CUBIT] Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})', category: LogCategory.captions);
-    
+    _logger.i(
+        '📋📥 [CAPTIONS CUBIT] Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})',
+        category: LogCategory.captions);
+
     final currentState = state is LiveCaptionsActive
         ? (state as LiveCaptionsActive)
-        : LiveCaptionsActive(isListening: true, hasEnhancement: _useEnhancement, captions: []);
+        : LiveCaptionsActive(
+            isListening: true, hasEnhancement: _useEnhancement, captions: []);
 
     if (caption.isFinal) {
       _captionHistory.add(caption);
       if (_captionHistory.length > 50) _captionHistory.removeAt(0);
-      _logger.i('📚 [CAPTIONS CUBIT] Added FINAL caption to history (${_captionHistory.length} total)', category: LogCategory.captions);
+      _logger.i(
+          '📚 [CAPTIONS CUBIT] Added FINAL caption to history (${_captionHistory.length} total)',
+          category: LogCategory.captions);
 
       var displayText = caption.displayText;
-      
+
       // Apply translation if enabled
       if (sl.isRegistered<TranslationService>()) {
         final translationService = sl<TranslationService>();
         if (translationService.isEnabled) {
           try {
-            _logger.d('🌐 Translating caption: "$displayText"', category: LogCategory.captions);
+            _logger.d('🌐 Translating caption: "$displayText"',
+                category: LogCategory.captions);
             final result = await translationService.translate(displayText);
             if (result.wasTranslated) {
               // Format: show translation, optionally with original
               if (translationService.showOriginal) {
-                displayText = '${result.translatedText}\n[${result.originalText}]';
+                displayText =
+                    '${result.translatedText}\n[${result.originalText}]';
               } else {
                 displayText = result.translatedText;
               }
-              _logger.i('🌐 Translated: "${result.originalText}" → "${result.translatedText}"', category: LogCategory.captions);
+              _logger.i(
+                  '🌐 Translated: "${result.originalText}" → "${result.translatedText}"',
+                  category: LogCategory.captions);
             }
           } catch (e) {
-            _logger.w('⚠️ Translation failed, using original: $e', category: LogCategory.captions);
+            _logger.w('⚠️ Translation failed, using original: $e',
+                category: LogCategory.captions);
           }
         }
       }
-      
-      _logger.d('🎯 Processing final caption through spatial integration: "$displayText"');
-      
+
+      _logger.d(
+          '🎯 Processing final caption through spatial integration: "$displayText"');
+
       // Create speech result for spatial caption integration
       final speechResult = SpeechResult(
         text: displayText,
@@ -426,35 +487,48 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         isFinal: true,
         timestamp: caption.timestamp,
       );
-      
+
       // Process through spatial caption integration service
       var spatialFinalizationFailed = false;
       try {
-        await _spatialCaptionIntegrationService.processFinalResult(speechResult);
+        await _spatialCaptionIntegrationService
+            .processFinalResult(speechResult);
       } catch (e, stackTrace) {
         spatialFinalizationFailed = true;
-        _logger.w('⚠️ Spatial finalization failed; keeping Flutter caption pipeline active: $e', category: LogCategory.captions);
-        _logger.d('ℹ️ Spatial finalization stack', category: LogCategory.captions, error: e, stackTrace: stackTrace);
+        _logger.w(
+            '⚠️ Spatial finalization failed; keeping Flutter caption pipeline active: $e',
+            category: LogCategory.captions);
+        _logger.d('ℹ️ Spatial finalization stack',
+            category: LogCategory.captions, error: e, stackTrace: stackTrace);
       }
 
       emit(currentState.copyWith(
-        captions: _captionHistory.map((c) => SpeechResult(
-          text: c.displayText,
-          confidence: c.confidence,
-          isFinal: c.isFinal,
-          timestamp: c.timestamp,
-        )).toList(),
+        captions: _captionHistory
+            .map((c) => SpeechResult(
+                  text: c.displayText,
+                  confidence: c.confidence,
+                  isFinal: c.isFinal,
+                  timestamp: c.timestamp,
+                ))
+            .toList(),
         currentCaption: null,
         hasEnhancement: caption.isEnhanced,
-        showOverlayFallback: currentState.showOverlayFallback || spatialFinalizationFailed,
+        showOverlayFallback:
+            currentState.showOverlayFallback || spatialFinalizationFailed,
       ));
-      _logger.i('📤 [CAPTIONS CUBIT] Emitted updated state with ${_captionHistory.length} captions - FINAL CAPTION SHOULD BE VISIBLE NOW', category: LogCategory.captions);
+      _logger.i(
+          '📤 [CAPTIONS CUBIT] Emitted updated state with ${_captionHistory.length} captions - FINAL CAPTION SHOULD BE VISIBLE NOW',
+          category: LogCategory.captions);
     } else {
-      _logger.i('⏳ [CAPTIONS CUBIT] Processing partial caption: "${caption.displayText}"', category: LogCategory.captions);
-      
+      _logger.i(
+          '⏳ [CAPTIONS CUBIT] Processing partial caption: "${caption.displayText}"',
+          category: LogCategory.captions);
+
       // Use spatial_captions plugin for partial results (consistent with final results)
       if (caption.displayText.isNotEmpty && caption.displayText.length > 3) {
-        _logger.d('⚡ [CAPTIONS CUBIT] Processing PARTIAL caption with spatial plugin: "${caption.displayText}"', category: LogCategory.captions);
+        _logger.d(
+            '⚡ [CAPTIONS CUBIT] Processing PARTIAL caption with spatial plugin: "${caption.displayText}"',
+            category: LogCategory.captions);
         try {
           // Create SpeechResult for spatial processing
           final speechResult = SpeechResult(
@@ -463,28 +537,40 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
             isFinal: caption.isFinal,
             timestamp: caption.timestamp,
           );
-          
+
           // Process through spatial plugin (same as final results)
-          await _spatialCaptionIntegrationService.processPartialResult(speechResult);
-          _logger.d('✅ [CAPTIONS CUBIT] Partial caption processed through spatial plugin', category: LogCategory.captions);
+          await _spatialCaptionIntegrationService
+              .processPartialResult(speechResult);
+          _logger.d(
+              '✅ [CAPTIONS CUBIT] Partial caption processed through spatial plugin',
+              category: LogCategory.captions);
         } catch (e, stackTrace) {
-          _logger.e('❌ [CAPTIONS CUBIT] Failed to process partial caption through spatial plugin', category: LogCategory.captions, error: e, stackTrace: stackTrace);
+          _logger.e(
+              '❌ [CAPTIONS CUBIT] Failed to process partial caption through spatial plugin',
+              category: LogCategory.captions,
+              error: e,
+              stackTrace: stackTrace);
           // Note: No fallback - spatial plugin is the only caption system now
         }
       }
-      
-      emit(currentState.copyWith(currentCaption: SpeechResult(
+
+      emit(currentState.copyWith(
+          currentCaption: SpeechResult(
         text: caption.displayText,
         confidence: caption.confidence,
         isFinal: caption.isFinal,
         timestamp: caption.timestamp,
       )));
-      _logger.i('📤 [CAPTIONS CUBIT] Emitted state with partial caption - PARTIAL CAPTION SHOULD BE VISIBLE NOW', category: LogCategory.captions);
+      _logger.i(
+          '📤 [CAPTIONS CUBIT] Emitted state with partial caption - PARTIAL CAPTION SHOULD BE VISIBLE NOW',
+          category: LogCategory.captions);
     }
   }
 
   void _handleRawSpeechResult(SpeechResult result) {
-    _logger.i('🎤📥 [CAPTIONS CUBIT] Received raw speech result: "${result.text}" (final: ${result.isFinal})', category: LogCategory.captions);
+    _logger.i(
+        '🎤📥 [CAPTIONS CUBIT] Received raw speech result: "${result.text}" (final: ${result.isFinal})',
+        category: LogCategory.captions);
 
     if (state is LiveCaptionsActive) {
       final currentState = state as LiveCaptionsActive;
@@ -540,7 +626,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
 
     if (state is LiveCaptionsActive) {
       final currentState = state as LiveCaptionsActive;
-      emit(currentState.copyWith(isListening: false, currentCaption: null, rawSttDebugText: null));
+      emit(currentState.copyWith(
+          isListening: false, currentCaption: null, rawSttDebugText: null));
       return;
     }
 
@@ -550,7 +637,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   void clearCaptions() {
     _captionHistory.clear();
     if (state is LiveCaptionsActive) {
-      emit((state as LiveCaptionsActive).copyWith(captions: [], currentCaption: null, rawSttDebugText: null));
+      emit((state as LiveCaptionsActive)
+          .copyWith(captions: [], currentCaption: null, rawSttDebugText: null));
     }
   }
 
