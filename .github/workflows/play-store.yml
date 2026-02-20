@@ -52,14 +52,27 @@ jobs:
       - name: Build App Bundle
         run: flutter build appbundle --release
 
-      - name: Decode Service Account JSON
+      - name: Write service account JSON
+        env:
+          SA_RAW: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
-          # Secret may be stored as base64 or raw JSON
-          RAW="${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}"
-          if echo "$RAW" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
-            echo "$RAW" > /tmp/play-sa.json
+          # Detect format: base64 strings never start with '{', JSON always does
+          FIRST=$(printf '%s' "$SA_RAW" | head -c 1)
+          if [ "$FIRST" = "{" ]; then
+            printf '%s' "$SA_RAW" > /tmp/play-sa.json
+            echo "✅ Service account JSON: raw format"
           else
-            echo "$RAW" | base64 -d > /tmp/play-sa.json
+            printf '%s' "$SA_RAW" | base64 -d > /tmp/play-sa.json
+            echo "✅ Service account JSON: decoded from base64"
+          fi
+          # Validate it parsed correctly
+          python3 -c "import json; d=json.load(open('/tmp/play-sa.json')); print('✅ JSON valid, project:', d.get('project_id','?'))"
+
+      - name: Ensure whatsnew directory exists
+        run: |
+          mkdir -p distribution/whatsnew
+          if [ ! -f distribution/whatsnew/whatsnew-en-US ]; then
+            echo "Bug fixes and performance improvements." > distribution/whatsnew/whatsnew-en-US
           fi
 
       - name: Upload to Google Play
