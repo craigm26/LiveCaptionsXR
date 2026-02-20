@@ -2,6 +2,7 @@ package com.livecaptionsxr.app
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.NonNull
@@ -14,12 +15,14 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
     private val VISUAL_CHANNEL = "com.craig.livecaptions/visual"
     private val HYBRID_CHANNEL = "live_captions_xr/hybrid_localization_methods"
+    private val DEBUG_AUDIO_CHANNEL = "live_captions_xr/debug_audio"
 
     private lateinit var visualCaptureController: VisualCaptureController
     private lateinit var hybridLocalizationEngine: HybridLocalizationEngine
 
     private val CAMERA_PERMISSION_REQUEST_CODE = 100
     private var cameraInitialized = false
+    private var debugMediaPlayer: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +94,78 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEBUG_AUDIO_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "playDebugWav" -> {
+                    try {
+                        val args = call.arguments as? Map<*, *>
+                        val pathsAny = args?.get("paths") as? List<*>
+                        val singlePath = args?.get("path") as? String
+                        val candidatePaths = mutableListOf<String>()
+
+                        if (pathsAny != null) {
+                            pathsAny.mapNotNullTo(candidatePaths) { it as? String }
+                        }
+                        if (!singlePath.isNullOrBlank()) {
+                            candidatePaths.add(singlePath)
+                        }
+
+                        val playablePath = candidatePaths.firstOrNull { path ->
+                            try {
+                                java.io.File(path).exists()
+                            } catch (_: Exception) {
+                                false
+                            }
+                        }
+
+                        if (playablePath.isNullOrBlank()) {
+                            result.error("NO_PATH", "No playable debug WAV path found", null)
+                            return@setMethodCallHandler
+                        }
+
+                        debugMediaPlayer?.release()
+                        debugMediaPlayer = null
+
+                        val player = MediaPlayer()
+                        debugMediaPlayer = player
+                        player.setDataSource(playablePath)
+                        player.setOnCompletionListener {
+                            Log.i("MainActivity", "Debug WAV playback completed: $playablePath")
+                            it.release()
+                            if (debugMediaPlayer === it) {
+                                debugMediaPlayer = null
+                            }
+                        }
+                        player.setOnErrorListener { mp, what, extra ->
+                            Log.e("MainActivity", "Debug WAV playback error (what=$what, extra=$extra) for path=$playablePath")
+                            mp.release()
+                            if (debugMediaPlayer === mp) {
+                                debugMediaPlayer = null
+                            }
+                            true
+                        }
+                        player.prepare()
+                        player.start()
+                        Log.i("MainActivity", "Debug WAV playback started: $playablePath")
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Failed to play debug WAV", e)
+                        result.error("PLAYBACK_ERROR", e.message, null)
+                    }
+                }
+                "stopDebugWav" -> {
+                    try {
+                        debugMediaPlayer?.stop()
+                    } catch (_: Exception) {
+                    }
+                    debugMediaPlayer?.release()
+                    debugMediaPlayer = null
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     private fun initializeCamera() {
@@ -124,12 +199,24 @@ class MainActivity: FlutterActivity() {
 
     override fun onPause() {
         super.onPause()
+        try {
+            debugMediaPlayer?.stop()
+        } catch (_: Exception) {
+        }
+        debugMediaPlayer?.release()
+        debugMediaPlayer = null
         visualCaptureController.release()
         cameraInitialized = false
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        try {
+            debugMediaPlayer?.stop()
+        } catch (_: Exception) {
+        }
+        debugMediaPlayer?.release()
+        debugMediaPlayer = null
         visualCaptureController.close()
     }
 

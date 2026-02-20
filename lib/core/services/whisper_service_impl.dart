@@ -32,7 +32,8 @@ class WhisperSTTEvent {
 /// Service for handling Whisper GGML speech-to-text processing
 class WhisperService {
   static final AppLogger _logger = AppLogger.instance;
-  static const Duration _emulatorTranscribeTimeout = Duration(seconds: 6);
+  static const Duration _emulatorTranscribeTimeout = Duration(seconds: 12);
+  static const Duration _debugWavTranscribeTimeout = Duration(seconds: 20);
   
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -428,12 +429,12 @@ class WhisperService {
         audio: tempFile.path,
         language: _config.language,
         isTranslate: _config.whisperTranslateToEnglish,
-        isSpecialTokens: _config.whisperSuppressNonSpeechTokens,
-        threads: _isEmulator ? 1 : 4,
+        isSpecialTokens: _isEmulator ? false : _config.whisperSuppressNonSpeechTokens,
+        threads: _isEmulator ? 2 : 4,
         isVerbose: false,
         isNoTimestamps: true, // We don't need timestamps for real-time
-        noFallback: _isEmulator,
-        speedUp: _isEmulator,
+        noFallback: false,
+        speedUp: false,
       );
 
       _logger.i(
@@ -518,10 +519,126 @@ class WhisperService {
       final fallbackResult = SpeechResult(
         text: "Listening...",
         confidence: 0.0,
-        isFinal: true,
+        isFinal: false,
         timestamp: DateTime.now(),
       );
       
+      _speechResultController.add(fallbackResult);
+      return fallbackResult;
+    }
+  }
+
+  Future<SpeechResult> processWavFile(String wavFilePath, {Duration? timeout}) async {
+    if (kIsWeb) {
+      return SpeechResult(
+        text: 'Web Demo: Audio processing not available',
+        confidence: 0.0,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+    }
+
+    if (!_isInitialized) {
+      return SpeechResult(
+        text: 'Whisper not initialized',
+        confidence: 0.0,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+    }
+
+    if (_whisper == null) {
+      return SpeechResult(
+        text: '[Whisper unavailable for debug WAV decode]',
+        confidence: 0.0,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+    }
+
+    final file = File(wavFilePath);
+    if (!await file.exists()) {
+      return SpeechResult(
+        text: '[Debug WAV missing]',
+        confidence: 0.0,
+        isFinal: true,
+        timestamp: DateTime.now(),
+      );
+    }
+
+    try {
+      _logger.i('🧪 Debug WAV decode requested: $wavFilePath', category: LogCategory.speech);
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 0.2,
+        message: 'Decoding startup debug WAV...',
+      ));
+
+      final transcribeRequest = TranscribeRequest(
+        audio: wavFilePath,
+        language: _config.language,
+        isTranslate: _config.whisperTranslateToEnglish,
+        isSpecialTokens: _isEmulator ? false : _config.whisperSuppressNonSpeechTokens,
+        threads: _isEmulator ? 2 : 4,
+        isVerbose: false,
+        isNoTimestamps: true,
+        noFallback: false,
+        speedUp: false,
+      );
+
+      final effectiveTimeout = timeout ?? (_isEmulator ? _debugWavTranscribeTimeout : const Duration(seconds: 0));
+      final transcribeFuture = _whisper!.transcribe(
+        transcribeRequest: transcribeRequest,
+        modelPath: _resolvedModelPath!,
+      );
+
+      var timedOut = false;
+      final response = _isEmulator
+          ? await transcribeFuture.timeout(
+              effectiveTimeout,
+              onTimeout: () {
+                timedOut = true;
+                _logger.w(
+                  '⏱️ Debug WAV decode exceeded ${effectiveTimeout.inSeconds}s; returning activity fallback',
+                  category: LogCategory.speech,
+                );
+                return WhisperTranscribeResponse(
+                  type: 'transcribe',
+                  text: 'Listening...',
+                  segments: const [],
+                );
+              },
+            )
+          : await transcribeFuture;
+
+      final normalizedResponseText = response.text.trim();
+      final isActivityFallback =
+          timedOut ||
+          normalizedResponseText.isEmpty ||
+          normalizedResponseText.toLowerCase() == 'listening...';
+
+      final speechResult = SpeechResult(
+        text: isActivityFallback ? 'Listening...' : response.text,
+        confidence: isActivityFallback ? 0.0 : 0.9,
+        isFinal: !isActivityFallback,
+        timestamp: DateTime.now(),
+      );
+
+      _logger.i('🧪 Debug WAV Whisper result: "${speechResult.text}" (confidence: ${speechResult.confidence})', category: LogCategory.speech);
+      _speechResultController.add(speechResult);
+      _sttEventController.add(const WhisperSTTEvent(
+        progress: 1.0,
+        message: 'Startup debug WAV decode complete',
+        isComplete: true,
+      ));
+      return speechResult;
+    } catch (e, stackTrace) {
+      _logger.e('❌ Error decoding debug WAV with Whisper', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+      final fallbackResult = SpeechResult(
+        text: 'Listening...',
+        confidence: 0.0,
+        isFinal: false,
+        timestamp: DateTime.now(),
+      );
       _speechResultController.add(fallbackResult);
       return fallbackResult;
     }

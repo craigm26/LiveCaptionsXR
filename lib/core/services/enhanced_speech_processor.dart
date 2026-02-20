@@ -86,15 +86,25 @@ class EnhancedSpeechProcessor {
   bool _whisperTranscriptionInFlight = false;
   int _whisperDroppedChunks = 0;
   final List<int> _whisperSampleBuffer = <int>[];
-  static const int _whisperSamplesPerInference = 9600; // ~0.6s at 16kHz
+  static const int _whisperSamplesPerInference = 16000; // ~1.0s at 16kHz
+  static const int _whisperSamplesPerInferenceEmulator = 48000; // ~3.0s at 16kHz
   static const double _minWhisperRms = 0.0015;
+  static const double _minWhisperRmsEmulator = 0.0045;
   int _lowRmsSkippedWindows = 0;
   int _emptyWhisperWindows = 0;
   int _whisperChunkLogCounter = 0;
+  int _audioDiagnosticsLogCounter = 0;
+  int _debugWavDumpCount = 0;
   int _nexaChunkLogCounter = 0;
   int _spatialFrameLogCounter = 0;
   DateTime? _whisperInferenceStartedAt;
+  bool _runtimeIsEmulator = false;
   bool _emulatorNativeSpeechFallbackActive = false;
+  bool _loggedEmulatorNormalizationBypass = false;
+  bool _appleSpeechReceivedResult = false;
+  Timer? _emulatorAppleSpeechWatchdog;
+  StreamSubscription<SpeechResult>? _appleSpeechSubscription;
+  static const int _maxDebugWavDumps = 2;
 
   Stream<double> get micLevels => _micLevelController.stream;
 
@@ -106,6 +116,54 @@ class EnhancedSpeechProcessor {
       sum += normalized * normalized;
     }
     return math.sqrt(sum / samples.length);
+  }
+
+  /// Debug-only helper to validate Whisper decoding from a known WAV file.
+  Future<SpeechResult?> debugTranscribeWavFile(String wavFilePath) async {
+    if (!_isInitialized) {
+      _logger.w('debugTranscribeWavFile called before initialization', category: LogCategory.speech);
+      return null;
+    }
+
+    try {
+      _logger.i('🧪 Running direct debug WAV transcription: $wavFilePath', category: LogCategory.speech);
+      final result = await _whisperService.processWavFile(wavFilePath);
+      _processSpeechResult(result);
+      return result;
+    } catch (error, stackTrace) {
+      _logger.e(
+        '❌ Error during debug WAV transcription',
+        category: LogCategory.speech,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  double _calculateNormalizedPeak(List<int> samples) {
+    if (samples.isEmpty) return 0.0;
+    var peak = 0.0;
+    for (final value in samples) {
+      final abs = (value / 32768.0).abs();
+      if (abs > peak) {
+        peak = abs;
+      }
+    }
+    return peak;
+  }
+
+  double _calculateVoicedSampleRatio(List<int> samples,
+      {double threshold = 0.015}) {
+    if (samples.isEmpty) return 0.0;
+    var voicedCount = 0;
+    for (final value in samples) {
+      final abs = (value / 32768.0).abs();
+      if (abs >= threshold) {
+        voicedCount++;
+      }
+    }
+    return voicedCount / samples.length;
   }
 
   List<int> _normalizeWhisperSamples(List<int> samples) {
@@ -145,6 +203,50 @@ class EnhancedSpeechProcessor {
     return centered
         .map((value) => (value * gain).round().clamp(-32768, 32767))
         .toList();
+  }
+
+  Future<void> _maybeDumpDebugWav(Uint8List pcm16LeBytes, {required String tag}) async {
+    if (!_runtimeIsEmulator) return;
+    if (_debugWavDumpCount >= _maxDebugWavDumps) return;
+
+    _debugWavDumpCount++;
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final file = File('${Directory.systemTemp.path}/$tag-$now.wav');
+      final dataSize = pcm16LeBytes.length;
+      const sampleRate = 16000;
+      const channels = 1;
+      const bitsPerSample = 16;
+      const fmtChunkSize = 16;
+      final byteRate = sampleRate * channels * (bitsPerSample ~/ 8);
+      final blockAlign = channels * (bitsPerSample ~/ 8);
+      final riffChunkSize = 36 + dataSize;
+
+      final header = ByteData(44)
+        ..setUint32(0, 0x52494646, Endian.big)
+        ..setUint32(4, riffChunkSize, Endian.little)
+        ..setUint32(8, 0x57415645, Endian.big)
+        ..setUint32(12, 0x666d7420, Endian.big)
+        ..setUint32(16, fmtChunkSize, Endian.little)
+        ..setUint16(20, 1, Endian.little)
+        ..setUint16(22, channels, Endian.little)
+        ..setUint32(24, sampleRate, Endian.little)
+        ..setUint32(28, byteRate, Endian.little)
+        ..setUint16(32, blockAlign, Endian.little)
+        ..setUint16(34, bitsPerSample, Endian.little)
+        ..setUint32(36, 0x64617461, Endian.big)
+        ..setUint32(40, dataSize, Endian.little);
+
+      final wavBytes = BytesBuilder(copy: false)
+        ..add(header.buffer.asUint8List())
+        ..add(pcm16LeBytes);
+
+      await file.writeAsBytes(wavBytes.toBytes(), flush: true);
+      _logger.i('🧪 [AUDIO DUMP] Wrote live mic WAV sample to ${file.path}', category: LogCategory.speech);
+    } catch (e, stackTrace) {
+      _logger.w('⚠️ [AUDIO DUMP] Failed to write debug WAV: $e', category: LogCategory.speech);
+      _logger.d('ℹ️ [AUDIO DUMP] Write failure stack', category: LogCategory.speech, error: e, stackTrace: stackTrace);
+    }
   }
 
   EnhancedSpeechProcessor({
@@ -483,6 +585,7 @@ class EnhancedSpeechProcessor {
       if (config != null) await updateConfig(config);
 
       final isEmulator = await isAndroidEmulator();
+        _runtimeIsEmulator = isEmulator;
       final useNativeSpeechFallback =
           isEmulator && _activeEngine == SpeechEngine.whisper_ggml;
 
@@ -526,6 +629,7 @@ class EnhancedSpeechProcessor {
             if (!_appleSpeechService.isInitialized) {
               await _initializeAppleSpeech();
             }
+            _appleSpeechReceivedResult = false;
             await _startAppleSpeechProcessing();
             _emulatorNativeSpeechFallbackActive = true;
           } else {
@@ -546,6 +650,11 @@ class EnhancedSpeechProcessor {
       }
 
       _isProcessing = true;
+
+      if (_emulatorNativeSpeechFallbackActive) {
+        _startEmulatorAppleSpeechWatchdog();
+      }
+
       _logger.i('✅ Speech processing started with engine: $_activeEngine', category: LogCategory.speech);
       return true;
     } catch (e, stackTrace) {
@@ -653,7 +762,11 @@ class EnhancedSpeechProcessor {
         }
 
         _whisperSampleBuffer.addAll(audioData);
-        if (_whisperSampleBuffer.length < _whisperSamplesPerInference) {
+        final requiredSamples = _runtimeIsEmulator
+            ? _whisperSamplesPerInferenceEmulator
+            : _whisperSamplesPerInference;
+
+        if (_whisperSampleBuffer.length < requiredSamples) {
           return;
         }
 
@@ -684,21 +797,37 @@ class EnhancedSpeechProcessor {
           _whisperTranscriptionInFlight = true;
           _whisperInferenceStartedAt = DateTime.now();
           final inferenceSamples =
-              List<int>.from(_whisperSampleBuffer.take(_whisperSamplesPerInference));
-          _whisperSampleBuffer.removeRange(0, _whisperSamplesPerInference);
+              List<int>.from(_whisperSampleBuffer.take(requiredSamples));
+          _whisperSampleBuffer.removeRange(0, requiredSamples);
 
-            final normalizedSamples = _normalizeWhisperSamples(inferenceSamples);
-
-            final rms = _calculateNormalizedRms(normalizedSamples);
+          final rms = _calculateNormalizedRms(inferenceSamples);
+          final peak = _calculateNormalizedPeak(inferenceSamples);
+          final voicedRatio = _calculateVoicedSampleRatio(inferenceSamples);
           _micLevelController.add(rms);
-          if (rms < _minWhisperRms) {
+
+          _audioDiagnosticsLogCounter++;
+          if (_audioDiagnosticsLogCounter % 4 == 0) {
+            _logger.i(
+              '🎚️ [AUDIO DIAG] windowMs=${(requiredSamples / 16).round()}, rms=${rms.toStringAsFixed(4)}, peak=${peak.toStringAsFixed(4)}, voicedRatio=${(voicedRatio * 100).toStringAsFixed(1)}%',
+              category: LogCategory.speech,
+            );
+          }
+
+          final rmsThreshold = _runtimeIsEmulator
+              ? _minWhisperRmsEmulator
+              : _minWhisperRms;
+          if (rms < rmsThreshold) {
             _lowRmsSkippedWindows++;
             if (_lowRmsSkippedWindows % 5 == 0) {
-              _logger.i('🔇 Low-energy audio window for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)}, threshold=${_minWhisperRms.toStringAsFixed(4)})', category: LogCategory.speech);
+              _logger.i('🔇 Low-energy audio window for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)}, threshold=${rmsThreshold.toStringAsFixed(4)})', category: LogCategory.speech);
             }
 
-            // On very quiet mics (common on emulator/XR passthrough),
-            // periodically force an inference to avoid a "no captions" dead-zone.
+            if (_runtimeIsEmulator) {
+              return;
+            }
+
+            // On very quiet mics (common on XR passthrough),
+            // periodically force an inference to avoid a dead-zone.
             if (_lowRmsSkippedWindows < 4) {
               return;
             }
@@ -708,12 +837,25 @@ class EnhancedSpeechProcessor {
 
           _lowRmsSkippedWindows = 0;
 
+          final normalizedSamples = _runtimeIsEmulator
+              ? inferenceSamples
+              : _normalizeWhisperSamples(inferenceSamples);
+
+          if (_runtimeIsEmulator && !_loggedEmulatorNormalizationBypass) {
+            _loggedEmulatorNormalizationBypass = true;
+            _logger.i(
+              '🧪 Emulator mode: bypassing aggressive Whisper normalization to preserve captured speech dynamics',
+              category: LogCategory.speech,
+            );
+          }
+
           // Convert audio data to Uint8List for Whisper processing
           final audioBytes = ByteData(normalizedSamples.length * 2);
           for (int i = 0; i < normalizedSamples.length; i++) {
             audioBytes.setInt16(i * 2, normalizedSamples[i], Endian.little);
           }
           final audioBuffer = audioBytes.buffer.asUint8List();
+          unawaited(_maybeDumpDebugWav(audioBuffer, tag: 'emulator-live-window'));
           _logger.d('🔄 Converting audio to bytes (${audioBuffer.length} bytes)', category: LogCategory.speech);
           
           // Process with Whisper service
@@ -783,7 +925,11 @@ class EnhancedSpeechProcessor {
       _logger.i('🍎 [DEBUG] Apple Speech service initialized check: ${_appleSpeechService.isInitialized}', category: LogCategory.speech);
 
       // Subscribe to Apple Speech results
-      _appleSpeechService.speechResults.listen((result) {
+      await _appleSpeechSubscription?.cancel();
+      _appleSpeechSubscription = _appleSpeechService.speechResults.listen((result) {
+        _appleSpeechReceivedResult = true;
+        _emulatorAppleSpeechWatchdog?.cancel();
+        _emulatorAppleSpeechWatchdog = null;
         _logger.i('🎤📥 [APPLE STT] Received result from AppleSpeechService: "${result.text}" (confidence: ${result.confidence}, final: ${result.isFinal})', category: LogCategory.speech);
         _logger.i('🔄 [APPLE STT] Forwarding to _processSpeechResult...', category: LogCategory.speech);
         _processSpeechResult(result);
@@ -812,6 +958,53 @@ class EnhancedSpeechProcessor {
       _logger.e('❌ [APPLE STT] Failed to start Apple Speech processing', category: LogCategory.speech, error: e, stackTrace: stackTrace);
       rethrow;
     }
+  }
+
+  void _startEmulatorAppleSpeechWatchdog() {
+    _emulatorAppleSpeechWatchdog?.cancel();
+    _emulatorAppleSpeechWatchdog = Timer(const Duration(seconds: 8), () {
+      if (!_isProcessing || !_emulatorNativeSpeechFallbackActive || _appleSpeechReceivedResult) {
+        return;
+      }
+
+      _logger.w(
+        '⚠️ Emulator Apple STT produced no results within watchdog window; switching to chunked Whisper fallback',
+        category: LogCategory.speech,
+      );
+
+      unawaited(_switchEmulatorFallbackToWhisper());
+    });
+  }
+
+  Future<void> _switchEmulatorFallbackToWhisper() async {
+    if (!_isProcessing || !_emulatorNativeSpeechFallbackActive || _appleSpeechReceivedResult) {
+      return;
+    }
+
+    try {
+      await _appleSpeechService.stopProcessing();
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Failed to stop Apple STT during emulator fallback switch: $e',
+        category: LogCategory.speech,
+      );
+      _logger.d(
+        'ℹ️ Apple STT stop stack during fallback switch',
+        category: LogCategory.speech,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+
+    _emulatorNativeSpeechFallbackActive = false;
+
+    await _audioCaptureService.start();
+    await _startWhisperGgmlProcessing();
+
+    _logger.i(
+      '✅ Emulator fallback switched to chunked Whisper processing after Apple STT inactivity',
+      category: LogCategory.speech,
+    );
   }
 
   /// Start Nexa ASR processing for NPU-accelerated speech recognition
@@ -1206,10 +1399,15 @@ class EnhancedSpeechProcessor {
       // Stop stereo audio capture
       await _audioSubscription?.cancel();
       _audioSubscription = null;
+      await _appleSpeechSubscription?.cancel();
+      _appleSpeechSubscription = null;
       if (_emulatorNativeSpeechFallbackActive) {
         await _appleSpeechService.stopProcessing();
       }
+      _emulatorAppleSpeechWatchdog?.cancel();
+      _emulatorAppleSpeechWatchdog = null;
       _emulatorNativeSpeechFallbackActive = false;
+      _appleSpeechReceivedResult = false;
       _whisperTranscriptionInFlight = false;
       _whisperDroppedChunks = 0;
       _lowRmsSkippedWindows = 0;
@@ -1262,6 +1460,8 @@ class EnhancedSpeechProcessor {
   void dispose() {
     stopProcessing();
     _frameSubscription?.cancel();
+    _appleSpeechSubscription?.cancel();
+    _emulatorAppleSpeechWatchdog?.cancel();
     _frameCaptureService.dispose();
     _speechResultController.close();
     _enhancedCaptionController.close();

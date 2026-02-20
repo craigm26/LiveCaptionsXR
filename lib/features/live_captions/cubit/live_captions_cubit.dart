@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/models/enhanced_caption.dart';
 import '../../../core/models/speech_result.dart';
@@ -20,15 +23,25 @@ import 'live_captions_state.dart';
 /// from the [EnhancedSpeechProcessor].
 class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   static const String _fallbackActivityText = 'Listening...';
+  static const String _startupDebugWavDevicePath = '/storage/emulated/0/Download/king_injustice.wav';
+  static const String _startupDebugWavAppExternalPath = '/storage/emulated/0/Android/data/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavAppExternalPathAlt = '/sdcard/Android/data/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavAppInternalPath = '/data/user/0/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavAppInternalPathAlt = '/data/data/com.livecaptionsxr.app/files/king_injustice.wav';
+  static const String _startupDebugWavHostPath = r'C:\Users\CraigM\Downloads\king_injustice.wav';
+  static const MethodChannel _debugAudioChannel = MethodChannel('live_captions_xr/debug_audio');
   final EnhancedSpeechProcessor _speechProcessor;
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final SpatialCaptionIntegrationService _spatialCaptionIntegrationService;
   final AppLogger _logger = AppLogger.instance;
+  final FlutterSoundPlayer _startupDebugPlayer = FlutterSoundPlayer();
 
   StreamSubscription? _captionSubscription;
   final List<EnhancedCaption> _captionHistory = [];
   bool _useEnhancement;
   SpeechConfig? _speechConfig;
+  bool _startupDebugPlayerReady = false;
+  bool _startupDebugWhisperTriggered = false;
 
   LiveCaptionsCubit({
     required EnhancedSpeechProcessor speechProcessor,
@@ -181,6 +194,191 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       timestamp: DateTime.now(),
       metadata: const {'source': 'startup_visibility_test'},
     ));
+
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    unawaited(_playStartupDebugWavOnEmulator());
+    unawaited(_runStartupDebugWhisperTranscriptionOnEmulator());
+  }
+
+  Future<void> _runStartupDebugWhisperTranscriptionOnEmulator() async {
+    if (!Platform.isAndroid || _startupDebugWhisperTriggered) {
+      return;
+    }
+
+    _startupDebugWhisperTriggered = true;
+
+    try {
+      final candidatePaths = <String>[
+        _startupDebugWavAppInternalPath,
+        _startupDebugWavAppInternalPathAlt,
+        _startupDebugWavAppExternalPath,
+        _startupDebugWavAppExternalPathAlt,
+        _startupDebugWavDevicePath,
+      ];
+
+      String? selectedPath;
+      for (final path in candidatePaths) {
+        try {
+          if (await File(path).exists()) {
+            selectedPath = path;
+            break;
+          }
+        } catch (_) {
+          // ignore inaccessible paths and continue
+        }
+      }
+
+      if (selectedPath == null) {
+        _logger.w(
+          '⚠️ Startup debug Whisper transcription skipped: no readable WAV candidate found',
+          category: LogCategory.captions,
+        );
+        return;
+      }
+
+      _logger.i('🧪 Running startup debug Whisper transcription from $selectedPath', category: LogCategory.captions);
+      final result = await _speechProcessor.debugTranscribeWavFile(selectedPath);
+      if (result == null) {
+        return;
+      }
+      _logger.i('🧪 Startup debug Whisper transcription completed with text: "${result.text}"', category: LogCategory.captions);
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Startup debug Whisper transcription failed: $e',
+        category: LogCategory.captions,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _playStartupDebugWavOnEmulator() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    try {
+      if (!_startupDebugPlayerReady) {
+        await _startupDebugPlayer.openPlayer();
+        _startupDebugPlayerReady = true;
+      }
+
+      if (_startupDebugPlayer.isPlaying) {
+        await _startupDebugPlayer.stopPlayer();
+      }
+
+      final nativePlayed = await _tryNativeDebugAudioPlayback();
+      if (nativePlayed) {
+        return;
+      }
+
+      final wavFile = File(_startupDebugWavDevicePath);
+      final exists = await wavFile.exists();
+      if (!exists) {
+        _logger.w(
+          '⚠️ Startup debug WAV not found on fallback path $_startupDebugWavDevicePath. '
+          'Try either:\n'
+          '1) adb push "$_startupDebugWavHostPath" "$_startupDebugWavDevicePath"\n'
+          '2) adb push "$_startupDebugWavHostPath" /data/local/tmp/king_injustice.wav && adb shell run-as com.livecaptionsxr.app cp /data/local/tmp/king_injustice.wav $_startupDebugWavAppInternalPath',
+          category: LogCategory.captions,
+        );
+        return;
+      }
+
+      final fileSize = await wavFile.length();
+      _logger.i(
+        '🔊 Playing startup debug WAV from $_startupDebugWavDevicePath (${fileSize} bytes)',
+        category: LogCategory.captions,
+      );
+
+      final whenFinished = () {
+        _logger.i('✅ Startup debug WAV playback finished', category: LogCategory.captions);
+      };
+
+      try {
+        await _startupDebugPlayer.startPlayer(
+          fromURI: _startupDebugWavDevicePath,
+          whenFinished: whenFinished,
+        );
+        return;
+      } catch (_) {
+        // try additional forms below
+      }
+
+      final fileUri = Uri.file(_startupDebugWavDevicePath).toString();
+      try {
+        await _startupDebugPlayer.startPlayer(
+          fromURI: fileUri,
+          whenFinished: whenFinished,
+        );
+        return;
+      } catch (_) {
+        // final attempt below
+      }
+
+      final wavBytes = await wavFile.readAsBytes();
+      await _startupDebugPlayer.startPlayer(
+        fromDataBuffer: wavBytes,
+        codec: Codec.pcm16WAV,
+        whenFinished: whenFinished,
+      );
+    } catch (e, stackTrace) {
+      _logger.w(
+        '⚠️ Failed to play startup debug WAV: $e',
+        category: LogCategory.captions,
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<bool> _tryNativeDebugAudioPlayback() async {
+    try {
+      final candidatePaths = <String>[
+        _startupDebugWavAppInternalPath,
+        _startupDebugWavAppInternalPathAlt,
+        _startupDebugWavAppExternalPath,
+        _startupDebugWavAppExternalPathAlt,
+        _startupDebugWavDevicePath,
+      ];
+
+      final didPlay = await _debugAudioChannel.invokeMethod<bool>('playDebugWav', {
+        'paths': candidatePaths,
+      });
+
+      if (didPlay == true) {
+        _logger.i(
+          '🔊 Native debug WAV playback started. Preferred path: $_startupDebugWavAppExternalPath',
+          category: LogCategory.captions,
+        );
+        return true;
+      }
+    } catch (e) {
+      _logger.w(
+        '⚠️ Native debug WAV playback unavailable, falling back to FlutterSound: $e. '
+        'Recommended adb push target: $_startupDebugWavAppExternalPath',
+        category: LogCategory.captions,
+      );
+    }
+
+    return false;
+  }
+
+  Future<void> _disposeStartupDebugPlayer() async {
+    if (!_startupDebugPlayerReady) {
+      return;
+    }
+
+    try {
+      if (_startupDebugPlayer.isPlaying) {
+        await _startupDebugPlayer.stopPlayer();
+      }
+    } catch (_) {
+      // ignore stop errors during teardown
+    }
+
+    await _startupDebugPlayer.closePlayer();
+    _startupDebugPlayerReady = false;
   }
 
   void _handleEnhancedCaption(EnhancedCaption caption) async {
@@ -337,6 +535,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     await _captionSubscription?.cancel();
     _captionSubscription = null;
     await _speechProcessor.stopProcessing();
+    await _disposeStartupDebugPlayer();
+    _startupDebugWhisperTriggered = false;
 
     if (state is LiveCaptionsActive) {
       final currentState = state as LiveCaptionsActive;
@@ -355,8 +555,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   }
 
   @override
-  Future<void> close() {
-    stopCaptions();
+  Future<void> close() async {
+    await stopCaptions();
     _speechProcessor.dispose();
     return super.close();
   }
