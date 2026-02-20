@@ -6,7 +6,7 @@ repository: https://github.com/bhanuka96/nexa_ai_flutter
 issue_tracker: https://github.com/bhanuka96/nexa_ai_flutter/issues
 
 environment:
-  sdk: ^3.9.2
+  sdk: ">=3.0.0 <4.0.0"
   flutter: '>=3.3.0'
 
 dependencies:

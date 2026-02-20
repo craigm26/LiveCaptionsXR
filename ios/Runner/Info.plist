@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is required for visual speaker identification.</string>
+	<key>NSBonjourServices</key>
+	<array/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This app requires local network access for model inference services.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
