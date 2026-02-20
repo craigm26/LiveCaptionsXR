@@ -76,27 +76,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            
-            // Additional R8 configuration to be more conservative
             proguardFile("proguard-rules.pro")
-            
-            // 16 KB page size support for release builds
-            externalNativeBuild {
-                cmake {
-                    arguments += listOf("-DANDROID_PAGE_SIZE=16384")
-                }
-            }
         }
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
-            
-            // 16 KB page size support for debug builds
-            externalNativeBuild {
-                cmake {
-                    arguments += listOf("-DANDROID_PAGE_SIZE=16384")
-                }
-            }
         }
     }
 }
@@ -104,7 +88,7 @@ android {
 dependencies {
     // Nexa SDK for on-device AI inference (NPU/GPU/CPU)
     // Enables ASR, LLM, and VLM on Qualcomm Hexagon NPU
-    implementation("ai.nexa:core:0.0.19")
+    implementation("ai.nexa:core:0.0.22")
 
     // CameraX
     implementation("androidx.camera:camera-core:1.3.1")
@@ -113,13 +97,13 @@ dependencies {
     implementation("androidx.camera:camera-view:1.3.1")
 
     // ML Kit
-    implementation("com.google.mlkit:face-detection:16.1.6")
+    implementation("com.google.mlkit:face-detection:16.1.7")
 
     // JTransforms for FFT
     implementation("com.github.wendykierp:JTransforms:3.1")
 
     // ARCore
-    implementation("com.google.ar:core:1.41.0")
+    implementation("com.google.ar:core:1.52.0")
 
     // Guava (for ListenableFuture, etc.)
     implementation("com.google.guava:guava:31.1-android")

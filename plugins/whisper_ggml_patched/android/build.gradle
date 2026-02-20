@@ -24,7 +24,7 @@ apply plugin: 'com.android.library'
 
 android {
     namespace "com.devac.whisper_ggml"
-    ndkVersion "26.1.10909125"
+    ndkVersion "28.2.13676358"
 
     compileSdk 34
 
@@ -51,7 +51,7 @@ android {
             cmake {
                 cFlags "-O3 -s -flto=thin -ffunction-sections -fdata-sections -fvisibility=hidden -fvisibility-inlines-hidden"
                 cppFlags "-O3 -s -flto=thin -ffunction-sections -fdata-sections -fvisibility=hidden -fvisibility-inlines-hidden"
-                arguments "-Wl,--gc-sections,--exclude-libs,ALL", "-DANDROID_STL=c++_static", "-DCMAKE_BUILD_TYPE=Release"
+                arguments "-Wl,--gc-sections,--exclude-libs,ALL", "-DANDROID_STL=c++_static", "-DCMAKE_BUILD_TYPE=Release", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
             }
         }
     }
