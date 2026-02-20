@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -96,13 +97,18 @@ class _VideoTestPageState extends State<VideoTestPage> {
     // Close previous controller if any
     _ytController?.close();
 
-    // Use the base constructor so we can capture WebView errors.
+    // On mobile, use a desktop user agent so YouTube serves the full embed player
+    // instead of a restricted WebView page that often fails to load.
     final controller = YoutubePlayerController(
-      params: const YoutubePlayerParams(
+      params: YoutubePlayerParams(
         showFullscreenButton: false,
         mute: false,
         showControls: true,
         enableCaption: false,
+        origin: 'https://www.youtube.com',
+        userAgent: kIsWeb
+            ? null
+            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       ),
       onWebResourceError: (error) {
         _logger.e('WebView error: ${error.errorType} — ${error.description}',
@@ -114,6 +120,19 @@ class _VideoTestPageState extends State<VideoTestPage> {
         }
       },
     );
+    // Listen to player state: clear error when playback succeeds
+    controller.listen((YoutubePlayerValue value) {
+      if (!mounted) return;
+      if (value.hasError) {
+        setState(() {
+          _errorMessage = 'Playback error: ${value.error.name}';
+        });
+      } else if (value.playerState == PlayerState.playing ||
+          value.playerState == PlayerState.cued ||
+          value.playerState == PlayerState.buffering) {
+        setState(() => _errorMessage = null);
+      }
+    });
     // Load the video (will wait for WebView init before executing)
     controller.loadVideoById(videoId: videoId);
 
