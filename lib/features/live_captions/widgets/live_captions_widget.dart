@@ -8,6 +8,7 @@ import '../cubit/live_captions_state.dart';
 import '../../../core/models/speech_result.dart';
 import '../../translation/cubit/translation_cubit.dart';
 import '../../translation/cubit/translation_state.dart';
+import '../../localization/cubit/localization_cubit.dart';
 
 /// Widget for displaying live captions styled after The Last of Us Part II.
 ///
@@ -105,10 +106,6 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         return AnimatedBuilder(
           animation: _fadeAnimation,
           builder: (context, child) {
-            if (_fadeAnimation.value > 0.01) {
-              debugPrint(
-                  '🎨 [UI DEBUG] LiveCaptionsWidget Build: opacity=${_fadeAnimation.value.toStringAsFixed(2)}, state=${state.runtimeType}');
-            }
             return Opacity(
               opacity: _fadeAnimation.value,
               child: _buildCaptionsContent(context, state),
@@ -161,16 +158,7 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         (state.captions.isNotEmpty ? state.captions.last.text : null);
 
     if (currentText == null || currentText.isEmpty) {
-      if (_fadeAnimation.value > 0.5) {
-        debugPrint(
-            '🎨 [UI DEBUG] LiveCaptionsWidget: No text to show, showing placeholder');
-      }
       return _buildPlaceholder(context, state, settings);
-    }
-
-    if (_fadeAnimation.value > 0.5) {
-      debugPrint(
-          '🎨 [UI DEBUG] LiveCaptionsWidget: Rendering text: "$currentText"');
     }
 
     final caption = state.currentCaption ??
@@ -189,7 +177,6 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         color:
             Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.red, width: 2),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -301,19 +288,44 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         settings.accessibilityCaptionModeEnabled;
     final speakerFocus = settings.speakerFocusModeEnabled;
 
-    // Directional arrow for offscreen speakers
-    final dirArrow = _getDirectionArrow(caption);
-    if (dirArrow != null) {
-      children.add(TextSpan(
-        text: '$dirArrow ',
-        style: TextStyle(
-          color: Colors.white
-              .withAlpha((255 * (highContrast ? 1.0 : 0.7)).round()),
-          fontSize: 18 * fontScale,
-          fontWeight: FontWeight.w400,
-        ),
-      ));
-    }
+    // Directional arrow for sound source
+    children.add(WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: BlocBuilder<LocalizationCubit, LocalizationState>(
+        builder: (context, locState) {
+          String direction = 'center';
+          if (locState is LocalizationLoaded) {
+            direction = locState.direction;
+          } else if (caption?.speakerDirection != null) {
+            direction = caption!.speakerDirection!;
+          }
+
+          double rotation = 0;
+          IconData icon = Icons.play_arrow_rounded;
+
+          if (direction == 'left') {
+            rotation = -3.14159 / 2; // -90 deg
+          } else if (direction == 'right') {
+            rotation = 3.14159 / 2; // 90 deg
+          } else {
+            rotation = 0; // up
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 6.0),
+            child: Transform.rotate(
+              angle: rotation,
+              child: Icon(
+                icon,
+                size: 20 * fontScale,
+                color: Colors.white
+                    .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round()),
+              ),
+            ),
+          );
+        },
+      ),
+    ));
 
     // Speaker name with unique color (inline, TLOU2 style)
     if (caption?.hasSpeakerDiarization == true) {
@@ -322,16 +334,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
           ? '[${caption.speakerLabel.toUpperCase()}]'
           : caption.speakerLabel;
 
-      if (speakerFocus && dirArrow == null) {
-        children.add(TextSpan(
-          text: '• ',
-          style: TextStyle(
-            color: Colors.white.withAlpha((255 * 0.9).round()),
-            fontSize: 17 * fontScale,
-            fontWeight: FontWeight.w700,
-          ),
-        ));
-      }
+      // Since we now always have an inline direction indicator at the start,
+      // we don't need to add the dot separator here.
 
       children.add(TextSpan(
         text: '$speakerLabel: ',

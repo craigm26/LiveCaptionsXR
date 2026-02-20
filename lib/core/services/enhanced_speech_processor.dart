@@ -89,7 +89,9 @@ class EnhancedSpeechProcessor {
   static const int _whisperSamplesPerInferenceEmulator =
       48000; // ~3.0s at 16kHz
   static const double _minWhisperRms = 0.0015;
-  static const double _minWhisperRmsEmulator = 0.0045;
+  static const double _minWhisperRmsEmulator = 0.0070; // Increased from 0.0045
+  static const double _minVoicedRatio =
+      0.15; // 15% of samples must be voiced (raised from 5% to reduce noise hallucinations)
   int _lowRmsSkippedWindows = 0;
   int _emptyWhisperWindows = 0;
   int _whisperChunkLogCounter = 0;
@@ -891,11 +893,15 @@ class EnhancedSpeechProcessor {
 
           final rmsThreshold =
               _runtimeIsEmulator ? _minWhisperRmsEmulator : _minWhisperRms;
-          if (rms < rmsThreshold) {
+
+          final isQuiet = rms < rmsThreshold;
+          final isNotVoiced = voicedRatio < _minVoicedRatio;
+
+          if (isQuiet || isNotVoiced) {
             _lowRmsSkippedWindows++;
             if (_lowRmsSkippedWindows % 5 == 0) {
               _logger.i(
-                  '🔇 Low-energy audio window for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)}, threshold=${rmsThreshold.toStringAsFixed(4)})',
+                  '🔇 VAD REJECT for Whisper (count=$_lowRmsSkippedWindows, rms=${rms.toStringAsFixed(4)}, threshold=${rmsThreshold.toStringAsFixed(4)}, voicedRatio=${(voicedRatio * 100).toStringAsFixed(1)}%, minRatio=${(_minVoicedRatio * 100).toStringAsFixed(1)}%)',
                   category: LogCategory.speech);
             }
 
@@ -1391,21 +1397,30 @@ class EnhancedSpeechProcessor {
     }
   }
 
+  /// Process speech result
   void _processSpeechResult(SpeechResult result) {
-    if (result.text.trim().isEmpty) {
+    final text = result.text.trim();
+    if (text.isEmpty) {
       _logger.d('⏭️ Skipping empty speech result',
           category: LogCategory.speech);
       return;
     }
 
+    // Check for Whisper hallucinations
+    if (_isHallucination(text)) {
+      _logger.i('🚫 [FILTER] Hallucination filtered: "$text"',
+          category: LogCategory.speech);
+      return;
+    }
+
     _logger.d(
-        '🔄📥 [STT PROCESSING] Received speech result: "${result.text}" (final: ${result.isFinal}, confidence: ${result.confidence})',
+        '🔄📥 [STT PROCESSING] Received speech result: "$text" (final: ${result.isFinal}, confidence: ${result.confidence})',
         category: LogCategory.speech);
 
     try {
       // Add to recent texts for enhancement
-      if (result.text.isNotEmpty && result.text != defaultFallbackTranscript) {
-        _recentTexts.add(result.text);
+      if (text.isNotEmpty && text != defaultFallbackTranscript) {
+        _recentTexts.add(text);
         if (_recentTexts.length > 10) _recentTexts.removeAt(0);
         _logger.d(
             '📚 [STT PROCESSING] Added to recent texts (${_recentTexts.length} items)',
@@ -1413,7 +1428,7 @@ class EnhancedSpeechProcessor {
       }
 
       // Emit the raw speech result
-      _speechResultController.add(result);
+      _speechResultController.add(result.copyWith(text: text));
       _logger.d(
           '📤 [STT PROCESSING] Emitted raw speech result to speechResults stream',
           category: LogCategory.speech);
@@ -1423,13 +1438,14 @@ class EnhancedSpeechProcessor {
         _logger.i(
             '✨ [STT PROCESSING] Gemma3n available - attempting enhancement...',
             category: LogCategory.speech);
-        _enhanceWithGemma3n(result);
+        _enhanceWithGemma3n(result.copyWith(text: text));
       } else {
         _logger.d(
             '📝 [STT PROCESSING] Using raw speech result (gemma ready: ${gemma3nService.isReady}, enhancement enabled: $_useEnhancement)',
             category: LogCategory.speech);
         // Create basic enhanced caption from raw result
-        final basicCaption = EnhancedCaption.fromSpeechResult(result);
+        final basicCaption =
+            EnhancedCaption.fromSpeechResult(result.copyWith(text: text));
         _enhancedCaptionController.add(basicCaption);
         _logger.d(
             '📋➡️ [STT PROCESSING] Created and emitted basic caption: "${basicCaption.displayText}"',
@@ -1439,6 +1455,86 @@ class EnhancedSpeechProcessor {
       _logger.e('❌ [STT PROCESSING] Error processing speech result',
           category: LogCategory.speech, error: e, stackTrace: stackTrace);
     }
+  }
+
+  /// Heuristic to detect common Whisper hallucinations
+  bool _isHallucination(String text) {
+    final lower = text.toLowerCase().trim();
+
+    // 1. Common silence/noise markers — both [bracket] and (parenthesized) formats
+    final noiseKeywords = [
+      'music',
+      'silence',
+      'noise',
+      'laughing',
+      'coughing',
+      'applause',
+      'cheering',
+      'clapping',
+      'wind',
+      'birds chirping',
+      'static',
+      'beeping',
+      'ringing',
+      'buzzing',
+      'humming',
+      'mechanical',
+      'machinery',
+      'engine',
+      'drilling',
+      'hammering',
+      'mysterious',
+      'ambient',
+      'background noise',
+      'white noise',
+      'sound effects',
+      'sfx',
+      'ding',
+      'chime',
+      'alarm',
+    ];
+    // Match patterns like: [music], (music), [music playing], (mysterious music), etc.
+    final bracketedPattern = RegExp(r'[\[(]([^\]\)]+)[\]\)]');
+    final matches = bracketedPattern.allMatches(lower);
+    for (final match in matches) {
+      final inner = match.group(1) ?? '';
+      if (noiseKeywords.any((kw) => inner.contains(kw))) return true;
+    }
+    // Also catch if the ENTIRE text is a bracketed/parenthesized expression
+    if (bracketedPattern.hasMatch(lower) &&
+        lower.replaceAll(bracketedPattern, '').trim().isEmpty) {
+      return true;
+    }
+
+    // 2. Common YouTube/Content creator hallucinations
+    final ytHallucinations = [
+      'thanks for watching',
+      'subscribe now',
+      'thank you for watching',
+      'please subscribe',
+      'like and subscribe',
+      'follow me on',
+      'be sure to subscribe',
+      'don\'t forget to subscribe'
+    ];
+    if (ytHallucinations.any((h) => lower.contains(h))) return true;
+
+    // 3. Very short or repetitive gibberish
+    if (text.length < 3 && !['hi', 'oh', 'ok', 'no', 'up'].contains(lower)) {
+      return true;
+    }
+
+    // 4. Repeated words (hallucination loop)
+    final words = lower.split(' ').where((w) => w.isNotEmpty).toList();
+    if (words.length >= 4) {
+      int repeats = 0;
+      for (int i = 0; i < words.length - 1; i++) {
+        if (words[i] == words[i + 1]) repeats++;
+      }
+      if (repeats > words.length * 0.5) return true;
+    }
+
+    return false;
   }
 
   void _enhanceWithGemma3n(SpeechResult result) async {
