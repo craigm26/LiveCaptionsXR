@@ -178,11 +178,13 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     final badgeGap = 4 * settings.captionFontSize;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      // TLOU2 style: tight, subtle — almost invisible backing, not a card.
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color:
-            Colors.black.withAlpha((255 * (highContrast ? 0.9 : 0.75)).round()),
-        borderRadius: BorderRadius.circular(4),
+        color: Colors.black
+            .withAlpha((255 * (highContrast ? 0.82 : 0.62)).round()),
+        // Very slight rounding — TLOU2 uses essentially no rounding
+        borderRadius: BorderRadius.circular(2),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -316,12 +318,13 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
               direction == 'left' ? -3.14159 / 2 : 3.14159 / 2;
 
           return Padding(
-            padding: const EdgeInsets.only(right: 6.0),
+            padding: const EdgeInsets.only(right: 5.0),
             child: Transform.rotate(
               angle: rotation,
               child: Icon(
                 Icons.play_arrow_rounded,
-                size: 20 * fontScale,
+                // TLOU2: arrow is same height as the caption text, not oversized
+                size: 14 * fontScale,
                 color: Colors.white
                     .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round()),
               ),
@@ -338,32 +341,36 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
           ? '[${caption.speakerLabel.toUpperCase()}]'
           : caption.speakerLabel;
 
-      // Since we now always have an inline direction indicator at the start,
-      // we don't need to add the dot separator here.
-
       children.add(TextSpan(
         text: '$speakerLabel: ',
         style: TextStyle(
           color: speakerFocus
               ? speakerColor.withAlpha((255 * 0.95).round())
               : speakerColor,
-          fontSize: 18 * fontScale,
-          fontWeight: speakerFocus ? FontWeight.w800 : FontWeight.w600,
+          // TLOU2: speaker label same size as caption text
+          fontSize: 16 * fontScale,
+          fontWeight: speakerFocus ? FontWeight.w700 : FontWeight.w600,
+          shadows: const [
+            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+          ],
         ),
       ));
     }
 
-    // Caption text — white, clean
+    // Caption text — white, clean, with subtle shadow to pop off any background
     children.add(TextSpan(
       text: text,
       style: TextStyle(
         color: isInterim
             ? Colors.white
-                .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round())
+                .withAlpha((255 * (highContrast ? 1.0 : 0.88)).round())
             : Colors.white,
-        fontSize: 18 * fontScale,
-        fontWeight: speakerFocus ? FontWeight.w600 : FontWeight.w500,
-        height: 1.35,
+        fontSize: 16 * fontScale,
+        fontWeight: FontWeight.w500,
+        height: 1.3,
+        shadows: const [
+          Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+        ],
       ),
     ));
 
@@ -382,6 +389,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
 
     return RichText(
       textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       text: TextSpan(children: children),
     );
   }
