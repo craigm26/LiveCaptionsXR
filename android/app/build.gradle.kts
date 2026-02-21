@@ -19,10 +19,10 @@ android {
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
-    // Required for Nexa SDK native libraries
+    // 16KB page size support: native libs must be uncompressed and 16KB-aligned in the APK
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
     }
 
