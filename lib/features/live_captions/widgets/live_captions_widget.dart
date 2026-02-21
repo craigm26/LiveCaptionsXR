@@ -161,6 +161,12 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       return _buildPlaceholder(context, state, settings);
     }
 
+    // "Listening..." is an activity fallback — not real speech.
+    // Per TLOU2 style: show nothing, not a spinner or status text.
+    if (currentText.trim() == 'Listening...') {
+      return const SizedBox.shrink();
+    }
+
     final caption = state.currentCaption ??
         (state.captions.isNotEmpty ? state.captions.last : null);
     final isInterim = state.currentCaption != null;
@@ -288,7 +294,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         settings.accessibilityCaptionModeEnabled;
     final speakerFocus = settings.speakerFocusModeEnabled;
 
-    // Directional arrow for sound source
+    // Directional arrow — only show for off-center speakers (TLOU2 style).
+    // When speaker is directly ahead (center), no arrow is shown.
     children.add(WidgetSpan(
       alignment: PlaceholderAlignment.middle,
       child: BlocBuilder<LocalizationCubit, LocalizationState>(
@@ -300,23 +307,20 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
             direction = caption!.speakerDirection!;
           }
 
-          double rotation = 0;
-          IconData icon = Icons.play_arrow_rounded;
-
-          if (direction == 'left') {
-            rotation = -3.14159 / 2; // -90 deg
-          } else if (direction == 'right') {
-            rotation = 3.14159 / 2; // 90 deg
-          } else {
-            rotation = 0; // up
+          // No arrow for center/unknown — TLOU2 only marks off-screen speakers
+          if (direction != 'left' && direction != 'right') {
+            return const SizedBox.shrink();
           }
+
+          final double rotation =
+              direction == 'left' ? -3.14159 / 2 : 3.14159 / 2;
 
           return Padding(
             padding: const EdgeInsets.only(right: 6.0),
             child: Transform.rotate(
               angle: rotation,
               child: Icon(
-                icon,
+                Icons.play_arrow_rounded,
                 size: 20 * fontScale,
                 color: Colors.white
                     .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round()),
@@ -471,9 +475,20 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
       return const SizedBox.shrink();
     }
 
-    final recentCaptions = recentInWindow.length > maxHistoryItems
-        ? recentInWindow.sublist(recentInWindow.length - maxHistoryItems)
-        : recentInWindow;
+    // Deduplicate: remove consecutive identical texts (avoids "World. World. World.")
+    // Also strip the activity-fallback placeholder from history.
+    final deduped = <SpeechResult>[];
+    for (final c in recentInWindow) {
+      final t = c.text.trim();
+      if (t.isEmpty || t == 'Listening...') continue;
+      if (deduped.isEmpty || deduped.last.text.trim() != t) {
+        deduped.add(c);
+      }
+    }
+
+    final recentCaptions = deduped.length > maxHistoryItems
+        ? deduped.sublist(deduped.length - maxHistoryItems)
+        : deduped;
 
     final highContrast = settings.highContrastEnabled ||
         settings.accessibilityCaptionModeEnabled;

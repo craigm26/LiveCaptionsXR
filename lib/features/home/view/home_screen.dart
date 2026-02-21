@@ -943,113 +943,65 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           );
         } else {
-          // Real device: show start captions area
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.spatial_audio_off,
-                    color: Colors.white24, size: 100),
-                const SizedBox(height: 16),
-                const Text(
-                  'Live Captions',
-                  style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Real-time captions with speaker direction cues',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white38, fontSize: 14),
-                ),
-                const SizedBox(height: 32),
-                // Big Start Captions button
-                BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
-                  builder: (context, captionsState) {
-                    final isActive = captionsState is LiveCaptionsActive &&
-                        captionsState.isListening;
-                    final isLoading = captionsState is LiveCaptionsLoading;
+          // Real device: show camera background when active, welcome screen when idle.
+          return BlocBuilder<LiveCaptionsCubit, LiveCaptionsState>(
+            builder: (context, captionsState) {
+              final isActive = captionsState is LiveCaptionsActive &&
+                  captionsState.isListening;
 
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 220,
-                          height: 56,
-                          child: ElevatedButton.icon(
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    final cubit =
-                                        context.read<LiveCaptionsCubit>();
-                                    if (isActive) {
-                                      cubit.stopCaptions();
-                                    } else {
-                                      cubit.startCaptions();
-                                    }
-                                  },
-                            icon: isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: Colors.white),
-                                  )
-                                : Icon(
-                                    isActive
-                                        ? Icons.stop_circle
-                                        : Icons.play_circle_fill,
-                                    size: 28),
-                            label: Text(
-                              isLoading
-                                  ? 'Starting...'
-                                  : (isActive
-                                      ? 'Stop Captions'
-                                      : 'Start Captions'),
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isActive
-                                  ? Colors.red.shade700
-                                  : Colors.blue.shade700,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28)),
-                              elevation: 4,
-                            ),
+              if (isActive) {
+                // Captions running → show live camera background.
+                // Initialize camera if not yet started (idempotent call).
+                final cameraService = sl<CameraService>();
+                return FutureBuilder<void>(
+                  future: _ensureEmulatorCameraPreviewStarted(),
+                  builder: (context, camSnap) {
+                    final preview = cameraService.getCameraPreviewWidget();
+                    if (preview == null) {
+                      // Camera not available — dark background; captions
+                      // will still appear via the Stack overlay below.
+                      return const SizedBox.expand();
+                    }
+                    return OrientationBuilder(
+                      builder: (context, orientation) {
+                        final isPortrait = orientation == Orientation.portrait;
+                        return Positioned.fill(
+                          child: RotatedBox(
+                            quarterTurns: isPortrait ? 1 : 0,
+                            child: preview,
                           ),
-                        ),
-                        // Live preview area when captions are active
-                        if (isActive) ...[
-                          const SizedBox(height: 20),
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 360),
-                            child: LiveCaptionsWidget(
-                              onToggle: () {
-                                final cubit = context.read<LiveCaptionsCubit>();
-                                if (isActive) {
-                                  cubit.stopCaptions();
-                                } else {
-                                  cubit.startCaptions();
-                                }
-                              },
-                              onClear: () => context
-                                  .read<LiveCaptionsCubit>()
-                                  .clearCaptions(),
-                              maxWidth: 360,
-                              showHistory: true,
-                            ),
-                          ),
-                        ],
-                      ],
+                        );
+                      },
                     );
                   },
+                );
+              }
+
+              // Idle — welcome / start screen
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.spatial_audio_off,
+                        color: Colors.white24, size: 100),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Live Captions',
+                      style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Real-time captions with speaker direction cues',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white38, fontSize: 14),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           );
         }
       },
@@ -1214,7 +1166,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               return showOverlay
                                   ? Positioned(
-                                      bottom: 120,
+                                      bottom: 32,
                                       left: 16,
                                       right: 16,
                                       child: LiveCaptionsWidget(
