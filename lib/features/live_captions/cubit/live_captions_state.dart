@@ -35,6 +35,14 @@ class LiveCaptionsActive extends LiveCaptionsState {
   final bool hasEnhancement;
   final String? rawSttDebugText;
 
+  /// Whether Enhanced Captions mode is active (OmniNeural downloaded + setting on).
+  /// When true, sticky speaker labels are shown at the speaker's angular position.
+  final bool enhancedCaptionsActive;
+
+  /// Per-speaker angle (radians) for sticky label positioning.
+  /// Key: speakerId, Value: angle (negative = left, 0 = center, positive = right).
+  final Map<String, double> speakerAngles;
+
   const LiveCaptionsActive({
     required this.captions,
     this.currentCaption,
@@ -43,10 +51,16 @@ class LiveCaptionsActive extends LiveCaptionsState {
     this.showOverlayFallback = false,
     this.hasEnhancement = false,
     this.rawSttDebugText,
+    this.enhancedCaptionsActive = false,
+    this.speakerAngles = const {},
   });
 
   @override
-  List<Object?> get props => [captions, currentCaption, isListening, error, showOverlayFallback, hasEnhancement, rawSttDebugText];
+  List<Object?> get props => [
+    captions, currentCaption, isListening, error,
+    showOverlayFallback, hasEnhancement, rawSttDebugText,
+    enhancedCaptionsActive, speakerAngles,
+  ];
 
   LiveCaptionsActive copyWith({
     List<SpeechResult>? captions,
@@ -56,6 +70,8 @@ class LiveCaptionsActive extends LiveCaptionsState {
     bool? showOverlayFallback,
     bool? hasEnhancement,
     String? rawSttDebugText,
+    bool? enhancedCaptionsActive,
+    Map<String, double>? speakerAngles,
   }) {
     return LiveCaptionsActive(
       captions: captions ?? this.captions,
@@ -65,6 +81,8 @@ class LiveCaptionsActive extends LiveCaptionsState {
       showOverlayFallback: showOverlayFallback ?? this.showOverlayFallback,
       hasEnhancement: hasEnhancement ?? this.hasEnhancement,
       rawSttDebugText: rawSttDebugText ?? this.rawSttDebugText,
+      enhancedCaptionsActive: enhancedCaptionsActive ?? this.enhancedCaptionsActive,
+      speakerAngles: speakerAngles ?? this.speakerAngles,
     );
   }
 }

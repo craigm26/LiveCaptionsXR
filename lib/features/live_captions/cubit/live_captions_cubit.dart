@@ -13,6 +13,7 @@ import '../../../core/services/spatial_caption_integration_service.dart';
 import '../../../core/services/app_logger.dart';
 import '../../../core/services/debug_logger_service.dart';
 import '../../../core/services/translation_service.dart';
+import '../../../core/services/nexa_llm_service.dart';
 import '../../../core/di/service_locator.dart';
 import 'live_captions_state.dart';
 
@@ -46,20 +47,27 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
   StreamSubscription? _captionSubscription;
   final List<EnhancedCaption> _captionHistory = [];
   bool _useEnhancement;
+  bool _enhancedCaptionsEnabled;
+  bool _enhancedCaptionsActive = false;
   SpeechConfig? _speechConfig;
   bool _startupDebugPlayerReady = false;
   bool _startupDebugWhisperTriggered = false;
+
+  /// Per-speaker angle in radians (from speakerPosition or speakerDirection).
+  final Map<String, double> _speakerAngles = {};
 
   LiveCaptionsCubit({
     required EnhancedSpeechProcessor speechProcessor,
     required HybridLocalizationEngine hybridLocalizationEngine,
     required SpatialCaptionIntegrationService spatialCaptionIntegrationService,
     bool useEnhancement = true,
+    bool enhancedCaptionsEnabled = false,
     SpeechConfig? speechConfig,
   })  : _speechProcessor = speechProcessor,
         _hybridLocalizationEngine = hybridLocalizationEngine,
         _spatialCaptionIntegrationService = spatialCaptionIntegrationService,
         _useEnhancement = useEnhancement,
+        _enhancedCaptionsEnabled = enhancedCaptionsEnabled,
         _speechConfig = speechConfig,
         super(const LiveCaptionsInitial());
 
@@ -75,6 +83,15 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     _speechProcessor.setEnhancementEnabled(enabled);
     _logger.i('✨ Caption enhancement ${enabled ? 'enabled' : 'disabled'}',
         category: LogCategory.captions);
+  }
+
+  void setEnhancedCaptionsEnabled(bool enabled) {
+    _enhancedCaptionsEnabled = enabled;
+    _logger.i('🎯 Enhanced captions ${enabled ? 'requested' : 'disabled'}',
+        category: LogCategory.captions);
+    if (!enabled) {
+      _enhancedCaptionsActive = false;
+    }
   }
 
   Future<void> startCaptions() async {
@@ -192,6 +209,20 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
       // Pass the speech config during processing start
       await _speechProcessor.startProcessing(config: _speechConfig);
 
+      // Check if Enhanced Captions mode can activate (requires OmniNeural-4B).
+      if (_enhancedCaptionsEnabled) {
+        try {
+          _enhancedCaptionsActive = await NexaLlmService.isOmniNeuralDownloaded();
+          _logger.i(
+              '🎯 Enhanced Captions: OmniNeural downloaded = $_enhancedCaptionsActive',
+              category: LogCategory.captions);
+        } catch (_) {
+          _enhancedCaptionsActive = false;
+        }
+      } else {
+        _enhancedCaptionsActive = false;
+      }
+
       emit(LiveCaptionsActive(
         captions:
             List<SpeechResult>.from(_captionHistory.map((c) => SpeechResult(
@@ -203,6 +234,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         isListening: true,
         hasEnhancement: _useEnhancement,
         rawSttDebugText: null,
+        enhancedCaptionsActive: _enhancedCaptionsActive,
+        speakerAngles: Map.from(_speakerAngles),
       ));
 
       await _injectStartupCaptionVisibilityTest();
@@ -431,6 +464,22 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     _startupDebugPlayerReady = false;
   }
 
+  /// Compute the angle in radians for a speech result.
+  /// Uses speakerPosition.x / z if available, falls back to direction string.
+  static double _angleFromResult(SpeechResult result) {
+    if (result.speakerPosition != null) {
+      final pos = result.speakerPosition!;
+      if (pos.z != 0 || pos.x != 0) {
+        return pos.x.sign * (pos.x.abs() / (pos.x.abs() + pos.z.abs().clamp(0.1, double.infinity))) * 1.5708; // ≈ π/2
+      }
+    }
+    switch (result.speakerDirection) {
+      case 'left': return -0.785; // ~-π/4
+      case 'right': return 0.785;
+      default: return 0.0;
+    }
+  }
+
   void _handleEnhancedCaption(EnhancedCaption caption) async {
     _logger.i(
         '📋📥 [CAPTIONS CUBIT] Received enhanced caption: "${caption.displayText}" (final: ${caption.isFinal}, enhanced: ${caption.isEnhanced})',
@@ -439,7 +488,9 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     final currentState = state is LiveCaptionsActive
         ? (state as LiveCaptionsActive)
         : LiveCaptionsActive(
-            isListening: true, hasEnhancement: _useEnhancement, captions: []);
+            isListening: true, hasEnhancement: _useEnhancement, captions: [],
+            enhancedCaptionsActive: _enhancedCaptionsActive,
+            speakerAngles: Map.from(_speakerAngles));
 
     if (caption.isFinal) {
       _captionHistory.add(caption);
@@ -515,6 +566,8 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
         hasEnhancement: caption.isEnhanced,
         showOverlayFallback:
             currentState.showOverlayFallback || spatialFinalizationFailed,
+        enhancedCaptionsActive: _enhancedCaptionsActive,
+        speakerAngles: Map.from(_speakerAngles),
       ));
       _logger.i(
           '📤 [CAPTIONS CUBIT] Emitted updated state with ${_captionHistory.length} captions - FINAL CAPTION SHOULD BE VISIBLE NOW',
@@ -571,6 +624,11 @@ class LiveCaptionsCubit extends Cubit<LiveCaptionsState> {
     _logger.i(
         '🎤📥 [CAPTIONS CUBIT] Received raw speech result: "${result.text}" (final: ${result.isFinal})',
         category: LogCategory.captions);
+
+    // Track speaker angle for Enhanced Captions sticky labels.
+    if (_enhancedCaptionsActive && result.speakerId != null) {
+      _speakerAngles[result.speakerId!] = _angleFromResult(result);
+    }
 
     if (state is LiveCaptionsActive) {
       final currentState = state as LiveCaptionsActive;

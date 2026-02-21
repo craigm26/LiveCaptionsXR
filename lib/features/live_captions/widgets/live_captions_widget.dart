@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/user_settings.dart';
@@ -126,6 +128,8 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
 
   Widget _buildCaptionsContent(BuildContext context, LiveCaptionsState state) {
     final settings = _settings(context);
+    final activeState = state is LiveCaptionsActive ? state : null;
+    final isEnhancedActive = activeState != null && activeState.enhancedCaptionsActive;
     return Container(
       constraints: BoxConstraints(maxWidth: widget.maxWidth),
       padding: widget.padding,
@@ -133,6 +137,11 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Sticky speaker labels — only when Enhanced Captions is active.
+          if (isEnhancedActive) ...[
+            _buildStickyLabelBar(context, activeState, settings),
+            const SizedBox(height: 4),
+          ],
           _buildCurrentCaption(context, state, settings),
           if (widget.showHistory &&
               state is LiveCaptionsActive &&
@@ -143,6 +152,116 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
         ],
       ),
     );
+  }
+
+  /// Builds a horizontal bar with speaker name pills that float at the speaker's
+  /// estimated horizontal angle. Labels animate smoothly as angle changes.
+  Widget _buildStickyLabelBar(
+    BuildContext context,
+    LiveCaptionsActive state,
+    UserSettings settings,
+  ) {
+    // Collect unique speakers from current + recent captions.
+    final seenIds = <String>{};
+    final speakers = <SpeechResult>[];
+    final allCaptions = [
+      if (state.currentCaption != null) state.currentCaption!,
+      ...state.captions.reversed,
+    ];
+    for (final c in allCaptions) {
+      if (c.hasSpeakerDiarization && !seenIds.contains(c.speakerId)) {
+        seenIds.add(c.speakerId!);
+        speakers.add(c);
+      }
+    }
+
+    if (speakers.isEmpty) return const SizedBox.shrink();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final containerWidth = constraints.maxWidth.clamp(200.0, widget.maxWidth);
+        final activeSpeakerId = state.currentCaption?.speakerId ??
+            (state.captions.isNotEmpty ? state.captions.last.speakerId : null);
+
+        return SizedBox(
+          height: 28,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: speakers.map((speaker) {
+              final id = speaker.speakerId!;
+              final angle = state.speakerAngles[id] ?? _angleFromSpeakerResult(speaker);
+              // Map angle (-π/2 .. π/2) to 0..1 normalised position.
+              final t = ((angle / (math.pi / 2)) + 1) / 2;
+              // Left-edge of label, clamped so it stays within container.
+              const labelW = 72.0;
+              final left = (containerWidth * t - labelW / 2)
+                  .clamp(0.0, containerWidth - labelW);
+              final isActive = id == activeSpeakerId;
+              final color = _getSpeakerColor(speaker);
+
+              return AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                left: left,
+                top: 0,
+                child: _buildStickyLabel(speaker, color, isActive, settings),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStickyLabel(
+    SpeechResult speaker,
+    Color color,
+    bool isActive,
+    UserSettings settings,
+  ) {
+    final fontScale = settings.captionFontSize;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: EdgeInsets.symmetric(
+        horizontal: 7 * fontScale,
+        vertical: 3 * fontScale,
+      ),
+      decoration: BoxDecoration(
+        color: isActive
+            ? color.withAlpha((255 * 0.28).round())
+            : Colors.black.withAlpha((255 * 0.55).round()),
+        borderRadius: BorderRadius.circular(_pillRadius),
+        border: Border.all(
+          color: color.withAlpha(
+              (255 * (isActive ? 0.95 : 0.45)).round()),
+          width: isActive ? 1.5 : 1.0,
+        ),
+      ),
+      child: Text(
+        speaker.speakerLabel,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color.withAlpha((255 * (isActive ? 1.0 : 0.65)).round()),
+          fontSize: 11 * fontScale,
+          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  /// Derive an angle from a speaker result when no tracked angle is available.
+  static double _angleFromSpeakerResult(SpeechResult result) {
+    if (result.speakerPosition != null) {
+      final pos = result.speakerPosition!;
+      final denom = pos.x.abs() + pos.z.abs().clamp(0.1, double.infinity);
+      return pos.x.sign * (pos.x.abs() / denom) * (math.pi / 2);
+    }
+    switch (result.speakerDirection) {
+      case 'left': return -0.785;
+      case 'right': return 0.785;
+      default: return 0.0;
+    }
   }
 
   Widget _buildCurrentCaption(
@@ -297,14 +416,17 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
     final speakerFocus = settings.speakerFocusModeEnabled;
 
     // Directional arrow — only show for off-center speakers (TLOU2 style).
-    // When speaker is directly ahead (center), no arrow is shown.
+    // When Enhanced Captions is active, uses precise angle from localization
+    // for a continuously-tracking pointer rather than snapping left/right.
     children.add(WidgetSpan(
       alignment: PlaceholderAlignment.middle,
       child: BlocBuilder<LocalizationCubit, LocalizationState>(
         builder: (context, locState) {
           String direction = 'center';
+          double? preciseAngle;
           if (locState is LocalizationLoaded) {
             direction = locState.direction;
+            preciseAngle = locState.angle;
           } else if (caption?.speakerDirection != null) {
             direction = caption!.speakerDirection!;
           }
@@ -314,19 +436,26 @@ class _LiveCaptionsWidgetState extends State<LiveCaptionsWidget>
             return const SizedBox.shrink();
           }
 
-          final double rotation =
-              direction == 'left' ? -3.14159 / 2 : 3.14159 / 2;
+          // Enhanced Captions: rotate arrow by precise angle for responsive tracking.
+          // Standard: snap to ±90°.
+          final double rotation = preciseAngle != null
+              ? preciseAngle.clamp(-math.pi / 2, math.pi / 2)
+              : (direction == 'left' ? -math.pi / 2 : math.pi / 2);
 
           return Padding(
             padding: const EdgeInsets.only(right: 5.0),
-            child: Transform.rotate(
-              angle: rotation,
-              child: Icon(
-                Icons.play_arrow_rounded,
-                // TLOU2: arrow is same height as the caption text, not oversized
-                size: 14 * fontScale,
-                color: Colors.white
-                    .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round()),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: rotation, end: rotation),
+              duration: const Duration(milliseconds: 150),
+              builder: (context, angle, _) => Transform.rotate(
+                angle: angle,
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  // TLOU2: arrow is same height as the caption text, not oversized
+                  size: 14 * fontScale,
+                  color: Colors.white
+                      .withAlpha((255 * (highContrast ? 1.0 : 0.85)).round()),
+                ),
               ),
             ),
           );

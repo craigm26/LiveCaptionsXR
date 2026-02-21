@@ -98,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
         try {
           context
               .read<LocalizationCubit>()
-              .localize(update.direction, update.confidence);
+              .localizeWithAngle(update.direction, update.confidence, update.angle);
         } catch (_) {}
 
         try {
@@ -445,6 +445,12 @@ class _HomeScreenState extends State<HomeScreen> {
           final liveCaptionsCubit = context.read<LiveCaptionsCubit>();
           _logger.i('✅ [HOME] Step 6a complete: Got LiveCaptionsCubit',
               category: LogCategory.ui);
+
+          // Sync Enhanced Captions setting from user preferences.
+          try {
+            final settings = context.read<SettingsCubit>().state;
+            liveCaptionsCubit.setEnhancedCaptionsEnabled(settings.enhancedCaptionsEnabled);
+          } catch (_) {}
 
           _logger.i('🔍 [HOME] Step 6b: Checking LiveCaptions state...',
               category: LogCategory.ui);

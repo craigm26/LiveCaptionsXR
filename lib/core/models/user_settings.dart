@@ -63,6 +63,12 @@ class UserSettings {
   final bool debugLoggingOverlayEnabled;
   final bool rawSttDebugLineEnabled;
 
+  /// Whether Enhanced Captions mode is enabled.
+  /// Requires OmniNeural-4B to be downloaded. When active, caption labels
+  /// float at the speaker's screen position and the directional pointer
+  /// responds more precisely to speaker angle.
+  final bool enhancedCaptionsEnabled;
+
   /// Whether spatial localization (speaker direction tracking) is enabled.
   final bool spatialLocalizationEnabled;
 
@@ -88,6 +94,7 @@ class UserSettings {
     this.speakerFocusModeEnabled = false,
     this.debugLoggingOverlayEnabled = true,
     this.rawSttDebugLineEnabled = true,
+    this.enhancedCaptionsEnabled = false,
     this.spatialLocalizationEnabled = true,
     this.localizationSensitivity = 0.5,
     this.captionDurationSeconds = 6.0,
@@ -108,6 +115,7 @@ class UserSettings {
     bool? speakerFocusModeEnabled,
     bool? debugLoggingOverlayEnabled,
     bool? rawSttDebugLineEnabled,
+    bool? enhancedCaptionsEnabled,
     bool? spatialLocalizationEnabled,
     double? localizationSensitivity,
     double? captionDurationSeconds,
@@ -130,6 +138,8 @@ class UserSettings {
           debugLoggingOverlayEnabled ?? this.debugLoggingOverlayEnabled,
         rawSttDebugLineEnabled:
           rawSttDebugLineEnabled ?? this.rawSttDebugLineEnabled,
+      enhancedCaptionsEnabled:
+          enhancedCaptionsEnabled ?? this.enhancedCaptionsEnabled,
       spatialLocalizationEnabled:
           spatialLocalizationEnabled ?? this.spatialLocalizationEnabled,
       localizationSensitivity:
@@ -155,6 +165,7 @@ class UserSettings {
       'speakerFocusModeEnabled': speakerFocusModeEnabled,
       'debugLoggingOverlayEnabled': debugLoggingOverlayEnabled,
       'rawSttDebugLineEnabled': rawSttDebugLineEnabled,
+      'enhancedCaptionsEnabled': enhancedCaptionsEnabled,
       'spatialLocalizationEnabled': spatialLocalizationEnabled,
       'localizationSensitivity': localizationSensitivity,
       'captionDurationSeconds': captionDurationSeconds,
@@ -197,6 +208,8 @@ class UserSettings {
           json['debugLoggingOverlayEnabled'] as bool? ?? false,
         rawSttDebugLineEnabled:
           json['rawSttDebugLineEnabled'] as bool? ?? true,
+      enhancedCaptionsEnabled:
+          json['enhancedCaptionsEnabled'] as bool? ?? false,
       spatialLocalizationEnabled:
           json['spatialLocalizationEnabled'] as bool? ?? true,
       localizationSensitivity:

@@ -110,6 +110,11 @@ class SettingsCubit extends Cubit<UserSettings> {
     _saveSettings(state.copyWith(enhancementEnabled: value));
   }
 
+  /// Toggle Enhanced Captions mode (requires OmniNeural-4B to be downloaded).
+  void toggleEnhancedCaptions(bool value) {
+    _saveSettings(state.copyWith(enhancedCaptionsEnabled: value));
+  }
+
   void setSttMode(SttMode mode) {
     _saveSettings(state.copyWith(sttMode: mode));
   }

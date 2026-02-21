@@ -17,11 +17,15 @@ class DirectionUpdate {
   final String direction;
   final double confidence;
   final DateTime timestamp;
+  /// Precise angle in radians (negative = left, 0 = center, positive = right).
+  /// When available, enables more responsive directional pointer animation.
+  final double angle;
 
   const DirectionUpdate({
     required this.direction,
     required this.confidence,
     required this.timestamp,
+    this.angle = 0.0,
   });
 }
 
@@ -168,6 +172,7 @@ class SpatialCaptionIntegrationService {
           direction: partialDirection,
           confidence: result.confidence,
           timestamp: DateTime.now(),
+          angle: _deriveAngle(position),
         ),
       );
       
@@ -237,6 +242,7 @@ class SpatialCaptionIntegrationService {
           direction: finalDirection,
           confidence: result.confidence,
           timestamp: DateTime.now(),
+          angle: _deriveAngle(position),
         ),
       );
       
@@ -382,6 +388,13 @@ class SpatialCaptionIntegrationService {
     if (position.x < -0.25) return 'left';
     if (position.x > 0.25) return 'right';
     return 'center';
+  }
+
+  /// Compute horizontal angle (radians) from a 3D speaker position.
+  /// Returns value in (-π/2, π/2): negative = left, 0 = center, positive = right.
+  double _deriveAngle(Vector3 position) {
+    final denom = position.x.abs() + position.z.abs().clamp(0.1, double.infinity);
+    return position.x.sign * (position.x.abs() / denom) * (pi / 2);
   }
 
   /// Schedule enhancement of a final caption

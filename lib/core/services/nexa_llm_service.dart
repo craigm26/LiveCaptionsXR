@@ -810,6 +810,19 @@ Enhanced:''';
     _enhancementEventController.add(event.toGemma3nEvent());
   }
 
+  /// Check if the OmniNeural-4B model is downloaded on this device.
+  /// Safe to call without initializing the full service.
+  static Future<bool> isOmniNeuralDownloaded() async {
+    if (!Platform.isAndroid) return false;
+    try {
+      return await ModelDownloader.isModelDownloaded('OmniNeural-4B');
+    } catch (e) {
+      _logger.w('Could not check OmniNeural download status: $e',
+          category: LogCategory.gemma);
+      return false;
+    }
+  }
+
   /// Add enhanced text to cache with LRU eviction
   void _addToCache(String original, String enhanced) {
     if (_enhancementCache.length >= _maxCacheSize) {

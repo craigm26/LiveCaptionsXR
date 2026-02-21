@@ -265,6 +265,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               Tooltip(
                 message:
+                    'Requires OmniNeural-4B to be downloaded. Shows speaker name labels that track each person\'s position, and uses a continuously-responsive directional pointer.',
+                child: _buildSettingTile(
+                  context,
+                  icon: Icons.spatial_audio,
+                  title: 'Enhanced Captions',
+                  subtitle: 'Sticky speaker labels + precise directional tracking (OmniNeural)',
+                  trailing: Switch(
+                    value: state.enhancedCaptionsEnabled,
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().toggleEnhancedCaptions(value);
+                    },
+                  ),
+                ),
+              ),
+              Tooltip(
+                message:
                     'Enable to receive vibration feedback for important events.',
                 child: _buildSettingTile(
                   context,

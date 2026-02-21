@@ -9,7 +9,10 @@ class LocalizationInitial extends LocalizationState {}
 class LocalizationLoaded extends LocalizationState {
   final String direction; // e.g., 'left', 'right', 'center'
   final double confidence;
-  LocalizationLoaded(this.direction, this.confidence);
+  /// Angle in radians: negative = left, 0 = center, positive = right.
+  /// Range approximately -π/2 to π/2.
+  final double angle;
+  LocalizationLoaded(this.direction, this.confidence, {this.angle = 0.0});
 }
 
 class LocalizationCubit extends Cubit<LocalizationState> {
@@ -44,7 +47,18 @@ class LocalizationCubit extends Cubit<LocalizationState> {
   void localize(String direction, double confidence) {
     if (!_isActive) return;
     emit(LocalizationLoaded(direction, confidence));
+    _resetStaleTimer();
+  }
 
+  /// Localize with precise angle (radians): negative = left, 0 = center, positive = right.
+  /// Emits [LocalizationLoaded] with the angle for sticky-label positioning.
+  void localizeWithAngle(String direction, double confidence, double angle) {
+    if (!_isActive) return;
+    emit(LocalizationLoaded(direction, confidence, angle: angle));
+    _resetStaleTimer();
+  }
+
+  void _resetStaleTimer() {
     _staleTimer?.cancel();
     _staleTimer = Timer(_staleTimeout, () {
       if (_isActive) {
