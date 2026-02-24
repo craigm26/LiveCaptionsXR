@@ -19,7 +19,7 @@
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:requestLegacyExternalStorage="true"
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:usesCleartextTraffic="true">
         
         <!-- ARCore metadata -->
