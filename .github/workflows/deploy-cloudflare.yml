@@ -11,14 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Build Web
-        run: flutter build web --release
-
       - name: Create Cloudflare Pages Project
         uses: cloudflare/wrangler-action@v3
         continue-on-error: true
@@ -32,4 +24,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 71d59adbd067633aca3e95f915fbf2b4
-          command: pages deploy build/web --project-name=live-captions-xr --commit-dirty=true
+          command: pages deploy web --project-name=live-captions-xr --commit-dirty=true
