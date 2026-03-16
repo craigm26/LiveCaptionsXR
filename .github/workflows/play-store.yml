@@ -83,4 +83,5 @@ jobs:
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: ${{ github.event.inputs.track || 'internal' }}
           status: draft
+          changesNotSentForReview: true
           whatsNewDirectory: distribution/whatsnew
