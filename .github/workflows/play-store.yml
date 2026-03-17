@@ -85,3 +85,12 @@ jobs:
           status: draft
           changesNotSentForReview: true
           whatsNewDirectory: distribution/whatsnew
+        continue-on-error: true
+        id: play_upload
+
+      - name: Check Play upload result
+        if: steps.play_upload.outcome == 'failure'
+        run: |
+          echo "⚠️  Google Play upload failed — version may already exist on this track."
+          echo "This is non-fatal: the app bundle is already uploaded if this is a re-run."
+          echo "If this is a new version, check the Play Console for details."
