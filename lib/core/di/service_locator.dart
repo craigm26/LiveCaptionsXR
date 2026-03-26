@@ -30,6 +30,7 @@ import 'package:live_captions_xr/core/services/download/unified_download_manager
 import 'package:live_captions_xr/core/services/translation_service.dart';
 import 'package:live_captions_xr/features/translation/cubit/translation_cubit.dart';
 import 'package:live_captions_xr/core/services/speaker_diarization_service.dart';
+import 'package:live_captions_xr/core/services/glasses_service.dart';
 
 final sl = GetIt.instance;
 
@@ -239,6 +240,11 @@ void setupServiceLocator() {
       );
     });
   }
+  // Register GlassesService for Jetpack XR AI Glasses integration (Android only)
+  if (!kIsWeb && !sl.isRegistered<GlassesService>()) {
+    sl.registerLazySingleton<GlassesService>(() => GlassesService());
+  }
+
   // Register SpatialCaptionIntegrationService (with speaker diarization)
   if (!sl.isRegistered<SpatialCaptionIntegrationService>()) {
     sl.registerLazySingleton<SpatialCaptionIntegrationService>(
@@ -248,6 +254,7 @@ void setupServiceLocator() {
         gemmaService: sl<Gemma3nService>(),
         hybridLocalizationEngine: sl<HybridLocalizationEngine>(),
         speakerDiarizationService: sl<SpeakerDiarizationService>(),
+        glassesService: sl.isRegistered<GlassesService>() ? sl<GlassesService>() : null,
       ),
     );
   }

@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.software.xr" android:required="false" />
     
     <application
         android:label="Live Captions XR"
@@ -46,6 +47,17 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <!-- Jetpack XR AI Glasses projected activity -->
+        <activity
+            android:name=".GlassesActivity"
+            android:exported="true"
+            android:requiredDisplayCategory="xr_projected"
+            android:label="Live Captions XR Glasses"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|density|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

@@ -164,6 +164,23 @@
   public static final android.os.Parcelable$Creator *;
 }
 
+# Jetpack XR SDK
+-keep class androidx.xr.** { *; }
+-keepnames class androidx.xr.** { *; }
+-dontwarn androidx.xr.**
+
+# XR Extensions (compileOnly — suppress warnings for missing runtime classes)
+-dontwarn com.android.extensions.xr.**
+
+# Jetpack Compose
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
+
+# Glasses activity and bridge classes
+-keep class com.livecaptionsxr.app.GlassesActivity { *; }
+-keep class com.livecaptionsxr.app.CaptionBridge { *; }
+-keep class com.livecaptionsxr.app.GlassesPlugin { *; }
+
 # Nexa AI SDK — preserve all classes and native bindings
 -keep class ai.nexa.** { *; }
 -keep interface ai.nexa.** { *; }

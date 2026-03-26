@@ -39,6 +39,9 @@ class MainActivity: FlutterActivity() {
         // Register Nexa SDK device detection plugin (actual inference handled by nexa_ai_flutter)
         flutterEngine.plugins.add(NexaAsrPlugin())
 
+        // Register Jetpack XR AI Glasses plugin for glasses detection and launch
+        flutterEngine.plugins.add(GlassesPlugin())
+
         // Visual Capture Method Channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VISUAL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
