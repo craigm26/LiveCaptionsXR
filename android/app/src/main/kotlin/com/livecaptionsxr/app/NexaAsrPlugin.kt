@@ -146,12 +146,33 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     /**
-     * Detect if this device is an XR/VR device via system features.
+     * Detect if this device is an XR/VR device.
+     * Tries Jetpack XR SDK detection first, falls back to system feature heuristics.
      */
     private fun isXrDevice(): Boolean {
+        // Try Jetpack XR SDK detection first (most reliable)
+        if (isJetpackXrAvailable()) return true
+
+        // Fallback to system feature heuristics
         val pm = context.packageManager
         return pm.hasSystemFeature("android.software.xr") ||
                pm.hasSystemFeature("android.hardware.vr.headtracking")
+    }
+
+    /**
+     * Check if Jetpack XR SDK runtime is available on this device.
+     * Returns true if the ProjectedContext class is resolvable (SDK on classpath
+     * and device supports the XR runtime).
+     */
+    private fun isJetpackXrAvailable(): Boolean {
+        return try {
+            Class.forName("androidx.xr.projected.ProjectedContext")
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /**
@@ -250,6 +271,7 @@ class NexaAsrPlugin : FlutterPlugin, MethodCallHandler {
             "gpuAvailable" to gpuAvailable,
             "currentInferenceMode" to currentInferenceMode,
             "isXrDevice" to isXrDevice(),
+            "jetpackXrAvailable" to isJetpackXrAvailable(),
             "formFactor" to detectFormFactor()
         )
     }

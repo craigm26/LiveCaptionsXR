@@ -12,6 +12,7 @@ import 'gemma_3n_service.dart';
 import 'app_logger.dart';
 import 'hybrid_localization_engine.dart';
 import 'speaker_diarization_service.dart';
+import 'glasses_service.dart';
 
 class DirectionUpdate {
   final String direction;
@@ -42,6 +43,7 @@ class SpatialCaptionIntegrationService {
   final Gemma3nService _gemmaService;
   final HybridLocalizationEngine _hybridLocalizationEngine;
   final SpeakerDiarizationService _speakerDiarizationService;
+  final GlassesService? _glassesService;
   final AppLogger _logger = AppLogger.instance;
   
   // Removed: Method channel for AR session events (no longer needed)
@@ -68,11 +70,13 @@ class SpatialCaptionIntegrationService {
     required Gemma3nService gemmaService,
     required HybridLocalizationEngine hybridLocalizationEngine,
     required SpeakerDiarizationService speakerDiarizationService,
+    GlassesService? glassesService,
   })  : _spatialCaptionsCubit = spatialCaptionsCubit,
         _speechLocalizer = speechLocalizer,
         _gemmaService = gemmaService,
         _hybridLocalizationEngine = hybridLocalizationEngine,
-        _speakerDiarizationService = speakerDiarizationService;
+        _speakerDiarizationService = speakerDiarizationService,
+        _glassesService = glassesService;
 
   /// Initialize the service and set landscape orientation
   Future<void> initialize() async {
@@ -246,9 +250,12 @@ class SpatialCaptionIntegrationService {
         ),
       );
       
+      // Forward caption to AI glasses if connected
+      _glassesService?.sendCaption(result.text);
+
       // Schedule enhancement with Gemma
       _scheduleEnhancement(result, speakerId);
-      
+
       _logger.i('✅ Final caption added and enhancement scheduled', category: LogCategory.captions);
       
       // Return enriched result with speaker data

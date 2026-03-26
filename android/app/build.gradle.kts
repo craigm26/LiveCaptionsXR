@@ -4,6 +4,7 @@ import java.io.FileInputStream
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -33,6 +34,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "11"
+    }
+
+    buildFeatures {
+        compose = true
     }
 
     defaultConfig {
@@ -111,8 +116,21 @@ dependencies {
     // Kotlin Coroutines for Nexa async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Sceneform (optional, if used)
-    // implementation("com.gorisse.thomas.sceneform:sceneform:1.21.0")
+    // Jetpack XR SDK for AI Glasses (projected activity pattern)
+    // Versions pinned per official docs for AI glasses development
+    implementation("androidx.xr.runtime:runtime:1.0.0-alpha12")
+    implementation("androidx.xr.glimmer:glimmer:1.0.0-alpha08")
+    implementation("androidx.xr.projected:projected:1.0.0-alpha05")
+    implementation("androidx.xr.arcore:arcore:1.0.0-alpha11")
+
+    // XR Extensions — MUST be compileOnly per official docs (implementation causes runtime crash)
+    compileOnly("com.android.extensions.xr:extensions-xr:1.1.0")
+
+    // Jetpack Compose (required for Glimmer UI on glasses)
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.compose.ui:ui:1.7.6")
+    implementation("androidx.compose.material3:material3:1.3.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
 }
 
 flutter {
